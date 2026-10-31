@@ -285,7 +285,10 @@ private:
         return &pending_binds.emplace_back(arena);
     }
 
-    const Buffer* GetArena(u64 first_block, u64 last_block);
+    /// `caller` and `line` are the call site's (default arguments are evaluated there): for the
+    /// log line GetArena writes before its assertion.
+    const Buffer* GetArena(u64 first_block, u64 last_block, const char* caller = __builtin_FUNCTION(),
+                           u32 line = __builtin_LINE());
 
     /// `in_place`: bind what can be in place even when Garlic (texture data, read once into an
     /// image: a VRAM copy of it would only cost an upload).

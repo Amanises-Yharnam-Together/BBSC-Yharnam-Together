@@ -1565,9 +1565,21 @@ void BufferCache::SynchronizeDmaBuffers() {
     }
 }
 
-const Buffer* BufferCache::GetArena(u64 first_block, u64 last_block) {
+const Buffer* BufferCache::GetArena(u64 first_block, u64 last_block, const char* caller,
+                                    u32 line) {
     const u64 first_page = first_block >> blocks_per_arena_page_shift;
     const u64 last_page = last_block >> blocks_per_arena_page_shift;
+    if (last_page - first_page > 1) {
+        // bbport: which request it is, before the assertion stops the game (PR #450: an RX 9060 XT
+        // stops here when the first area loads). A last block before the first wraps to a huge span.
+        LOG_CRITICAL(Render,
+                     "GetArena from {}:{}: blocks {:#x}..{:#x} (VA {:#x}..{:#x}{}), arena pages "
+                     "{:#x}..{:#x} of {} MiB",
+                     caller, line, first_block, last_block, first_block << block_shift,
+                     ((last_block + 1) << block_shift) - 1,
+                     last_block < first_block ? ", LAST BEFORE FIRST" : "", first_page, last_page,
+                     arena_page_size >> 20);
+    }
     ASSERT_MSG(last_page - first_page <= 1,
                "Buffer request cannot span more than two VA arena pages");
 
