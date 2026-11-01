@@ -400,7 +400,8 @@ void TeamLobby::DropTeam(const std::string& team_id) {
 }
 
 void TeamLobby::GiveSigns(bbcoop::Team& team) {
-    constexpr std::array<u32, 3> GuestSigns{7, 6, 5};
+    constexpr std::array<u32, 4> GuestSigns{7, 6, 5,
+                                            4}; // 4: the fifth hunter's (Amanises 2026-10-29)
     std::vector<u32> taken;
     for (bbcoop::TeamMember& m : *team.mutable_members()) {
         const bool guest_sign = std::ranges::find(GuestSigns, m.sign()) != GuestSigns.end();

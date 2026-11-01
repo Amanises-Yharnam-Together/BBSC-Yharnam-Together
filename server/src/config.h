@@ -73,7 +73,7 @@ struct InvasionConfig {
     // (GameMan +0x16F0 / +0x16F4). Placeholders until the retail Sinister Resonant Bell capture
     // (docs/INVASIONS.md, phase 0) says the real values.
     quint32 kind = 0xFFFFFFFF;
-    quint32 sign = 4;
+    quint32 sign = 3; // Amanises 2026-10-29: 4 is the fifth hunter's now (team_lobby.cpp)
 };
 
 class ConfigManager {

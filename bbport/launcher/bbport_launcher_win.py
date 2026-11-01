@@ -1496,7 +1496,7 @@ RADMIN_DOWNLOAD = 'https://www.radmin-vpn.com'
 NEWS_FALLBACK = {
     'kicker': 'Seamless Co-op',
     'title': 'Hunt Yharnam together',
-    'intro': 'Up to four hunters share one world: no bells, no signs, no peer-to-peer. Set the co-op up once, '
+    'intro': 'Up to five hunters share one world: no bells, no signs, no peer-to-peer. Set the co-op up once, '
              'press PLAY, then make or join a team on the screen after Continue.',
     'notes': [],
     'link': {'text': 'Open the website', 'url': 'https://bloodborne.seamlesscoop.dev'},

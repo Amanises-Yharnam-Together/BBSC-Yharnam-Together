@@ -136,7 +136,7 @@ struct HostedRules {
 struct InvasionRules {
     bool enabled = false;
     quint32 kind = 0xFFFFFFFF; // InvasionKind: the co-operator's kind until the capture
-    quint32 sign = 4;          // InvasionSign: the slot after the guests' 7, 6, 5 (a guess)
+    quint32 sign = 3;          // InvasionSign: the slot after the guests' 7, 6, 5, 4 (a guess)
 };
 
 // What one game can make the service hold (docs/HOSTED_SERVER.md, "Caps"), for every server: far

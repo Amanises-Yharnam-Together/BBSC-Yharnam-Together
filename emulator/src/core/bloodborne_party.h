@@ -3527,7 +3527,7 @@ bool PartyListOutdated(u64 hud, u64 generation, u64 list_hud, u64 list_generatio
 constexpr u64 HudTicksTagsDoneOffset = 0x01BF8A50;
 constexpr std::array<u8, 7> HudTicksTagsDone{0x49, 0x8B, 0xBF, 0xF8, 0x00, 0x00, 0x00};
 constexpr s64 HudFrameTimeFrameOffset = -0x6C8;
-constexpr int PartyListSize = 3;
+constexpr int PartyListSize = 4; // Amanises 2026-10-29: teams of five (was 3)
 struct PartyListEntry {
     bool visible = false;
     s32 hp = 0;

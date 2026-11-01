@@ -2869,7 +2869,7 @@ void TextPrompt() {
 }
 
 // The team screen (phase 5, docs/SERVER_COOP_PLAN.md "The team lobby"): up while the title holds a
-// save's load for the team (bbcoop_team_screen). Four hunters' places, the players online to
+// save's load for the team (bbcoop_team_screen). Five hunters' places, the players online to
 // invite, the invitations, and the buttons: create or leave a team, begin the hunt, its world.
 // Drawn like the menu (its colours and ornaments, the game's serif); focus moves with the
 // d-pad / arrows over the buttons as they stand on screen (BbMenuFocus: Up and Down change rows,
@@ -3996,9 +3996,9 @@ void Screen() {
                   Gold(0.85f), status.c_str());
     ImGui::PopFont();
 
-    // The four places.
+    // The five places (four before teams of five).
     const float card_w = S(BbPartyLayout::TeamCardWidth), card_h = S(270.0f), gap = S(BbPartyLayout::TeamGap);
-    const float cards_x = win.x + (size.x - (4 * card_w + 3 * gap)) * 0.5f,
+    const float cards_x = win.x + (size.x - (BBCOOP_LOBBY_TEAM * card_w + (BBCOOP_LOBBY_TEAM - 1) * gap)) * 0.5f,
                 header_y = win.y + S(MenuArt::Has(MenuArt::HeaderOrnament) ? 140.0f : 128.0f);
     // Full screen: the cards and the two lists (five rows) as one block, in the middle of the room
     // between the title and the buttons.
@@ -4437,10 +4437,10 @@ void PlainScreen() {
     const float wide = std::min(display.x, display.y * 16.0f / 9.0f), side = (display.x - wide) * 0.5f;
     const float left = side + wide * 0.18f, right = side + wide * 0.82f;
     draw->AddLine(ImVec2(left, display.y * 0.24f), ImVec2(right, display.y * 0.24f), dim, 1.0f);
-    const float card_w = (right - left) / 4.0f;
-    const int count = std::clamp(load.count, 1, 4);
+    const float card_w = (right - left) / BBCOOP_LOBBY_TEAM;
+    const int count = std::clamp(load.count, 1, static_cast<int>(BBCOOP_LOBBY_TEAM));
     const float start = (display.x - card_w * count) * 0.5f;
-    for (int i = 0; i < load.count && i < 4; ++i) {
+    for (int i = 0; i < load.count && i < BBCOOP_LOBBY_TEAM; ++i) {
         const bbcoop_team_load_row& row = load.rows[i];
         const float x0 = start + card_w * i + unit * 0.5f, x1 = start + card_w * (i + 1) - unit * 0.5f;
         const float y0 = display.y * 0.30f, y1 = display.y * 0.72f;
@@ -4508,11 +4508,11 @@ void Screen() {
                       ImVec2(mid + ow * 0.5f, 342.0f * u + oh), 0.8f);
     }
     // The cards.
-    const int count = std::clamp(load.count, 1, 4);
+    const int count = std::clamp(load.count, 1, static_cast<int>(BBCOOP_LOBBY_TEAM));
     const float card_w = 300.0f * u, card_h = 420.0f * u, gap = 36.0f * u;
     // Kaniel 2026-10-18: more room between the title's scrollwork and the cards (420 before).
     const float x_start = mid - (card_w * count + gap * (count - 1)) * 0.5f, y0 = 480.0f * u;
-    for (int i = 0; i < load.count && i < 4; ++i) {
+    for (int i = 0; i < load.count && i < BBCOOP_LOBBY_TEAM; ++i) {
         const bbcoop_team_load_row& row = load.rows[i];
         const float x0 = x_start + i * (card_w + gap), x1 = x0 + card_w, cx = (x0 + x1) * 0.5f;
         const bool ready = row.stage == BBCOOP_LOAD_READY;

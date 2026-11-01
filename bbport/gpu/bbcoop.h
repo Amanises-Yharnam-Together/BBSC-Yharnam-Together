@@ -270,7 +270,7 @@ void bbcoop_trophy_unlocked(int32_t trophy_id);
 /* Phase 5, the team lobby (always on with co-op), for the game's own menu
  * (the team screen, bbport_overlay.cpp). Names are UTF-8; `id` is what a request names (a
  * player's lobby member, a team's id). */
-enum { BBCOOP_LOBBY_TEAM = 4, BBCOOP_LOBBY_PLAYERS = 16, BBCOOP_LOBBY_INVITES = 8,
+enum { BBCOOP_LOBBY_TEAM = 5, /* Amanises 2026-10-29: teams of five (was 4) */ BBCOOP_LOBBY_PLAYERS = 16, BBCOOP_LOBBY_INVITES = 8,
        BBCOOP_LOBBY_WORLDS = 16, BBCOOP_LOBBY_FRIENDS = 32, BBCOOP_LOBBY_REQUESTS = 8,
        BBCOOP_LOBBY_SEARCH = 20, BBCOOP_LOBBY_OPEN = 12, BBCOOP_LOBBY_ASKS = 8 };
 enum { BBCOOP_LOBBY_OFFLINE, BBCOOP_LOBBY_TITLE, BBCOOP_LOBBY_PLAYING };
@@ -459,7 +459,7 @@ typedef struct bbcoop_team_load_row {
 } bbcoop_team_load_row;
 typedef struct bbcoop_team_load {
     int count;
-    bbcoop_team_load_row rows[4];
+    bbcoop_team_load_row rows[BBCOOP_LOBBY_TEAM];
 } bbcoop_team_load;
 int bbcoop_team_load_view(bbcoop_team_load *view);
 /* Kaniel 2026-10-15: while that screen is up the game's sound is held (runtime_audio.c reads this

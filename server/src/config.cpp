@@ -81,7 +81,7 @@ void ConfigManager::Parse(const QString& path) {
     m_hosted.partyWorlds = str("HostedPartyWorlds", "2048").toInt();
     m_invasions.enabled = boolean("Invasions", false);
     m_invasions.kind = str("InvasionKind", "0xFFFFFFFF").toUInt(nullptr, 0);
-    m_invasions.sign = str("InvasionSign", "4").toUInt(nullptr, 0);
+    m_invasions.sign = str("InvasionSign", "3").toUInt(nullptr, 0);
     m_hosted.stats = boolean("HostedStats", false);
     m_hosted.reports = boolean("HostedReports", false);
     m_hosted.adminSocket = str("HostedAdminSocket", "admin.sock").trimmed();

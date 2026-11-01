@@ -25,8 +25,9 @@
 
 namespace BloodborneCoop {
 
-// The game's remote player slots: the host and three more.
-constexpr size_t TeamSize = 4;
+// The host and four more (Amanises 2026-10-29: the game's session holds 5 members, BBSC's
+// "five hunters"; was 4). A fourth guest takes player slot 4.
+constexpr size_t TeamSize = 5;
 
 // Kaniel 2026-10-16: how long a member's game may stay gone (a crash and a restart) before the
 // member leaves its team; a team with nobody left is gone. Kaniel 2026-10-25: only while nobody
@@ -231,7 +232,7 @@ private:
     void KeepLastWorlds(const bbcoop::Team& started, std::vector<std::string>& forgotten,
                         std::vector<bbcoop::TeamWorldInfo>& forgotten_lines);
     // Phase 7: the leader's sign is 0 (it hosts); a guest keeps its own, one without takes the
-    // first free of 7, 6, 5.
+    // first free of 7, 6, 5, 4.
     static void GiveSigns(bbcoop::Team& team);
     // A started team nobody plays in any more is not started.
     void Settle();

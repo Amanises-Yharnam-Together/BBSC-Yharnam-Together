@@ -703,7 +703,7 @@ extern "C" int bbcoop_team_load_view(bbcoop_team_load* view) {
     }
     *view = {};
     for (const auto& row : load.rows) {
-        if (view->count >= 4) {
+        if (view->count >= BBCOOP_LOBBY_TEAM) {
             break;
         }
         bbcoop_team_load_row& out = view->rows[view->count++];

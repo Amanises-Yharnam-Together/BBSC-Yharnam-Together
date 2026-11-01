@@ -86,20 +86,28 @@ int TeamFormsByInvite() {
   return 0;
 }
 
-int TeamHoldsFour() {
+int TeamHoldsFive() {
   TeamLobby lobby = NewLobby();
-  for (const char *m : {"a", "b", "c", "d", "e"}) {
+  for (const char *m : {"a", "b", "c", "d", "e", "f"}) {
     lobby.Arrive(m, m, false);
   }
   lobby.Request("a", Request(Action::CREATE));
   const std::string team = lobby.TeamOf("a")->id();
-  for (const char *m : {"b", "c", "d"}) {
+  for (const char *m : {"b", "c", "d", "e"}) {
     lobby.Request("a", Request(Action::INVITE, m));
     CHECK(lobby.Request(m, Request(Action::ACCEPT, {}, team)).changed);
   }
-  CHECK(lobby.TeamOf("a")->members_size() == 4);
+  // Amanises 2026-10-29: five (was four); the guests' player slots are 7, 6, 5
+  // and 4.
+  CHECK(lobby.TeamOf("a")->members_size() == 5);
+  std::vector<uint32_t> signs;
+  for (const bbcoop::TeamMember &m : lobby.TeamOf("a")->members()) {
+    signs.push_back(m.sign());
+  }
+  std::ranges::sort(signs);
+  CHECK((signs == std::vector<uint32_t>{0, 4, 5, 6, 7}));
   // A full team takes no more: the invite itself is refused.
-  CHECK(!lobby.Request("a", Request(Action::INVITE, "e")).notice.empty());
+  CHECK(!lobby.Request("a", Request(Action::INVITE, "f")).notice.empty());
   return 0;
 }
 
@@ -971,18 +979,20 @@ static int AFriendJoinsByTheTeamsCode() {
   join.set_code(code);
   CHECK(lobby.Request("b", join).notice.empty());
   CHECK(lobby.Request("c", join).notice.empty());
-  CHECK(!lobby.Request("d", join).notice.empty());
-  CHECK(!lobby.TeamOf("d"));
+  CHECK(lobby.Request("d", join)
+            .notice.empty()); // the fifth (Amanises 2026-10-29)
+  CHECK(!lobby.Request("f", join).notice.empty());
+  CHECK(!lobby.TeamOf("f"));
   // Only the leader makes a new code; the old one joins no more.
   CHECK(!lobby.Request("b", Request(Action::NEW_CODE)).notice.empty());
   lobby.Request("c", Request(Action::LEAVE));
   CHECK(lobby.Request("a", Request(Action::NEW_CODE)).changed);
   const std::string fresh = lobby.StateFor("a").team().code();
   CHECK(fresh != code && NormalizeTeamCode(fresh) == fresh);
-  CHECK(!lobby.Request("d", join).notice.empty());
+  CHECK(!lobby.Request("f", join).notice.empty());
   join.set_code(fresh);
-  CHECK(lobby.Request("d", join).notice.empty());
-  CHECK(lobby.TeamOf("d") == lobby.TeamOf("a"));
+  CHECK(lobby.Request("f", join).notice.empty());
+  CHECK(lobby.TeamOf("f") == lobby.TeamOf("a"));
   return 0;
 }
 
@@ -1307,7 +1317,7 @@ int OpenTeamsAreAskedToJoin() {
   lobby.Arrive("c", "Bo", false);
   lobby.Request("a", Request(Action::CREATE));
   const std::string team = lobby.TeamOf("a")->id();
-  CHECK(lobby.StateFor("b").team_size() == 4);
+  CHECK(lobby.StateFor("b").team_size() == 5);
   // Not open: not listed, and not asked.
   CHECK(lobby.StateFor("b").open_teams_size() == 0);
   CHECK(
@@ -1351,9 +1361,13 @@ int OpenTeamsAreAskedToJoin() {
   // Full: not listed, asks refused. Closed: not listed, waiting asks gone.
   lobby.Arrive("d", "Dee", false);
   lobby.Arrive("e", "Eve", false);
+  lobby.Arrive("g", "Gil", false);
   lobby.Request("d", Request(Action::ASK_JOIN, {}, team));
   CHECK(lobby.Request("a", Request(Action::ASK_ACCEPT, "d")).changed);
-  CHECK(lobby.TeamOf("a")->members_size() == 4);
+  lobby.Request("g", Request(Action::ASK_JOIN, {},
+                             team)); // the fifth (Amanises 2026-10-29)
+  CHECK(lobby.Request("a", Request(Action::ASK_ACCEPT, "g")).changed);
+  CHECK(lobby.TeamOf("a")->members_size() == 5);
   CHECK(lobby.StateFor("e").open_teams_size() == 0);
   CHECK(
       !lobby.Request("e", Request(Action::ASK_JOIN, {}, team)).notice.empty());
@@ -1400,7 +1414,7 @@ int main() {
   failed |= TheLeaderPicksTheTeamsDeathMode();
   failed |= PlayersAreSeenByTheirCharactersName();
   failed |= TeamFormsByInvite();
-  failed |= TeamHoldsFour();
+  failed |= TeamHoldsFive();
   failed |= ReadyAndStart();
   failed |= StartedTeamKeepsGoingWhileOnePlays();
   failed |= ALeaderBackAtTheTitleHandsTheTeamOver();

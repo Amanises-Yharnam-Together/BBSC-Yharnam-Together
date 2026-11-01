@@ -189,7 +189,7 @@ struct TeamTravelView {
 // Kaniel 2026-10-25 ("it should use our default values in the order"): the enemies for
 // `hunters` players on their map, from the vanilla game (one; none: nullopt) to the launcher's
 // harder default (HarderDefaultHp/Damage/Poise, a full team of TeamSlots), evenly in between.
-constexpr std::size_t TeamSlots = 4;
+constexpr std::size_t TeamSlots = 5; // Amanises 2026-10-29: teams of five (was 4)
 constexpr float HarderDefaultHp = 3.0f;
 constexpr float HarderDefaultDamage = 1.5f;
 constexpr float HarderDefaultPoise = 3.0f;

@@ -1,7 +1,7 @@
 BLOODBORNE SEAMLESS CO-OP (BLOODBORNE PC, THE NATIVE PORT)
 ==========================================================
 
-Seamless co-op for Bloodborne, in the spirit of Elden Ring Seamless Co-op: up to four players
+Seamless co-op for Bloodborne, in the spirit of Elden Ring Seamless Co-op: up to five players
 make a team, share one world, join each other without bells, signs or Insight, keep playing together through lamp
 trips, deaths and boss fights, and progress is shared. The game runs natively on Windows (the
 Bloodborne PC port), not in an emulator.

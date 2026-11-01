@@ -119,15 +119,15 @@ class GfxTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             hud_patch.patch_fe(movie(sprite(14, tag(1, b''))))
 
-    def test_the_party_list_is_three_more_nameplate_tags_on_top(self):
+    def test_the_party_list_is_four_more_nameplate_tags_on_top(self):
         _, tags = hud_patch.read_movie(hud_patch.patch_fe(fe_movie()))
         first_frame = next(i for i, t in enumerate(tags) if t.code == hud_patch.SHOW_FRAME)
         places = {hud_patch.place_parts(t)[1]: t for t in tags[:first_frame] if t.code == hud_patch.PLACE_OBJECT2}
-        self.assertEqual([places[name].body[3:5] for name in hud_patch.PARTY_LIST], [struct.pack('<H', 30)] * 3)
-        self.assertEqual([hud_patch.place_depth(places[name]) for name in hud_patch.PARTY_LIST], [12, 14, 16])
+        self.assertEqual([places[name].body[3:5] for name in hud_patch.PARTY_LIST], [struct.pack('<H', 30)] * 4)
+        self.assertEqual([hud_patch.place_depth(places[name]) for name in hud_patch.PARTY_LIST], [12, 14, 16, 18])
         # The prompt: the game's interact prompt sprite once more, above everything.
         self.assertEqual(hud_patch.place_parts(places['CoopPrompt'])[0], 31)
-        self.assertEqual(hud_patch.place_depth(places['CoopPrompt']), 18)
+        self.assertEqual(hud_patch.place_depth(places['CoopPrompt']), 20)
 
     def test_the_list_icons_are_a_sprite_of_our_drawings_beside_each_tag(self):
         strip = hud_patch.HUD_ICONS.read_bytes()
@@ -327,7 +327,7 @@ class GfxTests(unittest.TestCase):
             self.assertEqual(argb, bytes((a, r, g, b)) * hud_patch.PORTRAIT_PIXELS ** 2)
             self.assertEqual(r, b, 'the same in RGBA and BGRA')
             self.assertEqual(a, 0xFF)
-        self.assertEqual(len({hud_patch.portrait_magic(slot) for slot in range(3)}), 3)
+        self.assertEqual(len({hud_patch.portrait_magic(slot) for slot in range(4)}), 4)
         # The badges: the icon sprite again, small, above the portraits.
         icon_char = hud_patch.place_parts(places['CoopPartyIcon0'])[0]
         for face, badge in zip(hud_patch.PARTY_FACES, hud_patch.PARTY_BADGES):
