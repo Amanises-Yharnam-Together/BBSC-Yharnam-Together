@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // bbport co-op: the party portraits' textures. The party HUD (scripts/hud_patch.py) holds a
-// placeholder bitmap per party list slot (CoopPartyFace0-2), all one colour (Magic); the texture
+// placeholder bitmap per party list slot (CoopPartyFace0-3), all one colour (Magic); the texture
 // cache knows a slot's texture by it and uploads the member's picture in its place
 // (Core::Bloodborne::PartyPortraits, through bbcoop_portrait_slot). The status page's model target
 // (ModelWidth x ModelHeight) is read back as the page samples it, for this player's own portrait.
@@ -19,7 +19,7 @@ namespace BbPortraits {
 // that the picture is sharp on a 4K screen.
 constexpr int Side = 128;
 constexpr int PictureSide = 128;
-constexpr int SlotCount = 3;
+constexpr int SlotCount = 4; // Amanises 2026-10-29: teams of five (was 3)
 // The portrait's size on the HUD's 1920x1080 stage (hud_patch.py PORTRAIT_SIZE): the HUD is drawn
 // at the output's size, so the screen shows it ShownPixels(output height) across.
 constexpr int StageSize = 42;

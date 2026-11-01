@@ -125,6 +125,15 @@ To restore one world on production: stop shadNet, then run
 
 ## Scaling notes
 
+* **Socket buffers.** Every game's datagrams come to one UDP socket, and the kernel drops what
+  overflows it while the link thread is busy. The load tests on a 4-vCPU box stayed comfortable up
+  to 300-400 players only with big buffers, so on a public server set
+  `net.core.rmem_max=33554432` and `net.core.wmem_max=33554432` (`/etc/sysctl.d/90-shadnet.conf`,
+  then `sysctl --system`). shadNet asks for 16 MiB and warns at its start when the system gave
+  less; the sysctl holds on the host, not in a container.
+* **Players on a box.** `ShardCapacity` (350 by default, from those tests) is where a region sends
+  new players on to the next shard; 1000 ran fine on three shards. The cap is soft: with no shard
+  under 90% a hello stays where it came.
 * One process, one Qt event loop for the UDP link/relay and the worlds. The journal `fsync`
   runs on that loop, so put `/data` on local NVMe, not a network volume.
 * Each TCP client gets its own thread and its own SQLite connection (`server.cpp`,

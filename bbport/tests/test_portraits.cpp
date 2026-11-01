@@ -32,7 +32,7 @@ int main() {
     }
     // Anything else is no placeholder: another colour, one pixel off, another size.
     assert(PlaceholderSlot(Uniform({0x3D, 0xC0, 0x3E, 0xFF})) == -1);
-    assert(PlaceholderSlot(Uniform({0x3D, 0xC3, 0x3D, 0xFF})) == -1);
+    assert(PlaceholderSlot(Uniform({0x3D, 0xC4, 0x3D, 0xFF})) == -1);
     auto speck = Uniform(Magic(1));
     speck[speck.size() - 2] ^= 1;
     assert(PlaceholderSlot(speck) == -1);

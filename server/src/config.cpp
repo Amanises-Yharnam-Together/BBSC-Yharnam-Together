@@ -73,7 +73,7 @@ void ConfigManager::Parse(const QString& path) {
     m_hosted.newAccountsPerHour = str("HostedNewAccountsPerHour", "5").toInt();
     m_hosted.signupWorkBits = str("HostedSignupWorkBits", "20").toInt();
     m_hosted.signupWorkMaxBits = str("HostedSignupWorkMaxBits", "20").toInt();
-    m_hosted.signupsPerMinute = str("HostedSignupsPerMinute", "60").toInt();
+    m_hosted.signupsPerMinute = str("HostedSignupsPerMinute", "300").toInt();
     m_hosted.datagramsPerSecond = str("HostedDatagramsPerSecond", "1500").toDouble();
     m_hosted.bytesPerSecond = str("HostedBytesPerSecond", "400000").toDouble();
     m_hosted.lobbyPlayers = str("HostedLobbyPlayers", "32").toInt();
@@ -82,7 +82,7 @@ void ConfigManager::Parse(const QString& path) {
     m_hosted.partyWorlds = str("HostedPartyWorlds", "2048").toInt();
     m_invasions.enabled = boolean("Invasions", false);
     m_invasions.kind = str("InvasionKind", "0xFFFFFFFF").toUInt(nullptr, 0);
-    m_invasions.sign = str("InvasionSign", "4").toUInt(nullptr, 0);
+    m_invasions.sign = str("InvasionSign", "3").toUInt(nullptr, 0);
     m_hosted.stats = boolean("HostedStats", false);
     m_hosted.reports = boolean("HostedReports", false);
     m_hosted.adminSocket = str("HostedAdminSocket", "admin.sock").trimmed();
@@ -92,6 +92,16 @@ void ConfigManager::Parse(const QString& path) {
         const QString value = str(key, def).trimmed();
         return qEnvironmentVariableIsSet(env) ? qEnvironmentVariable(env).trimmed() : value;
     };
+    m_discord.clientId = shardSetting("DiscordClientId", "DISCORD_CLIENT_ID", "");
+    m_discord.clientSecret = shardSetting("DiscordClientSecret", "DISCORD_CLIENT_SECRET", "");
+    m_discord.apiBase = str("DiscordApiBase", "https://discord.com/api").trimmed();
+    while (m_discord.apiBase.endsWith('/'))
+        m_discord.apiBase.chop(1);
+    if (const QStringList ports = str("DiscordRedirectPorts", "").split(u',', Qt::SkipEmptyParts);
+        !ports.isEmpty())
+        m_discord.redirectPorts = ports;
+    m_discord.signInsPerMinute = std::max(1, str("DiscordSignInsPerMinute", "20").toInt());
+    m_discord.proxied = boolean("DiscordProxied", false);
     m_shard.directoryUrl = shardSetting("DirectoryUrl", "DIRECTORY_URL", "");
     while (m_shard.directoryUrl.endsWith('/'))
         m_shard.directoryUrl.chop(1);
@@ -99,7 +109,7 @@ void ConfigManager::Parse(const QString& path) {
     m_shard.publicAddress = shardSetting("ShardPublicAddress", "SHARD_PUBLIC_ADDRESS", "");
     m_shard.token = shardSetting("DirectoryToken", "DIRECTORY_TOKEN", "").toUtf8();
     m_shard.regionSecret = shardSetting("RegionSecret", "REGION_SECRET", "").toUtf8();
-    m_shard.capacity = shardSetting("ShardCapacity", "SHARD_CAPACITY", "800").toInt();
+    m_shard.capacity = shardSetting("ShardCapacity", "SHARD_CAPACITY", "350").toInt();
     const QString draining = shardSetting("ShardDraining", "SHARD_DRAINING", "false").toLower();
     m_shard.draining = draining == "true" || draining == "1";
     m_shard.heartbeatMs = std::max(500, str("ShardHeartbeatMs", "2000").toInt());

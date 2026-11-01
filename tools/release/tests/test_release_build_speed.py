@@ -141,6 +141,14 @@ class ReleasePackagingTest(unittest.TestCase):
         self.assertLess(stop, package.index('make_zip.py'))
         self.assertLess(stop, package.index('Refresh dist/bbport-windows'))
 
+    def test_package_takes_clang64_dlls_found_in_the_windows_folder(self):
+        # Amanises 2026-10-26: a codec a program put in Windows' folder (xvidcore.dll for FFmpeg) is not
+        # on players' PCs; the Vulkan loader there is the graphics driver's, and stays.
+        text = PACKAGE.read_text(encoding='utf-8')
+        self.assertIn('tolower($3) ~ /\\/c\\/windows\\//', text)
+        self.assertIn('tolower($1) != "vulkan-1.dll"', text)
+        self.assertIn('cp "/clang64/bin/$name" "$dest/bin/"', text)
+
     def test_setup_compresses_on_several_threads(self):
         iss = SETUP_ISS.read_text(encoding='utf-8-sig')
         self.assertIn('Compression=lzma2', iss)

@@ -2,6 +2,7 @@
 #include "bbport_overlay.h"
 
 #include <algorithm>
+#include <random>
 #include <atomic>
 #include <cfloat>
 #include <chrono>
@@ -2869,7 +2870,7 @@ void TextPrompt() {
 }
 
 // The team screen (phase 5, docs/SERVER_COOP_PLAN.md "The team lobby"): up while the title holds a
-// save's load for the team (bbcoop_team_screen). Four hunters' places, the players online to
+// save's load for the team (bbcoop_team_screen). Five hunters' places, the players online to
 // invite, the invitations, and the buttons: create or leave a team, begin the hunt, its world.
 // Drawn like the menu (its colours and ornaments, the game's serif); focus moves with the
 // d-pad / arrows over the buttons as they stand on screen (BbMenuFocus: Up and Down change rows,
@@ -3024,6 +3025,34 @@ ImU32 StateColor(const bbcoop_lobby_entry& e, bool member) {
     return Plain(0.85f);
 }
 
+// Amanises 2026-10-26: a listed hunter's state with its team ("P1's team 2/4, open", "Hunting:
+// P1's team 3/4"), for Hunters online and the friends page.
+std::string TeamStateText(const bbcoop_lobby_entry& e) {
+    if (e.in_my_team) {
+        return T("In your team", "В вашей команде");
+    }
+    if (e.team_leader[0] == '\0' || e.state == BBCOOP_LOBBY_OFFLINE) {
+        return StateText(e, false);
+    }
+    const int size = lobby.team_size > 0 ? lobby.team_size : BBCOOP_LOBBY_TEAM;
+    char out[128];
+    if (e.team_started && e.state == BBCOOP_LOBBY_PLAYING) {
+        std::snprintf(out, sizeof(out), T("Hunting: %s's team %d/%d", "На охоте: команда %s %d/%d"),
+                      e.team_leader, e.team_members, size);
+    } else if (e.team_open && e.team_members < size) {
+        std::snprintf(out, sizeof(out), T("%s's team %d/%d, open", "Команда %s %d/%d, открыта"), e.team_leader,
+                      e.team_members, size);
+    } else {
+        std::snprintf(out, sizeof(out), T("%s's team %d/%d", "Команда %s %d/%d"), e.team_leader, e.team_members,
+                      size);
+    }
+    return out;
+}
+
+ImU32 TeamStateColor(const bbcoop_lobby_entry& e) {
+    return e.in_my_team ? Gold() : StateColor(e, false);
+}
+
 /// A hunter's place: the emblem, the name, the state; an empty one says so.
 void Card(ImDrawList* draw, ImVec2 at, ImVec2 size, const bbcoop_lobby_entry* member, bool leader,
           int place = 0) {
@@ -3172,6 +3201,197 @@ const char* DeathModeHint() {
                : T("Go down: a hunter who falls stays down until a teammate strikes them back up, or gives up "
                    "with {Circle}.",
                    "Падение: павший охотник лежит, пока союзник не поднимет его ударами, или сдаётся {Circle}.");
+}
+
+// Amanises 2026-10-29: the duel's setup page, from the Duel button: free for all, or teams (The
+// Yharnamites, The Hunters, The Great Ones) the challenger deals out; a hunter on no team is not
+// asked. Two teams with someone on them at least.
+struct DuelSetup {
+    bool open = false;
+    bool teams = false;
+    int count = 0;
+    bbcoop_duel_candidate hunters[BBCOOP_DUEL_CANDIDATES]{};
+    int team[BBCOOP_DUEL_CANDIDATES]{};
+};
+DuelSetup duel_setup;
+
+const char* DuelTeamName(int team) {
+    switch (team) {
+    case BBCOOP_DUEL_TEAM_YHARNAMITES:
+        return T("The Yharnamites", "Ярнамцы");
+    case BBCOOP_DUEL_TEAM_HUNTERS:
+        return T("The Hunters", "Охотники");
+    case BBCOOP_DUEL_TEAM_GREAT_ONES:
+        return T("The Great Ones", "Великие");
+    default:
+        return T("Not in this duel", "Не участвует");
+    }
+}
+
+// Each team's colour: the Yharnamites' old gold, the Hunters' blood, the Great Ones' pale cosmos.
+ImU32 DuelTeamColor(int team, float alpha = 1.0f) {
+    switch (team) {
+    case BBCOOP_DUEL_TEAM_YHARNAMITES:
+        return ImGui::GetColorU32(ImVec4(0.84f, 0.70f, 0.42f, alpha));
+    case BBCOOP_DUEL_TEAM_HUNTERS:
+        return ImGui::GetColorU32(ImVec4(0.86f, 0.26f, 0.26f, alpha));
+    case BBCOOP_DUEL_TEAM_GREAT_ONES:
+        return ImGui::GetColorU32(ImVec4(0.62f, 0.68f, 0.96f, alpha));
+    default:
+        return Dim(0.7f * alpha);
+    }
+}
+
+// Two even teams, dealt at random (Shuffle, and the first deal).
+void DealDuelTeams(bool shuffle) {
+    std::vector<int> order(static_cast<size_t>(duel_setup.count));
+    for (int i = 0; i < duel_setup.count; ++i) {
+        order[static_cast<size_t>(i)] = i;
+    }
+    if (shuffle) {
+        static std::mt19937 random{std::random_device{}()};
+        std::shuffle(order.begin(), order.end(), random);
+    }
+    for (int k = 0; k < duel_setup.count; ++k) {
+        duel_setup.team[order[static_cast<size_t>(k)]] = k % 2 == 0 ? BBCOOP_DUEL_TEAM_YHARNAMITES : BBCOOP_DUEL_TEAM_HUNTERS;
+    }
+}
+
+void OpenDuelSetup() {
+    duel_setup.open = true;
+    duel_setup.count = bbcoop_duel_candidates(duel_setup.hunters, BBCOOP_DUEL_CANDIDATES);
+    DealDuelTeams(false);
+    focus.id = duel_setup.teams ? "dteams" : "dffa";
+    focus.activate = false; // the press that opened it is used up
+    focus.page_switched = true;
+}
+
+void CloseDuelSetup() {
+    duel_setup.open = false;
+    focus.id = "duel"; // back on the button that opened it
+    focus.activate = false;
+    focus.page_switched = true;
+}
+
+// Why the teams cannot go yet ("" when they can).
+const char* DuelTeamsProblem() {
+    bool used[4]{};
+    for (int i = 0; i < duel_setup.count; ++i) {
+        if (duel_setup.hunters[i].self && duel_setup.team[i] == 0) {
+            return T("Put yourself on a team.", "Выберите себе команду.");
+        }
+        used[duel_setup.team[i]] = true;
+    }
+    if (static_cast<int>(used[1]) + static_cast<int>(used[2]) + static_cast<int>(used[3]) < 2) {
+        return T("Put hunters on at least two teams.", "Распределите охотников хотя бы в две команды.");
+    }
+    return "";
+}
+
+void DrawDuelSetup(ImDrawList* draw, ImVec2 win, ImVec2 size) {
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape, false) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight, false)) {
+        CloseDuelSetup();
+        return;
+    }
+    ImGui::PushFont(MenuArt::Font(), 40.0f);
+    const char* title = T("Duel", "Дуэль");
+    ImVec2 ts = ImGui::CalcTextSize(title);
+    draw->AddText(ImVec2(win.x + (size.x - ts.x) * 0.5f, win.y + S(30.0f)), Bright(), title);
+    ImGui::PopFont();
+    ImGui::PushFont(MenuArt::Font(), 20.0f);
+    const char* about = duel_setup.teams
+                            ? T("Choose a hunter to move them to another team. Teammates cannot hurt each other; "
+                                "the last team standing wins.",
+                                "Выберите охотника, чтобы перевести его в другую команду. Союзники не ранят друг "
+                                "друга; побеждает последняя устоявшая команда.")
+                            : T("Everyone here fights everyone. The last hunter standing wins.",
+                                "Все здесь сражаются со всеми. Побеждает последний устоявший охотник.");
+    WrappedText(draw, ImVec2(win.x + S(120.0f), win.y + S(84.0f)), size.x - S(240.0f), Gold(0.85f), about);
+    ImGui::PopFont();
+
+    ImGui::PushFont(MenuArt::Font(), 24.0f);
+    const float bw = S(BbPartyLayout::TeamButtonWidth), bh = S(54.0f), gap = S(16.0f);
+    float y = win.y + S(150.0f);
+    // The two ways, side by side; the chosen one lit.
+    const float mx = win.x + (size.x - (2 * bw + gap)) * 0.5f;
+    if (Button(draw, "dffa", T("Free for all", "Все против всех"), ImVec2(mx, y), ImVec2(bw, bh), true,
+               !duel_setup.teams)) {
+        duel_setup.teams = false;
+    }
+    if (Button(draw, "dteams", T("Teams", "Команды"), ImVec2(mx + bw + gap, y), ImVec2(bw, bh), true,
+               duel_setup.teams)) {
+        duel_setup.teams = true;
+    }
+    const float mark_y = y + bh + S(4.0f);
+    draw->AddRectFilled(ImVec2((duel_setup.teams ? mx + bw + gap : mx) + S(30.0f), mark_y),
+                        ImVec2((duel_setup.teams ? mx + bw + gap : mx) + bw - S(30.0f), mark_y + S(3.0f)),
+                        Gold(0.9f));
+    y += bh + S(30.0f);
+
+    // The hunters here, each with its team (a press moves it on: the challenger always has one).
+    const float list_w = std::min(S(900.0f), size.x - S(160.0f));
+    const float list_x = win.x + (size.x - list_w) * 0.5f, row_h = S(58.0f);
+    for (int i = 0; i < duel_setup.count; ++i) {
+        const bbcoop_duel_candidate& hunter = duel_setup.hunters[i];
+        const std::string id = "dh" + std::to_string(i);
+        const ImVec2 at(list_x, y);
+        if (Button(draw, id.c_str(), "", at, ImVec2(list_w, row_h - S(6.0f)), duel_setup.teams)) {
+            int& team = duel_setup.team[i];
+            team = hunter.self ? team % 3 + 1 : (team + 1) % 4;
+        }
+        const int team = duel_setup.teams ? duel_setup.team[i] : 0;
+        const ImU32 color = duel_setup.teams ? DuelTeamColor(team) : Plain();
+        draw->AddRectFilled(ImVec2(at.x + S(10.0f), at.y + S(10.0f)), ImVec2(at.x + S(16.0f), at.y + row_h - S(16.0f)),
+                            duel_setup.teams ? DuelTeamColor(team) : Gold(0.4f));
+        std::string name = hunter.name[0] ? hunter.name : hunter.member;
+        if (hunter.self) {
+            name += T(" (you)", " (вы)");
+        }
+        draw->AddText(ImVec2(at.x + S(30.0f), at.y + S(13.0f)), Plain(), Fit(name.c_str(), list_w * 0.5f).c_str());
+        const char* label = duel_setup.teams ? DuelTeamName(team) : T("Fights everyone", "Сражается со всеми");
+        const ImVec2 ls = ImGui::CalcTextSize(label);
+        draw->AddText(ImVec2(at.x + list_w - S(24.0f) - ls.x, at.y + S(13.0f)), color, label);
+        y += row_h;
+    }
+    if (duel_setup.count < 2) {
+        draw->AddText(ImVec2(list_x, y), Dim(), T("Nobody else of your team is here.", "Здесь нет никого из вашей команды."));
+        y += row_h;
+    }
+
+    // Shuffle (teams), Send, Back.
+    const char* problem = duel_setup.teams ? DuelTeamsProblem() : "";
+    const bool can_send = duel_setup.count >= 2 && problem[0] == 0;
+    const float by = win.y + size.y - S(180.0f);
+    const int buttons = duel_setup.teams ? 3 : 2;
+    float bx = win.x + (size.x - (buttons * bw + (buttons - 1) * gap)) * 0.5f;
+    if (duel_setup.teams) {
+        if (Button(draw, "dshuffle", T("Shuffle", "Перемешать"), ImVec2(bx, by), ImVec2(bw, bh))) {
+            DealDuelTeams(true);
+        }
+        bx += bw + gap;
+    }
+    if (Button(draw, "dsend", T("Send the challenge", "Бросить вызов"), ImVec2(bx, by), ImVec2(bw, bh), can_send,
+               true)) {
+        if (duel_setup.teams) {
+            bbcoop_duel_propose_teams(duel_setup.hunters, duel_setup.team, duel_setup.count);
+        } else {
+            bbcoop_duel_propose();
+        }
+        duel_setup.open = false;
+        bbcoop_team_menu(0);
+    }
+    bx += bw + gap;
+    if (Button(draw, "dback", T("Back", "Назад"), ImVec2(bx, by), ImVec2(bw, bh))) {
+        CloseDuelSetup();
+    }
+    ImGui::PopFont();
+    if (problem[0]) {
+        ImGui::PushFont(MenuArt::Font(), 19.0f);
+        const ImVec2 ps = ImGui::CalcTextSize(problem);
+        draw->AddText(ImVec2(win.x + (size.x - ps.x) * 0.5f, by + bh + S(18.0f)), ImGui::GetColorU32(ImVec4(0.86f, 0.52f, 0.46f, 0.95f)),
+                      problem);
+        ImGui::PopFont();
+    }
 }
 
 /// Kaniel 2026-10-29 ("too overcrowded"): how the team is joined, invaders and the death mode, one
@@ -3667,10 +3887,13 @@ void FriendRow(ImDrawList* draw, float x, float y, float w, float h, const bbcoo
     MenuArt::Nine(draw, MenuArt::Row, ImVec2(x - S(6.0f), y - S(2.0f)), ImVec2(x + w + S(4.0f), y + h - S(4.0f)),
                   10.0f, S(6.0f), 0.7f);
     const float buttons_w = buttons * (button_w + S(6.0f));
-    const float status_x = x + w - buttons_w - S(10.0f) - ImGui::CalcTextSize(status).x;
+    const float status_end = x + w - buttons_w - S(10.0f);
+    // Amanises 2026-10-26: a long state (a team's) keeps room for the name.
+    const std::string shown = Fit(status, (status_end - x) * 0.6f);
+    const float status_x = status_end - ImGui::CalcTextSize(shown.c_str()).x;
     draw->AddText(ImVec2(x + S(8.0f), y + S(8.0f)), p.state == BBCOOP_LOBBY_OFFLINE ? Plain(0.6f) : Plain(),
                   Fit(p.name, status_x - x - S(20.0f)).c_str());
-    draw->AddText(ImVec2(status_x, y + S(8.0f)), status_color, status);
+    draw->AddText(ImVec2(status_x, y + S(8.0f)), status_color, shown.c_str());
 }
 
 void DrawFriends(ImDrawList* draw, ImVec2 win, ImVec2 size) {
@@ -3745,13 +3968,12 @@ void DrawFriends(ImDrawList* draw, ImVec2 win, ImVec2 size) {
     for (int i = 0; i < friend_rows; ++i, y += row_h) {
         const bbcoop_lobby_entry& f = lobby.friends[i];
         const bool armed = friends.removing == f.id && ImGui::GetTime() - friends.removing_at < 4.0;
-        const char* status = f.in_my_team ? T("In your team", "В вашей команде") : StateText(f, false);
-        FriendRow(draw, col_x[0], y, col_w, row_h, f, status, f.in_my_team ? Gold() : StateColor(f, false), 2,
-                  small_w);
+        const std::string status = TeamStateText(f);
+        FriendRow(draw, col_x[0], y, col_w, row_h, f, status.c_str(), TeamStateColor(f), 2, small_w);
         const float b1 = col_x[0] + col_w - 2 * small_w - S(6.0f), b2 = col_x[0] + col_w - small_w;
         const ImVec2 bs(small_w, row_h - S(6.0f));
         if (Button(draw, (std::string("finvite") + f.id).c_str(), T("Invite", "Пригласить"), ImVec2(b1, y), bs,
-                   can_invite && !f.in_my_team && f.state != BBCOOP_LOBBY_OFFLINE)) {
+                   can_invite && f.team_leader[0] == '\0' && f.state != BBCOOP_LOBBY_OFFLINE)) {
             bbcoop_lobby_request(BBCOOP_TEAM_INVITE, f.id);
         }
         if (Button(draw, (std::string("fremove") + f.id).c_str(), armed ? T("Sure?", "Точно?") : T("Remove", "Удалить"),
@@ -3806,8 +4028,8 @@ void DrawFriends(ImDrawList* draw, ImVec2 win, ImVec2 size) {
     for (int i = 0; i < lobby.search_count && i < rows; ++i, y += row_h) {
         const bbcoop_lobby_entry& p = lobby.search[i];
         const bool self = p.relation == BBCOOP_FRIEND_SELF;
-        FriendRow(draw, col_x[2], y, col_w, row_h, p, self ? T("You", "Вы") : StateText(p, false),
-                  StateColor(p, false), 1, small_w);
+        FriendRow(draw, col_x[2], y, col_w, row_h, p, self ? T("You", "Вы") : TeamStateText(p).c_str(),
+                  TeamStateColor(p), 1, small_w);
         const char* label = p.relation == BBCOOP_FRIEND_YES        ? T("Friends", "Друзья")
                             : p.relation == BBCOOP_FRIEND_SENT     ? T("Asked", "Отправлено")
                             : p.relation == BBCOOP_FRIEND_RECEIVED ? T("Accept", "Принять")
@@ -3883,7 +4105,7 @@ void Screen() {
     }
     // Kaniel 2026-10-16: opened from the game's System menu (lobby.menu), Circle or Escape closes
     // it, as the game's own pages close (the friends page takes them first: back to the team).
-    if (lobby.menu && !friends.open && !settings.open && !friends.online_typing &&
+    if (lobby.menu && !friends.open && !settings.open && !friends.online_typing && !duel_setup.open &&
         (ImGui::IsKeyPressed(ImGuiKey_Escape, false) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight, false))) {
         bbcoop_team_menu(0);
     }
@@ -3933,6 +4155,15 @@ void Screen() {
     if (picker.open) {
         DrawWorldPicker(draw, win, size);
         focus.fresh = true; // back on the team screen: the focus goes to Begin again
+        ImGui::End();
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor();
+        return;
+    }
+    if (duel_setup.open) {
+        settings.open = false;
+        DrawDuelSetup(draw, win, size);
+        SettleFocus();
         ImGui::End();
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();
@@ -3996,9 +4227,9 @@ void Screen() {
                   Gold(0.85f), status.c_str());
     ImGui::PopFont();
 
-    // The four places.
+    // The five places (four before teams of five).
     const float card_w = S(BbPartyLayout::TeamCardWidth), card_h = S(270.0f), gap = S(BbPartyLayout::TeamGap);
-    const float cards_x = win.x + (size.x - (4 * card_w + 3 * gap)) * 0.5f,
+    const float cards_x = win.x + (size.x - (BBCOOP_LOBBY_TEAM * card_w + (BBCOOP_LOBBY_TEAM - 1) * gap)) * 0.5f,
                 header_y = win.y + S(MenuArt::Has(MenuArt::HeaderOrnament) ? 140.0f : 128.0f);
     // Full screen: the cards and the two lists (five rows) as one block, in the middle of the room
     // between the title and the buttons.
@@ -4128,14 +4359,16 @@ void Screen() {
         MenuArt::Nine(draw, MenuArt::Row, ImVec2(left_x - S(6.0f), y - S(2.0f)),
                       ImVec2(left_x + list_w + S(4.0f), y + row_h - S(4.0f)), 10.0f, S(6.0f), 0.7f);
         // The state right-aligned before the buttons, the name in what is left. Amanises
-        // 2026-10-25: a friend says so; another player can be asked from here (Add).
+        // 2026-10-25: another player can be asked from here (Add). 2026-10-26: every hunter with
+        // its state and team; a friend's name in gold.
         const bool is_friend = p.relation == BBCOOP_FRIEND_YES;
-        const char* state = is_friend ? T("Friend", "Друг") : StateText(p, false);
         const float add_w = S(110.0f);
-        const float state_x = left_x + list_w - button_w - add_w - S(24.0f) - ImGui::CalcTextSize(state).x;
-        draw->AddText(ImVec2(left_x + S(8.0f), y + S(8.0f)), Plain(),
+        const float state_end = left_x + list_w - button_w - add_w - S(24.0f);
+        const std::string state = Fit(TeamStateText(p).c_str(), (state_end - left_x) * 0.6f);
+        const float state_x = state_end - ImGui::CalcTextSize(state.c_str()).x;
+        draw->AddText(ImVec2(left_x + S(8.0f), y + S(8.0f)), is_friend ? Gold() : Plain(),
                       Fit(p.name, state_x - left_x - S(24.0f)).c_str());
-        draw->AddText(ImVec2(state_x, y + S(8.0f)), is_friend ? Gold() : StateColor(p, false), state);
+        draw->AddText(ImVec2(state_x, y + S(8.0f)), TeamStateColor(p), state.c_str());
         // A friend already: no button (the state says so).
         const char* add = p.relation == BBCOOP_FRIEND_SENT       ? T("Asked", "Отправлено")
                           : p.relation == BBCOOP_FRIEND_RECEIVED ? T("Accept", "Принять")
@@ -4154,10 +4387,45 @@ void Screen() {
         }
     }
     y = lists_y + S(50.0f);
-    if (lobby.invite_count == 0 && lobby.ask_count == 0 && (lobby.in_team || lobby.open_count == 0)) {
+    // Kaniel 2026-11-01: quick match, a public server's way to find a team, first in the list of
+    // teams to join; while the player's own team waits for hunters it says so, with Cancel.
+    const bool quick_row = lobby.quick_match && (!lobby.in_team || lobby.quick_waiting);
+    if (quick_row) {
+        static double quick_pressed = -100.0;
+        const bool searching = !lobby.in_team && ImGui::GetTime() - quick_pressed < 4.0;
+        const std::string waiting =
+            std::string(T("Quick match: waiting for hunters", "Быстрый подбор: ждём охотников")) + " " +
+            std::to_string(lobby.member_count) + "/" + std::to_string(lobby.team_size);
+        const char* text = lobby.in_team ? waiting.c_str()
+                           : searching   ? T("Searching for a team…", "Ищем команду…")
+                                         : T("Join an open team near your level, or open one",
+                                             "Вступить в открытую команду вашего уровня или открыть свою");
+        MenuArt::Nine(draw, MenuArt::Row, ImVec2(right_x - S(6.0f), y - S(2.0f)),
+                      ImVec2(right_x + list_w + S(4.0f), y + row_h - S(4.0f)), 10.0f, S(6.0f), 0.7f);
+        draw->AddText(ImVec2(right_x + S(8.0f), y + S(8.0f)), searching || lobby.in_team ? Gold() : Plain(),
+                      Fit(text, list_w - button_w - S(32.0f)).c_str());
+        const ImVec2 at(right_x + list_w - button_w, y), button(button_w, row_h - S(6.0f));
+        if (lobby.in_team) {
+            if (Button(draw, "quickcancel", T("Cancel", "Отмена"), at, button)) {
+                bbcoop_lobby_request(BBCOOP_TEAM_LEAVE, "");
+            }
+        } else if (Button(draw, "quickmatch", T("Quick match", "Быстрый подбор"), at, button,
+                          lobby.signed_in != 0 && !searching, true)) {
+            quick_pressed = ImGui::GetTime();
+            bbcoop_lobby_request(BBCOOP_TEAM_QUICK_MATCH, "");
+        }
+        y += row_h;
+    }
+    // Amanises 2026-10-25, Discord parties: friends who pressed Ask to Join on this player's
+    // Discord status (only a team's status offers it).
+    bbcoop_lobby_entry discord_asks[4];
+    const int discord_count = lobby.in_team ? bbcoop_discord_asks(discord_asks, 4) : 0;
+    if (!quick_row && lobby.invite_count == 0 && lobby.ask_count == 0 && discord_count == 0 &&
+        (lobby.in_team || lobby.open_count == 0)) {
         draw->AddText(ImVec2(right_x, y + S(8.0f)), Dim(), T("None", "Нет"));
     }
-    for (int i = 0; i < lobby.invite_count && i < rows; ++i, y += row_h) {
+    const int rows_left = quick_row ? rows - 1 : rows;
+    for (int i = 0; i < lobby.invite_count && i < rows_left; ++i, y += row_h) {
         const bbcoop_lobby_entry& inv = lobby.invites[i];
         const std::string text = std::string(inv.name) + T(" calls you to hunt", " зовёт на охоту");
         MenuArt::Nine(draw, MenuArt::Row, ImVec2(right_x - S(6.0f), y - S(2.0f)),
@@ -4187,7 +4455,7 @@ void Screen() {
     }
     // Amanises 2026-10-25, open teams: under the invitations, the leader's asks to join (take
     // in or say no) and, for a player in no team, the open teams to ask.
-    int right_rows = std::min(lobby.invite_count, rows);
+    int right_rows = std::min(lobby.invite_count, rows_left) + (quick_row ? 1 : 0);
     for (int i = 0; i < lobby.ask_count && right_rows < rows; ++i, ++right_rows, y += row_h) {
         const bbcoop_lobby_entry& ask = lobby.asks[i];
         const std::string text = std::string(ask.name) + T(" asks to join", " просится в команду");
@@ -4203,6 +4471,23 @@ void Screen() {
         if (Button(draw, refuse.c_str(), T("Decline", "Отклонить"), ImVec2(right_x + list_w - button_w, y),
                    ImVec2(button_w, row_h - S(6.0f)))) {
             bbcoop_lobby_request(BBCOOP_TEAM_ASK_DECLINE, ask.id);
+        }
+    }
+    for (int i = 0; i < discord_count && right_rows < rows; ++i, ++right_rows, y += row_h) {
+        const bbcoop_lobby_entry& ask = discord_asks[i];
+        const std::string text = std::string(ask.name) + T(" asks to join on Discord", " просится в команду в Discord");
+        MenuArt::Nine(draw, MenuArt::Row, ImVec2(right_x - S(6.0f), y - S(2.0f)),
+                      ImVec2(right_x + list_w + S(4.0f), y + row_h - S(4.0f)), 10.0f, S(6.0f), 0.7f);
+        draw->AddText(ImVec2(right_x + S(8.0f), y + S(8.0f)), Plain(),
+                      Fit(text.c_str(), list_w - 2 * button_w - S(32.0f)).c_str());
+        const std::string take = std::string("dcok") + ask.id, refuse = std::string("dcno") + ask.id;
+        if (Button(draw, take.c_str(), T("Accept", "Принять"), ImVec2(right_x + list_w - 2 * button_w - S(8.0f), y),
+                   ImVec2(button_w, row_h - S(6.0f)), lobby.member_count < lobby.team_size, true)) {
+            bbcoop_discord_answer(ask.id, 1);
+        }
+        if (Button(draw, refuse.c_str(), T("Decline", "Отклонить"), ImVec2(right_x + list_w - button_w, y),
+                   ImVec2(button_w, row_h - S(6.0f)))) {
+            bbcoop_discord_answer(ask.id, 0);
         }
     }
     if (!lobby.in_team) {
@@ -4295,8 +4580,7 @@ void Screen() {
             }
         } else if (Button(draw, "duel", T("Duel", "Дуэль"), ImVec2(bx, by), ImVec2(bw, bh),
                           duel.may_propose != 0)) {
-            bbcoop_duel_propose();
-            bbcoop_team_menu(0);
+            OpenDuelSetup(); // Amanises 2026-10-29: free for all or teams first
         }
         bx += bw + gap;
         if (Button(draw, "close", T("Close", "Закрыть"), ImVec2(bx, by), ImVec2(bw, bh))) {
@@ -4437,10 +4721,10 @@ void PlainScreen() {
     const float wide = std::min(display.x, display.y * 16.0f / 9.0f), side = (display.x - wide) * 0.5f;
     const float left = side + wide * 0.18f, right = side + wide * 0.82f;
     draw->AddLine(ImVec2(left, display.y * 0.24f), ImVec2(right, display.y * 0.24f), dim, 1.0f);
-    const float card_w = (right - left) / 4.0f;
-    const int count = std::clamp(load.count, 1, 4);
+    const float card_w = (right - left) / BBCOOP_LOBBY_TEAM;
+    const int count = std::clamp(load.count, 1, static_cast<int>(BBCOOP_LOBBY_TEAM));
     const float start = (display.x - card_w * count) * 0.5f;
-    for (int i = 0; i < load.count && i < 4; ++i) {
+    for (int i = 0; i < load.count && i < BBCOOP_LOBBY_TEAM; ++i) {
         const bbcoop_team_load_row& row = load.rows[i];
         const float x0 = start + card_w * i + unit * 0.5f, x1 = start + card_w * (i + 1) - unit * 0.5f;
         const float y0 = display.y * 0.30f, y1 = display.y * 0.72f;
@@ -4508,11 +4792,11 @@ void Screen() {
                       ImVec2(mid + ow * 0.5f, 342.0f * u + oh), 0.8f);
     }
     // The cards.
-    const int count = std::clamp(load.count, 1, 4);
+    const int count = std::clamp(load.count, 1, static_cast<int>(BBCOOP_LOBBY_TEAM));
     const float card_w = 300.0f * u, card_h = 420.0f * u, gap = 36.0f * u;
     // Kaniel 2026-10-18: more room between the title's scrollwork and the cards (420 before).
     const float x_start = mid - (card_w * count + gap * (count - 1)) * 0.5f, y0 = 480.0f * u;
-    for (int i = 0; i < load.count && i < 4; ++i) {
+    for (int i = 0; i < load.count && i < BBCOOP_LOBBY_TEAM; ++i) {
         const bbcoop_team_load_row& row = load.rows[i];
         const float x0 = x_start + i * (card_w + gap), x1 = x0 + card_w, cx = (x0 + x1) * 0.5f;
         const bool ready = row.stage == BBCOOP_LOAD_READY;
@@ -5281,6 +5565,13 @@ void DuelLine(ImDrawList* draw) {
             std::snprintf(number, sizeof(number), "%d", duel.countdown_number);
             Text(draw, font, S(22.0f), ImVec2(mid, y - S(34.0f)), Bone(0.85f),
                  T("The duel begins", "Дуэль начинается"), 0.5f);
+            if (duel.teams && duel.team != 0) {
+                // Amanises 2026-10-29: whose side this player is on, in its team's colour.
+                const std::string side = std::string(T("Your team:", "Ваша команда:")) + " " +
+                                         Team::DuelTeamName(duel.team);
+                Text(draw, font, S(22.0f), ImVec2(mid, y + S(100.0f)), Team::DuelTeamColor(duel.team), side.c_str(),
+                     0.5f);
+            }
             Text(draw, font, S(72.0f), ImVec2(mid, y), Bone(), number, 0.5f);
         }
         const float w = S(320.0f), h = S(4.0f), by = y + S(86.0f);

@@ -33,7 +33,7 @@ FE = 'dvdroot_ps4/menu/fe.gfx'
 LAYER = 'party HUD'
 # Part of the generated file's name: a patcher that patches differently makes its file anew (the old
 # one is not reused). Bump it with every change to what patch_fe writes.
-PATCH_VERSION = b'party-hud 16'
+PATCH_VERSION = b'party-hud 17'  # 17: a fourth teammate (Amanises 2026-10-29)
 DOWNED_BANNER = 'Fe_fla._TextEffect_YouWin_181'
 DOWNED_SOURCE_FIELD = 'StaticText_522002'
 DOWNED_FIELD = 'CoopDownedText'
@@ -41,8 +41,9 @@ DOWNED_TEXT = 'YOU ARE DOWN'
 DOWNED_COLOR = 'd8b03c'
 
 PARTY_TAG = 'RemotePCTag0'
-PARTY_LIST = ('CoopParty0', 'CoopParty1', 'CoopParty2')
-PARTY_ICONS = ('CoopPartyIcon0', 'CoopPartyIcon1', 'CoopPartyIcon2')
+# Amanises 2026-10-29: four (teams of five); was three.
+PARTY_LIST = ('CoopParty0', 'CoopParty1', 'CoopParty2', 'CoopParty3')
+PARTY_ICONS = ('CoopPartyIcon0', 'CoopPartyIcon1', 'CoopPartyIcon2', 'CoopPartyIcon3')
 # Party death's prompt: the game's interact prompt (the sprite ActionButtonTop shows) once more, a little above it
 # (PROMPT_AT on the 1920x1080 stage; its button glyph's centre is PromptGlyphStage in bbport_party_layout.h).
 PROMPT_TAG, PROMPT, PROMPT_AT = 'ActionButtonTop', 'CoopPrompt', (952.6, 808.0)
@@ -68,13 +69,13 @@ NAME_TOP_FROM_BAR, BAR_BOTTOM_FROM_BAR = -34.5, 4.5
 # drawing's side (drawn larger, crisp when scaled; the ring keeps the picture's 4:5 to the frame), the frame
 # ICON_PAD px left of the bar; the badge's size, its centre BADGE_DISTANCE px up and right of the portrait's, on
 # the diagonal, over the ring.
-PARTY_FACES = ('CoopPartyFace0', 'CoopPartyFace1', 'CoopPartyFace2')
+PARTY_FACES = ('CoopPartyFace0', 'CoopPartyFace1', 'CoopPartyFace2', 'CoopPartyFace3')
 # Kaniel 2026-10-18: each member's Blood Vials and Quicksilver Bullets on its name's line, with the HUD's own
 # vial and bullet (the player's TriDrug and AmmoItem: their icon drawings and their count's text field, without
 # the square slot): CoopSupply0-2, a sprite of two frames (the counts, empty while nobody shows; then the icons
 # too), its text fields named SupplyVials and SupplyBullets (party death writes the counts). Its layout, from
 # the sprite's origin at the name line's right part: each icon SUPPLY_ICON px tall, its count right of it.
-PARTY_SUPPLIES = ('CoopSupply0', 'CoopSupply1', 'CoopSupply2')
+PARTY_SUPPLIES = ('CoopSupply0', 'CoopSupply1', 'CoopSupply2', 'CoopSupply3')
 SUPPLY_TEXTS = ('SupplyVials', 'SupplyBullets')
 SUPPLY_ICON, SUPPLY_TEXT_SCALE, SUPPLY_STEP = 22, 0.75, 48  # icon px, the count's scale, from vial to bullet
 SUPPLY_X, SUPPLY_FROM_BAR = 212, -20  # the vial's centre x on the stage; the line's y from the bar's middle
@@ -83,7 +84,7 @@ SUPPLY_X, SUPPLY_FROM_BAR = 212, -20  # the vial's centre x on the stage; the li
 # (bloodborne_party.h SupplyFrame), up to what a 16-character name needs.
 SUPPLY_SHIFT, SUPPLY_SHIFTS = 6.0, 32
 FIRST_SUPPLY_ID = 50120  # after the faces' ids
-PARTY_BADGES = ('CoopPartyBadge0', 'CoopPartyBadge1', 'CoopPartyBadge2')
+PARTY_BADGES = ('CoopPartyBadge0', 'CoopPartyBadge1', 'CoopPartyBadge2', 'CoopPartyBadge3')
 PORTRAIT_SIZE, PORTRAIT_PIXELS = 42, 128
 FRAME_SIZE, FRAME_PIXELS = 61, 128
 BADGE_SIZE, BADGE_DISTANCE = 18, 29
@@ -623,6 +624,10 @@ def add_party_list(tags, strip=None, portraits=True):
     first_frame = next(i for i, tag in enumerate(tags) if tag.code == SHOW_FRAME)
     places = [tag for tag in tags[:first_frame] if tag.code in (PLACE_OBJECT2, PLACE_OBJECT3)]
     names = {place_parts(tag)[1] for tag in places}
+    if names & set(PARTY_LIST) and not names >= set(PARTY_LIST):
+        # Amanises 2026-10-29: an older patch with three (a mod layer still holds it): left as it is; the game
+        # finds no CoopParty3 and the overlay keeps the party list.
+        return
     if names >= set(PARTY_LIST):
         # Patched before (an older HUD patch a mod layer still holds): only the icons and portraits it may lack.
         if strip is None:

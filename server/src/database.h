@@ -82,6 +82,8 @@ public:
                                      const QString& token, bool checkToken, bool make,
                                      DbError* why = nullptr);
     std::optional<int64_t> GetUserId(const QString& npid);
+    // Whether an account has this virtual address.
+    bool AddressTaken(quint32 address);
     std::optional<QString> GetUsername(int64_t userId);
     std::optional<QString> GetAvatarUrl(int64_t userId);
     QList<QPair<int64_t, QString>> GetUsernamesFromIds(const QSet<int64_t>& ids);
@@ -130,7 +132,6 @@ private:
     // Stores the virtual address of every account without one, unless an older account has it.
     // Whether every account that may have one has its address now (false: not stored, try later).
     bool AssignVirtualAddresses();
-    bool AddressTaken(quint32 address);
     QByteArray HashPassword(const QString& password, const QByteArray& salt);
     QByteArray GenerateSalt(int bytes = 64);
     QString GenerateToken(int len = 16);

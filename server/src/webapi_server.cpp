@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 shadNet Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "bloodborne_reports.h"
+#include "webapi_routes_discord.h"
 #include "webapi_server.h"
 
 #include <QDebug>
@@ -80,6 +81,13 @@ void WebApiServer::RegisterRoutes() {
         RegisterReportRoutes(*m_http, *m_db, QStringLiteral("reports"));
     } else if (hosted.reports) {
         RegisterReportRoutes(*m_http, *m_db, QStringLiteral("reports"), 8ll * 1024 * 1024);
+    }
+
+    // Global servers: Sign in with Discord, from launchers, so the gate is not asked either.
+    if (const DiscordConfig discord = m_config->GetDiscord();
+        hosted.enabled && discord.Enabled() && !m_shared->discordKey.isEmpty()) {
+        WebApiRoutes::RegisterDiscordRoutes(*m_http, *m_db, discord, m_shared->discordKey, this);
+        qInfo().noquote() << "WebAPI: Sign in with Discord is on";
     }
 
     m_http->setMissingHandler(

@@ -1,7 +1,7 @@
 # Yharnam Together: Bloodborne Seamless Co-op
 
 Seamless co-op for **Bloodborne** on PC, in the spirit of
-[Elden Ring Seamless Co-op](https://www.nexusmods.com/eldenring/mods/510): up to four hunters
+[Elden Ring Seamless Co-op](https://www.nexusmods.com/eldenring/mods/510): up to five hunters
 make a team, share one world, join each other without bells, signs or Insight, and keep playing
 together through lamp trips, deaths, boss fights and chalice dungeons.
 
@@ -51,7 +51,7 @@ expect rough edges and keep backups of your saves. New builds come out as GitHub
 ## What it does
 
 - **Teams instead of bells.** Continue, Load Game or New Game opens the team screen: make a team
-  of up to four from the hunters online, Ready, and the leader begins the hunt. The loading screen
+  of up to five from the hunters online, Ready, and the leader begins the hunt. The loading screen
   stays up until the team is together. In the game, the **Insert** menu (or L3 + R3) opens
   **Co-op Team** any time: invite, join a running team, or leave. Joining is instant, from
   anywhere. There are no bells, signs or summoning.
@@ -91,7 +91,7 @@ expect rough edges and keep backups of your saves. New builds come out as GitHub
     takes it all away.
   - *Travel together*: a lamp or headstone asks "Travel with the team?" and takes everyone there;
     with the vote, the team has 20 s and one No stops the trip.
-  - *Enemies scale with the team*: the normal game alone, up to the Harder values for four hunters
+  - *Enemies scale with the team*: the normal game alone, up to the Harder values for five hunters
     on the same map.
 - **Self-hosted.** One player's PC runs the co-op server (the team lobby, the teams' worlds,
   every game's co-op traffic) and a stand-in for the game's online services. No PlayStation

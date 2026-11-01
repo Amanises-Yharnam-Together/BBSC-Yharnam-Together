@@ -2566,6 +2566,14 @@ bbcoop::LobbyState Service::LobbyStateFor(const Member& member) const {
             }
         }
         AddFriendsToLobby(state, member.lobby, relations, member.search_query, member.search);
+        // Amanises 2026-10-26: a friend (request, search result) the lobby does not list (a hosted
+        // server lists few) still shows its state and team.
+        for (auto* list : {state.mutable_friends(), state.mutable_friend_requests(),
+                           state.mutable_friend_requests_sent(), state.mutable_search()}) {
+            for (bbcoop::LobbyPlayer& entry : *list) {
+                lobby.Describe(entry.member(), entry);
+            }
+        }
     }
     return state;
 }
@@ -3338,7 +3346,7 @@ void Service::JoinInvasion(PartyWorld& world, Invasion& invasion, qint64 now_ms,
     invader.hostile = true;
     invasion.joined = true;
     invasion.joined_ms = now_ms;
-    // Its slot byte: the configured one, or the first free below the guests' 7/6/5.
+    // Its slot byte: the configured one, or the first free below the guests' 7/6/5/4.
     std::set<std::uint32_t> taken;
     if (const bbcoop::Team* team = lobby.TeamOf(world.session->host())) {
         for (const bbcoop::TeamMember& m : team->members()) {

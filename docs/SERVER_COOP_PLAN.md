@@ -42,7 +42,8 @@ only (bbport is the target; every player and the server run one build).
   character side.
 - **NG cycle:** the team world has its own cycle. Starting NG+ is the team's choice, made by the
   leader at the final boss; a character joining plays at the team's cycle.
-- **Team size:** up to 4 (the game's remote player slots).
+- **Team size:** up to 5 (Amanises 2026-10-29, was 4: the game's session holds 5 members, as
+  BBSC's five hunters found; guests take player slots 7, 6, 5 and 4). Untested with 5 yet.
 - **Teams are sessions, worlds are the server's** (Kaniel 2026-10-17). A team lives in the
   server's memory only: never written to disk, gone once every member's game is gone (a member
   whose game crashed keeps its place for 10 minutes while someone is still in the team). The
@@ -179,7 +180,7 @@ Every hook goes in `bloodborne_patch_sites.h` with its byte check.
   2. The list shows the team (if any) and the friends online (shadNet presence), with each one's
      state: in a team, in the lobby, playing.
   3. Create a team, or invite a friend from the list; the friend sees the invite and accepts.
-     A member can leave; the leader can remove one. Up to 4 (the game's remote slots).
+     A member can leave; the leader can remove one. Up to 5 (4 until 2026-10-29).
   4. Each member picks the character (the save slot) to play; members mark Ready.
   5. The leader presses Start: every member's game loads its save. The first to load is the
      session's host at the game level (the server still owns the world); the others join its
@@ -345,7 +346,7 @@ Each phase: red-green tests first, all CI checks, rig scenarios named below, mer
    **5a + 5c built 2026-10-14** behind `SHADPS4_BLOODBORNE_TEAMS=1` (port, with the server world;
    the party settings are not read then):
    - **Server** (`server/coop/team_lobby.h`, in shadNet's world service): players sign in with a
-     `LobbyHello` on the Coop stream before any party hello; teams of up to 4 with a leader,
+     `LobbyHello` on the Coop stream before any party hello; teams of up to 5 (4 before 2026-10-29) with a leader,
      invites, Ready (with the save slot), Start; every signed-in player gets its `LobbyState`
      after any change, a refused request comes back with a notice. The teams and invites live in
      the server's memory (2026-10-17: see "Team worlds"; first kept in `teams.pb`); a team is
@@ -375,7 +376,7 @@ Each phase: red-green tests first, all CI checks, rig scenarios named below, mer
      to it", a modern team lobby in the game's style; built after the page above): Continue, Load
      Game or New Game now open it while the load is held, and nothing loads by itself any more
      (`TeamGate::Choose`). Drawn by the port's overlay (`bbport_overlay.cpp` `Team::Screen`, the
-     menu's colours and ornaments, the game's serif): four hunters' places (emblem, name, state:
+     menu's colours and ornaments, the game's serif): five hunters' places (emblem, name, state:
      choosing, ready, in the hunt, away; the leader marked), the hunters online with Invite, the
      invitations with Join and Decline, and Create / Leave the team, Begin the hunt (the leader:
      its Ready and the Start; in no team the save plays alone) and the world it plays (the
@@ -469,7 +470,7 @@ there, or kick someone"):
   game's art and font), the world darkened behind it. Its Close button, Circle or Escape close it;
   the pad then presses Circle for the game once (`bbcoop_team_menu_back`), so the page under it
   closes too and the player is back in the System menu.
-- **What it does there:** the four places; the leader's **Remove** under each other member;
+- **What it does there:** the five places; the leader's **Remove** under each other member;
   Invite on the hunters online; the invitations' **Join**, which in game accepts and joins the hunt
   at once; **Join the hunt** for a member playing alone (this save, its slot and character, ready:
   `TeamJoinHuntRequests`); Leave (the leader only once alone in the hunt: its game hosts the

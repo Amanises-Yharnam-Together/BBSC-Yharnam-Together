@@ -35,7 +35,7 @@ struct HostedConfig {
     int newAccountsPerHour = 5;
     int signupWorkBits = 20;    // a new account's work (coop/link_auth.h): ~0.3 s of one core
     int signupWorkMaxBits = 20; // 2 bits more per doubling of the accounts a minute over:
-    int signupsPerMinute = 60;  // this many
+    int signupsPerMinute = 300; // this many (Admission::DefaultSignupsPerMinute)
     double datagramsPerSecond = 1500.0;
     double bytesPerSecond = 400000.0;
     int lobbyPlayers = 32;     // players listed to each player besides its team and invites
@@ -58,7 +58,7 @@ struct ShardConfig {
     QString publicAddress;   // "a.b.c.d:port": the games reach this shard's link there
     QByteArray token;        // the shards' and the directory's shared secret
     QByteArray regionSecret; // the tickets' key (empty: derived from the token)
-    int capacity = 800;
+    int capacity = 350;      // Region::DefaultShardCapacity
     bool draining = false;
     int heartbeatMs = 2000;
     bool Enabled() const {
@@ -68,13 +68,29 @@ struct ShardConfig {
 
 // Invasions (docs/INVASIONS.md): a solo player invades a team's world that allows it. Off unless
 // the operator turns it on (a hosted server or one at home alike).
+// Global servers: Sign in with Discord (docs/HOSTED_SERVER.md). The client secret comes from the
+// config or the environment (DISCORD_CLIENT_SECRET), never from the repository.
+struct DiscordConfig {
+    QString clientId;
+    QString clientSecret;
+    QString apiBase = QStringLiteral("https://discord.com/api");
+    // The launcher's loopback ports, each registered with Discord as a redirect.
+    QStringList redirectPorts{"47231", "47232", "47233", "47234"};
+    int signInsPerMinute = 20; // an address's
+    // Behind our own TLS proxy: the address is the last X-Forwarded-For's.
+    bool proxied = false;
+    bool Enabled() const {
+        return !clientId.isEmpty() && !clientSecret.isEmpty();
+    }
+};
+
 struct InvasionConfig {
     bool enabled = false; // Invasions
     // InvasionKind / InvasionSign: what the invader's game joins the target's session with
     // (GameMan +0x16F0 / +0x16F4). Placeholders until the retail Sinister Resonant Bell capture
     // (docs/INVASIONS.md, phase 0) says the real values.
     quint32 kind = 0xFFFFFFFF;
-    quint32 sign = 4;
+    quint32 sign = 3; // Amanises 2026-10-29: 4 is the fifth hunter's now (team_lobby.cpp)
 };
 
 class ConfigManager {
@@ -150,6 +166,11 @@ public:
     HostedConfig GetHosted() const {
         QReadLocker lk(&m_lock);
         return m_hosted;
+    }
+
+    DiscordConfig GetDiscord() const {
+        QReadLocker lk(&m_lock);
+        return m_discord;
     }
 
     BackendConfig GetBackend() const {
@@ -233,6 +254,7 @@ private:
     BackendConfig m_backend;
     HostedConfig m_hosted;
     ShardConfig m_shard;
+    DiscordConfig m_discord;
     InvasionConfig m_invasions;
     bool m_httpLinkedOnly = false;
     QString m_statsPort = "31320";

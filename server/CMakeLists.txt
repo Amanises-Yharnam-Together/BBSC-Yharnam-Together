@@ -84,6 +84,8 @@ set(SOURCES
     src/watchdog.cpp
     src/bloodborne_reports.cpp
     src/webapi_routes_reports.cpp
+    src/webapi_routes_discord.h
+    src/webapi_routes_discord.cpp
     src/config.cpp
     src/config.h
     src/server.cpp
@@ -380,6 +382,11 @@ if(BUILD_TESTING)
     target_link_libraries(test_admission PRIVATE Qt6::Core Qt6::Network)
     add_test(NAME admission COMMAND test_admission)
 
+    add_executable(test_discord_accounts EXCLUDE_FROM_ALL tests/test_discord_accounts.cpp)
+    target_include_directories(test_discord_accounts PRIVATE src)
+    target_link_libraries(test_discord_accounts PRIVATE Qt6::Core)
+    add_test(NAME discord_accounts COMMAND test_discord_accounts)
+
     add_executable(test_admin EXCLUDE_FROM_ALL
         tests/test_admin.cpp
         src/admin.cpp
@@ -496,6 +503,11 @@ if(BUILD_TESTING)
             COMMAND "${Python3_EXECUTABLE}" -m unittest -v test_parity
             WORKING_DIRECTORY "${BLOODBORNE_SS_INFO_DIR}/tests")
         set_tests_properties(bloodborne_backend_parity PROPERTIES
+            ENVIRONMENT "SHADNET_EXE=$<TARGET_FILE:shadnet>")
+        add_test(NAME discord_signin
+            COMMAND "${Python3_EXECUTABLE}" -m unittest -v test_discord_signin
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+        set_tests_properties(discord_signin PROPERTIES
             ENVIRONMENT "SHADNET_EXE=$<TARGET_FILE:shadnet>")
         add_test(NAME http_gate_routes
             COMMAND "${Python3_EXECUTABLE}" -m unittest -v test_http_gate_routes
