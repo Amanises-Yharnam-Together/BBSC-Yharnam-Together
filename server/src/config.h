@@ -20,6 +20,7 @@ struct BackendConfig {
     int ghostTtlMinutes = 30;
     int lanternTtlMinutes = 10;
     int tombCap = 100;
+    int replyBytes = 64 * 1024; // Amanises 2026-10-26: the largest list sent (0: no cap)
     int summonPoll = 5;
 };
 

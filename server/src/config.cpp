@@ -63,6 +63,7 @@ void ConfigManager::Parse(const QString& path) {
     m_backend.ghostTtlMinutes = str("BackendGhostTtlMinutes", "30").toInt();
     m_backend.lanternTtlMinutes = str("BackendLanternTtlMinutes", "10").toInt();
     m_backend.tombCap = str("BackendTombCap", "100").toInt();
+    m_backend.replyBytes = str("BackendReplyBytes", "65536").toInt();
     m_backend.summonPoll = str("BackendSummonPoll", "5").toInt();
     m_hosted.enabled = boolean("Hosted", false);
     m_hosted.build = str("HostedBuild", "").trimmed();
