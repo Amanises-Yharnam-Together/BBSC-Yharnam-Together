@@ -12,6 +12,11 @@ builds or games but the memory guard; the old limits stay one env var away:
   BB_MIN_FREE_RAM_GB=G      a build or rig game refuses to start below G GB free RAM (default 2)
   BB_MIN_FREE_COMMIT_GB=G   ... or below G GB of commit left (default 4)
   BB_MEMORY_GUARD=0         no memory check
+  BB_MAX_CPU_BUSY=P         a rig game waits to start while the PC's CPU is over P % busy
+                            (default 70: Kaniel 2026-10-30, he must be able to use his PC while
+                            threads work, 25-30 % of the CPU left free)
+  BB_CPU_GUARD=0            no CPU check
+  BB_RIG_PRIORITY=normal    rig games and servers at normal priority (default below normal)
 
 A build holds one of C:\\bb\\build.lock, build-2.lock, ... ("<owner>\\n<pid>\\n<when>") while it
 runs. A lock whose process is gone (a build killed outright) is stale and taken over.
@@ -131,6 +136,72 @@ def refuse_if_memory_low(what: str, read=free_memory) -> None:
     if short := memory_short(read):
         raise SystemExit(f"Memory guard: not starting {what}: {short}. Close games, or reboot "
                          "to free memory crashed games leaked (BB_MEMORY_GUARD=0 skips this).")
+
+
+def cpu_times() -> tuple[int, int] | None:
+    """(idle, total) CPU time of every core since boot, or None off Windows."""
+    if os.name != "nt":
+        return None
+    import ctypes
+
+    idle, kernel, user = (ctypes.c_ulonglong() for _ in range(3))
+    if not ctypes.windll.kernel32.GetSystemTimes(ctypes.byref(idle), ctypes.byref(kernel),
+                                                 ctypes.byref(user)):
+        return None
+    return idle.value, kernel.value + user.value  # kernel time includes the idle time
+
+
+def cpu_busy(read=cpu_times, sleep=time.sleep, seconds: float = 2.0) -> float | None:
+    """How busy the whole CPU was over the next `seconds`, in percent, or None off Windows."""
+    if (first := read()) is None:
+        return None
+    sleep(seconds)
+    if (second := read()) is None:
+        return None
+    idle, total = second[0] - first[0], second[1] - first[1]
+    return 100.0 * (1 - idle / total) if total > 0 else 0.0
+
+
+def max_cpu_busy() -> float:
+    return gigabytes("BB_MAX_CPU_BUSY", 70)
+
+
+def wait_for_cpu(what: str, busy=cpu_busy, sleep=time.sleep, now=time.time,
+                 longest: float = 1800) -> None:
+    """Waits to start `what` while the CPU is busier than BB_MAX_CPU_BUSY (the PC is Kaniel's:
+    he plays and works on it while the rig runs). After `longest` seconds of waiting it starts
+    anyway, saying so: a run that never starts helps nobody, and the games run below normal
+    priority, so they give way to his."""
+    if os.environ.get("BB_CPU_GUARD") == "0":
+        return
+    limit = max_cpu_busy()
+    started = now()
+    said = False
+    while (load := busy()) is not None and load > limit:
+        if now() - started > longest:
+            print(f"CPU guard: still {load:.0f} % busy after {longest:.0f} s, starting {what} "
+                  "anyway (below normal priority)", flush=True)
+            return
+        if not said:
+            print(f"CPU guard: the CPU is {load:.0f} % busy (over {limit:g} %), {what} waits",
+                  flush=True)
+            said = True
+        sleep(POLL_SECONDS)
+    if said:
+        print(f"CPU guard: {what} starts", flush=True)
+
+
+# Windows' priority class for the rig's games and servers (Kaniel 2026-10-30: BelowNormal, so
+# his own programs come first). A process started below normal starts its children below
+# normal too (the port's launcher starts the game itself).
+BELOW_NORMAL_PRIORITY_CLASS = 0x00004000
+
+
+def priority_flags() -> int:
+    """creationflags for a rig game or server: below normal unless BB_RIG_PRIORITY=normal."""
+    if os.name != "nt" or os.environ.get("BB_RIG_PRIORITY", "").lower() == "normal":
+        return 0
+    return BELOW_NORMAL_PRIORITY_CLASS
 
 
 def try_take(owner: str, pid: int, lock: pathlib.Path = LOCK) -> bool:

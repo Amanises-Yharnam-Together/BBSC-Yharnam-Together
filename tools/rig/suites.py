@@ -51,6 +51,12 @@ PARTY_LIST_ICONS = r"party list is the HUD's own \(\d+ tags, icons (?!none)"
 HOSTS_MESSENGERS = (r"characters switched like the host has them on map 0x15000000 \(off, \+on\):"
                     r".* 0x1000000[0-3]\b")
 
+# #403 (Kaniel 2026-10-25): a host's game that dies hands the team to a guest, and comes back
+# as that guest's guest.
+GUEST_LEADS = (r"Co-op team play: this guest leads the team now: it hosts|Co-op team join: the "
+               r"session host moved to this game")
+OLD_HOST_IS_GUEST = r"Co-op team lobby: the save plays in team \w+ as its guest"
+
 RESTART = "<restart>"
 # Steps a game runs on its title screen, before it is in the world (the lobby's, the title's).
 TITLE_STEPS = ("team-", "title-")
@@ -423,6 +429,8 @@ SUITES = {
                                     "on the guest: it hides and shows characters as the host",
                     {"host": ["census 80", f"expect-hidden {STORY_HIDDEN} 1"],
                      "guest": ["census 80", f"expect-hidden {STORY_HIDDEN} 1 30"]},
+                    expect={"guest": [r"characters as the host has them on map 0x18010000: hid "
+                                      rf"\d+, showed \d+:.* {STORY_HIDDEN}"]},
                     forbid=holds(PARTY2)),
             chapter("phantom-look", "how a guest is drawn: each dumps itself, with a picture",
                     {"host": ["dump self", "shot host-self"],
@@ -739,7 +747,9 @@ SUITES = {
                     # PR #69: Options and R3 do nothing while down; PR #71: R1 hits count as light
                     # ones. No kneel (Kaniel 2026-10-15).
                     expect={"host": [r"party death: ((real )?revive hit on .*, light\)|"
-                                     r"revive swing at)"],
+                                     r"revive swing at)",
+                                     # the revive prompt names the character, not the account
+                                     r'party HUD: prompt "Strike to revive (?!rig_)[^"]+"'],
                             "guest": [r"party death: down \d+ on map 0x18010000",
                                       r"party death: down, the pad dropped buttons",
                                       r"party death: revived from down"]},
@@ -819,11 +829,13 @@ SUITES = {
                                           "sees its own stain with its echoes (Kaniel "
                                           "2026-10-11: only the host found a bloodstain)",
                     {"guest": [RESTART, START, "godmode", "wait-session 2 480", "wait 20",
+                               # the old bloodstain-rejoin scenario: on its compass and map
+                               "expect-stains 1 1 30", "shot guest-stain-rejoin",
                                "sync stain-back"],
                      "host": ["sync stain-back"]},
                     # Its game made a new HUD after the restart: the party list has its icons.
                     expect={"guest": [r"showed the guest's own bloodstain \([1-9]\d* echoes\)",
-                                      PARTY_LIST_ICONS]},
+                                      PARTY_LIST_ICONS, r"autoplay stains: \[compass own"]},
                     allow=CRASH_CLEANUP),
             chapter("down-alone", "with the host in the Dream nobody else is on the guest's map: "
                                   "its lethal fall is a real death that reloads the map",
@@ -1079,6 +1091,8 @@ SUITES = {
                      "host": ["wait-members 2 240", "sync hc-ready", RESTART, START, "godmode",
                               "wait-session 2 420", "wait 10", "expect-session 2",
                               "sync hc-back"]},
+                    # #403 (Kaniel 2026-10-25): the guest leads now, the old host is its guest.
+                    expect={"guest": [GUEST_LEADS], "host": [OLD_HOST_IS_GUEST]},
                     allow=CRASH_CLEANUP),
             chapter("leave", "the guest's game goes away and the host, alone now, picks up a map "
                              "item before anyone joins again (Kaniel 2026-10-11: no pickups "
@@ -1107,6 +1121,7 @@ SUITES = {
                                "sync hca-ready", "wait-solo 180", "wait 10",
                                f"expect-map {CATHEDRAL_WARD}", "sync hca-back", "wait 10",
                                "expect-session 2", f"expect-map {CATHEDRAL_WARD}"]},
+                    expect={"guest": [GUEST_LEADS], "host": [OLD_HOST_IS_GUEST]},
                     allow=CRASH_CLEANUP),
             # Phase 8: the map's owner dies mid-fight; the other game takes the map over with the
             # enemy as hurt as it was, where it was, and it keeps fighting.
@@ -1121,6 +1136,8 @@ SUITES = {
                                "wait-solo 180", "wait 3", f"expect-hp {ENEMY} <= 200",
                                "census 40", "wait 10", "census 40", f"expect-hp {ENEMY} <= 200",
                                "sync ocf-back"]},
+                    # The old owner-crash scenario's check: the guest's game runs the map now.
+                    expect={"guest": [r"enemy owner: this game runs map 0x18010000's enemies"]},
                     moves={"guest": ENEMY}, allow=CRASH_CLEANUP,
                     known_bug="the guest's game crashes (eboot+0x13cffba) once the dead owner's "
                               "game comes back, as in host-crash-apart (backlog: Krolebord's crash "

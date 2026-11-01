@@ -756,8 +756,10 @@ class RunnerTest(unittest.TestCase):
                              "a request no frame took is not taken by the next run's first frame")
 
     def test_play_gets_the_games_into_the_world_together_and_leaves_the_rest_to_you(self):
-        for name, players in (("down-revive", 2), ("down-revive3", 3)):
-            scenario = scenarios.SCENARIOS[name]
+        # The rig rework: down-revive and down-revive3 are suite chapters now; their suites
+        # play the same (party death on).
+        for name, players in (("party-death", 2), ("party3", 3)):
+            scenario = run_scenario.RUNNABLE[name]
             scripts = run_scenario.play_scripts(scenario)
             with self.subTest(scenario=name):
                 self.assertEqual(list(scripts), list(scenario["roles"]))
