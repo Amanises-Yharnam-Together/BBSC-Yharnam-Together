@@ -485,7 +485,6 @@
  "Asked": "已发送",
  "Add": "添加",
  "Friends are kept on the server with your account. Type with the keyboard to search.": "好友随你的账号保存在服务器上。请用键盘输入以搜索。",
- "Friend": "好友",
  "Search hunters online": "搜索在线猎人",
  "Nobody here by that name: Enter searches the whole server": "这里没有这个名字的猎人：按 Enter 搜索整个服务器",
  "Invitations and open teams": "邀请与公开队伍",
@@ -509,5 +508,8 @@
  "Set in the leader's launcher, on its Co-op page.": "在队长的启动器的合作页面中设置。",
  "Reset lamps": "重置灯",
  "Reset lamps? Press again": "要重置吗？再按一次",
- "Every lamp of this world goes out for every hunter; the rest stays.": "此世界的所有灯都会为每位猎人熄灭，其他内容保留。"
+ "Every lamp of this world goes out for every hunter; the rest stays.": "此世界的所有灯都会为每位猎人熄灭，其他内容保留。",
+ "Hunting: %s's team %d/%d": "狩猎中：%s的队伍 %d/%d",
+ "%s's team %d/%d, open": "%s的队伍 %d/%d，开放",
+ "%s's team %d/%d": "%s的队伍 %d/%d"
 }

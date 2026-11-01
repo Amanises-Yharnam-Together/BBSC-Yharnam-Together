@@ -283,7 +283,13 @@ typedef struct bbcoop_lobby_entry {
     int state;    /* BBCOOP_LOBBY_*: a player's or a member's */
     int ready;    /* a member's */
     int relation; /* BBCOOP_FRIEND_*: a player's, a friend's, a search result's */
-    int in_my_team; /* a friend's or a search result's: in this player's team already */
+    int in_my_team; /* a player's, a friend's or a search result's: in this player's team already */
+    /* Amanises 2026-10-26: a player's, a friend's or a search result's team (empty name, 0 in
+     * none): its leader's name, its size, open to anyone, its hunt begun. */
+    char team_leader[40];
+    int team_members;
+    int team_open;
+    int team_started;
 } bbcoop_lobby_entry;
 /* Amanises 2026-10-25: an open team as a player in no team sees it (`id` its team, `name` its
  * leader's). */
@@ -314,7 +320,7 @@ typedef struct bbcoop_lobby {
     int in_team, leader, started;
     int member_count, player_count, invite_count;
     bbcoop_lobby_entry members[BBCOOP_LOBBY_TEAM];       /* the leader first */
-    bbcoop_lobby_entry players[BBCOOP_LOBBY_PLAYERS];    /* others signed in, not in this team */
+    bbcoop_lobby_entry players[BBCOOP_LOBBY_PLAYERS];    /* others signed in (this team's last) */
     bbcoop_lobby_entry invites[BBCOOP_LOBBY_INVITES];    /* name: who invited, id: the team */
     char notice[96];                                      /* the server's last refusal */
     char me[40];                                          /* this player's id */

@@ -3024,6 +3024,34 @@ ImU32 StateColor(const bbcoop_lobby_entry& e, bool member) {
     return Plain(0.85f);
 }
 
+// Amanises 2026-10-26: a listed hunter's state with its team ("P1's team 2/4, open", "Hunting:
+// P1's team 3/4"), for Hunters online and the friends page.
+std::string TeamStateText(const bbcoop_lobby_entry& e) {
+    if (e.in_my_team) {
+        return T("In your team", "В вашей команде");
+    }
+    if (e.team_leader[0] == '\0' || e.state == BBCOOP_LOBBY_OFFLINE) {
+        return StateText(e, false);
+    }
+    const int size = lobby.team_size > 0 ? lobby.team_size : BBCOOP_LOBBY_TEAM;
+    char out[128];
+    if (e.team_started && e.state == BBCOOP_LOBBY_PLAYING) {
+        std::snprintf(out, sizeof(out), T("Hunting: %s's team %d/%d", "На охоте: команда %s %d/%d"),
+                      e.team_leader, e.team_members, size);
+    } else if (e.team_open && e.team_members < size) {
+        std::snprintf(out, sizeof(out), T("%s's team %d/%d, open", "Команда %s %d/%d, открыта"), e.team_leader,
+                      e.team_members, size);
+    } else {
+        std::snprintf(out, sizeof(out), T("%s's team %d/%d", "Команда %s %d/%d"), e.team_leader, e.team_members,
+                      size);
+    }
+    return out;
+}
+
+ImU32 TeamStateColor(const bbcoop_lobby_entry& e) {
+    return e.in_my_team ? Gold() : StateColor(e, false);
+}
+
 /// A hunter's place: the emblem, the name, the state; an empty one says so.
 void Card(ImDrawList* draw, ImVec2 at, ImVec2 size, const bbcoop_lobby_entry* member, bool leader,
           int place = 0) {
@@ -3667,10 +3695,13 @@ void FriendRow(ImDrawList* draw, float x, float y, float w, float h, const bbcoo
     MenuArt::Nine(draw, MenuArt::Row, ImVec2(x - S(6.0f), y - S(2.0f)), ImVec2(x + w + S(4.0f), y + h - S(4.0f)),
                   10.0f, S(6.0f), 0.7f);
     const float buttons_w = buttons * (button_w + S(6.0f));
-    const float status_x = x + w - buttons_w - S(10.0f) - ImGui::CalcTextSize(status).x;
+    const float status_end = x + w - buttons_w - S(10.0f);
+    // Amanises 2026-10-26: a long state (a team's) keeps room for the name.
+    const std::string shown = Fit(status, (status_end - x) * 0.6f);
+    const float status_x = status_end - ImGui::CalcTextSize(shown.c_str()).x;
     draw->AddText(ImVec2(x + S(8.0f), y + S(8.0f)), p.state == BBCOOP_LOBBY_OFFLINE ? Plain(0.6f) : Plain(),
                   Fit(p.name, status_x - x - S(20.0f)).c_str());
-    draw->AddText(ImVec2(status_x, y + S(8.0f)), status_color, status);
+    draw->AddText(ImVec2(status_x, y + S(8.0f)), status_color, shown.c_str());
 }
 
 void DrawFriends(ImDrawList* draw, ImVec2 win, ImVec2 size) {
@@ -3745,13 +3776,12 @@ void DrawFriends(ImDrawList* draw, ImVec2 win, ImVec2 size) {
     for (int i = 0; i < friend_rows; ++i, y += row_h) {
         const bbcoop_lobby_entry& f = lobby.friends[i];
         const bool armed = friends.removing == f.id && ImGui::GetTime() - friends.removing_at < 4.0;
-        const char* status = f.in_my_team ? T("In your team", "В вашей команде") : StateText(f, false);
-        FriendRow(draw, col_x[0], y, col_w, row_h, f, status, f.in_my_team ? Gold() : StateColor(f, false), 2,
-                  small_w);
+        const std::string status = TeamStateText(f);
+        FriendRow(draw, col_x[0], y, col_w, row_h, f, status.c_str(), TeamStateColor(f), 2, small_w);
         const float b1 = col_x[0] + col_w - 2 * small_w - S(6.0f), b2 = col_x[0] + col_w - small_w;
         const ImVec2 bs(small_w, row_h - S(6.0f));
         if (Button(draw, (std::string("finvite") + f.id).c_str(), T("Invite", "Пригласить"), ImVec2(b1, y), bs,
-                   can_invite && !f.in_my_team && f.state != BBCOOP_LOBBY_OFFLINE)) {
+                   can_invite && f.team_leader[0] == '\0' && f.state != BBCOOP_LOBBY_OFFLINE)) {
             bbcoop_lobby_request(BBCOOP_TEAM_INVITE, f.id);
         }
         if (Button(draw, (std::string("fremove") + f.id).c_str(), armed ? T("Sure?", "Точно?") : T("Remove", "Удалить"),
@@ -3806,8 +3836,8 @@ void DrawFriends(ImDrawList* draw, ImVec2 win, ImVec2 size) {
     for (int i = 0; i < lobby.search_count && i < rows; ++i, y += row_h) {
         const bbcoop_lobby_entry& p = lobby.search[i];
         const bool self = p.relation == BBCOOP_FRIEND_SELF;
-        FriendRow(draw, col_x[2], y, col_w, row_h, p, self ? T("You", "Вы") : StateText(p, false),
-                  StateColor(p, false), 1, small_w);
+        FriendRow(draw, col_x[2], y, col_w, row_h, p, self ? T("You", "Вы") : TeamStateText(p).c_str(),
+                  TeamStateColor(p), 1, small_w);
         const char* label = p.relation == BBCOOP_FRIEND_YES        ? T("Friends", "Друзья")
                             : p.relation == BBCOOP_FRIEND_SENT     ? T("Asked", "Отправлено")
                             : p.relation == BBCOOP_FRIEND_RECEIVED ? T("Accept", "Принять")
@@ -4128,14 +4158,16 @@ void Screen() {
         MenuArt::Nine(draw, MenuArt::Row, ImVec2(left_x - S(6.0f), y - S(2.0f)),
                       ImVec2(left_x + list_w + S(4.0f), y + row_h - S(4.0f)), 10.0f, S(6.0f), 0.7f);
         // The state right-aligned before the buttons, the name in what is left. Amanises
-        // 2026-10-25: a friend says so; another player can be asked from here (Add).
+        // 2026-10-25: another player can be asked from here (Add). 2026-10-26: every hunter with
+        // its state and team; a friend's name in gold.
         const bool is_friend = p.relation == BBCOOP_FRIEND_YES;
-        const char* state = is_friend ? T("Friend", "Друг") : StateText(p, false);
         const float add_w = S(110.0f);
-        const float state_x = left_x + list_w - button_w - add_w - S(24.0f) - ImGui::CalcTextSize(state).x;
-        draw->AddText(ImVec2(left_x + S(8.0f), y + S(8.0f)), Plain(),
+        const float state_end = left_x + list_w - button_w - add_w - S(24.0f);
+        const std::string state = Fit(TeamStateText(p).c_str(), (state_end - left_x) * 0.6f);
+        const float state_x = state_end - ImGui::CalcTextSize(state.c_str()).x;
+        draw->AddText(ImVec2(left_x + S(8.0f), y + S(8.0f)), is_friend ? Gold() : Plain(),
                       Fit(p.name, state_x - left_x - S(24.0f)).c_str());
-        draw->AddText(ImVec2(state_x, y + S(8.0f)), is_friend ? Gold() : StateColor(p, false), state);
+        draw->AddText(ImVec2(state_x, y + S(8.0f)), TeamStateColor(p), state.c_str());
         // A friend already: no button (the state says so).
         const char* add = p.relation == BBCOOP_FRIEND_SENT       ? T("Asked", "Отправлено")
                           : p.relation == BBCOOP_FRIEND_RECEIVED ? T("Accept", "Принять")

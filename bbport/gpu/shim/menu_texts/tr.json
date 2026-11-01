@@ -485,7 +485,6 @@
  "Asked": "Gönderildi",
  "Add": "Ekle",
  "Friends are kept on the server with your account. Type with the keyboard to search.": "Arkadaşlar hesabınla birlikte sunucuda tutulur. Aramak için klavyeyle yaz.",
- "Friend": "Arkadaş",
  "Search hunters online": "Çevrimiçi avcı ara",
  "Nobody here by that name: Enter searches the whole server": "Burada bu isimde kimse yok: Enter tüm sunucuda arar",
  "Invitations and open teams": "Davetler ve açık takımlar",
@@ -509,5 +508,8 @@
  "Set in the leader's launcher, on its Co-op page.": "Liderin başlatıcısında, Co-op sayfasında ayarlanır.",
  "Reset lamps": "Fenerleri sıfırla",
  "Reset lamps? Press again": "Sıfırlansın mı? Tekrar basın",
- "Every lamp of this world goes out for every hunter; the rest stays.": "Bu dünyanın tüm fenerleri her avcı için söner; gerisi kalır."
+ "Every lamp of this world goes out for every hunter; the rest stays.": "Bu dünyanın tüm fenerleri her avcı için söner; gerisi kalır.",
+ "Hunting: %s's team %d/%d": "Avda: %s ekibi %d/%d",
+ "%s's team %d/%d, open": "%s ekibi %d/%d, açık",
+ "%s's team %d/%d": "%s ekibi %d/%d"
 }

@@ -485,7 +485,6 @@
  "Asked": "Demandé",
  "Add": "Ajouter",
  "Friends are kept on the server with your account. Type with the keyboard to search.": "Les amis sont gardés sur le serveur avec votre compte. Tapez au clavier pour rechercher.",
- "Friend": "Ami",
  "Search hunters online": "Chercher des chasseurs en ligne",
  "Nobody here by that name: Enter searches the whole server": "Personne ici sous ce nom : Entrée cherche sur tout le serveur",
  "Invitations and open teams": "Invitations et équipes ouvertes",
@@ -509,5 +508,8 @@
  "Set in the leader's launcher, on its Co-op page.": "Réglées dans le lanceur du chef, page Coop.",
  "Reset lamps": "Réinitialiser les lanternes",
  "Reset lamps? Press again": "Réinitialiser ? Appuyez encore",
- "Every lamp of this world goes out for every hunter; the rest stays.": "Toutes les lanternes de ce monde s'éteignent pour tous les chasseurs ; le reste demeure."
+ "Every lamp of this world goes out for every hunter; the rest stays.": "Toutes les lanternes de ce monde s'éteignent pour tous les chasseurs ; le reste demeure.",
+ "Hunting: %s's team %d/%d": "En chasse : équipe de %s %d/%d",
+ "%s's team %d/%d, open": "Équipe de %s %d/%d, ouverte",
+ "%s's team %d/%d": "Équipe de %s %d/%d"
 }

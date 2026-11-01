@@ -202,6 +202,33 @@ bbcoop::LobbyPlayer::State TeamLobby::StateOf(const std::string& member) const {
     return player->second.playing ? bbcoop::LobbyPlayer::PLAYING : bbcoop::LobbyPlayer::TITLE;
 }
 
+void TeamLobby::Describe(const std::string& member, bbcoop::LobbyPlayer& out) const {
+    out.set_state(StateOf(member));
+    out.clear_team();
+    out.clear_team_leader();
+    out.clear_team_members();
+    out.clear_team_join();
+    out.clear_team_started();
+    const bbcoop::Team* team = TeamOf(member);
+    if (!team) {
+        return;
+    }
+    out.set_team(team->id());
+    std::string leader = team->leader();
+    for (const bbcoop::TeamMember& m : team->members()) {
+        if (m.member() == team->leader() && !m.name().empty()) {
+            leader = m.name();
+        }
+    }
+    if (const auto player = players.find(team->leader()); player != players.end()) {
+        leader = player->second.name;
+    }
+    out.set_team_leader(leader);
+    out.set_team_members(static_cast<u32>(team->members_size()));
+    out.set_team_join(team->join());
+    out.set_team_started(team->started());
+}
+
 bbcoop::TeamWorldInfo* TeamLobby::FindWorld(const std::string& id) {
     const auto found =
         std::ranges::find_if(worlds, [&](const bbcoop::TeamWorldInfo& w) { return w.id() == id; });
@@ -1155,10 +1182,7 @@ bbcoop::LobbyState TeamLobby::StateFor(const std::string& member) const {
         bbcoop::LobbyPlayer& out = *state.add_players();
         out.set_member(other);
         out.set_name(player.name);
-        out.set_state(StateOf(other));
-        if (const bbcoop::Team* team = TeamOf(other)) {
-            out.set_team(team->id());
-        }
+        Describe(other, out);
     };
     if (!hosted) {
         for (const auto& [other, player] : players) {
@@ -1167,8 +1191,9 @@ bbcoop::LobbyState TeamLobby::StateFor(const std::string& member) const {
             }
         }
     } else {
-        // Its teammates, those who invited it and those its team invited, then players in no team
-        // (to invite) up to lobby_players.
+        // Its teammates, those who invited it and those its team invited, then up to lobby_players
+        // others: those in no team (to invite) first, then those in teams (Amanises 2026-10-26:
+        // every hunter online shows, with its team).
         std::set<std::string> listed{member};
         const auto list = [&](const std::string& other) {
             if (const auto player = players.find(other);

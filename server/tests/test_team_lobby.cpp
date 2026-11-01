@@ -936,6 +936,45 @@ static int AHostedLobbyListsFewOthers() {
   return 0;
 }
 
+// Amanises 2026-10-26: a hosted lobby lists the players in teams too (after
+// those in none), each with its team's leader, size and join mode.
+static int EveryHunterOnlineShowsWithItsTeam() {
+  for (const bool hosted : {false, true}) {
+    TeamLobby lobby = NewLobby();
+    if (hosted) {
+      lobby.SetHosted(3, 16);
+    }
+    for (const char *m : {"a", "b", "c", "d"}) {
+      lobby.Arrive(m, std::string("Hunter ") + m, false);
+    }
+    lobby.Request("a", Request(Action::CREATE));
+    lobby.Request("a", Request(Action::INVITE, "b"));
+    lobby.Request("b", Request(Action::ACCEPT, {}, lobby.TeamOf("a")->id()));
+    bbcoop::TeamRequest open = Request(Action::OPEN);
+    open.set_join(bbcoop::Team::OPEN);
+    lobby.Request("a", open);
+    const bbcoop::LobbyState state = lobby.StateFor("c");
+    CHECK(state.players_size() == 3);
+    const auto a = std::ranges::find_if(
+        state.players(), [](const auto &p) { return p.member() == "a"; });
+    CHECK(a != state.players().end());
+    CHECK(a->team_leader() == "Hunter a" && a->team_members() == 2);
+    CHECK(a->team_join() == bbcoop::Team::OPEN && !a->team_started());
+    // A player in no team says so; Describe gives the same for any member.
+    const auto d = std::ranges::find_if(
+        state.players(), [](const auto &p) { return p.member() == "d"; });
+    CHECK(d != state.players().end() && d->team().empty() &&
+          d->team_members() == 0);
+    bbcoop::LobbyPlayer b;
+    lobby.Describe("b", b);
+    CHECK(b.team() == a->team() && b.team_leader() == "Hunter a");
+    bbcoop::LobbyPlayer gone;
+    lobby.Describe("nobody", gone);
+    CHECK(gone.state() == bbcoop::LobbyPlayer::OFFLINE && gone.team().empty());
+  }
+  return 0;
+}
+
 // A friend the lobby does not list joins by the team's code: the leader handed
 // it out (its invite), the friend typed it (its accept).
 static int AFriendJoinsByTheTeamsCode() {
@@ -1427,6 +1466,7 @@ int main() {
   failed |= HostedServersKeepEveryPlayersWorlds();
   failed |= AHostedPlayersWorldsAreCapped();
   failed |= AHostedLobbyListsFewOthers();
+  failed |= EveryHunterOnlineShowsWithItsTeam();
   failed |= TheLeaderAllowsInvaders();
   failed |= AFriendJoinsByTheTeamsCode();
   failed |= TeamCodesAreUnique();

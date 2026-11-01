@@ -485,7 +485,6 @@
  "Asked": "Gevraagd",
  "Add": "Toevoegen",
  "Friends are kept on the server with your account. Type with the keyboard to search.": "Vrienden worden met je account op de server bewaard. Typ met het toetsenbord om te zoeken.",
- "Friend": "Vriend",
  "Search hunters online": "Zoek jagers online",
  "Nobody here by that name: Enter searches the whole server": "Niemand hier met die naam: Enter zoekt op de hele server",
  "Invitations and open teams": "Uitnodigingen en open teams",
@@ -509,5 +508,8 @@
  "Set in the leader's launcher, on its Co-op page.": "Ingesteld in de launcher van de leider, op de Co-op-pagina.",
  "Reset lamps": "Lantaarns resetten",
  "Reset lamps? Press again": "Resetten? Druk nogmaals",
- "Every lamp of this world goes out for every hunter; the rest stays.": "Elke lantaarn van deze wereld gaat uit voor alle jagers; de rest blijft."
+ "Every lamp of this world goes out for every hunter; the rest stays.": "Elke lantaarn van deze wereld gaat uit voor alle jagers; de rest blijft.",
+ "Hunting: %s's team %d/%d": "Op jacht: team van %s %d/%d",
+ "%s's team %d/%d, open": "Team van %s %d/%d, open",
+ "%s's team %d/%d": "Team van %s %d/%d"
 }

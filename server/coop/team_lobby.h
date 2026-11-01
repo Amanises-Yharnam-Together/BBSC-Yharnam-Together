@@ -172,6 +172,8 @@ public:
     bbcoop::TeamStart StartFor(const std::string& member) const;
     // The team `member` is in, or none.
     const bbcoop::Team* TeamOf(const std::string& member) const;
+    // Amanises 2026-10-26: `member`'s state and team as the lists show it (offline when gone).
+    void Describe(const std::string& member, bbcoop::LobbyPlayer& out) const;
     std::vector<std::string> SignedIn() const;
     // Amanises 2026-10-25: the open teams listed to one player at most.
     static constexpr size_t OpenTeamsListed = 12; // the game keeps as many (BBCOOP_LOBBY_OPEN)

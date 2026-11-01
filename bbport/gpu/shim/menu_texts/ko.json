@@ -485,7 +485,6 @@
  "Asked": "요청함",
  "Add": "추가",
  "Friends are kept on the server with your account. Type with the keyboard to search.": "친구는 계정과 함께 서버에 저장됩니다. 검색하려면 키보드로 입력하세요.",
- "Friend": "친구",
  "Search hunters online": "접속 중인 사냥꾼 검색",
  "Nobody here by that name: Enter searches the whole server": "여기에 그 이름의 사냥꾼이 없습니다: Enter로 서버 전체 검색",
  "Invitations and open teams": "초대와 공개 팀",
@@ -509,5 +508,8 @@
  "Set in the leader's launcher, on its Co-op page.": "리더의 런처 협동 페이지에서 설정합니다.",
  "Reset lamps": "등불 초기화",
  "Reset lamps? Press again": "초기화할까요? 다시 누르세요",
- "Every lamp of this world goes out for every hunter; the rest stays.": "이 월드의 모든 등불이 모든 사냥꾼에게서 꺼집니다. 나머지는 유지됩니다."
+ "Every lamp of this world goes out for every hunter; the rest stays.": "이 월드의 모든 등불이 모든 사냥꾼에게서 꺼집니다. 나머지는 유지됩니다.",
+ "Hunting: %s's team %d/%d": "사냥 중: %s의 팀 %d/%d",
+ "%s's team %d/%d, open": "%s의 팀 %d/%d, 공개",
+ "%s's team %d/%d": "%s의 팀 %d/%d"
 }

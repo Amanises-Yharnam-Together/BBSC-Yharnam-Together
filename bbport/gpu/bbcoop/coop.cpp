@@ -516,6 +516,18 @@ static_assert(BBCOOP_FRIEND_NONE == bbcoop::LobbyPlayer::NONE &&
               BBCOOP_FRIEND_RECEIVED == bbcoop::LobbyPlayer::REQUEST_RECEIVED &&
               BBCOOP_FRIEND_SELF == bbcoop::LobbyPlayer::SELF);
 
+// Amanises 2026-10-26: a listed player's team as the lists show it.
+void CopyTeam(bbcoop_lobby_entry& entry, const bbcoop::LobbyPlayer& player, const std::string& own_team) {
+    entry.in_my_team = !own_team.empty() && player.team() == own_team;
+    if (player.team().empty()) {
+        return;
+    }
+    CopyName(entry.team_leader, sizeof(entry.team_leader), player.team_leader());
+    entry.team_members = static_cast<int>(player.team_members());
+    entry.team_open = player.team_join() == bbcoop::Team::OPEN ? 1 : 0;
+    entry.team_started = player.team_started() ? 1 : 0;
+}
+
 // Amanises 2026-10-25: a list of players (friends, requests, search results) into `out`.
 template <size_t N, typename List>
 void CopyPlayers(bbcoop_lobby_entry (&out)[N], int& count, const List& list,
@@ -529,7 +541,7 @@ void CopyPlayers(bbcoop_lobby_entry (&out)[N], int& count, const List& list,
         CopyName(entry.id, sizeof(entry.id), player.member());
         entry.state = LobbyStateOf(player.state());
         entry.relation = static_cast<int>(player.relation());
-        entry.in_my_team = !own_team.empty() && player.team() == own_team;
+        CopyTeam(entry, player, own_team);
     }
 }
 
@@ -640,16 +652,21 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
         CopyName(out.characters, sizeof(out.characters), hunters);
         out.busy = !w.played_by().empty() && w.played_by() != own_team;
     }
-    for (const bbcoop::LobbyPlayer& player : state->players()) {
-        const bool mine = state->has_team() && player.team() == state->team().id();
-        if (mine || lobby->player_count == BBCOOP_LOBBY_PLAYERS) {
-            continue;
+    // Amanises 2026-10-26: every hunter online, teammates too (after the others: they are on the
+    // cards already).
+    for (const bool teammates : {false, true}) {
+        for (const bbcoop::LobbyPlayer& player : state->players()) {
+            const bool mine = !own_team.empty() && player.team() == own_team;
+            if (mine != teammates || lobby->player_count == BBCOOP_LOBBY_PLAYERS) {
+                continue;
+            }
+            bbcoop_lobby_entry& out = lobby->players[lobby->player_count++];
+            CopyName(out.name, sizeof(out.name), player.name());
+            CopyName(out.id, sizeof(out.id), player.member());
+            out.state = LobbyStateOf(player.state());
+            out.relation = static_cast<int>(player.relation());
+            CopyTeam(out, player, own_team);
         }
-        bbcoop_lobby_entry& out = lobby->players[lobby->player_count++];
-        CopyName(out.name, sizeof(out.name), player.name());
-        CopyName(out.id, sizeof(out.id), player.member());
-        out.state = LobbyStateOf(player.state());
-        out.relation = static_cast<int>(player.relation());
     }
     CopyPlayers(lobby->friends, lobby->friend_count, state->friends(), own_team);
     CopyPlayers(lobby->requests, lobby->request_count, state->friend_requests(), own_team);

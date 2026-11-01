@@ -485,7 +485,6 @@
  "Asked": "Skickad",
  "Add": "Lägg till",
  "Friends are kept on the server with your account. Type with the keyboard to search.": "Vänner sparas på servern med ditt konto. Skriv med tangentbordet för att söka.",
- "Friend": "Vän",
  "Search hunters online": "Sök jägare online",
  "Nobody here by that name: Enter searches the whole server": "Ingen här med det namnet: Enter söker på hela servern",
  "Invitations and open teams": "Inbjudningar och öppna lag",
@@ -509,5 +508,8 @@
  "Set in the leader's launcher, on its Co-op page.": "Ställs in i ledarens launcher, på dess Co-op-sida.",
  "Reset lamps": "Återställ lyktor",
  "Reset lamps? Press again": "Återställa? Tryck igen",
- "Every lamp of this world goes out for every hunter; the rest stays.": "Alla lyktor i den här världen slocknar för alla jägare; resten blir kvar."
+ "Every lamp of this world goes out for every hunter; the rest stays.": "Alla lyktor i den här världen slocknar för alla jägare; resten blir kvar.",
+ "Hunting: %s's team %d/%d": "På jakt: %ss lag %d/%d",
+ "%s's team %d/%d, open": "%ss lag %d/%d, öppet",
+ "%s's team %d/%d": "%ss lag %d/%d"
 }

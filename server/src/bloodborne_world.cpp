@@ -2566,6 +2566,14 @@ bbcoop::LobbyState Service::LobbyStateFor(const Member& member) const {
             }
         }
         AddFriendsToLobby(state, member.lobby, relations, member.search_query, member.search);
+        // Amanises 2026-10-26: a friend (request, search result) the lobby does not list (a hosted
+        // server lists few) still shows its state and team.
+        for (auto* list : {state.mutable_friends(), state.mutable_friend_requests(),
+                           state.mutable_friend_requests_sent(), state.mutable_search()}) {
+            for (bbcoop::LobbyPlayer& entry : *list) {
+                lobby.Describe(entry.member(), entry);
+            }
+        }
     }
     return state;
 }

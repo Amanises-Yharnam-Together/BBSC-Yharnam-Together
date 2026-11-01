@@ -754,6 +754,12 @@ message LobbyPlayer {
     State state = 3;
     string team = 4; // the team it is in, if any
     Relation relation = 5;
+    // Amanises 2026-10-26: its team as the lists show it ("<leader>'s team 2/4", open or not, in
+    // the hunt); empty and 0 in no team.
+    string team_leader = 6; // the leader's name
+    uint32 team_members = 7;
+    Team.Join team_join = 8;
+    bool team_started = 9;
 }
 
 message TeamMember {
