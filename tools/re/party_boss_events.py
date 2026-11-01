@@ -696,6 +696,99 @@ def make_events_local(emevd: bytes, wanted: set[int],
     return bytes(out), len(targets)
 
 
+# Kaniel 2026-11-01: as the host levels up at the Doll, the guests take the same pose. Her
+# blessing flag 72100100 reaches every player (the team world's story, the game's flag sync), and
+# m21_00 12100112 then turns each game's own player (10000) to her and kneels. Its animations on
+# the local player now run only while that player's own level-up flag 6700 is on (her talk sets
+# it as her level-up menu opens, bloodborne_flags.h); the event's flags go on as before, so the
+# levelling player's talk still gets its 72100101.
+OWN_ANIMATION_EVENTS = {'m21_00_00_00.emevd.dcx': {12100112: 6700}}
+PLAYER_ANIMATIONS = {(2004, 14), (2003, 18)}
+SKIP_IF_EVENT_FLAG = (1003, 1)
+OFF = 0
+
+
+def guard_own_animations(emevd: bytes, wanted: dict[int, int],
+                         edits: list | None = None) -> tuple[bytes, int]:
+    """Before each animation of the local player in a `wanted` event, "skip 1 if flag F is off"
+    (F: the event's entry in `wanted`)."""
+    data = bytearray(emevd)
+    fields = list(struct.unpack_from('<16q', data, 16))
+    event_count, event_offset = fields[0], fields[1]
+    instruction_count, instruction_offset = fields[2], fields[3]
+    args_offset, args_size = fields[13], fields[12]
+    events = [list(struct.unpack_from('<qqqqqii', data, event_offset + index * 48))
+              for index in range(event_count)]
+    instructions_end = instruction_offset + instruction_count * INSTRUCTION_SIZE
+    table = bytearray(data[instruction_offset:instructions_end])
+    new_args = bytearray()
+    # (event index, the game's instruction numbers to guard), from the last in the table up.
+    plans = []
+    for index, event in enumerate(events):
+        if event[0] not in wanted:
+            continue
+        flag = wanted[event[0]]
+        guard = struct.pack('<BBBxi', 1, OFF, 0, flag)
+        records = [struct.unpack_from('<iiqqq', table, event[2] + k * INSTRUCTION_SIZE)
+                   for k in range(event[1])]
+        args = [bytes(data[args_offset + offset:args_offset + offset + length])
+                for _, _, length, offset, _ in records]
+        guarded = []
+        for k, (bank, ident, length, *_) in enumerate(records):
+            if (bank, ident) not in PLAYER_ANIMATIONS or length < 4:
+                continue
+            if struct.unpack_from('<i', args[k], 0)[0] != LOCAL_PLAYER:
+                continue
+            if k > 0 and (records[k - 1][0], records[k - 1][1]) == SKIP_IF_EVENT_FLAG and \
+                    args[k - 1] == guard:
+                continue  # patched already
+            guarded.append(k)
+        if guarded:
+            plans.append((index, guarded, guard))
+    if not plans:
+        return emevd, 0
+    inserted_total = 0
+    for index, guarded, guard in sorted(plans, key=lambda plan: events[plan[0]][2], reverse=True):
+        event = events[index]
+        offset = args_size + len(new_args)
+        new_args += guard
+        record = struct.pack('<iiqqq', *SKIP_IF_EVENT_FLAG, len(guard), offset, -1)
+        for k in reversed(guarded):
+            at = event[2] + k * INSTRUCTION_SIZE
+            table[at:at] = record
+        for number, k in enumerate(guarded):
+            note_insert(edits, event[0], k, *SKIP_IF_EVENT_FLAG,
+                        "the local player's animation only with its own flag on")
+        added = len(guarded) * INSTRUCTION_SIZE
+        for other in events:
+            if other is not event and other[2] > event[2]:
+                other[2] += added
+        event[1] += len(guarded)
+        # Parameters copy into instructions by number: one further down per guard above.
+        for j in range(event[3]):
+            at = fields[9] + event[4] + j * PARAMETER_SIZE
+            k = struct.unpack_from('<q', data, at)[0]
+            struct.pack_into('<q', data, at, k + sum(1 for g in guarded if g <= k))
+        inserted_total += len(guarded)
+    delta = inserted_total * INSTRUCTION_SIZE
+    out = data[:instruction_offset] + table + data[instructions_end:]
+    for index, event in enumerate(events):
+        struct.pack_into('<qqqqqii', out, event_offset + index * 48, *event)
+    fields[2] += inserted_total
+    for field in SHIFTED_OFFSET_FIELDS:
+        if fields[field] >= instructions_end:
+            fields[field] += delta
+    struct.pack_into('<16q', out, 16, *fields)
+    struct.pack_into('<I', out, 0x0C, struct.unpack_from('<I', out, 0x0C)[0] + delta)
+    return with_new_arguments(out, fields, new_args), inserted_total
+
+
+def note_insert(edits: list | None, event: int, before: int, bank: int, ident: int, why: str):
+    if edits is not None:
+        edits.append({'event': event, 'action': 'insert', 'before': before, 'bank': bank,
+                      'id': ident, 'why': why})
+
+
 SET_EVENT_FLAG = (2003, 2)
 BATCH_SET_EVENT_FLAGS = (2003, 22)
 ALIVE = 0
@@ -1063,7 +1156,7 @@ def patch_file(name: str, original: bytes) -> tuple[bytes | None, list, dict]:
               'client event ends': 0, 'local events': 0, 'chalice wall checks': 0,
               'item pickup checks': 0, 'host door effects': 0, 'ambush checks': 0,
               'chalice reward checks': 0, 'one-time enemy checks': 0, 'lake dive checks': 0,
-              'ending checks': 0, 'dropped banners': 0}
+              'ending checks': 0, 'dropped banners': 0, 'own animation checks': 0}
     try:
         if name.startswith('m'):
             emevd, counts['boss event checks'] = patch_events(emevd, edits)
@@ -1094,6 +1187,9 @@ def patch_file(name: str, original: bytes) -> tuple[bytes | None, list, dict]:
         if name in CHALICE_REWARD_EVENTS:
             emevd, counts['chalice reward checks'] = patch_chalice_rewards(
                 emevd, edits, CHALICE_REWARD_EVENTS[name])
+        if name in OWN_ANIMATION_EVENTS:
+            emevd, counts['own animation checks'] = guard_own_animations(
+                emevd, OWN_ANIMATION_EVENTS[name], edits)
         if name in DROPPED_BANNER_EVENTS:
             emevd, counts['dropped banners'] = drop_banners(emevd, DROPPED_BANNER_EVENTS[name],
                                                             edits)

@@ -886,3 +886,56 @@ def parameters_of(emevd: bytes, wanted: int) -> list[tuple[int, int, int, int]]:
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def doll_kneel_event() -> list[tuple[int, int, bytes]]:
+    """m21_00's 12100112, cut down: once 72100100 is on, the local player (10000) turns to the Doll
+    (2004:14) and kneels (2003:18), then 72100101 is set for her talk."""
+    return [
+        (2000, 2, struct.pack('<i', 0)),
+        flag_condition(0, 72100100),
+        (2004, 14, struct.pack('<iiii', 10000, 2100700, 101290, 0)),
+        (2004, 14, struct.pack('<iiii', 10000, 2100700, 101270, 0)),
+        (1001, 1, struct.pack('<i', 0)),
+        (2003, 2, struct.pack('<iBxxx', 72100101, 1)),
+        (2003, 18, struct.pack('<iii', 10000, 101272, 0)),
+        (2004, 14, struct.pack('<iiii', 2100700, 10000, 7021, 0)),  # the Doll's, not the player's
+        (2003, 2, struct.pack('<iBxxx', 72100101, 0)),
+    ]
+
+
+class OnlyTheLevellingPlayerKneels(unittest.TestCase):
+    """Kaniel 2026-11-01: when the host levels up in the Hunter's Dream, the guests take the same
+    pose. 72100100 (the Doll's blessing) reaches every player, and each game's 12100112 then plays
+    the kneel on its own player. The kneel's animations now run only while this player's own
+    level-up flag 6700 is on (her talk sets it as her level-up menu opens); the blessing's flags
+    still go on as before, so the levelling player's talk finishes."""
+
+    def setUp(self):
+        self.edits: list = []
+        self.original = build_emevd({12100112: doll_kneel_event(), 12100113: doll_kneel_event()})
+        self.patched, self.count = tool.guard_own_animations(self.original, {12100112: 6700},
+                                                             self.edits)
+        self.events = read_events(self.patched)
+
+    def test_each_of_the_players_animations_is_skipped_without_its_own_level_up(self):
+        skip = (1003, 1, struct.pack('<BBBxi', 1, 0, 0, 6700))
+        original = doll_kneel_event()
+        self.assertEqual(self.count, 3)
+        self.assertEqual(self.events[12100112], [
+            original[0], original[1], skip, original[2], skip, original[3], original[4],
+            original[5], skip, original[6], original[7], original[8]])
+
+    def test_other_events_stay(self):
+        self.assertEqual(self.events[12100113], doll_kneel_event())
+
+    def test_the_file_still_checks_out(self):
+        tool.validate(self.original, self.patched, self.edits, 'm21_00_00_00.emevd.dcx')
+
+    def test_patching_twice_changes_nothing(self):
+        again, count = tool.guard_own_animations(self.patched, {12100112: 6700})
+        self.assertEqual(count, 0)
+        self.assertEqual(again, self.patched)
+
+    def test_the_hunters_dream_is_patched(self):
+        self.assertEqual(tool.OWN_ANIMATION_EVENTS, {'m21_00_00_00.emevd.dcx': {12100112: 6700}})
