@@ -2592,29 +2592,28 @@ SCENARIOS = {
     "join-by-code": {
         "about": "a guest joins by the leader's team code, typed as the team screen takes it",
         "roles": {
-            "host": ["team-create", "team-code-share", "sync code-shared", "team-wait 2",
-                     "team-start", START, "wait-session 2 300", "wait 10", "expect-session 2",
+            "host": ["team-create", "team-code-share", "team-wait 2", "team-start", START, "wait-session 2 300", "wait 10", "expect-session 2",
                      "sync joined", "snapshot"],
-            "guest": ["sync code-shared", "team-join-code", "team-ready", START,
+            "guest": ["team-join-code", "team-ready", START,
                       "wait-session 2 300", "wait 10", "expect-session 2", "sync joined",
                       "snapshot"],
         },
         "syncs": {name: {"chapter": "join-by-code", "roles": ["host", "guest"]}
-                  for name in ("code-shared", "joined")},
+                  for name in ("joined",)},
         "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
         "timeout": 420,
     },
     "join-open-team": {
         "about": "a guest joins an open team from the list at once, no invite",
         "roles": {
-            "host": ["team-create", "team-open 2", "sync opened", "team-wait 2", "team-start",
+            "host": ["team-create", "team-open 2", "team-wait 2", "team-start",
                      START, "wait-session 2 300", "wait 10", "expect-session 2", "sync joined",
                      "snapshot"],
-            "guest": ["sync opened", "team-join-open", "team-ready", START, "wait-session 2 300",
+            "guest": ["team-join-open", "team-ready", START, "wait-session 2 300",
                       "wait 10", "expect-session 2", "sync joined", "snapshot"],
         },
         "syncs": {name: {"chapter": "join-open-team", "roles": ["host", "guest"]}
-                  for name in ("opened", "joined")},
+                  for name in ("joined",)},
         "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
         "timeout": 420,
     },
@@ -2625,13 +2624,13 @@ SCENARIOS = {
                  "second joins it, they play one session",
         "global": True,
         "roles": {
-            "host": ["team-quick", "sync quick-open", "team-wait 2", "team-start", START,
+            "host": ["team-quick", "team-wait 2", "team-start", START,
                      "wait-session 2 300", "wait 10", "expect-session 2", "sync played", "snapshot"],
-            "guest": ["sync quick-open", "team-quick", "team-ready", START, "wait-session 2 300",
+            "guest": ["team-wait-open", "team-quick", "team-ready", START, "wait-session 2 300",
                       "wait 10", "expect-session 2", "sync played", "snapshot"],
         },
         "syncs": {name: {"chapter": "global-quick-match", "roles": ["host", "guest"]}
-                  for name in ("quick-open", "played")},
+                  for name in ("played",)},
         "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
         "timeout": 420,
     },
@@ -5358,6 +5357,25 @@ SCENARIOS["duel-teams"] = {
     },
     "forbid": {role: SESSION_HOLDS + DUEL_NO_DEATH for role in ("host", "guest", "guest2")},
     "timeout": 420,
+}
+
+
+# Kaniel 2026-11-01: a server that answers with another key than the one the launcher pinned: the
+# game never links to it (someone may stand in for it), and says so for the launcher.
+SCENARIOS["wrong-server-key"] = {
+    "about": "the guest pins another key than the server's: no link, and the log line the "
+             "launcher tells the player from",
+    "role_settings": {"guest": {"BB_SHADNET_SERVER_KEY": "ab" * 32}},
+    "start_after": {"guest": ["host", LINKED]},
+    "roles": {
+        "host": ["team-alone", START, "wait 20", "done"],
+        "guest": ["team-alone", START],
+    },
+    "done_on": {"guest": r"Server link: the server says another key than the one pinned"},
+    "expect": {"host": [LINKED],
+               "guest": [r"Server link: the server says another key than the one pinned"]},
+    "forbid": {"guest": [LINKED]},
+    "timeout": 300,
 }
 
 

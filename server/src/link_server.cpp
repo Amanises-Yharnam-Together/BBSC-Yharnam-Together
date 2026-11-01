@@ -453,6 +453,21 @@ std::optional<ServerLink::SignInVerdict> LinkServer::SignIn(const QByteArray& on
                            {ticket->requests().begin(), ticket->requests().end()});
         }
     }
+    // Global servers: a sign-in's secret, told by its signature with no store shared between
+    // shards (discord_accounts.h); an old or signed-out one is sent back to the launcher.
+    const bool discord_on = m_discordSignIn && !m_shared->discordKey.isEmpty();
+    const bool discord_account = discord_on && DiscordAccounts::IsDiscordId(online_id);
+    if (discord_account) {
+        const auto verdict = DiscordAccounts::Check(
+            m_shared->discordKey, online_id, secret, QDateTime::currentSecsSinceEpoch(),
+            m_db.DiscordNotBefore(QString::fromUtf8(online_id)));
+        if (verdict != DiscordAccounts::Verdict::Good)
+            return ServerLink::SignInVerdict{false, DiscordFirst};
+        // A newer sign-in's secret replaces the one remembered here.
+        if (const auto held = m_signedIn.constFind(online_id);
+            held != m_signedIn.constEnd() && *held != hash)
+            m_signedIn.remove(online_id);
+    }
     const auto known = m_signedIn.constFind(online_id);
     if (known != m_signedIn.constEnd()) {
         if (*known != hash)
@@ -489,9 +504,6 @@ std::optional<ServerLink::SignInVerdict> LinkServer::SignIn(const QByteArray& on
     // Global servers: a new account comes from Sign in with Discord (discord_accounts.h), which
     // any shard can tell from its secret; no other new id, and the work and an address's accounts
     // are for ids anyone can make.
-    const bool discord_on = m_discordSignIn && !m_shared->discordKey.isEmpty();
-    const bool discord_account =
-        discord_on && DiscordAccounts::Holds(m_shared->discordKey, online_id, secret);
     if (discord_on && !discord_account && make && !ticketed &&
         !m_db.GetUserId(QString::fromUtf8(online_id)))
         return ServerLink::SignInVerdict{false, DiscordFirst};
@@ -524,7 +536,7 @@ std::optional<ServerLink::SignInVerdict> LinkServer::SignIn(const QByteArray& on
     // is waiting for it.
     m_signInPool.start(
         [this, online_id, secret, hash, make, address, counted, db_path, claim, directory, token,
-         shard] {
+         shard, discord_account] {
             // Each sign-in thread's own connection to the accounts.
             static thread_local std::unique_ptr<Database> db;
             if (!db) {
@@ -549,6 +561,10 @@ std::optional<ServerLink::SignInVerdict> LinkServer::SignIn(const QByteArray& on
                     elsewhere = *holder;
                 }
             }
+            // Its signature was good: a newer sign-in's secret takes the old one's place here.
+            if (discord_account && existed &&
+                !db->CheckUser(id, QString::fromUtf8(secret), {}, false))
+                db->SetPassword(id, QString::fromUtf8(secret));
             DbError why = DbError::None;
             const bool accepted =
                 (existed || may_make) &&

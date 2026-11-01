@@ -84,6 +84,11 @@ public:
     std::optional<int64_t> GetUserId(const QString& npid);
     // Whether an account has this virtual address.
     bool AddressTaken(quint32 address);
+    // Global servers: a Discord account's secrets issued before this are dead (unix seconds, 0:
+    // none), and an account's secret replaced by a newer sign-in's (discord_accounts.h).
+    qint64 DiscordNotBefore(const QString& npid);
+    void SetDiscordNotBefore(const QString& npid, qint64 seconds);
+    bool SetPassword(const QString& npid, const QString& password);
     std::optional<QString> GetUsername(int64_t userId);
     std::optional<QString> GetAvatarUrl(int64_t userId);
     QList<QPair<int64_t, QString>> GetUsernamesFromIds(const QSet<int64_t>& ids);

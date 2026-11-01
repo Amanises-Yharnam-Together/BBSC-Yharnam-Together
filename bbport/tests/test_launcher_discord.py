@@ -7,6 +7,7 @@ import json
 import ssl
 import sys
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.parse
@@ -148,9 +149,11 @@ class SignInTests(unittest.TestCase):
 class ServerTypeTests(unittest.TestCase):
     """The launcher's Local / Global step (bbport_coop.py)."""
 
+    SECRET = format(int(time.time()), '08x') + 'a' * 24
+
     def signed(self, **more):
         return coop.signed_in_global(dict(coop.DEFAULTS, game='x', server_type='global', global_server=BASE, **more),
-                                     {'id': 'd0123456789abcd', 'secret': 'a' * 32, 'name': 'Ada'})
+                                     {'id': 'd0123456789abcd', 'secret': self.SECRET, 'name': 'Ada'})
 
     def test_local_is_the_default_and_stays_as_it_was(self):
         self.assertEqual(coop.DEFAULTS['server_type'], 'local')
@@ -168,7 +171,15 @@ class ServerTypeTests(unittest.TestCase):
     def test_global_plays_as_the_discord_account_never_as_host(self):
         played = coop.played_settings(self.signed(role='host', host_ip='26.1.2.3'))
         self.assertEqual((played['host_ip'], played['role']), (BASE, 'guest'))
-        self.assertEqual(coop.player_id_for(played, BASE), ('d0123456789abcd', 'a' * 32))
+        self.assertEqual(coop.player_id_for(played, BASE), ('d0123456789abcd', self.SECRET))
+
+    def test_an_old_secret_asks_for_a_new_sign_in(self):
+        settings = self.signed()
+        issued = int(self.SECRET[:8], 16)
+        self.assertTrue(coop.is_signed_in_global(settings, now=issued + 28 * 86400))
+        self.assertFalse(coop.is_signed_in_global(settings, now=issued + 29 * 86400 + 1))
+        self.assertFalse(coop.is_signed_in_global(coop.signed_in_global(
+            settings, {'id': 'd0123456789abcd', 'secret': 'not-hex-at-all'})))
 
     def test_sign_in_survives_in_coop_json_and_sign_out_forgets_it(self):
         import tempfile
@@ -177,7 +188,7 @@ class ServerTypeTests(unittest.TestCase):
             loaded = coop.read_settings(Path(folder))
             self.assertEqual(loaded['server_type'], 'global')
             self.assertEqual(loaded['discord_name'], 'Ada')
-            self.assertEqual(coop.player_id_for(loaded, BASE), ('d0123456789abcd', 'a' * 32))
+            self.assertEqual(coop.player_id_for(loaded, BASE), ('d0123456789abcd', self.SECRET))
             out = coop.signed_out_global(loaded)
             self.assertEqual(out['discord_name'], '')
             self.assertEqual(coop.missing(dict(out, game='x')), ['discord'])
@@ -199,7 +210,7 @@ class ServerTypeTests(unittest.TestCase):
         settings = coop.played_settings(self.signed())
         seen = coop.global_game_settings(settings, fetch=lambda _url: None, lookup=lambda _name: '203.0.113.7')
         self.assertEqual(seen['host_ip'], '203.0.113.7')
-        self.assertEqual((seen['account'], seen['password']), ('d0123456789abcd', 'a' * 32))
+        self.assertEqual((seen['account'], seen['password']), ('d0123456789abcd', self.SECRET))
         self.assertEqual(seen['server'], BASE)
 
     def test_a_region_names_the_shard(self):

@@ -1347,6 +1347,7 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
         SERVER_SETTINGS = {**SERVER_SETTINGS, **world_server.settings()}
     # Every run starts with no party worlds on the server (shadNet keeps them on disk: phase 3).
     shutil.rmtree(lane_dir() / "server" / "bloodborne_worlds", ignore_errors=True)
+    (ENGINE.role_dir("host").parent / "rig-team-code.txt").unlink(missing_ok=True)
     start_servers(run_dir)
     if world_server:
         world_server.start()
@@ -1392,6 +1393,11 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
             text = read_log(role)
             reached[role] |= syncs_reached(text)
             given_up |= set(CHAPTER_GIVEN_UP.findall(text))
+            # "done_on": a game that never gets into the world is done once its log says this.
+            if (pattern := scenario.get("done_on", {}).get(role)) and re.search(pattern, text):
+                done[role] = "ok"
+                print(f"  {role} done (its log says so) after {time.time() - started:.0f} s")
+                continue
             found = DONE.search(text)
             # A suite's game goes on to its next stage even after a failed chapter (keep-going):
             # its later chapters are judged on their own.

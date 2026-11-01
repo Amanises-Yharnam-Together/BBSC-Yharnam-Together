@@ -13,7 +13,8 @@ class QObject;
 namespace WebApiRoutes {
 
 // GET /bb/discord/config (what the launcher needs to open Discord's page) and POST
-// /bb/discord/sign-in {code, code_verifier, redirect_uri}: 200 {id, secret, name}. Only when
+// /bb/discord/sign-in {code, code_verifier, redirect_uri}: 200 {id, secret, name}, and POST
+// /bb/discord/sign-out {id, secret}. Only when
 // DiscordConfig::Enabled() and `key` (DiscordAccounts::KeyFrom) is known; `owner` lives as long as
 // the server.
 void RegisterDiscordRoutes(QHttpServer& http, Database& db, const DiscordConfig& config,

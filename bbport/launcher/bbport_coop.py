@@ -330,9 +330,21 @@ def global_url(settings):
     return (settings.get('global_server') or GLOBAL_SERVER).strip().rstrip('/')
 
 
-def is_signed_in_global(settings):
+# A sign-in's secret starts with when it was issued (unix seconds, hex) and holds 30 days: a day before
+# that the launcher asks for a new sign-in, so a game is not refused half way.
+DISCORD_SECRET_DAYS = 29
+
+
+def is_signed_in_global(settings, now=None):
     url = global_url(settings)
-    return bool(url and (settings.get('server_ids') or {}).get(server_key(url)))
+    held = (settings.get('server_ids') or {}).get(server_key(url)) if url else None
+    if not held:
+        return False
+    try:
+        issued = int(held[1][:8], 16)
+    except ValueError:
+        return False
+    return (time.time() if now is None else now) - issued < DISCORD_SECRET_DAYS * 24 * 3600
 
 
 def signed_in_global(settings, account):

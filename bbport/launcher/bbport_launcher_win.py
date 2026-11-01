@@ -4193,6 +4193,9 @@ class Launcher:
         if self.coop_discord_stop:
             self.coop_discord_stop.set()
         elif bbport_coop.is_signed_in_global(self.coop):
+            url = bbport_coop.global_url(self.coop)
+            account, secret = bbport_coop.player_id_for(bbport_coop.played_settings(self.coop), url)
+            threading.Thread(target=bbport_discord.sign_out, args=(url, account, secret), daemon=True).start()
             self.coop.update(bbport_coop.signed_out_global(self.coop))
             self.coop_discord_done()
         else:
@@ -5009,6 +5012,9 @@ class Launcher:
             return
         # Global: no new id without a sign-in, and no other id to try.
         if bbport_coop.needs_discord(line):
+            # An old or signed-out secret: forgotten, so the first step asks for the sign-in again.
+            self.coop.update(bbport_coop.signed_out_global(self.coop))
+            self.coop_discord_done()
             self.status.configure(text=_('Sign in with Discord again (Co-op settings, the first step).',
                                          'Войдите через Discord снова (настройки кооператива, первый шаг).'), fg=BAD)
             self.coop_new_id = 'give_up_account'
