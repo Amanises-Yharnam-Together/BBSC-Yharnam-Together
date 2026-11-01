@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "bbport_overlay.h"
+#include "../bbcoop/lobby_rows.h"
 
 #include <algorithm>
 #include <random>
@@ -3973,7 +3974,8 @@ void DrawFriends(ImDrawList* draw, ImVec2 win, ImVec2 size) {
         const float b1 = col_x[0] + col_w - 2 * small_w - S(6.0f), b2 = col_x[0] + col_w - small_w;
         const ImVec2 bs(small_w, row_h - S(6.0f));
         if (Button(draw, (std::string("finvite") + f.id).c_str(), T("Invite", "Пригласить"), ImVec2(b1, y), bs,
-                   can_invite && f.team_leader[0] == '\0' && f.state != BBCOOP_LOBBY_OFFLINE)) {
+                   LobbyRows::MayInvite(can_invite, f.in_my_team != 0, f.team_leader) &&
+                       f.state != BBCOOP_LOBBY_OFFLINE)) {
             bbcoop_lobby_request(BBCOOP_TEAM_INVITE, f.id);
         }
         if (Button(draw, (std::string("fremove") + f.id).c_str(), armed ? T("Sure?", "Точно?") : T("Remove", "Удалить"),
@@ -4382,7 +4384,8 @@ void Screen() {
         }
         const std::string id = std::string("invite") + p.id;
         if (Button(draw, id.c_str(), T("Invite", "Пригласить"), ImVec2(left_x + list_w - button_w, y),
-                   ImVec2(button_w, row_h - S(6.0f)), can_invite)) {
+                   ImVec2(button_w, row_h - S(6.0f)),
+                   LobbyRows::MayInvite(can_invite, p.in_my_team != 0, p.team_leader))) {
             bbcoop_lobby_request(BBCOOP_TEAM_INVITE, p.id);
         }
     }

@@ -536,6 +536,10 @@ target_include_directories(menu-focus-test PRIVATE ..)
 add_executable(overlay-input-test EXCLUDE_FROM_ALL ../tests/test_overlay_input.cpp)
 target_compile_options(overlay-input-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(overlay-input-test PRIVATE ..)
+# bbport co-op: Hunters online on the team screen (bbcoop/lobby_rows.h).
+add_executable(lobby-rows-test EXCLUDE_FROM_ALL ../tests/test_lobby_rows.cpp)
+target_compile_options(lobby-rows-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(lobby-rows-test PRIVATE ..)
 # bbport co-op: a compute submission never waits on a stream that waits for it (shim/bbport_idle_wait.h).
 add_executable(idle-wait-test EXCLUDE_FROM_ALL ../tests/test_idle_wait.cpp)
 target_compile_options(idle-wait-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)

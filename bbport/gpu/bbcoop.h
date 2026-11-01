@@ -320,7 +320,7 @@ typedef struct bbcoop_lobby {
     int in_team, leader, started;
     int member_count, player_count, invite_count;
     bbcoop_lobby_entry members[BBCOOP_LOBBY_TEAM];       /* the leader first */
-    bbcoop_lobby_entry players[BBCOOP_LOBBY_PLAYERS];    /* others signed in (this team's last) */
+    bbcoop_lobby_entry players[BBCOOP_LOBBY_PLAYERS];    /* others signed in, not in this team */
     bbcoop_lobby_entry invites[BBCOOP_LOBBY_INVITES];    /* name: who invited, id: the team */
     char notice[96];                                      /* the server's last refusal */
     char me[40];                                          /* this player's id */

@@ -19,6 +19,7 @@
 #endif
 #include "bbcoop.h"
 #include "bbcoop/bbcoop_internal.h"
+#include "bbcoop/lobby_rows.h"
 #include "bbcoop/discord_status.h"
 #include "bbcoop_revision.h"
 #include "common/logging/log.h"
@@ -656,21 +657,19 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
         CopyName(out.characters, sizeof(out.characters), hunters);
         out.busy = !w.played_by().empty() && w.played_by() != own_team;
     }
-    // Amanises 2026-10-26: every hunter online, teammates too (after the others: they are on the
-    // cards already).
-    for (const bool teammates : {false, true}) {
-        for (const bbcoop::LobbyPlayer& player : state->players()) {
-            const bool mine = !own_team.empty() && player.team() == own_team;
-            if (mine != teammates || lobby->player_count == BBCOOP_LOBBY_PLAYERS) {
-                continue;
-            }
-            bbcoop_lobby_entry& out = lobby->players[lobby->player_count++];
-            CopyName(out.name, sizeof(out.name), player.name());
-            CopyName(out.id, sizeof(out.id), player.member());
-            out.state = LobbyStateOf(player.state());
-            out.relation = static_cast<int>(player.relation());
-            CopyTeam(out, player, own_team);
+    // Amanises 2026-10-26: every hunter online with its team, but this player's teammates (they
+    // are on the cards).
+    for (const bbcoop::LobbyPlayer& player : state->players()) {
+        if (!LobbyRows::ListedOnline(player.team(), own_team) ||
+            lobby->player_count == BBCOOP_LOBBY_PLAYERS) {
+            continue;
         }
+        bbcoop_lobby_entry& out = lobby->players[lobby->player_count++];
+        CopyName(out.name, sizeof(out.name), player.name());
+        CopyName(out.id, sizeof(out.id), player.member());
+        out.state = LobbyStateOf(player.state());
+        out.relation = static_cast<int>(player.relation());
+        CopyTeam(out, player, own_team);
     }
     CopyPlayers(lobby->friends, lobby->friend_count, state->friends(), own_team);
     CopyPlayers(lobby->requests, lobby->request_count, state->friend_requests(), own_team);
