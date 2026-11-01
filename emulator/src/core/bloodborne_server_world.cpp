@@ -2887,15 +2887,27 @@ bool RunTeamTitleVerb(const AutoplayCommand& command, bool begun, double elapsed
         }
     } else if (command.verb == "team-join-code") {
         done = lobby && lobby->has_team();
+        // Every 15 s: a stale file from an earlier run must not use up the five wrong codes a
+        // minute (TeamLobby::LookupTries) before the leader's new one is there.
+        static double tried_at = -100.0;
+        if (!begun) {
+            tried_at = -100.0;
+        }
         if (const auto file = RigTeamCodeFile();
-            lobby && !done && file && (!begun || elapsed > 5.0)) {
+            lobby && !done && file && elapsed - tried_at >= 15.0) {
             std::string code;
             std::ifstream{*file} >> code;
-            bbcoop::Envelope envelope;
-            envelope.mutable_team_request()->set_action(bbcoop::TeamRequest::JOIN_CODE);
-            envelope.mutable_team_request()->set_code(code);
-            QueueLobby(std::move(envelope));
+            if (!code.empty()) {
+                tried_at = elapsed;
+                bbcoop::Envelope envelope;
+                envelope.mutable_team_request()->set_action(bbcoop::TeamRequest::JOIN_CODE);
+                envelope.mutable_team_request()->set_code(code);
+                QueueLobby(std::move(envelope));
+            }
         }
+    } else if (command.verb == "team-wait-open") {
+        // An open team is listed (the title has no sync).
+        done = lobby && lobby->open_teams_size() > 0;
     } else if (command.verb == "team-leave") {
         done = lobby && !lobby->has_team();
         if (lobby && lobby->has_team() && (!begun || elapsed > 5.0)) {
