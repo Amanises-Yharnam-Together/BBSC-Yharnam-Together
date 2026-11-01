@@ -4154,7 +4154,12 @@ void Screen() {
         }
     }
     y = lists_y + S(50.0f);
-    if (lobby.invite_count == 0 && lobby.ask_count == 0 && (lobby.in_team || lobby.open_count == 0)) {
+    // Amanises 2026-10-25, Discord parties: friends who pressed Ask to Join on this player's
+    // Discord status (only a team's status offers it).
+    bbcoop_lobby_entry discord_asks[4];
+    const int discord_count = lobby.in_team ? bbcoop_discord_asks(discord_asks, 4) : 0;
+    if (lobby.invite_count == 0 && lobby.ask_count == 0 && discord_count == 0 &&
+        (lobby.in_team || lobby.open_count == 0)) {
         draw->AddText(ImVec2(right_x, y + S(8.0f)), Dim(), T("None", "Нет"));
     }
     for (int i = 0; i < lobby.invite_count && i < rows; ++i, y += row_h) {
@@ -4203,6 +4208,23 @@ void Screen() {
         if (Button(draw, refuse.c_str(), T("Decline", "Отклонить"), ImVec2(right_x + list_w - button_w, y),
                    ImVec2(button_w, row_h - S(6.0f)))) {
             bbcoop_lobby_request(BBCOOP_TEAM_ASK_DECLINE, ask.id);
+        }
+    }
+    for (int i = 0; i < discord_count && right_rows < rows; ++i, ++right_rows, y += row_h) {
+        const bbcoop_lobby_entry& ask = discord_asks[i];
+        const std::string text = std::string(ask.name) + T(" asks to join on Discord", " просится в команду в Discord");
+        MenuArt::Nine(draw, MenuArt::Row, ImVec2(right_x - S(6.0f), y - S(2.0f)),
+                      ImVec2(right_x + list_w + S(4.0f), y + row_h - S(4.0f)), 10.0f, S(6.0f), 0.7f);
+        draw->AddText(ImVec2(right_x + S(8.0f), y + S(8.0f)), Plain(),
+                      Fit(text.c_str(), list_w - 2 * button_w - S(32.0f)).c_str());
+        const std::string take = std::string("dcok") + ask.id, refuse = std::string("dcno") + ask.id;
+        if (Button(draw, take.c_str(), T("Accept", "Принять"), ImVec2(right_x + list_w - 2 * button_w - S(8.0f), y),
+                   ImVec2(button_w, row_h - S(6.0f)), lobby.member_count < lobby.team_size, true)) {
+            bbcoop_discord_answer(ask.id, 1);
+        }
+        if (Button(draw, refuse.c_str(), T("Decline", "Отклонить"), ImVec2(right_x + list_w - button_w, y),
+                   ImVec2(button_w, row_h - S(6.0f)))) {
+            bbcoop_discord_answer(ask.id, 0);
         }
     }
     if (!lobby.in_team) {

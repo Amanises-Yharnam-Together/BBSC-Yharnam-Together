@@ -536,6 +536,10 @@ target_include_directories(menu-focus-test PRIVATE ..)
 add_executable(overlay-input-test EXCLUDE_FROM_ALL ../tests/test_overlay_input.cpp)
 target_compile_options(overlay-input-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(overlay-input-test PRIVATE ..)
+# bbport co-op: what the Discord status says and reads (bbcoop/discord_activity.h).
+add_executable(discord-activity-test EXCLUDE_FROM_ALL ../tests/test_discord_activity.cpp)
+target_compile_options(discord-activity-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(discord-activity-test PRIVATE ..)
 # bbport co-op: party death's HUD keeps clear of the game's own HUD (shim/bbport_party_layout.h).
 add_executable(party-layout-test EXCLUDE_FROM_ALL ../tests/test_party_layout.cpp)
 target_compile_options(party-layout-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)

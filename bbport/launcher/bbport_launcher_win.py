@@ -3977,6 +3977,10 @@ class Launcher:
         self.flow(cell, _(bbport_coop.PUBLIC_SERVER_HELP), 'small', MUTED).pack(fill='x', pady=(px(4), 0))
         # No account name or password (phase 11): the player's id is made once and kept in coop.json,
         # and the others see the character's name. No party settings: the team is made in the game (the team screen after Continue).
+        # Kaniel 2026-11-01: off by default; a friend joins from Discord only on a public server.
+        if bbport_coop.DISCORD_APP_ID:
+            self.coop_rule_switch(self.cell(page, 3, 0, '', span=2), 'discord_status',
+                                  _('Show my game on Discord', 'Показывать мою игру в Discord'))
         row = self.cell(page, 2, 0, '', span=2)
         # Players were lost at the VPN step (Kaniel 2026-10-21): the steps are one press away.
         self.button(row, _('How to connect', 'Как подключиться'), self.open_coop_help).pack(side='left')

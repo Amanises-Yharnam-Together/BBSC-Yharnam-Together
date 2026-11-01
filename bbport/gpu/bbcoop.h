@@ -353,6 +353,7 @@ typedef struct bbcoop_lobby {
     int open_count, ask_count;
     bbcoop_lobby_open open_teams[BBCOOP_LOBBY_OPEN];
     bbcoop_lobby_entry asks[BBCOOP_LOBBY_ASKS];
+    char team[40]; /* Amanises 2026-10-25: the team's id ("" in no team), its Discord party */
 } bbcoop_lobby;
 enum { BBCOOP_DEATH_DOWN = 0, BBCOOP_DEATH_SPECTATE = 1 };
 /* Fills `lobby`; 0 when the team lobby is off. */
@@ -414,6 +415,11 @@ enum { BBCOOP_TEAM_CREATE = 1, BBCOOP_TEAM_INVITE = 2, BBCOOP_TEAM_ACCEPT = 3,
        BBCOOP_TEAM_RESET_LAMPS = 28 };
 enum { BBCOOP_JOIN_INVITE_ONLY = 0, BBCOOP_JOIN_ASK = 1, BBCOOP_JOIN_OPEN = 2 };
 void bbcoop_lobby_request(int action, const char *id);
+/* Amanises 2026-10-25, Discord parties: friends who pressed Ask to Join on this player's Discord
+ * status (`name`, `id` their Discord user), at most `most`; the answer sends them Discord's
+ * invite (accept 1) or closes the request. */
+int bbcoop_discord_asks(bbcoop_lobby_entry *out, int most);
+void bbcoop_discord_answer(const char *id, int accept);
 /* The title holds a save's load for the team: the team screen is up (bbport_overlay.cpp). */
 int bbcoop_team_screen(void);
 /* Invasions (docs/INVASIONS.md; the server's Invasions setting, off by default): a player in no

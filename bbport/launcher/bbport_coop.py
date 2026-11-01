@@ -53,6 +53,8 @@ DEFAULTS = {'game': '', 'update': '', 'role': 'guest', 'host_ip': '', 'account':
             'machine': '',
             # Kaniel 2026-10-25: the host rules ('1' on, all off by default): the leader's are its team's.
             'rule_rot': '', 'rule_travel': '', 'rule_vote': '', 'rule_scale': '',
+            # Kaniel 2026-11-01: '1' shows the game on Discord (off by default).
+            'discord_status': '',
             # Kaniel 2026-10-28: the boss tempo host rule, '' (Vanilla), 'aggressive' or 'relentless'.
             'rule_tempo': ''}
 BOSS_TEMPOS = ('', 'aggressive', 'relentless')
@@ -1183,6 +1185,23 @@ def unlocked_fps(fps_mode):
     return fps_mode in ('uncap', '90')
 
 
+# The Discord application the status shows as: ours, once made (empty: the option is not offered).
+DISCORD_APP_ID = ''
+
+
+def discord_environment(env, settings):
+    """The Discord status's entries in the game's environment, off unless the player turned it on. A
+    friend joins from Discord only on a public server: a home server's code means nothing to a stranger."""
+    for key in ('BB_DISCORD_STATUS', 'BB_DISCORD_APP_ID', 'BB_DISCORD_JOIN'):
+        env.pop(key, None)
+    if settings.get('discord_status') == '1' and DISCORD_APP_ID:
+        env['BB_DISCORD_STATUS'] = '1'
+        env['BB_DISCORD_APP_ID'] = DISCORD_APP_ID
+        if settings.get('server_type') == 'global':
+            env['BB_DISCORD_JOIN'] = '1'
+    return env
+
+
 def game_environment(env, settings, install, root):
     """The game's environment for co-op, as 2 - PLAY set it, over the launcher's own."""
     install, root = Path(install), Path(root)
@@ -1229,7 +1248,7 @@ def game_environment(env, settings, install, root):
     harder = str(settings.get('harder', 'off'))
     if harder != 'off' and valid_harder(harder):
         env['SHADPS4_BLOODBORNE_HARDER_ENEMIES'] = harder
-    return env
+    return discord_environment(env, settings)
 
 
 REPORTS_SENT = 'reports-sent.json'

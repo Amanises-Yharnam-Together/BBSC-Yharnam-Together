@@ -19,6 +19,7 @@
 #endif
 #include "bbcoop.h"
 #include "bbcoop/bbcoop_internal.h"
+#include "bbcoop/discord_status.h"
 #include "bbcoop_revision.h"
 #include "common/logging/log.h"
 #include "common/memory_patcher.h"
@@ -138,6 +139,7 @@ extern "C" void bbcoop_install(unsigned char* image, uint64_t eboot_size, void* 
 #endif
     Core::Bloodborne::InstallSeamlessCoopPatches();
     Core::Bloodborne::InstallReverseEngineeringTrace();
+    CoopDiscord::StartDiscordStatus();
 }
 
 extern "C" void bbcoop_crash_report(void* exception_pointers) {
@@ -580,6 +582,7 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
         // The code its leader hands out (the server sends it to the leader only).
         CopyName(lobby->code, sizeof(lobby->code), BloodborneCoop::FormatTeamCode(team.code()));
         lobby->allow_invaders = team.allow_invaders() ? 1 : 0;
+        CopyName(lobby->team, sizeof(lobby->team), team.id());
         lobby->death_mode = static_cast<int>(Core::Bloodborne::TeamDeathMode(*state));
         lobby->join = static_cast<int>(team.join());
         // The leader first.
@@ -860,6 +863,24 @@ static_assert(BBCOOP_JOIN_INVITE_ONLY == bbcoop::Team::INVITE_ONLY &&
 extern "C" void bbcoop_lobby_request(int action, const char* id) {
     Core::Bloodborne::Coop::TeamLobbyRequest(static_cast<bbcoop::TeamRequest::Action>(action),
                                              id ? id : "");
+}
+
+extern "C" int bbcoop_discord_asks(bbcoop_lobby_entry* out, int most) {
+    int count = 0;
+    for (const CoopDiscord::DiscordAsk& ask : CoopDiscord::DiscordJoinRequests()) {
+        if (count == most) {
+            break;
+        }
+        out[count] = {};
+        CopyName(out[count].name, sizeof(out[count].name), ask.name);
+        CopyName(out[count].id, sizeof(out[count].id), ask.user_id);
+        ++count;
+    }
+    return count;
+}
+
+extern "C" void bbcoop_discord_answer(const char* id, int accept) {
+    CoopDiscord::AnswerDiscordJoinRequest(id ? id : "", accept != 0);
 }
 
 extern "C" void bbcoop_file_opened(const char* guest_path) {
