@@ -140,6 +140,11 @@ public:
         submit_cv.wait(lk, [this] { return num_submits == 0; });
     }
 
+    /// bbport: the graphics stream sits on a WaitRegMem not met yet (bbport_idle_wait.h).
+    bool GfxWaitsOnMemory() const noexcept {
+        return gfx_waits_on_memory.load(std::memory_order_acquire);
+    }
+
     /// bbport: also the draw recording thread and the fences it deferred are done (see
     /// work_retired). sceGnmSubmitDone does not block the guest when this is true.
     bool IsGpuIdle() const {
@@ -334,6 +339,7 @@ private:
     const bool guest_markers_enabled;
     std::jthread process_thread{};
     std::atomic<u32> num_submits{};
+    std::atomic<bool> gfx_waits_on_memory{};
     /// BB_SUBMIT_LOCK=decode, under submit_mutex: graphics submissions made and decoded, and per frame
     /// sceGnmSubmitDone ended the graphics submissions made so far (count, frame number).
     u64 gfx_submitted = 0, gfx_decoded = 0;
