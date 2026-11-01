@@ -15,7 +15,7 @@ import socket
 import sys
 import time
 import zipfile
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import bbport_coop
 
@@ -33,8 +33,44 @@ def bundle_name(now=None):
     return time.strftime('Yharnam Together support %Y%m%d-%H%M%S.zip', time.localtime(now))
 
 
-def default_folder(home=None):
-    """Where the zip goes: the Desktop (OneDrive's too), else the home folder."""
+def known_desktop():
+    """The Desktop Windows shows (its known folder, which OneDrive or a policy may have moved), or None."""
+    if os.name != 'nt':
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class Guid(ctypes.Structure):
+            _fields_ = [('a', wintypes.DWORD), ('b', wintypes.WORD), ('c', wintypes.WORD), ('d', ctypes.c_ubyte * 8)]
+
+        # FOLDERID_Desktop {B4BFCC3A-DB2C-424C-B029-7FE99A87C641}
+        desktop = Guid(0xB4BFCC3A, 0xDB2C, 0x424C, (ctypes.c_ubyte * 8)(0xB0, 0x29, 0x7F, 0xE9, 0x9A, 0x87, 0xC6, 0x41))
+        path = ctypes.c_wchar_p()
+        if ctypes.windll.shell32.SHGetKnownFolderPath(ctypes.byref(desktop), 0, None, ctypes.byref(path)) != 0:
+            return None
+        try:
+            return path.value
+        finally:
+            ctypes.windll.ole32.CoTaskMemFree(path)
+    except (OSError, AttributeError, ValueError):
+        return None
+
+
+def reveal_command(target, windows_dir):
+    """Explorer's command line that opens the zip's folder with the zip selected. A string, not a list: a list
+    quotes the whole "/select,<path>" switch (the name has spaces), which Explorer does not read, and it opened
+    its default folder instead (Kaniel 2026-11-01)."""
+    return f'"{PureWindowsPath(windows_dir) / "explorer.exe"}" /select,"{PureWindowsPath(target)}"'
+
+
+def default_folder(home=None, known_desktop=None):
+    """Where the zip goes: the Desktop Windows shows, else %USERPROFILE%\\Desktop (OneDrive's too), else the
+    home folder. Kaniel 2026-11-01: with a moved Desktop an empty %USERPROFILE%\\Desktop can still be there."""
+    if known_desktop is None and home is None:
+        known_desktop = globals()['known_desktop']()
+    if known_desktop and Path(known_desktop).is_dir():
+        return Path(known_desktop)
     home = Path(home or Path.home())
     for desktop in (home / 'Desktop', home / 'OneDrive' / 'Desktop'):
         if desktop.is_dir():

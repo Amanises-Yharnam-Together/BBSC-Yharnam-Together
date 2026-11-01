@@ -6316,7 +6316,7 @@ class Launcher:
         if os.name == 'nt':
             windows = os.environ.get('SystemRoot', r'C:\Windows')
             try:
-                subprocess.Popen([str(Path(windows) / 'explorer.exe'), f'/select,{target}'])
+                subprocess.Popen(bbport_support.reveal_command(target, windows))
             except OSError:
                 pass
 
