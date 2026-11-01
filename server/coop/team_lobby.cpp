@@ -1219,13 +1219,15 @@ bbcoop::LobbyState TeamLobby::StateFor(const std::string& member) const {
             }
         }
         size_t others = 0;
-        for (const auto& [other, player] : players) {
-            if (others >= lobby_players) {
-                break;
-            }
-            if (!listed.contains(other) && !TeamOf(other)) {
-                list(other);
-                ++others;
+        for (const bool in_team : {false, true}) {
+            for (const auto& [other, player] : players) {
+                if (others >= lobby_players) {
+                    break;
+                }
+                if (!listed.contains(other) && (TeamOf(other) != nullptr) == in_team) {
+                    list(other);
+                    ++others;
+                }
             }
         }
     }
