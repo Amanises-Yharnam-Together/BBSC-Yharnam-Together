@@ -527,11 +527,19 @@ message DuelRequest {
     Action action = 1;
     uint32 duel = 2;
     uint32 map = 3;
+    // Amanises 2026-10-29: PROPOSE with teams: who fights for which team (1 The Yharnamites, 2 The
+    // Hunters, 3 The Great Ones); only these members are asked. None: free for all, everyone here.
+    repeated DuelPick teams = 4;
+}
+
+message DuelPick {
+    string member = 1;
+    uint32 team = 2;
 }
 
 message Duelist {
     string member = 1;
-    uint32 side = 2;   // free for all: each its own (1, 2, ...); teams later share one
+    uint32 side = 2;   // free for all: each its own (1, 2, ...); a teams' duel: the team (1-3)
     uint32 answer = 3; // 0 not yet, 1 accepted, 2 declined
     bool out = 4;      // defeated in this duel
     uint32 wins = 5;   // duels won while the server ran
@@ -554,6 +562,7 @@ message DuelState {
         MAP = 4;       // a duelist left the duel's map (`ended_by`)
         DECLINED = 5;  // fewer than two accepted
         NO_ANSWER = 6; // the question timed out with fewer than two in
+        ONE_TEAM = 7;  // a teams' duel: those who accepted are all of one team
     }
     uint32 duel = 1; // counts up per party; 0 none yet
     Stage stage = 2;
@@ -565,6 +574,7 @@ message DuelState {
     string ended_by = 8;
     uint32 left_ms = 9;
     string refused = 10; // only to a member whose request was refused: why
+    bool teams = 11;     // a teams' duel: each duelist's side is its team (1-3)
 }
 
 // Team altars (Kaniel's playtest 2026-10-24, emulator bloodborne_altar.h): game -> server ->

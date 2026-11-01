@@ -115,6 +115,22 @@ bool DuelFollower::MayPropose() const {
            state.stage() == bbcoop::DuelState::OVER;
 }
 
+std::optional<u32> DuelTeamWon(const bbcoop::DuelState& state, std::string_view self) {
+    if (!state.teams() || state.stage() != bbcoop::DuelState::OVER ||
+        state.end() != bbcoop::DuelState::WON) {
+        return std::nullopt;
+    }
+    const auto self_in = std::ranges::find_if(state.duelists(), [&](const bbcoop::Duelist& d) {
+        return d.member() == self && d.answer() == 1;
+    });
+    const auto winner = std::ranges::find_if(
+        state.duelists(), [&](const bbcoop::Duelist& d) { return d.member() == state.winner(); });
+    if (self_in == state.duelists().end() || winner == state.duelists().end()) {
+        return std::nullopt;
+    }
+    return winner->side();
+}
+
 std::optional<s32> DuelHpBack(s32 before, s32 now, s32 max_hp) {
     const s32 hp = std::clamp(before, 1, std::max(max_hp, 1));
     return now != hp ? std::optional{hp} : std::nullopt;

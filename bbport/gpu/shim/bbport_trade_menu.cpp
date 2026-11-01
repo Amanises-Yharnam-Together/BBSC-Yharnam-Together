@@ -410,7 +410,22 @@ bool OpenBox(u64 box, const char* utf8) {
 }
 
 // What a duel's notice says.
-std::string DuelNoticeText(int kind, const char* name) {
+// Amanises 2026-10-29: the three teams of a teams' duel.
+const char* DuelTeamName(int team) {
+    using BbSettings::MenuText;
+    switch (team) {
+    case BBCOOP_DUEL_TEAM_YHARNAMITES:
+        return MenuText("The Yharnamites", "Ярнамцы");
+    case BBCOOP_DUEL_TEAM_HUNTERS:
+        return MenuText("The Hunters", "Охотники");
+    case BBCOOP_DUEL_TEAM_GREAT_ONES:
+        return MenuText("The Great Ones", "Великие");
+    default:
+        return "";
+    }
+}
+
+std::string DuelNoticeText(int kind, int team, const char* name) {
     using BbSettings::MenuText;
     char line[256];
     switch (kind) {
@@ -430,6 +445,13 @@ std::string DuelNoticeText(int kind, const char* name) {
                       MenuText("%s is gone: the duel is over.", "%s нет в игре: дуэль окончена."),
                       name);
         return line;
+    case BBCOOP_DUEL_NOTICE_TEAM_WON:
+        std::snprintf(line, sizeof line, MenuText("%s won the duel.", "%s победили в дуэли."),
+                      DuelTeamName(team));
+        return line;
+    case BBCOOP_DUEL_NOTICE_ONE_TEAM:
+        return MenuText("Only one team accepted: the duel is off.",
+                        "Согласилась только одна команда: дуэли не будет.");
     case BBCOOP_DUEL_NOTICE_MOVED:
         std::snprintf(line, sizeof line,
                       MenuText("%s left the area: the duel is over.",
@@ -484,10 +506,29 @@ void Tick() {
     u32 duel = 0;
     char name[64];
     if (bbcoop_duel_ask(&duel, name, sizeof name)) {
-        std::snprintf(text, sizeof text,
-                      BbSettings::MenuText("%s challenges you to a duel. Accept?",
-                                           "%s вызывает вас на дуэль. Принять?"),
-                      name);
+        int mine = 0;
+        char teams[3][256];
+        if (bbcoop_duel_ask_teams(duel, &mine, teams)) {
+            // Amanises 2026-10-29: a teams' duel: the asked player's team first, then the others.
+            std::string line = BbSettings::MenuText("%s challenges you to a team duel. Accept?",
+                                                    "%s вызывает вас на командную дуэль. Принять?");
+            std::snprintf(text, sizeof text, line.c_str(), name);
+            std::string body = text;
+            for (int pass = 0; pass < 2; ++pass) {
+                for (int t = 1; t <= 3; ++t) {
+                    if ((pass == 0) != (t == mine) || teams[t - 1][0] == 0) {
+                        continue;
+                    }
+                    body += std::string("\n") + DuelTeamName(t) + ": " + teams[t - 1];
+                }
+            }
+            std::snprintf(text, sizeof text, "%s", body.c_str());
+        } else {
+            std::snprintf(text, sizeof text,
+                          BbSettings::MenuText("%s challenges you to a duel. Accept?",
+                                               "%s вызывает вас на дуэль. Принять?"),
+                          name);
+        }
         if (OpenBox(YesNoBox, text)) {
             shown.duel = duel;
         }
@@ -498,8 +539,9 @@ void Tick() {
         notice = text;
     }
     int kind = 0;
-    if (notice.empty() && bbcoop_duel_notice(&kind, name, sizeof name)) {
-        notice = DuelNoticeText(kind, name);
+    int team = 0;
+    if (notice.empty() && bbcoop_duel_notice(&kind, &team, name, sizeof name)) {
+        notice = DuelNoticeText(kind, team, name);
     }
     if (!notice.empty() && OpenBox(OkBox, notice.c_str())) {
         notice.clear();

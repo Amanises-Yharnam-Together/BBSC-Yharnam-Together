@@ -144,6 +144,52 @@ TEST(BloodborneDuel, FreeForAllFoes) {
 }
 
 // The end gives back the HP from the start and the vials and bullets used; picked-up ones stay.
+// Amanises 2026-10-29: two against one. A teammate (same side) is never a foe; the foes are the
+// other team's still standing, and when the server says the duel won, everyone of the winning
+// team hears it won (its out member too), the other team that it lost.
+TEST(BloodborneDuel, TeamsShareASide) {
+    DuelFollower ada, bob, cy;
+    const auto fighting =
+        StateOf(1, bbcoop::DuelState::FIGHTING,
+                {{"ada", 2, 1, false}, {"bob", 2, 1, false}, {"cy", 1, 1, false}});
+    ada.Take(fighting, "ada");
+    bob.Take(fighting, "bob");
+    cy.Take(fighting, "cy");
+    EXPECT_EQ(ada.Foes(), std::vector<std::string>{"cy"});
+    EXPECT_EQ(bob.Foes(), std::vector<std::string>{"cy"});
+    EXPECT_EQ(cy.Foes(), (std::vector<std::string>{"ada", "bob"}));
+
+    auto bob_out = StateOf(1, bbcoop::DuelState::FIGHTING,
+                           {{"ada", 2, 1, false}, {"bob", 2, 1, true}, {"cy", 1, 1, false}});
+    ada.Take(bob_out, "ada");
+    bob.Take(bob_out, "bob");
+    cy.Take(bob_out, "cy");
+    EXPECT_EQ(cy.Foes(), std::vector<std::string>{"ada"}) << "an out hunter is no foe";
+
+    auto over = StateOf(1, bbcoop::DuelState::OVER,
+                        {{"ada", 2, 1, false}, {"bob", 2, 1, true}, {"cy", 1, 1, true}});
+    over.set_teams(true);
+    over.set_end(bbcoop::DuelState::WON);
+    over.set_winner("ada");
+    EXPECT_TRUE(ada.Take(over, "ada").won);
+    EXPECT_TRUE(bob.Take(over, "bob").won) << "out, but its team won";
+    const DuelNews lost = cy.Take(over, "cy");
+    EXPECT_TRUE(lost.lost);
+    EXPECT_FALSE(lost.won);
+
+    // The notice names the team, for each duelist; nobody else hears it.
+    EXPECT_EQ(DuelTeamWon(over, "ada"), std::optional<u32>{2});
+    EXPECT_EQ(DuelTeamWon(over, "bob"), std::optional<u32>{2}) << "out, but it fought";
+    EXPECT_EQ(DuelTeamWon(over, "cy"), std::optional<u32>{2}) << "the losers hear it too";
+    EXPECT_EQ(DuelTeamWon(over, "dee"), std::nullopt) << "not in it";
+    auto free_for_all = over;
+    free_for_all.set_teams(false);
+    EXPECT_EQ(DuelTeamWon(free_for_all, "ada"), std::nullopt);
+    auto cancelled = over;
+    cancelled.set_end(bbcoop::DuelState::CANCELLED);
+    EXPECT_EQ(DuelTeamWon(cancelled, "ada"), std::nullopt);
+}
+
 TEST(BloodborneDuel, GivesBackTheHpFromTheStart) {
     EXPECT_EQ(DuelHpBack(500, 1, 600), std::optional<s32>{500});
     EXPECT_EQ(DuelHpBack(500, 500, 600), std::nullopt) << "nothing lost: nothing to set";

@@ -2370,11 +2370,26 @@ bool AutoplayExpectGesture(const AutoplayStep& step) {
 }
 
 // Kaniel 2026-10-25, team duels: duel-propose and duel-cancel (the team screen's buttons),
+// duel-propose-teams <member>=<team>... (its Teams page: 1-3, those named only),
 // duel-answer <yes|no> [<timeout>] (the question's box, once it is asked), wait-duel <part>
 // [<timeout>] (this player's part: none, asked, answered, countdown, fighting or out),
 // duel-strike (below).
 bool AutoplayDuelPropose(const AutoplayStep&) {
     ProposeDuel();
+    return true;
+}
+
+bool AutoplayDuelProposeTeams(const AutoplayStep& step) {
+    std::vector<std::pair<std::string, u32>> picks;
+    for (const std::string& pick : step.command.args) {
+        const std::size_t equals = pick.find('=');
+        if (equals == std::string::npos || equals + 1 >= pick.size()) {
+            step.failure = fmt::format("bad pick {}", pick);
+            return false;
+        }
+        picks.emplace_back(pick.substr(0, equals), static_cast<u32>(pick[equals + 1] - '0'));
+    }
+    ProposeDuel(std::move(picks));
     return true;
 }
 
@@ -2468,6 +2483,7 @@ constexpr auto AutoplayVerbs = std::to_array<std::pair<std::string_view, Autopla
     {"talk-gesture", AutoplayTalkGesture},
     {"expect-gesture", AutoplayExpectGesture},
     {"duel-propose", AutoplayDuelPropose},
+    {"duel-propose-teams", AutoplayDuelProposeTeams},
     {"duel-cancel", AutoplayDuelCancel},
     {"duel-answer", AutoplayDuelAnswer},
     {"wait-duel", AutoplayWaitDuel},

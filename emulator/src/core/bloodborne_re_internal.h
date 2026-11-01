@@ -528,7 +528,9 @@ void SendTeamPing(const BloodborneCoop::TeamPing& ping);
 std::vector<BloodborneCoop::TeamPing> TakeTeamPings();
 // Kaniel 2026-10-25: this player's duel requests to the server, and the duel's states as they
 // came (bloodborne_duel_game.cpp).
-void SendDuelRequest(bbcoop::DuelRequest::Action action, u32 duel, u32 map);
+// Amanises 2026-10-29: `teams` for a teams' duel (member, team 1-3); none: free for all.
+void SendDuelRequest(bbcoop::DuelRequest::Action action, u32 duel, u32 map,
+                     const std::vector<std::pair<std::string, u32>>& teams = {});
 std::vector<bbcoop::DuelState> TakeDuelStates();
 // Phase 8: the owner's activation pass wakes the groups around the other players too (its entry
 // adds their groups to its block's record, its end puts the record back; see WithOthersGroups).

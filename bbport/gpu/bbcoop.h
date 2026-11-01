@@ -494,9 +494,26 @@ typedef struct bbcoop_duel {
      * and the fight's start once it is over. */
     int countdown_shown, countdown_number, countdown_fight;
     float countdown_fill;
+    /* Amanises 2026-10-29: a teams' duel, and this player's team in it (BBCOOP_DUEL_TEAM_*; 0 none). */
+    int teams, team;
 } bbcoop_duel;
 void bbcoop_duel_view(bbcoop_duel *duel);
 void bbcoop_duel_propose(void);
+/* Amanises 2026-10-29: teams' duels. The teams, the hunters a duel goes to now (this player first,
+ * then the party's others on its map), a duel proposed with each one's team (0: left out), and a
+ * teams' question as the asked player reads it. */
+enum { BBCOOP_DUEL_TEAM_YHARNAMITES = 1, BBCOOP_DUEL_TEAM_HUNTERS = 2, BBCOOP_DUEL_TEAM_GREAT_ONES = 3 };
+#define BBCOOP_DUEL_CANDIDATES 8
+typedef struct bbcoop_duel_candidate {
+    char member[96]; /* board name */
+    char name[64];   /* character name */
+    int self;
+} bbcoop_duel_candidate;
+int bbcoop_duel_candidates(bbcoop_duel_candidate *out, int max);
+void bbcoop_duel_propose_teams(const bbcoop_duel_candidate *hunters, const int *teams, int count);
+/* The names on each team (1-3 at [0]-[2], comma-separated) and this player's team; 0 when the
+ * question is not a teams' duel. */
+int bbcoop_duel_ask_teams(uint32_t id, int *mine, char names[3][256]);
 void bbcoop_duel_cancel(void);
 /* The duel waiting for this player's answer and who proposed it (a character name); 0 when none. */
 int bbcoop_duel_ask(uint32_t *id, char *name, size_t size);
@@ -504,8 +521,9 @@ int bbcoop_duel_ask_open(uint32_t id);
 void bbcoop_duel_answer(uint32_t id, int accept);
 /* The next thing to say once: its kind and whose name goes in; 0 when none. */
 enum { BBCOOP_DUEL_NOTICE_BUSY, BBCOOP_DUEL_NOTICE_ALONE, BBCOOP_DUEL_NOTICE_DECLINED,
-       BBCOOP_DUEL_NOTICE_CANCELLED, BBCOOP_DUEL_NOTICE_LEFT, BBCOOP_DUEL_NOTICE_MOVED };
-int bbcoop_duel_notice(int *kind, char *name, size_t size);
+       BBCOOP_DUEL_NOTICE_CANCELLED, BBCOOP_DUEL_NOTICE_LEFT, BBCOOP_DUEL_NOTICE_MOVED,
+       BBCOOP_DUEL_NOTICE_ONE_TEAM, BBCOOP_DUEL_NOTICE_TEAM_WON };
+int bbcoop_duel_notice(int *kind, int *team, char *name, size_t size);
 
 /* Trading between party members (the co-op code's bloodborne_trade.h, with
  * always on in the port with the server world): what the port's trade menus (shim/bbport_trade_menu.cpp) need. An

@@ -982,7 +982,8 @@ std::vector<TeamPing> TakeTeamPings() {
     return std::exchange(team_pings, {});
 }
 
-void SendDuelRequest(bbcoop::DuelRequest::Action action, u32 duel, u32 map) {
+void SendDuelRequest(bbcoop::DuelRequest::Action action, u32 duel, u32 map,
+                     const std::vector<std::pair<std::string, u32>>& teams) {
     if (!ServerWorldOn()) {
         return;
     }
@@ -990,6 +991,11 @@ void SendDuelRequest(bbcoop::DuelRequest::Action action, u32 duel, u32 map) {
     envelope.mutable_duel_request()->set_action(action);
     envelope.mutable_duel_request()->set_duel(duel);
     envelope.mutable_duel_request()->set_map(map);
+    for (const auto& [member, team] : teams) {
+        bbcoop::DuelPick& pick = *envelope.mutable_duel_request()->add_teams();
+        pick.set_member(member);
+        pick.set_team(team);
+    }
     Queue(std::move(envelope));
 }
 

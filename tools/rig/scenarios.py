@@ -5091,6 +5091,50 @@ SCENARIOS["duel"] = {
 }
 
 
+# Amanises 2026-10-29, teams' duels (Kaniel 2026-11-01: the game's own banners, the winning team in
+# a notice): two against one. The host's picks: it and the guest The Hunters (2), guest2 The
+# Yharnamites (1). The host strikes guest2 at 1 HP; the guest stands off, out of reach. The whole
+# team wins, every duelist hears which team, nobody has a party death.
+DUEL_GUEST2_ID = "rig_guest2".encode().hex()
+DUEL_TEAM_NAMES = ("duel-together", "duel-fighting", "duel-low", "duel-over")
+SCENARIOS["duel-teams"] = {
+    "about": "a teams' duel: two against one from the Teams page, the last team standing wins "
+             "together, the notice names it, no party death",
+    "roles": {
+        "host": [START, "godmode", "wait-session 3 300", "wait 5", "teleport -212.0 -54.5 174.0",
+                 "sync duel-together",
+                 f"duel-propose-teams {RIG_HOST_ID}=2 {RIG_GUEST_ID}=2 {DUEL_GUEST2_ID}=1",
+                 "wait-duel countdown 40", "wait-duel fighting 10", "sync duel-fighting",
+                 "sync duel-low", "duel-strike 60", "wait-duel none 20", "sync duel-over",
+                 "wait 3", "snapshot", "expect-session 3"],
+        "guest": [START, "wait-session 3 300", "wait 5", f"teleport {GUEST_PAIR_SPOT}",
+                  "sync duel-together", "duel-answer yes 40", "wait-duel countdown 10",
+                  "wait-duel fighting 10", "sync duel-fighting", "sync duel-low",
+                  "wait-duel none 80", "sync duel-over", "wait 3", "snapshot",
+                  "expect-session 3"],
+        "guest2": [START, "wait-session 3 300", "wait 5", "teleport -209.0 -54.5 174.0",
+                   "sync duel-together", "duel-answer yes 40", "wait-duel countdown 10",
+                   "wait-duel fighting 10", "sync duel-fighting", "hurt self 1", "sync duel-low",
+                   "wait-duel none 80", "sync duel-over", "wait 3", "snapshot",
+                   "expect-session 3"],
+    },
+    "syncs": {name: {"chapter": "duel-teams", "roles": ["host", "guest", "guest2"]}
+              for name in DUEL_TEAM_NAMES},
+    "expect": {
+        "host": [r"Co-op duel: duel 1 fights", r"Co-op duel: PROPOSE for duel 0 \(3 on teams\)",
+                 r"Co-op duel: duel 1 is over: WON, this player's side won",
+                 r"Co-op duel: team 2 won duel 1"],
+        "guest": [r"Co-op duel: duel 1 is over: WON, this player's side won",
+                  r"Co-op duel: team 2 won duel 1"],
+        "guest2": [r"Co-op duel: this player is out of duel 1 \(no party death\)",
+                   r"Co-op duel: duel 1 is over: WON, this player lost",
+                   r"Co-op duel: team 2 won duel 1"],
+    },
+    "forbid": {role: SESSION_HOLDS + DUEL_NO_DEATH for role in ("host", "guest", "guest2")},
+    "timeout": 420,
+}
+
+
 SCENARIOS["build-check-version"] = {
     "about": "the guest says another Seamless Co-op release (BB_RELEASE_VERSION 0.0.1, the host "
              "dev): the server refuses the guest's link, saying both versions",
