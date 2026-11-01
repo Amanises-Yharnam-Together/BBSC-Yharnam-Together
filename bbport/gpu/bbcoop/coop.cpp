@@ -582,6 +582,7 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
         lobby->allow_invaders = team.allow_invaders() ? 1 : 0;
         lobby->death_mode = static_cast<int>(Core::Bloodborne::TeamDeathMode(*state));
         lobby->join = static_cast<int>(team.join());
+        lobby->quick_waiting = team.quick() && team.members_size() == 1 ? 1 : 0;
         // The leader first.
         std::vector<const bbcoop::TeamMember*> members;
         for (const bbcoop::TeamMember& m : team.members()) {
@@ -657,6 +658,7 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
     CopyPlayers(lobby->search, lobby->search_count, state->search(), own_team);
     CopyName(lobby->search_query, sizeof(lobby->search_query), state->search_query());
     // Amanises 2026-10-25, open teams (an older server says no size: the game's four).
+    lobby->quick_match = state->quick_match() ? 1 : 0;
     lobby->team_size = state->team_size() > 0 ? static_cast<int>(state->team_size()) : BBCOOP_LOBBY_TEAM;
     for (const bbcoop::OpenTeam& open : state->open_teams()) {
         if (lobby->open_count == BBCOOP_LOBBY_OPEN) {
@@ -853,7 +855,8 @@ static_assert(BBCOOP_TEAM_WORLD == bbcoop::TeamRequest::WORLD &&
               BBCOOP_TEAM_ASK_CANCEL == bbcoop::TeamRequest::ASK_CANCEL &&
               BBCOOP_TEAM_ASK_ACCEPT == bbcoop::TeamRequest::ASK_ACCEPT &&
               BBCOOP_TEAM_ASK_DECLINE == bbcoop::TeamRequest::ASK_DECLINE &&
-              BBCOOP_TEAM_RESET_LAMPS == bbcoop::TeamRequest::RESET_LAMPS);
+              BBCOOP_TEAM_RESET_LAMPS == bbcoop::TeamRequest::RESET_LAMPS &&
+              BBCOOP_TEAM_QUICK_MATCH == bbcoop::TeamRequest::QUICK_MATCH);
 static_assert(BBCOOP_JOIN_INVITE_ONLY == bbcoop::Team::INVITE_ONLY &&
               BBCOOP_JOIN_ASK == bbcoop::Team::ASK && BBCOOP_JOIN_OPEN == bbcoop::Team::OPEN);
 

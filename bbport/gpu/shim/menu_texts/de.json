@@ -509,5 +509,9 @@
  "Set in the leader's launcher, on its Co-op page.": "Festgelegt im Launcher des Anführers, auf seiner Koop-Seite.",
  "Reset lamps": "Laternen zurücksetzen",
  "Reset lamps? Press again": "Zurücksetzen? Erneut drücken",
- "Every lamp of this world goes out for every hunter; the rest stays.": "Alle Laternen dieser Welt erlöschen für alle Jäger; der Rest bleibt."
+ "Every lamp of this world goes out for every hunter; the rest stays.": "Alle Laternen dieser Welt erlöschen für alle Jäger; der Rest bleibt.",
+ "Quick match": "Schnellsuche",
+ "Quick match: waiting for hunters": "Schnellsuche: warte auf Jäger",
+ "Searching for a team…": "Suche nach einem Team…",
+ "Join an open team near your level, or open one": "Tritt einem offenen Team deiner Stufe bei oder eröffne eins"
 }

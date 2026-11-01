@@ -128,6 +128,54 @@ void TeamLobby::WrongLookup(const std::string& member, s64 now_ms) {
     wrong_lookups[member].push_back(now_ms);
 }
 
+bool LevelsMatch(u32 a, u32 b) {
+    if (a == 0 || b == 0) {
+        return true;
+    }
+    const u32 high = std::max(a, b);
+    return high - std::min(a, b) <= 10 + high / 10;
+}
+
+// Amanises 2026-10-25: the open teams with room whose level (its members' known levels, averaged)
+// matches the player's: the fullest (a team fills before a new one gets players), then the
+// nearest level, then the one listed first. A team out of range is still listed to join by hand.
+bbcoop::Team* TeamLobby::QuickMatchTeam(const std::string& member) {
+    const auto level_of = [&](const std::string& who) {
+        const auto found = players.find(who);
+        return found == players.end() ? 0u : found->second.level;
+    };
+    const u32 mine = level_of(member);
+    bbcoop::Team* best = nullptr;
+    std::tuple<int, u32> best_key{};
+    for (bbcoop::Team& team : teams) {
+        if (team.join() != bbcoop::Team::OPEN ||
+            static_cast<size_t>(team.members_size()) >= TeamSize) {
+            continue;
+        }
+        u32 sum = 0;
+        u32 known = 0;
+        for (const bbcoop::TeamMember& m : team.members()) {
+            if (const u32 level = level_of(m.member()); level != 0) {
+                sum += level;
+                ++known;
+            }
+        }
+        const u32 level = known == 0 ? 0 : sum / known;
+        if (!LevelsMatch(mine, level)) {
+            continue;
+        }
+        const u32 apart =
+            mine == 0 || level == 0 ? 0 : std::max(mine, level) - std::min(mine, level);
+        // Smaller is better: fewer members, farther.
+        const std::tuple<int, u32> key{-team.members_size(), apart};
+        if (!best || key < best_key) {
+            best = &team;
+            best_key = key;
+        }
+    }
+    return best;
+}
+
 void TeamLobby::DropAsksBy(const std::string& member) {
     for (auto& [team, askers] : asks) {
         std::erase(askers, member);
@@ -990,6 +1038,32 @@ TeamLobby::Outcome TeamLobby::Request(const std::string& member, const bbcoop::T
         DropAsksBy(member);
         return {.changed = true};
     }
+    case Action::QUICK_MATCH: {
+        // Kaniel 2026-11-01: for strangers on a public server; on a friend's server nobody is
+        // looking for a team.
+        if (!hosted) {
+            return refuse("quick match is for public servers");
+        }
+        if (mine) {
+            return refuse("you are in a team already: leave it first");
+        }
+        if (request.level() != 0) {
+            players[member].level = request.level();
+        }
+        if (bbcoop::Team* team = QuickMatchTeam(member)) {
+            AddMember(*team, member);
+            return {.changed = true};
+        }
+        // None to join: a team of its own, open to all, that the next quick match finds.
+        bbcoop::TeamRequest create;
+        create.set_action(Action::CREATE);
+        Outcome made = Request(member, create, now_ms);
+        if (bbcoop::Team* team = TeamOf(member) ? FindTeam(TeamOf(member)->id()) : nullptr) {
+            team->set_join(bbcoop::Team::OPEN);
+            team->set_quick(true);
+        }
+        return made;
+    }
     case Action::ASK_ACCEPT:
     case Action::ASK_DECLINE: {
         if (!mine || mine->leader() != member) {
@@ -1226,6 +1300,7 @@ bbcoop::LobbyState TeamLobby::StateFor(const std::string& member) const {
     }
     // Amanises 2026-10-25, open teams: the leader sees who asked; a player in no team the open
     // teams with room, the hunts not begun first.
+    state.set_quick_match(hosted);
     state.set_team_size(static_cast<u32>(TeamSize));
     if (mine && mine->leader() == member) {
         if (const auto found = asks.find(mine->id()); found != asks.end()) {

@@ -2311,6 +2311,21 @@ void ReportRot(std::span<const u32> rot) {
 void TeamLobbyRequest(bbcoop::TeamRequest::Action action, const std::string& id) {
     bbcoop::Envelope envelope;
     *envelope.mutable_team_request() = TeamMenuRequest(action, id);
+    // Amanises 2026-10-25, quick match: the character's level while it plays (the server matches
+    // near levels); at the title no character is loaded (0: any team fits).
+    if (action == bbcoop::TeamRequest::QUICK_MATCH) {
+        bool playing = false;
+        {
+            std::scoped_lock lock{team_mutex};
+            playing = lobby_playing;
+        }
+        const u64 data = playing ? OwnGameData() : 0;
+        const s32 level = data >= 0x10000 && HasMemoryAccess(data + 0x90, 4, MemoryProt::CpuRead)
+                              ? ReadValue<s32>(data, 0x90)
+                              : 0;
+        envelope.mutable_team_request()->set_level(level > 0 && level < 1000 ? level : 0);
+        LOG_INFO(Debug, "Co-op team lobby: quick match at level {}", level);
+    }
     // A typed code joins a team: not in the log.
     LOG_INFO(Debug, "Co-op team lobby: the menu asks {} {}",
              bbcoop::TeamRequest::Action_Name(action),
@@ -2854,6 +2869,12 @@ bool RunTeamTitleVerb(const AutoplayCommand& command, bool begun, double elapsed
                                                     : TeamGate::Choice::Alone);
         }
         done = true;
+    } else if (command.verb == "team-quick") {
+        // team-quick: the team screen's Quick match, by the request the screen sends.
+        done = lobby && lobby->has_team();
+        if (lobby && !done && (!begun || elapsed > 5.0)) {
+            TeamLobbyRequest(bbcoop::TeamRequest::QUICK_MATCH, {});
+        }
     } else if (command.verb == "team-leave") {
         done = lobby && !lobby->has_team();
         if (lobby && lobby->has_team() && (!begun || elapsed > 5.0)) {

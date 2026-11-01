@@ -4154,10 +4154,40 @@ void Screen() {
         }
     }
     y = lists_y + S(50.0f);
-    if (lobby.invite_count == 0 && lobby.ask_count == 0 && (lobby.in_team || lobby.open_count == 0)) {
+    // Kaniel 2026-11-01: quick match, a public server's way to find a team, first in the list of
+    // teams to join; while the player's own team waits for hunters it says so, with Cancel.
+    const bool quick_row = lobby.quick_match && (!lobby.in_team || lobby.quick_waiting);
+    if (quick_row) {
+        static double quick_pressed = -100.0;
+        const bool searching = !lobby.in_team && ImGui::GetTime() - quick_pressed < 4.0;
+        const std::string waiting =
+            std::string(T("Quick match: waiting for hunters", "Быстрый подбор: ждём охотников")) + " " +
+            std::to_string(lobby.member_count) + "/" + std::to_string(lobby.team_size);
+        const char* text = lobby.in_team ? waiting.c_str()
+                           : searching   ? T("Searching for a team…", "Ищем команду…")
+                                         : T("Join an open team near your level, or open one",
+                                             "Вступить в открытую команду вашего уровня или открыть свою");
+        MenuArt::Nine(draw, MenuArt::Row, ImVec2(right_x - S(6.0f), y - S(2.0f)),
+                      ImVec2(right_x + list_w + S(4.0f), y + row_h - S(4.0f)), 10.0f, S(6.0f), 0.7f);
+        draw->AddText(ImVec2(right_x + S(8.0f), y + S(8.0f)), searching || lobby.in_team ? Gold() : Plain(),
+                      Fit(text, list_w - button_w - S(32.0f)).c_str());
+        const ImVec2 at(right_x + list_w - button_w, y), button(button_w, row_h - S(6.0f));
+        if (lobby.in_team) {
+            if (Button(draw, "quickcancel", T("Cancel", "Отмена"), at, button)) {
+                bbcoop_lobby_request(BBCOOP_TEAM_LEAVE, "");
+            }
+        } else if (Button(draw, "quickmatch", T("Quick match", "Быстрый подбор"), at, button,
+                          lobby.signed_in != 0 && !searching, true)) {
+            quick_pressed = ImGui::GetTime();
+            bbcoop_lobby_request(BBCOOP_TEAM_QUICK_MATCH, "");
+        }
+        y += row_h;
+    }
+    if (!quick_row && lobby.invite_count == 0 && lobby.ask_count == 0 && (lobby.in_team || lobby.open_count == 0)) {
         draw->AddText(ImVec2(right_x, y + S(8.0f)), Dim(), T("None", "Нет"));
     }
-    for (int i = 0; i < lobby.invite_count && i < rows; ++i, y += row_h) {
+    const int rows_left = quick_row ? rows - 1 : rows;
+    for (int i = 0; i < lobby.invite_count && i < rows_left; ++i, y += row_h) {
         const bbcoop_lobby_entry& inv = lobby.invites[i];
         const std::string text = std::string(inv.name) + T(" calls you to hunt", " зовёт на охоту");
         MenuArt::Nine(draw, MenuArt::Row, ImVec2(right_x - S(6.0f), y - S(2.0f)),
@@ -4187,7 +4217,7 @@ void Screen() {
     }
     // Amanises 2026-10-25, open teams: under the invitations, the leader's asks to join (take
     // in or say no) and, for a player in no team, the open teams to ask.
-    int right_rows = std::min(lobby.invite_count, rows);
+    int right_rows = std::min(lobby.invite_count, rows_left) + (quick_row ? 1 : 0);
     for (int i = 0; i < lobby.ask_count && right_rows < rows; ++i, ++right_rows, y += row_h) {
         const bbcoop_lobby_entry& ask = lobby.asks[i];
         const std::string text = std::string(ask.name) + T(" asks to join", " просится в команду");

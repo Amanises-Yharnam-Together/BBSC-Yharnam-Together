@@ -509,5 +509,9 @@
  "Set in the leader's launcher, on its Co-op page.": "리더의 런처 협동 페이지에서 설정합니다.",
  "Reset lamps": "등불 초기화",
  "Reset lamps? Press again": "초기화할까요? 다시 누르세요",
- "Every lamp of this world goes out for every hunter; the rest stays.": "이 월드의 모든 등불이 모든 사냥꾼에게서 꺼집니다. 나머지는 유지됩니다."
+ "Every lamp of this world goes out for every hunter; the rest stays.": "이 월드의 모든 등불이 모든 사냥꾼에게서 꺼집니다. 나머지는 유지됩니다.",
+ "Quick match": "빠른 매칭",
+ "Quick match: waiting for hunters": "빠른 매칭: 사냥꾼을 기다리는 중",
+ "Searching for a team…": "팀을 찾는 중…",
+ "Join an open team near your level, or open one": "레벨이 비슷한 공개 팀에 참가하거나 새로 엽니다"
 }

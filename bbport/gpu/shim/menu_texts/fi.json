@@ -509,5 +509,9 @@
  "Set in the leader's launcher, on its Co-op page.": "Asetetaan johtajan käynnistimessä, sen Co-op-sivulla.",
  "Reset lamps": "Nollaa lyhdyt",
  "Reset lamps? Press again": "Nollataanko? Paina uudelleen",
- "Every lamp of this world goes out for every hunter; the rest stays.": "Tämän maailman lyhdyt sammuvat kaikilta metsästäjiltä; muu säilyy."
+ "Every lamp of this world goes out for every hunter; the rest stays.": "Tämän maailman lyhdyt sammuvat kaikilta metsästäjiltä; muu säilyy.",
+ "Quick match": "Pikahaku",
+ "Quick match: waiting for hunters": "Pikahaku: odotetaan metsästäjiä",
+ "Searching for a team…": "Etsitään tiimiä…",
+ "Join an open team near your level, or open one": "Liity tasollesi sopivaan avoimeen tiimiin tai avaa oma"
 }

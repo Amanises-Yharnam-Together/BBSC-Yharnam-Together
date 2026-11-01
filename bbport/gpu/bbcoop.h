@@ -350,6 +350,9 @@ typedef struct bbcoop_lobby {
      * listed to all, the open teams (to a player in no team), who asked to join (to a leader). */
     int team_size;
     int join; /* BBCOOP_JOIN_*: how the team is joined (its leader says) */
+    /* Kaniel 2026-11-01: a public server (quick match is offered), and this player's team came
+     * from quick match and waits for hunters. */
+    int quick_match, quick_waiting;
     int open_count, ask_count;
     bbcoop_lobby_open open_teams[BBCOOP_LOBBY_OPEN];
     bbcoop_lobby_entry asks[BBCOOP_LOBBY_ASKS];
@@ -410,6 +413,8 @@ enum { BBCOOP_TEAM_CREATE = 1, BBCOOP_TEAM_INVITE = 2, BBCOOP_TEAM_ACCEPT = 3,
         * ASK_ACCEPT and ASK_DECLINE the one who asked. */
        BBCOOP_TEAM_OPEN = 23, BBCOOP_TEAM_ASK_JOIN = 24, BBCOOP_TEAM_ASK_CANCEL = 25,
        BBCOOP_TEAM_ASK_ACCEPT = 26, BBCOOP_TEAM_ASK_DECLINE = 27,
+       /* Amanises 2026-10-25: join the open team nearest this character's level, or make one */
+       BBCOOP_TEAM_QUICK_MATCH = 29,
        /* Provi 2026-10-29: the leader puts out every lamp of a world (`id`) not played now. */
        BBCOOP_TEAM_RESET_LAMPS = 28 };
 enum { BBCOOP_JOIN_INVITE_ONLY = 0, BBCOOP_JOIN_ASK = 1, BBCOOP_JOIN_OPEN = 2 };

@@ -42,6 +42,10 @@ constexpr s64 LeftGraceMs = 2000;
 // the least lately played aside.
 constexpr size_t MaxWorlds = 16;
 
+// Amanises 2026-10-25, quick match: two characters' levels match within 10 levels and a tenth of
+// the higher (the game's own co-op range is about that); a level not known (0) matches any.
+bool LevelsMatch(u32 a, u32 b);
+
 // Kaniel 2026-10-25 (the Rot rule): a player's rot stacks up to this many penalties.
 constexpr size_t MaxRot = 5;
 
@@ -203,6 +207,8 @@ private:
         bool playing = false;
         // Kaniel 2026-10-17: the world it picked while in no team (the team it makes takes it).
         std::string world;
+        // Amanises 2026-10-25: its character's level, as its last quick match said (0: unknown).
+        u32 level = 0;
         // Kaniel 2026-10-25: its launcher's host rules (the team it makes takes them).
         bbcoop::TeamRules rules;
     };
@@ -269,6 +275,8 @@ private:
     // Amanises 2026-10-25: who asked to join each open team (by team id), in the order asked.
     std::map<std::string, std::vector<std::string>> asks;
     void DropAsksBy(const std::string& member);
+    // Amanises 2026-10-25: the open team `member` joins by quick match, if any (see QUICK_MATCH).
+    bbcoop::Team* QuickMatchTeam(const std::string& member);
     // Kaniel 2026-10-16: the started teams one of whose games played since the Start (a team
     // whose games still load is not over: a member invited in game joins it with its Ready).
     std::set<std::string> played;

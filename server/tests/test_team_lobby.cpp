@@ -1392,6 +1392,69 @@ int OpenTeamsAreAskedToJoin() {
   return 0;
 }
 
+// Amanises 2026-10-25: quick match joins an open team near the character's
+// level, or makes one. Kaniel 2026-11-01: on a public server only, and the team
+// it makes says so.
+int QuickMatchFindsOrMakesAnOpenTeam() {
+  TeamLobby lobby = NewLobby();
+  const auto quick = [](uint32_t level) {
+    bbcoop::TeamRequest request = Request(Action::QUICK_MATCH);
+    request.set_level(level);
+    return request;
+  };
+  CHECK(LevelsMatch(50, 60) && LevelsMatch(100, 120) && !LevelsMatch(30, 60));
+  CHECK(LevelsMatch(0, 200) && LevelsMatch(200, 0));
+  for (const char *who : {"a", "b", "c", "d", "e", "f"}) {
+    lobby.Arrive(who, who, true);
+  }
+  // A home server: not offered, and refused.
+  CHECK(!lobby.StateFor("a").quick_match());
+  CHECK(!lobby.Request("a", quick(50)).notice.empty());
+  CHECK(!lobby.TeamOf("a"));
+  lobby.SetHosted(32, 16);
+  CHECK(lobby.StateFor("a").quick_match());
+  // Nobody open: its own team, open to all, listed to the others.
+  CHECK(lobby.Request("a", quick(50)).changed);
+  const bbcoop::Team *a = lobby.TeamOf("a");
+  CHECK(a && a->leader() == "a" && a->join() == bbcoop::Team::OPEN &&
+        a->quick());
+  CHECK(lobby.StateFor("f").open_teams_size() == 1);
+  // In a team: refused.
+  CHECK(!lobby.Request("a", quick(50)).notice.empty());
+  // A near level joins it; a far one makes its own while one in range is not
+  // there.
+  CHECK(lobby.Request("b", quick(55)).changed &&
+        lobby.TeamOf("b") == lobby.TeamOf("a"));
+  CHECK(lobby.Request("c", quick(150)).changed);
+  const std::string far = lobby.TeamOf("c")->id();
+  CHECK(far != lobby.TeamOf("a")->id());
+  CHECK(lobby.Request("d", quick(140)).changed &&
+        lobby.TeamOf("d")->id() == far);
+  // Unknown level (the title): the fullest open team.
+  CHECK(lobby.Request("e", quick(0)).changed);
+  CHECK(lobby.TeamOf("e") == lobby.TeamOf("a") ||
+        lobby.TeamOf("e")->id() == far);
+  // Teams that ask or are invite only are never joined by quick match.
+  lobby.Request("a", Request(Action::LEAVE));
+  lobby.Request("b", Request(Action::LEAVE));
+  lobby.Request("e", Request(Action::LEAVE));
+  lobby.Request("c", Request(Action::LEAVE));
+  lobby.Request("d", Request(Action::LEAVE));
+  lobby.Request("a", Request(Action::CREATE));
+  bbcoop::TeamRequest ask = Request(Action::OPEN);
+  ask.set_join(bbcoop::Team::ASK);
+  lobby.Request("a", ask);
+  CHECK(lobby.Request("f", quick(50)).changed &&
+        lobby.TeamOf("f") != lobby.TeamOf("a"));
+  // Out of range only: a team of its own (the other still listed to join by
+  // hand).
+  lobby.Request("a", Request(Action::LEAVE));
+  CHECK(lobby.Request("b", quick(200)).changed &&
+        lobby.TeamOf("b") != lobby.TeamOf("f"));
+  CHECK(lobby.StateFor("a").open_teams_size() == 2);
+  return 0;
+}
+
 int main() {
   int failed = 0;
   failed |= TheLeaderSetsTheTeamsRules();
@@ -1433,6 +1496,7 @@ int main() {
   failed |= WrongLookupsAreLimited();
   failed |= AFriendIsInvitedByName();
   failed |= OpenTeamsAreAskedToJoin();
+  failed |= QuickMatchFindsOrMakesAnOpenTeam();
   if (failed == 0) {
     std::cout << "team lobby: all checks passed\n";
   }

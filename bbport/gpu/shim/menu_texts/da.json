@@ -509,5 +509,9 @@
  "Set in the leader's launcher, on its Co-op page.": "Sat i lederens launcher, på dens Co-op-side.",
  "Reset lamps": "Nulstil lygter",
  "Reset lamps? Press again": "Nulstil lygter? Tryk igen",
- "Every lamp of this world goes out for every hunter; the rest stays.": "Alle lygter i denne verden slukkes for alle jægere; resten bliver."
+ "Every lamp of this world goes out for every hunter; the rest stays.": "Alle lygter i denne verden slukkes for alle jægere; resten bliver.",
+ "Quick match": "Hurtig match",
+ "Quick match: waiting for hunters": "Hurtig match: venter på jægere",
+ "Searching for a team…": "Søger efter et hold…",
+ "Join an open team near your level, or open one": "Slut dig til et åbent hold på dit niveau, eller åbn et"
 }

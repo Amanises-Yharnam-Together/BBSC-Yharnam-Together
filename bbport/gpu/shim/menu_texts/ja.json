@@ -509,5 +509,9 @@
  "Set in the leader's launcher, on its Co-op page.": "リーダーのランチャーの協力プレイページで設定します。",
  "Reset lamps": "灯りをリセット",
  "Reset lamps? Press again": "リセットしますか？もう一度押す",
- "Every lamp of this world goes out for every hunter; the rest stays.": "このワールドの灯りがすべての狩人で消えます。他はそのままです。"
+ "Every lamp of this world goes out for every hunter; the rest stays.": "このワールドの灯りがすべての狩人で消えます。他はそのままです。",
+ "Quick match": "クイックマッチ",
+ "Quick match: waiting for hunters": "クイックマッチ: 狩人を待っています",
+ "Searching for a team…": "チームを探しています…",
+ "Join an open team near your level, or open one": "レベルの近い公開チームに参加するか、チームを開く"
 }

@@ -687,6 +687,10 @@ message TeamRequest {
         // the way to mend a world whose new playthrough kept the old one's lamps (asked for twice
         // in the picker). Not while a team plays it.
         RESET_LAMPS = 28;
+        // Amanises 2026-10-25, quick match (public servers: LobbyState.quick_match): a player in
+        // no team joins an open team (open to all, not full) in range of its character's `level`
+        // (0: not known, any team fits), or makes one of its own, open to all, for the next.
+        QUICK_MATCH = 29;
     }
     Action action = 1;
     string member = 2;
@@ -702,6 +706,7 @@ message TeamRequest {
     uint32 death_mode = 12; // DEATH_MODE
     string query = 13; // SEARCH
     Team.Join join = 14; // OPEN
+    uint32 level = 15;   // QUICK_MATCH: the character's level, 0 at the title
 }
 
 // Kaniel 2026-10-25: the host rules, the leader's choice for its whole team, all off by default.
@@ -819,6 +824,8 @@ message Team {
         OPEN = 2;
     }
     Join join = 12;
+    // Kaniel 2026-11-01: made by quick match: its leader's screen says it waits for hunters.
+    bool quick = 13;
 }
 
 // Amanises 2026-10-25: an open team as a player in no team sees it.
@@ -868,6 +875,8 @@ message LobbyState {
     repeated OpenTeam open_teams = 12;
     repeated TeamAsk asks = 13;
     uint32 team_size = 14;
+    // Kaniel 2026-11-01: this server is a public one: the team screen offers quick match.
+    bool quick_match = 15;
 }
 
 // server -> game: load your save and play the team's world. To every ready member at Start, and
