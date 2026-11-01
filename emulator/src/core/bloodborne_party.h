@@ -2346,6 +2346,10 @@ inline constexpr std::array NpcDeathDrops{
     NpcDeathDrop{1712, 43200, 0x23000000},
     NpcDeathDrop{1713, 43220, 0x24000000},
     NpcDeathDrop{1790, 43110, 0x1B000000},
+    // Kaniel's playtest 2026-10-30: the Moon rune where the Brain of Mensis fell. m26_00 12600028
+    // ends for a client and awards lot 2605000 (flag 52605000) once 12600027 is on (the Brain has
+    // fallen) and the player stands there: only the host got it.
+    NpcDeathDrop{12600027, 2605000, 0x1A000000},
 };
 // Whether this game gives `drop` now: a party guest in a session on its map, the death flag on,
 // not given yet (`given`: this character, this session), and the lot not the guest's already

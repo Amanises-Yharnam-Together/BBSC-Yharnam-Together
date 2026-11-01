@@ -979,6 +979,23 @@ TEST(BloodborneSharedLoot, AGuestsOwnTalkGivesItsNpcGift) {
 // Firing Hammer Badge, and krolebord no Gatling Gun. Their drops are map events that wait for the
 // NPC's death flag and end for a client or unless the local player is alive; a guest on the map
 // gets the lot once the death flag is on, while it is not the guest's already.
+// Kaniel's playtest 2026-10-30: the host got the Moon rune from the Brain of Mensis, the guests
+// did not. m26_00 12600028 ends for a client (1003:6) and awards lot 2605000 (its flag 52605000)
+// once 12600027 is on (the Brain has fallen) and the player stands where it fell; Kaniel's log has
+// the lot and trophy 9, Lisara's and krolebord's neither. A guest on the Nightmare of Mensis gets
+// it once 12600027 is on, while its own 52605000 is off.
+TEST(BloodborneSharedLoot, AGuestGetsTheMoonRuneFromTheFallenBrain) {
+    const auto it = std::ranges::find(NpcDeathDrops, 12600027, &NpcDeathDrop::death_flag);
+    ASSERT_NE(it, NpcDeathDrops.end());
+    EXPECT_EQ(it->lot, 2605000);
+    EXPECT_EQ(it->map, 0x1A000000u);
+    EXPECT_TRUE(GivesNpcDeathDrop(*it, true, 0x1A000000, true, false, false, false, false));
+    EXPECT_FALSE(GivesNpcDeathDrop(*it, true, 0x1A000000, true, true, false, false, false))
+        << "this guest's own 52605000: it has it";
+    EXPECT_FALSE(GivesNpcDeathDrop(*it, false, 0x1A000000, true, false, false, false, false))
+        << "the host's own event gives the host its own";
+}
+
 TEST(BloodborneSharedLoot, AGuestGetsAnNpcsDeathDrop) {
     const auto drop = [](s32 death_flag) {
         const auto it = std::ranges::find(NpcDeathDrops, death_flag, &NpcDeathDrop::death_flag);
