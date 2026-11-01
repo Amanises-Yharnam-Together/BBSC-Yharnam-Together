@@ -620,6 +620,18 @@ TEST(BloodborneFlagRules, AGuestLightsItsOwnAndTheTeamsLampsAgain) {
     EXPECT_TRUE(LampsToRelight({}, {}, on).empty());
 }
 
+// A guest that changed teams lit its own lamp again: no progress of its new team's. A lamp it
+// really lights later still is, and only the flags lit again are left out, once each.
+TEST(BloodborneFlagRules, ALampLitAgainIsNoWorldChange) {
+    std::set<s32> relit{12807810};
+    FlagChanges seen = WithoutRelitLamps({{12807810, 12105032}, {2411}}, relit);
+    EXPECT_EQ(seen.set, std::vector<s32>{12105032});
+    EXPECT_EQ(seen.cleared, std::vector<s32>{2411});
+    EXPECT_TRUE(relit.empty()) << "seen once";
+    seen = WithoutRelitLamps({{12807810}, {}}, relit);
+    EXPECT_EQ(seen.set, std::vector<s32>{12807810}) << "lit for real later";
+}
+
 // A held-item flag follows what this player holds: on while it holds the item (as 12100450 sets
 // it), off while it does not (a save that took the host's value from a team world got it back
 // wrong, so the boss, NPC or pickup never gave the item). Outside a party, the game's own.

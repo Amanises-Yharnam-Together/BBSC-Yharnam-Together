@@ -1189,6 +1189,11 @@ std::vector<s32> LitHeadstoneLamps(const std::function<bool(s32)>& on) {
     return lit;
 }
 
+FlagChanges WithoutRelitLamps(FlagChanges changes, std::set<s32>& relit) {
+    std::erase_if(changes.set, [&](s32 flag) { return relit.erase(flag) != 0; });
+    return changes;
+}
+
 std::vector<s32> LampsToRelight(const std::set<s32>& kept, std::span<const s32> team,
                                 const std::function<bool(s32)>& on) {
     // The shared lamps only: a chalice map's view lamps are the current altar's (FlagTable).

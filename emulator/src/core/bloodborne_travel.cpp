@@ -1664,8 +1664,28 @@ void GiveBackPhantomKeyItems() {
 // save slot), and in a session a guest's lamps, its own and the team's world's, lit again when
 // they read off (its join's reload gives its game a new flag store with none lit).
 std::atomic<bool> kept_lamps_reset{false};
+std::mutex relit_lamps_mutex;
+std::set<s32> relit_lamps; // lit again here, not yet seen by the flag watcher
 [[maybe_unused]] const bool kept_lamps_registered = RegisterLifecycleReset(
     "kept lamps", {Lifecycle::NewCharacter}, [] { kept_lamps_reset.store(true); });
+
+} // namespace
+
+namespace Coop {
+
+FlagChanges LeaveOutRelitLamps(FlagChanges changes) {
+    std::scoped_lock lock{relit_lamps_mutex};
+    return WithoutRelitLamps(std::move(changes), relit_lamps);
+}
+
+void ForgetRelitLamps() {
+    std::scoped_lock lock{relit_lamps_mutex};
+    relit_lamps.clear();
+}
+
+} // namespace Coop
+
+namespace {
 
 void KeepGuestLampsLit() {
     static std::set<s32> kept;
@@ -1688,6 +1708,10 @@ void KeepGuestLampsLit() {
         std::vector<s32> lamps;
         std::string named;
         for (const s32 flag : relight) {
+            {
+                std::scoped_lock lock{relit_lamps_mutex};
+                relit_lamps.insert(flag);
+            }
             reinterpret_cast<SetFlag>(image_base + PartyGhostSetEventFlagOffset)(0, flag, true);
             lamps.push_back(*LampOfActiveFlag(flag));
             named += fmt::format(" {}", flag);

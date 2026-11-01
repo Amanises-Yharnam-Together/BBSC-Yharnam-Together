@@ -1764,6 +1764,7 @@ void LogFlagChangesInSession(bool sharing) {
     last = now;
     if (!sharing) {
         previous.reset();
+        ForgetRelitLamps();
         return;
     }
     FlagStore current = ReadFlagStore();
@@ -1823,7 +1824,8 @@ void LogFlagChangesInSession(bool sharing) {
                          "shared",
                          set.size() + cleared.size());
             } else {
-                const FlagChanges changes{std::move(set), std::move(cleared)};
+                const FlagChanges changes =
+                    LeaveOutRelitLamps({std::move(set), std::move(cleared)});
                 if (IsPartyGuestRole()) {
                     KeepWorldChanges(changes);
                 }

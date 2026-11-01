@@ -1013,6 +1013,9 @@ std::vector<s32> TeamWorldFlagsOnForGuest();
 std::vector<u32> TeamWorldBlocksForGuest();
 // Puts lamps (entities, LampOfActiveFlag) on this character's lamp list, so they stay lit for it.
 void ListLamps(std::span<const s32> lamps);
+// The lamps KeepGuestLampsLit lit again are no world changes (WithoutRelitLamps).
+FlagChanges LeaveOutRelitLamps(FlagChanges changes);
+void ForgetRelitLamps();
 void TickTeamWorld(s64 now_ms);
 // A team guest takes the team world's time of day (TimeOfDayToFollow) when it is not loading.
 void FollowTeamTimeOfDay(s64 now_ms);
