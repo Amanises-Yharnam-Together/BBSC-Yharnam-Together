@@ -1220,6 +1220,16 @@ class SystemCertificateTests(unittest.TestCase):
         self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
         self.assertTrue(context.check_hostname)
 
+    def test_an_ssl_context_that_cannot_be_made_keeps_the_default(self):
+        # Amanises 2026-10-29: FileNotFoundError from ssl.SSLContext in a frozen launcher: it did not
+        # start at all, not even --script.
+        import ssl
+        for failure in (FileNotFoundError('no certificates'), ssl.SSLError('none')):
+            fake = mock.Mock(SSLContext=mock.Mock(side_effect=failure))
+            with mock.patch.dict(sys.modules, {'truststore': fake}):
+                self.assertFalse(coop.use_system_certificates())
+            self.assertIsNone(coop.urllib.request._opener)
+
     def test_without_truststore_the_default_stays(self):
         with mock.patch.dict(sys.modules, {'truststore': None}):
             self.assertFalse(coop.use_system_certificates())

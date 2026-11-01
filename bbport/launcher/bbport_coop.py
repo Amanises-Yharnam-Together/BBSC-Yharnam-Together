@@ -163,7 +163,12 @@ def use_system_certificates():
         import truststore
     except ImportError:
         return False
-    context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    # Amanises 2026-10-29: a frozen launcher where the SSL context cannot be made (FileNotFoundError from
+    # ssl.SSLContext) did not start at all, not even --script: it keeps the default.
+    try:
+        context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    except (OSError, ssl.SSLError):
+        return False
     urllib.request.install_opener(urllib.request.build_opener(urllib.request.HTTPSHandler(context=context)))
     return True
 

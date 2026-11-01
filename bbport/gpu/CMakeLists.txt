@@ -536,6 +536,10 @@ target_include_directories(menu-focus-test PRIVATE ..)
 add_executable(overlay-input-test EXCLUDE_FROM_ALL ../tests/test_overlay_input.cpp)
 target_compile_options(overlay-input-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(overlay-input-test PRIVATE ..)
+# bbport co-op: the launcher's settings as UTF-8 (shim/core/env_text.h).
+add_executable(env-text-test EXCLUDE_FROM_ALL ../tests/test_env_text.cpp)
+target_compile_options(env-text-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(env-text-test PRIVATE ..)
 # bbport co-op: party death's HUD keeps clear of the game's own HUD (shim/bbport_party_layout.h).
 add_executable(party-layout-test EXCLUDE_FROM_ALL ../tests/test_party_layout.cpp)
 target_compile_options(party-layout-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
