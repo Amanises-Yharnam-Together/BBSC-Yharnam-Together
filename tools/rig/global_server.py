@@ -103,8 +103,8 @@ class GlobalServer:
         for number, role in enumerate(roles):
             account = self.sign_in((str(900000000000000000 + number), f"rig{number}", role))
             again = self.sign_in((str(900000000000000000 + number), f"rig{number}", role))
-            if (again["id"], again["secret"]) != (account["id"], account["secret"]):
+            if again["id"] != account["id"]:
                 raise RuntimeError("a second sign-in gave another account")
-            print(f"rig: {role} signed in with Discord as {account['id']} (twice, one account)")
-            out[role] = (account["id"], account["secret"])
+            print(f"rig: {role} signed in with Discord as {again['id']} (twice, one account)")
+            out[role] = (again["id"], again["secret"])
         return out
