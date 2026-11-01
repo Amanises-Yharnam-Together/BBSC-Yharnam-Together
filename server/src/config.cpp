@@ -72,7 +72,7 @@ void ConfigManager::Parse(const QString& path) {
     m_hosted.newAccountsPerHour = str("HostedNewAccountsPerHour", "5").toInt();
     m_hosted.signupWorkBits = str("HostedSignupWorkBits", "20").toInt();
     m_hosted.signupWorkMaxBits = str("HostedSignupWorkMaxBits", "20").toInt();
-    m_hosted.signupsPerMinute = str("HostedSignupsPerMinute", "60").toInt();
+    m_hosted.signupsPerMinute = str("HostedSignupsPerMinute", "300").toInt();
     m_hosted.datagramsPerSecond = str("HostedDatagramsPerSecond", "1500").toDouble();
     m_hosted.bytesPerSecond = str("HostedBytesPerSecond", "400000").toDouble();
     m_hosted.lobbyPlayers = str("HostedLobbyPlayers", "32").toInt();
@@ -98,7 +98,7 @@ void ConfigManager::Parse(const QString& path) {
     m_shard.publicAddress = shardSetting("ShardPublicAddress", "SHARD_PUBLIC_ADDRESS", "");
     m_shard.token = shardSetting("DirectoryToken", "DIRECTORY_TOKEN", "").toUtf8();
     m_shard.regionSecret = shardSetting("RegionSecret", "REGION_SECRET", "").toUtf8();
-    m_shard.capacity = shardSetting("ShardCapacity", "SHARD_CAPACITY", "800").toInt();
+    m_shard.capacity = shardSetting("ShardCapacity", "SHARD_CAPACITY", "350").toInt();
     const QString draining = shardSetting("ShardDraining", "SHARD_DRAINING", "false").toLower();
     m_shard.draining = draining == "true" || draining == "1";
     m_shard.heartbeatMs = std::max(500, str("ShardHeartbeatMs", "2000").toInt());

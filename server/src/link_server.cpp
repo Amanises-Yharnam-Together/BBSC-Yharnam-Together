@@ -315,8 +315,19 @@ bool LinkServer::Start(const QHostAddress& addr, uint16_t port) {
     }
     // Every game's datagrams come to this one socket: room for a burst while the thread is busy
     // (the system's cap, net.core.rmem_max, may hold it lower).
-    m_socket->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 16 << 20);
-    m_socket->setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 16 << 20);
+    m_socket->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption,
+                              Admission::LinkSocketBytes);
+    m_socket->setSocketOption(QAbstractSocket::SendBufferSizeSocketOption,
+                              Admission::LinkSocketBytes);
+    if (const int got =
+            m_socket->socketOption(QAbstractSocket::ReceiveBufferSizeSocketOption).toInt();
+        m_hosted.enabled && Admission::LinkBufferShort(got)) {
+        qWarning().noquote() << QStringLiteral(
+                                    "Link: the system holds the receive buffer to %1 bytes: "
+                                    "set net.core.rmem_max and wmem_max to 33554432 "
+                                    "(server/hosting/README.md)")
+                                    .arg(got);
+    }
     qInfo().nospace().noquote() << "Link UDP listener on: " << addr.toString() << ":" << port;
     return true;
 }

@@ -101,7 +101,7 @@ config:
   HostedNewAccountsPerHour: 5
   HostedSignupWorkBits: 20
   HostedSignupWorkMaxBits: 20
-  HostedSignupsPerMinute: 60
+  HostedSignupsPerMinute: 300
   HostedDatagramsPerSecond: 1500
   HostedBytesPerSecond: 400000
   HostedLobbyPlayers: 32

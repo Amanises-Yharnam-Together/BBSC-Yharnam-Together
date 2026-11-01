@@ -34,7 +34,7 @@ struct HostedConfig {
     int newAccountsPerHour = 5;
     int signupWorkBits = 20;    // a new account's work (coop/link_auth.h): ~0.3 s of one core
     int signupWorkMaxBits = 20; // 2 bits more per doubling of the accounts a minute over:
-    int signupsPerMinute = 60;  // this many
+    int signupsPerMinute = 300; // this many (Admission::DefaultSignupsPerMinute)
     double datagramsPerSecond = 1500.0;
     double bytesPerSecond = 400000.0;
     int lobbyPlayers = 32;     // players listed to each player besides its team and invites
@@ -57,7 +57,7 @@ struct ShardConfig {
     QString publicAddress;   // "a.b.c.d:port": the games reach this shard's link there
     QByteArray token;        // the shards' and the directory's shared secret
     QByteArray regionSecret; // the tickets' key (empty: derived from the token)
-    int capacity = 800;
+    int capacity = 350;      // Region::DefaultShardCapacity
     bool draining = false;
     int heartbeatMs = 2000;
     bool Enabled() const {
