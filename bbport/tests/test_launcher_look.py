@@ -497,7 +497,8 @@ class CoopSettingsTests(unittest.TestCase):
         self.global_server()
         self.assertEqual(app.coop_next.state, 'disabled', 'not signed in yet')
         self.assertIn('Sign in with Discord', app.coop_missing.cget('text'))
-        account = {'id': 'd0123456789abcd', 'secret': 'a' * 32, 'name': 'Ada'}
+        secret = format(int(time.time()), '08x') + 'a' * 24
+        account = {'id': 'd0123456789abcd', 'secret': secret, 'name': 'Ada'}
         with mock.patch.object(launcher.bbport_discord, 'sign_in', return_value=account) as signing:
             app.coop_discord_pressed()
             self.settle(0.5)
@@ -505,7 +506,7 @@ class CoopSettingsTests(unittest.TestCase):
         self.assertEqual(app.coop_discord_text.cget('text'), 'Signed in as Ada')
         self.assertEqual(app.coop_next.state, 'normal')
         self.assertEqual(bbport_coop.player_id_for(bbport_coop.played_settings(app.coop), 'https://play.example.com'),
-                         ('d0123456789abcd', 'a' * 32))
+                         ('d0123456789abcd', secret))
         self.assertEqual(self.saved[-1]['discord_name'], 'Ada')
         app.coop_vars['game'].set(str(self.game))
         self.settle(0.5)

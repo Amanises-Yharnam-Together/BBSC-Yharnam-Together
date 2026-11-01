@@ -143,6 +143,18 @@ def sign_in(url, open_browser=webbrowser.open, stop=None, timeout=SIGN_IN_SECOND
     return {'id': account['id'], 'secret': account['secret'], 'name': account.get('name', '')}
 
 
+def sign_out(url, account, secret, context=None):
+    """Tells the server this account's secrets until now are dead. Best effort: the launcher forgets
+    them anyway, and a secret ends by itself."""
+    request = urllib.request.Request(https_base(url) + '/bb/discord/sign-out', method='POST',
+                                     data=json.dumps({'id': account, 'secret': secret}).encode('utf-8'),
+                                     headers={'Content-Type': 'application/json'})
+    try:
+        return _json(request, context)[0] == 200
+    except SignInError:
+        return False
+
+
 def sign_in_thread(url, done, **options):
     """sign_in off the window's thread: done(account, None) or done(None, text); the Event cancels."""
     stop = threading.Event()

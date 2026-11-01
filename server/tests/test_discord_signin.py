@@ -102,13 +102,27 @@ class SignInTests(unittest.TestCase):
         self.assertRegex(first["id"], r"^d[0-9a-f]{14}$")
         self.assertRegex(first["secret"], r"^[0-9a-f]{32}$")
         self.assertEqual(first["name"], "Ada")
-        # Another PC, a later day: the same account.
+        # Another PC, a later day: the same account, with a secret of its own.
+        time.sleep(1.1)
         status, again = self.sign_in(self.code())
-        self.assertEqual((status, again["id"], again["secret"]), (200, first["id"], first["secret"]))
+        self.assertEqual((status, again["id"]), (200, first["id"]))
+        self.assertNotEqual(again["secret"], first["secret"])
         status, other = self.sign_in(self.code(user=("2", "bo", None)))
         self.assertEqual(status, 200)
         self.assertNotEqual(other["id"], first["id"])
         self.assertEqual(other["name"], "bo", "no global name: the username")
+
+    def test_sign_out_kills_the_secret_and_a_new_sign_in_works(self):
+        _status, first = self.sign_in(self.code())
+        out = {"id": first["id"], "secret": first["secret"]}
+        self.assertEqual(self.server.call("POST", "/bb/discord/sign-out", dict(out, secret="f" * 32))[0], 403)
+        self.assertEqual(self.server.call("POST", "/bb/discord/sign-out", out)[0], 200)
+        self.assertEqual(self.server.call("POST", "/bb/discord/sign-out", out)[0], 403, "dead now")
+        status, again = self.sign_in(self.code())
+        self.assertEqual(status, 200)
+        self.assertNotEqual(again["secret"], first["secret"])
+        self.assertEqual(self.server.call("POST", "/bb/discord/sign-out",
+                                          {"id": again["id"], "secret": again["secret"]})[0], 200)
 
     def test_a_code_works_once(self):
         code = self.code()
@@ -174,6 +188,7 @@ class NoDiscordTests(unittest.TestCase):
         try:
             self.assertEqual(server.call("GET", "/bb/discord/config")[0], 404)
             self.assertEqual(server.call("POST", "/bb/discord/sign-in", {"code": "x"})[0], 404)
+            self.assertEqual(server.call("POST", "/bb/discord/sign-out", {"id": "x"})[0], 404)
         finally:
             server.stop()
             shutil.rmtree(home, ignore_errors=True)

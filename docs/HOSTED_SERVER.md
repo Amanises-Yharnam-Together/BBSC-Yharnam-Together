@@ -129,12 +129,18 @@ account comes from Discord. There is no login or password anywhere.
    forgets them.
 
 **One Discord user is one account, on every shard and PC** (`src/discord_accounts.h`). Each shard has
-its own SQLite accounts, so a fresh random secret made on one shard would be stale on the others.
-The id (`d` + 14 hex) and the secret are instead HMAC-SHA256 of the Discord user id under a key
-derived from the link key, which every shard of a region holds. Any shard can answer a sign-in, and
-any shard can tell a sign-in's secret at a hello with no store shared between them. The server keeps
-only the secret's password hash, as for any account. If two ids share a virtual address, the next
-salt gives the player a free one.
+its own SQLite accounts, so a stored random secret made on one shard would be stale on the others.
+The id (`d` + 14 hex) is an HMAC-SHA256 of the Discord user id under a key derived from the link key,
+which every shard of a region holds. The secret is signed with that key and carries when it was
+issued (8 hex of the time, 24 of the signature), so any shard can tell it at a hello with no store
+shared between them. It holds **30 days**; each sign-in gives a new one, which takes the old one's
+place in that shard's accounts at its first hello. The launcher asks for a new sign-in a day early,
+and when a server refuses the secret. Editing the date breaks the signature. If two ids share a
+virtual address, the next salt gives the player a free one.
+
+**Sign out** (`POST /bb/discord/sign-out`) also tells the server, which kills that account's older
+secrets on that shard (`discord_sign_out`). On the other shards of a region they end with their 30
+days. The launcher forgets its copy either way.
 
 On a server with Discord set up, an id with no account is refused at the hello
 (`discord: sign in with Discord in the launcher first`), so nobody makes accounts around the sign-in.

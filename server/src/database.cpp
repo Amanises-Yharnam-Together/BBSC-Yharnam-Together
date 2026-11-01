@@ -220,6 +220,10 @@ bool Database::Migrate() {
         Exec(ins3);
     }
 
+    // Migration 4: when a Discord account signed out (discord_accounts.h).
+    Exec("CREATE TABLE IF NOT EXISTS discord_sign_out("
+         "  username TEXT PRIMARY KEY,"
+         "  not_before INTEGER NOT NULL)");
     qInfo() << "Database migrations complete";
 
     RunMaintenance();
@@ -483,6 +487,33 @@ std::optional<DbError> Database::CreateAccount(const QString& npid, const QStrin
     qInfo() << "createAccount: Successfully created account:" << npid << "(ID:" << newId << ")";
 
     return std::nullopt; // success
+}
+
+qint64 Database::DiscordNotBefore(const QString& npid) {
+    QSqlQuery q(m_db);
+    q.prepare("SELECT not_before FROM discord_sign_out WHERE username=?");
+    q.addBindValue(npid);
+    return Exec(q) && q.next() ? q.value(0).toLongLong() : 0;
+}
+
+void Database::SetDiscordNotBefore(const QString& npid, qint64 seconds) {
+    QSqlQuery q(m_db);
+    q.prepare("INSERT OR REPLACE INTO discord_sign_out(username, not_before) VALUES(?, ?)");
+    q.addBindValue(npid);
+    q.addBindValue(seconds);
+    Exec(q);
+}
+
+bool Database::SetPassword(const QString& npid, const QString& password) {
+    const QByteArray salt = GenerateSalt();
+    if (salt.isEmpty())
+        return false;
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE account SET hash=?, salt=? WHERE username=?");
+    q.addBindValue(HashPassword(password, salt));
+    q.addBindValue(salt);
+    q.addBindValue(npid);
+    return Exec(q);
 }
 
 std::optional<UserRecord> Database::CheckUser(const QString& npid, const QString& password,

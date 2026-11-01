@@ -19,6 +19,7 @@ namespace {
 
 const std::array<quint8, 32> LinkSecret{1, 2, 3};
 const std::array<quint8, 32> OtherSecret{9, 9, 9};
+constexpr qint64 Now = 1'800'000'000;
 
 int OneUserIsOneAccount() {
   const QByteArray key = KeyFrom(LinkSecret);
@@ -33,24 +34,64 @@ int OneUserIsOneAccount() {
   CHECK(id != OnlineId(KeyFrom(OtherSecret), "80351110224678912"));
   // As the launcher's own ids: a valid name, a valid secret.
   CHECK(id.size() == 15 && id.startsWith('d'));
-  const QString secret = Secret(key, id);
+  const QString secret = Secret(key, id, Now);
   CHECK(secret.size() == 32);
-  CHECK(secret == Secret(key, id));
-  CHECK(secret != Secret(key, OnlineId(key, "1")));
-  CHECK(!secret.contains(id.mid(1, 8))); // not the id again
+  CHECK(secret == Secret(key, id, Now));
+  CHECK(secret != Secret(key, OnlineId(key, "1"), Now));
+  CHECK(secret != Secret(key, id, Now + 1)); // each sign-in its own
+  CHECK(!secret.contains(id.mid(1, 8)));     // not the id again
   return 0;
 }
 
 int AHelloIsTold() {
   const QByteArray key = KeyFrom(LinkSecret);
-  const QString id = OnlineId(key, "42");
-  const QByteArray secret = Secret(key, id).toLatin1();
-  CHECK(Holds(key, id.toLatin1(), secret));
-  CHECK(!Holds(key, id.toLatin1(), QByteArray(32, 'a')));
-  CHECK(!Holds(key, id.toLatin1(), secret.left(31)));
-  CHECK(!Holds(key, "p0123456789abcd", secret)); // a home server's kind of id
-  CHECK(!Holds(KeyFrom(OtherSecret), id.toLatin1(), secret));
-  CHECK(!Holds({}, id.toLatin1(), secret)); // no key: never
+  const QByteArray id = OnlineId(key, "42").toLatin1();
+  const QByteArray secret =
+      Secret(key, QString::fromLatin1(id), Now).toLatin1();
+  CHECK(Check(key, id, secret, Now, 0) == Verdict::Good);
+  // Any shard: it holds the link key, and no store is asked.
+  CHECK(Check(KeyFrom(LinkSecret), id, secret, Now + 60, 0) == Verdict::Good);
+  CHECK(Check(key, id, QByteArray(32, 'a'), Now, 0) == Verdict::Forged);
+  CHECK(Check(key, id, secret.left(31), Now, 0) == Verdict::Forged);
+  CHECK(Check(key, "p0123456789abcd", secret, Now, 0) == Verdict::Forged);
+  CHECK(Check(key, OnlineId(key, "43").toLatin1(), secret, Now, 0) ==
+        Verdict::Forged);
+  CHECK(Check(KeyFrom(OtherSecret), id, secret, Now, 0) == Verdict::Forged);
+  CHECK(Check({}, id, secret, Now, 0) == Verdict::Forged); // no key: never
+  // A later date typed into it breaks the signature.
+  QByteArray tampered = secret;
+  tampered[7] = tampered[7] == '0' ? '1' : '0';
+  CHECK(Check(key, id, tampered, Now, 0) == Verdict::Forged);
+  tampered = secret;
+  tampered[31] = tampered[31] == '0' ? '1' : '0';
+  CHECK(Check(key, id, tampered, Now, 0) == Verdict::Forged);
+  return 0;
+}
+
+int ASecretHolds30Days() {
+  const QByteArray key = KeyFrom(LinkSecret);
+  const QByteArray id = OnlineId(key, "42").toLatin1();
+  const QByteArray secret =
+      Secret(key, QString::fromLatin1(id), Now).toLatin1();
+  const qint64 days = 24 * 3600;
+  CHECK(Check(key, id, secret, Now + 30 * days, 0) == Verdict::Good);
+  CHECK(Check(key, id, secret, Now + 30 * days + 1, 0) == Verdict::Expired);
+  // A new sign-in: another secret, and it works.
+  const QByteArray again =
+      Secret(key, QString::fromLatin1(id), Now + 30 * days + 1).toLatin1();
+  CHECK(again != secret);
+  CHECK(Check(key, id, again, Now + 30 * days + 1, 0) == Verdict::Good);
+  return 0;
+}
+
+int ASignOutKillsTheOlderOnes() {
+  const QByteArray key = KeyFrom(LinkSecret);
+  const QByteArray id = OnlineId(key, "42").toLatin1();
+  const QByteArray older = Secret(key, QString::fromLatin1(id), Now).toLatin1();
+  const QByteArray newer =
+      Secret(key, QString::fromLatin1(id), Now + 10).toLatin1();
+  CHECK(Check(key, id, older, Now + 20, Now + 5) == Verdict::SignedOut);
+  CHECK(Check(key, id, newer, Now + 20, Now + 5) == Verdict::Good);
   return 0;
 }
 
@@ -84,6 +125,8 @@ int main() {
   int failed = 0;
   failed |= OneUserIsOneAccount();
   failed |= AHelloIsTold();
+  failed |= ASecretHolds30Days();
+  failed |= ASignOutKillsTheOlderOnes();
   failed |= TheRedirectIsOurs();
   failed |= TheAddressIsTheConnections();
   if (failed == 0) {
