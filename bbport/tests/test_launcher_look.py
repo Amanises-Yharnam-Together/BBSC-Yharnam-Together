@@ -300,6 +300,10 @@ class CoopSettingsTests(unittest.TestCase):
         self.assertEqual(self.app.side.visible(), ['home', 'coop', 'settings'])
         cover = self.app.coop_cover
         self.assertTrue(cover.winfo_ismapped(), 'over the window at the first start')
+        self.assertEqual(self.app.coop_vars['server_type'].get(), 'local', 'Local unless picked')
+        self.assertEqual(self.app.coop_next.state, 'normal', 'Local needs nothing on the first step')
+        self.app.coop_next.invoke()
+        self.settle()
         self.assertEqual(self.app.coop_next.state, 'disabled')
         self.app.close_coop()
         self.settle()
@@ -309,7 +313,7 @@ class CoopSettingsTests(unittest.TestCase):
         self.settle()
         self.app.coop_next.invoke()
         self.settle()
-        self.assertEqual(self.app.coop_step, 1)
+        self.assertEqual(self.app.coop_step, 2)
         self.assertEqual(self.app.coop_next.state, 'disabled', 'the enemies are chosen, not taken by default')
         self.assertIn('the enemies', self.app.coop_missing.cget('text'))
         self.app.coop_enemies.current(0)
@@ -435,28 +439,31 @@ class CoopSettingsTests(unittest.TestCase):
             self.settle(1.0)
         open_ports.assert_not_called()
 
-    def test_the_setup_is_three_steps(self):
-        """Kaniel 2026-10-25: steps instead of switches: the game and the host's IP, then how the enemies get
-        harder (Auto or Fixed, and Rot), then how the team travels; a step opens only once the ones before it
-        lack nothing, and the help buttons stay on the first."""
+    def test_the_setup_is_four_steps(self):
+        """Kaniel 2026-11-01: which server first. Kaniel 2026-10-25: steps instead of switches: the game and the
+        host's IP, then how the enemies get harder (Auto or Fixed, and Rot), then how the team travels; a step
+        opens only once the ones before it lack nothing, and the help buttons stay on the game's."""
         app = self.app
         self.assertEqual(app.coop_step, 0)
         self.assertTrue(app.coop_steps[0].winfo_ismapped())
         self.assertFalse(app.coop_back.canvas.winfo_ismapped(), 'no Back on the first step')
-        app.coop_go(1)
+        app.coop_go(2)
         self.settle()
         self.assertEqual(app.coop_step, 0, 'no game folder or IP yet')
+        app.coop_next.invoke()
+        self.settle()
+        self.assertEqual(app.coop_step, 1)
         app.coop_vars['game'].set(str(self.game))
         app.coop_vars['host_ip'].set('26.1.2.3')
         self.settle()
         app.coop_next.invoke()
         self.settle()
-        self.assertEqual(app.coop_step, 1)
-        self.assertTrue(app.coop_steps[1].winfo_ismapped() and not app.coop_steps[0].winfo_ismapped())
+        self.assertEqual(app.coop_step, 2)
+        self.assertTrue(app.coop_steps[2].winfo_ismapped() and not app.coop_steps[1].winfo_ismapped())
         self.assertEqual(app.coop_enemy_mode.get(), 'fixed', 'Auto is a host rule, off by default')
-        app.coop_go(2)
+        app.coop_go(3)
         self.settle()
-        self.assertEqual(app.coop_step, 1, 'the enemies are still to be chosen')
+        self.assertEqual(app.coop_step, 2, 'the enemies are still to be chosen')
         app.coop_enemy_mode.set('auto')
         self.settle(0.5)
         self.assertEqual(app.coop['rule_scale'], '1', 'Auto is the scaling rule')
@@ -464,7 +471,7 @@ class CoopSettingsTests(unittest.TestCase):
         self.assertEqual(app.coop_next.state, 'normal', 'Auto needs no level')
         app.coop_next.invoke()
         self.settle()
-        self.assertEqual(app.coop_step, 2)
+        self.assertEqual(app.coop_step, 3)
         self.assertEqual(app.coop_travel_mode.get(), 'seamless', 'travelling together is off by default')
         app.coop_travel_mode.set('together')
         app.coop_vars['rule_vote'].set('1')
@@ -473,10 +480,62 @@ class CoopSettingsTests(unittest.TestCase):
         app.coop_back.invoke()
         app.coop_back.invoke()
         self.settle()
-        self.assertEqual(app.coop_step, 0)
+        self.assertEqual(app.coop_step, 1)
         app.open_coop()
         self.settle()
         self.assertEqual(app.coop_step, 0, 'opens at the first step')
+
+    def global_server(self, url='https://play.example.com'):
+        self.app.coop['global_server'] = url
+        self.app.coop_vars['server_type'].set('global')
+        self.settle(0.5)
+
+    def test_global_signs_in_with_discord_and_never_asks_for_an_ip(self):
+        """Kaniel 2026-11-01: Global is Sign in with Discord; no login, no password, no address."""
+        app = self.app
+        self.assertNotIn('password', [str(k) for k in app.coop_vars], 'no password anywhere')
+        self.global_server()
+        self.assertEqual(app.coop_next.state, 'disabled', 'not signed in yet')
+        self.assertIn('Sign in with Discord', app.coop_missing.cget('text'))
+        account = {'id': 'd0123456789abcd', 'secret': 'a' * 32, 'name': 'Ada'}
+        with mock.patch.object(launcher.bbport_discord, 'sign_in', return_value=account) as signing:
+            app.coop_discord_pressed()
+            self.settle(0.5)
+        self.assertEqual(signing.call_args[0][0], 'https://play.example.com')
+        self.assertEqual(app.coop_discord_text.cget('text'), 'Signed in as Ada')
+        self.assertEqual(app.coop_next.state, 'normal')
+        self.assertEqual(bbport_coop.player_id_for(bbport_coop.played_settings(app.coop), 'https://play.example.com'),
+                         ('d0123456789abcd', 'a' * 32))
+        self.assertEqual(self.saved[-1]['discord_name'], 'Ada')
+        app.coop_vars['game'].set(str(self.game))
+        self.settle(0.5)
+        app.coop_next.invoke()
+        self.settle()
+        self.assertFalse(app.coop_host_cell.winfo_ismapped(), 'no host address on Global')
+        self.assertNotIn("the host's IP", app.coop_missing.cget('text'))
+        app.coop_back.invoke()
+        self.settle()
+        app.coop_discord_pressed()  # Sign out
+        self.settle(0.5)
+        self.assertEqual(app.coop_next.state, 'disabled')
+        self.assertEqual(app.coop['discord_name'], '')
+
+    def test_a_failed_sign_in_says_why(self):
+        self.global_server()
+        failing = mock.patch.object(launcher.bbport_discord, 'sign_in',
+                                    side_effect=launcher.bbport_discord.SignInError('The server refused the sign-in: try again.'))
+        with failing:
+            self.app.coop_discord_pressed()
+            self.settle(0.5)
+        self.assertIn('refused', self.app.coop_discord_error.cget('text'))
+        self.assertEqual(self.app.coop_next.state, 'disabled')
+
+    def test_the_public_server_not_open_yet(self):
+        with mock.patch.object(bbport_coop, 'GLOBAL_SERVER', ''):
+            self.app.coop_vars['server_type'].set('global')
+            self.settle(0.5)
+            self.app.coop_discord_refresh()
+        self.assertIn('not open yet', self.app.coop_discord_text.cget('text'))
 
     def test_the_upnp_button_asks_the_router_and_shows_the_answer(self):
         """Kaniel 2026-10-21 asked for a UPnP button in the help; Stop server closes what it opened."""
@@ -511,7 +570,7 @@ class CoopSettingsTests(unittest.TestCase):
         self.app.coop_vars['game'].set(str(self.game))
         self.app.coop_vars['host_ip'].set('26.1.2.3')
         self.settle()
-        self.app.coop_go(1)
+        self.app.coop_go(2)
         self.settle()
         box = self.app.coop_enemies
         custom = [v for v, _t in launcher.HARDER_CHOICES].index('custom')
@@ -537,7 +596,7 @@ class CoopSettingsTests(unittest.TestCase):
         self.app.coop_vars['game'].set(str(self.game))
         self.app.coop_vars['host_ip'].set('26.1.2.3')
         self.settle()
-        self.app.coop_go(1)
+        self.app.coop_go(2)
         self.settle()
         box = self.app.coop_enemies
         box.current([v for v, _t in launcher.HARDER_CHOICES].index('custom'))

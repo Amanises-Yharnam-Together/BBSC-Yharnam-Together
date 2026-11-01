@@ -91,6 +91,16 @@ void ConfigManager::Parse(const QString& path) {
         const QString value = str(key, def).trimmed();
         return qEnvironmentVariableIsSet(env) ? qEnvironmentVariable(env).trimmed() : value;
     };
+    m_discord.clientId = shardSetting("DiscordClientId", "DISCORD_CLIENT_ID", "");
+    m_discord.clientSecret = shardSetting("DiscordClientSecret", "DISCORD_CLIENT_SECRET", "");
+    m_discord.apiBase = str("DiscordApiBase", "https://discord.com/api").trimmed();
+    while (m_discord.apiBase.endsWith('/'))
+        m_discord.apiBase.chop(1);
+    if (const QStringList ports = str("DiscordRedirectPorts", "").split(u',', Qt::SkipEmptyParts);
+        !ports.isEmpty())
+        m_discord.redirectPorts = ports;
+    m_discord.signInsPerMinute = std::max(1, str("DiscordSignInsPerMinute", "20").toInt());
+    m_discord.proxied = boolean("DiscordProxied", false);
     m_shard.directoryUrl = shardSetting("DirectoryUrl", "DIRECTORY_URL", "");
     while (m_shard.directoryUrl.endsWith('/'))
         m_shard.directoryUrl.chop(1);

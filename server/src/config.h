@@ -67,6 +67,22 @@ struct ShardConfig {
 
 // Invasions (docs/INVASIONS.md): a solo player invades a team's world that allows it. Off unless
 // the operator turns it on (a hosted server or one at home alike).
+// Global servers: Sign in with Discord (docs/HOSTED_SERVER.md). The client secret comes from the
+// config or the environment (DISCORD_CLIENT_SECRET), never from the repository.
+struct DiscordConfig {
+    QString clientId;
+    QString clientSecret;
+    QString apiBase = QStringLiteral("https://discord.com/api");
+    // The launcher's loopback ports, each registered with Discord as a redirect.
+    QStringList redirectPorts{"47231", "47232", "47233", "47234"};
+    int signInsPerMinute = 20; // an address's
+    // Behind our own TLS proxy: the address is the last X-Forwarded-For's.
+    bool proxied = false;
+    bool Enabled() const {
+        return !clientId.isEmpty() && !clientSecret.isEmpty();
+    }
+};
+
 struct InvasionConfig {
     bool enabled = false; // Invasions
     // InvasionKind / InvasionSign: what the invader's game joins the target's session with
@@ -151,6 +167,11 @@ public:
         return m_hosted;
     }
 
+    DiscordConfig GetDiscord() const {
+        QReadLocker lk(&m_lock);
+        return m_discord;
+    }
+
     BackendConfig GetBackend() const {
         QReadLocker lk(&m_lock);
         return m_backend;
@@ -232,6 +253,7 @@ private:
     BackendConfig m_backend;
     HostedConfig m_hosted;
     ShardConfig m_shard;
+    DiscordConfig m_discord;
     InvasionConfig m_invasions;
     bool m_httpLinkedOnly = false;
     QString m_statsPort = "31320";

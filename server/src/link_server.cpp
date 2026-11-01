@@ -18,6 +18,7 @@
 #include "bbcoop_revision.h"
 #include "config.h"
 #include "coop/build_fingerprint.h"
+#include "discord_accounts.h"
 #include "link_server.h"
 
 namespace {
@@ -26,6 +27,9 @@ namespace {
 const QByteArray DirectoryDown = "the region's directory does not answer: try again in a minute";
 
 // What a refused hello's game hears when its id got no account for a reason the player can act on.
+// A new id on a Global server (bbport_coop.py DISCORD_FIRST).
+const QByteArray DiscordFirst = "discord: sign in with Discord in the launcher first";
+
 QByteArray RefusalOf(DbError why) {
     if (why == DbError::ExistingAddress)
         return "address taken: another account's game has this id's virtual address; the launcher "
@@ -76,6 +80,8 @@ LinkServer::LinkServer(SharedState* shared, const QString& db_path, quint16 tcp_
         bool made = false;
         if (const auto key = ServerLink::KeyFromFile(path, &made, &m_keyError)) {
             m_link.SetStaticKey(*key);
+            if (shared)
+                shared->discordKey = DiscordAccounts::KeyFrom(*key);
             if (made)
                 qInfo().noquote() << "Link: a new key made in" << path
                                   << "(only this user reads it)";
@@ -123,8 +129,10 @@ LinkServer::LinkServer(SharedState* shared, const QString& db_path, quint16 tcp_
     m_clock.start();
     // Hosted (docs/HOSTED_SERVER.md): limits on who comes in, a fixed build, passwords checked on
     // their own thread (a flood of new ids must not stop the games' relay).
-    if (shared && shared->config)
+    if (shared && shared->config) {
         m_hosted = shared->config->GetHosted();
+        m_discordSignIn = m_hosted.enabled && shared->config->GetDiscord().Enabled();
+    }
     if (m_hosted.enabled) {
         Admission::Limits limits;
         limits.links_per_address = m_hosted.linksPerAddress;
@@ -467,10 +475,19 @@ std::optional<ServerLink::SignInVerdict> LinkServer::SignIn(const QByteArray& on
     }
     if (m_signInPending.contains(online_id))
         return std::nullopt;
+    // Global servers: a new account comes from Sign in with Discord (discord_accounts.h), which
+    // any shard can tell from its secret; no other new id, and the work and an address's accounts
+    // are for ids anyone can make.
+    const bool discord_on = m_discordSignIn && !m_shared->discordKey.isEmpty();
+    const bool discord_account =
+        discord_on && DiscordAccounts::Holds(m_shared->discordKey, online_id, secret);
+    if (discord_on && !discord_account && make && !ticketed &&
+        !m_db.GetUserId(QString::fromUtf8(online_id)))
+        return ServerLink::SignInVerdict{false, DiscordFirst};
     // A hello without the work (hub.SetSignupWork) makes no account: one for an id that has one
     // goes on, the others hear how much work, before any password is hashed. A ticket's account is
     // made here as it is elsewhere.
-    if (!paid && make && !ticketed) {
+    if (!paid && make && !ticketed && !discord_account) {
         if (!m_db.GetUserId(QString::fromUtf8(online_id)))
             return ServerLink::SignInVerdict{false, {}, true};
         make = false;
@@ -480,8 +497,9 @@ std::optional<ServerLink::SignInVerdict> LinkServer::SignIn(const QByteArray& on
     if (m_signInPending.size() >= 512 && !ticketed)
         return std::nullopt;
     const quint32 address = m_helloAddress;
-    const bool counted = make && !ticketed && m_guard.MayMakeAccount(address, now);
-    make = ticketed ? make : counted;
+    const bool counted =
+        make && !ticketed && !discord_account && m_guard.MayMakeAccount(address, now);
+    make = ticketed || discord_account ? make : counted;
     if (counted)
         m_guard.Made(address, now); // counted now (checks run at once), given back if none is
     m_signInPending.insert(online_id);

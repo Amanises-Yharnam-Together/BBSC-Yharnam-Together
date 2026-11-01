@@ -53,6 +53,10 @@ DEFAULTS = {'game': '', 'update': '', 'role': 'guest', 'host_ip': '', 'account':
             'machine': '',
             # Kaniel 2026-10-25: the host rules ('1' on, all off by default): the leader's are its team's.
             'rule_rot': '', 'rule_travel': '', 'rule_vote': '', 'rule_scale': '',
+            # Kaniel 2026-11-01: 'local' (a host's own server, by its address: as ever) or 'global' (the
+            # public server, Sign in with Discord: bbport_discord.py); the name Discord gave, while signed in;
+            # another Global server's address than GLOBAL_SERVER (a test server).
+            'server_type': 'local', 'discord_name': '', 'global_server': '',
             # Kaniel 2026-10-28: the boss tempo host rule, '' (Vanilla), 'aggressive' or 'relentless'.
             'rule_tempo': ''}
 BOSS_TEMPOS = ('', 'aggressive', 'relentless')
@@ -295,8 +299,85 @@ def harder_value(hp, damage, poise):
 
 def missing(settings):
     """The answers still to give (or wrong), in the window's order."""
+    if settings.get('server_type') == 'global':
+        needed = [] if settings.get('game') else ['game']
+        return needed + ([] if is_signed_in_global(settings) else ['discord'])
     checks = (('game', lambda v: bool(v)), ('host_ip', valid_host))
     return [key for key, ok in checks if not ok(str(settings.get(key, '')))]
+
+
+# --- a Global server (docs/HOSTED_SERVER.md) ------------------------------------------------------
+# The launcher's first Co-op step: Local (a host's own server by its address, exactly as it was) or Global (the
+# public server). There the account comes from Sign in with Discord: the server's own id, kept like any
+# server's in `server_ids`; the player's id for home servers stays as it was.
+
+# The public server's address, once it runs: https only, its directory or the server itself.
+GLOBAL_SERVER = ''
+GLOBAL_CLOSED_TEXT = 'The public server is not open yet.'
+# A new id on a Global server without a sign-in (the server's link_server.cpp DiscordFirst).
+DISCORD_FIRST = 'discord:'
+
+
+def global_url(settings):
+    """The Global server's address, without the slash at its end; '' when there is none yet."""
+    return (settings.get('global_server') or GLOBAL_SERVER).strip().rstrip('/')
+
+
+def is_signed_in_global(settings):
+    url = global_url(settings)
+    return bool(url and (settings.get('server_ids') or {}).get(server_key(url)))
+
+
+def signed_in_global(settings, account):
+    """A copy of the settings signed in with what Sign in with Discord gave."""
+    settings = dict(settings)
+    settings['server_ids'] = dict(settings.get('server_ids') or {})
+    settings['server_ids'][server_key(global_url(settings))] = [account['id'], account['secret']]
+    settings['discord_name'] = account.get('name', '')
+    return settings
+
+
+def signed_out_global(settings):
+    """A copy of the settings without the Global account."""
+    settings = dict(settings)
+    settings['server_ids'] = {host: pair for host, pair in (settings.get('server_ids') or {}).items()
+                              if host != server_key(global_url(settings))}
+    settings['discord_name'] = ''
+    return settings
+
+
+def played_settings(settings):
+    """The settings PLAY goes by: on Global the server's address; nobody hosts it on their PC."""
+    if settings.get('server_type') != 'global':
+        return settings
+    return dict(settings, host_ip=global_url(settings), role='guest')
+
+
+def global_game_settings(settings, fetch=fetch_json, lookup=socket.gethostbyname):
+    """The settings the game starts with on Global (played_settings): the shard a region's directory
+    names, or a lone server's own address."""
+    url = settings['host_ip']
+    try:
+        listed = fetch(f'{url}/v1/shards')
+    except (OSError, ValueError) as error:
+        raise RuntimeError(REGION_DOWN_TEXT.format(url)) from error
+    if listed is not None:
+        return region_settings(settings, fetch=fetch)
+    account, secret = player_id_for(settings, url)
+    address = resolve_host(urllib.parse.urlsplit(url).hostname or '', lookup=lookup)
+    if not address:
+        raise RuntimeError(UNKNOWN_SERVER_TEXT.format(url))
+    return dict(settings, host_ip=address, server=url, account=account, password=secret,
+                link_key=link_key_for(settings, url))
+
+
+def needs_discord(text):
+    """Whether the game's log has the server asking for a Sign in with Discord."""
+    for line in text.splitlines():
+        _before, found, reason = line.partition(REFUSED_LINE)
+        if found and reason.lstrip().startswith(DISCORD_FIRST):
+            return True
+    return False
 
 
 def with_player_id(settings):

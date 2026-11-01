@@ -63,6 +63,8 @@ struct SharedState {
 
     // The players of each address's signed-in links, for the HTTP ports (http_gate.h).
     HttpGate::Gate httpGate;
+    // Global servers (discord_accounts.h): made from the link key; empty without one.
+    QByteArray discordKey;
 
     // Live usage stats for the read-only stats HTTP server
     mutable QReadWriteLock usageLock;

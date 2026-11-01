@@ -209,6 +209,7 @@ import bbport_lang  # noqa: E402
 import bbport_controls  # noqa: E402
 import bbport_steam  # noqa: E402
 import bbport_coop  # noqa: E402
+import bbport_discord  # noqa: E402
 import bbport_upnp  # noqa: E402
 import bbport_support  # noqa: E402
 
@@ -3932,12 +3933,12 @@ class Launcher:
             self.coop_vars[key] = v
             return v
 
-        self.flow(card, _('Set co-op up once, in three steps. Everyone uses this same release; the others see '
+        self.flow(card, _('Set co-op up once, in four steps. Everyone uses this same release; the others see '
                           'your character\'s name.',
-                          'Настройте кооператив один раз, в три шага. Все используют один релиз; другие видят '
+                          'Настройте кооператив один раз, в четыре шага. Все используют один релиз; другие видят '
                           'имя вашего персонажа.'), 'body', MUTED).grid(
             row=1, column=0, columnspan=2, sticky='we', pady=(px(6), px(4)))
-        self.coop_step_names = [_('Game and host', 'Игра и хост'), _('Enemies', 'Враги'),
+        self.coop_step_names = [_('Server', 'Сервер'), _('Game and host', 'Игра и хост'), _('Enemies', 'Враги'),
                                 _('Travel', 'Путешествия')]
         bar = tk.Frame(card, bg=CARD)
         bar.grid(row=2, column=0, columnspan=2, sticky='we', pady=(px(14), px(2)))
@@ -3955,8 +3956,11 @@ class Launcher:
             step.columnconfigure(1, weight=1, uniform='coop', minsize=0)
         self.coop_steps, self.coop_step = steps, 0
 
-        # Step 1: the game and the host.
-        page = steps[0]
+        # Step 1 (Kaniel 2026-11-01): which kind of server.
+        self.build_coop_server(steps[0], var)
+
+        # Step 2: the game and the host.
+        page = steps[1]
         cell = self.cell(page, 0, 0, _('Your Bloodborne folder (version 1.09, or with the 1.09 update next to it)',
                                        'Папка Bloodborne (версия 1.09 или с обновлением 1.09 рядом)'), span=2)
         row = tk.Frame(cell, bg=CARD)
@@ -3970,8 +3974,8 @@ class Launcher:
         self.coop_game_line.frame.pack(fill='x', pady=(px(6), 0))
         # No Player/Host switch (Kaniel 2026-10-16): the host types their own address and starts the server
         # with Start server (Kaniel 2026-10-21: PLAY no longer starts it).
-        cell = self.cell(page, 1, 0, _("Host's IP address (VPN or public; the host types their own)",
-                                       'IP хоста (VPN или внешний; хост вводит свой)'), span=2)
+        cell = self.coop_host_cell = self.cell(page, 1, 0, _("Host's IP address (VPN or public; the host types their own)",
+                                                             'IP хоста (VPN или внешний; хост вводит свой)'), span=2)
         ttk.Entry(cell, textvariable=var('host_ip')).pack(fill='x')
         # A public server (docs/HOSTED_SERVER.md) goes in the same field, by its name or address.
         self.flow(cell, _(bbport_coop.PUBLIC_SERVER_HELP), 'small', MUTED).pack(fill='x', pady=(px(4), 0))
@@ -3988,8 +3992,8 @@ class Launcher:
         self.button(row, _('Restore saves…', 'Восстановить сохранения…'),
                     self.open_save_backups).pack(side='left', padx=(px(8), 0))
 
-        # Step 2: how the enemies get harder (the same for every player), and Rot.
-        page = steps[1]
+        # Step 3: how the enemies get harder (the same for every player), and Rot.
+        page = steps[2]
         self.label(page, _('How do the enemies get harder? The same for every player.',
                            'Как усиливаются враги? У всех игроков одинаково.'), 'small', MUTED).grid(
             row=0, column=0, columnspan=2, sticky='w', pady=(px(10), px(4)))
@@ -4136,6 +4140,78 @@ class Launcher:
         self.coop_go(0)
         if not self.coop_game_folder():
             self.coop_search(None, quiet=True)
+
+    def build_coop_server(self, page, var):
+        """The first step: Local (a host's own server, as ever) or Global (the public server: Sign in with
+        Discord, never a login or a password)."""
+        tk, px = self.tk, self.px
+        self.coop_server_type = var('server_type', 'global' if self.coop.get('server_type') == 'global' else 'local')
+        self.coop_option(page, self.coop_server_type, 'local',
+                         _('Local: your own or a friend\'s server', 'Локальный: свой сервер или сервер друга'),
+                         _('Someone starts the server on their PC and the others join by its address.',
+                           'Кто-то запускает сервер на своём ПК, остальные подключаются по его адресу.')).grid(
+            row=0, column=0, columnspan=2, sticky='we', pady=(px(6), 0))
+        chosen = self.coop_option(page, self.coop_server_type, 'global',
+                                  _('Global: the public server', 'Глобальный: публичный сервер'),
+                                  _('Hunters from everywhere, quick match, your account on any PC.',
+                                    'Охотники со всего мира, быстрый подбор, ваш аккаунт на любом ПК.'))
+        chosen.grid(row=1, column=0, columnspan=2, sticky='we', pady=(px(8), 0))
+        panel = tk.Frame(chosen.extra, bg=CARD)
+        panel.pack(fill='x', pady=(px(8), 0))
+        self.coop_discord_text = self.label(panel, '', 'body', TEXT, justify='left', anchor='w')
+        self.coop_discord_text.pack(side='left', fill='x', expand=True)
+        self.coop_discord_button = self.button(panel, _('Sign in with Discord', 'Войти через Discord'),
+                                               self.coop_discord_pressed, 'primary')
+        self.coop_discord_button.pack(side='right')
+        self.coop_discord_error = self.label(chosen.extra, '', 'small', CAUTION, justify='left', anchor='w')
+        self.coop_discord_error.pack(fill='x', pady=(px(4), 0))
+        self.coop_discord_stop = None
+        self.coop_discord_refresh()
+
+    def coop_discord_refresh(self):
+        name = self.coop.get('discord_name', '')
+        if not bbport_coop.global_url(self.coop):
+            self.coop_discord_text.configure(text=_(bbport_coop.GLOBAL_CLOSED_TEXT))
+            self.coop_discord_button.configure(state='disabled')
+        elif self.coop_discord_stop:
+            self.coop_discord_text.configure(text=_('Waiting for your browser…', 'Ждём браузер…'))
+            self.coop_discord_button.configure(text=_('Cancel', 'Отмена'), state='normal')
+        elif bbport_coop.is_signed_in_global(self.coop):
+            self.coop_discord_text.configure(text=_('Signed in as {}', 'Вход выполнен: {}').format(name or 'Discord'))
+            self.coop_discord_button.configure(text=_('Sign out', 'Выйти'), state='normal')
+        else:
+            self.coop_discord_text.configure(text=_('Your Discord account is your hunter\'s account here.',
+                                                    'Ваш аккаунт Discord здесь и есть аккаунт охотника.'))
+            self.coop_discord_button.configure(text=_('Sign in with Discord', 'Войти через Discord'), state='normal')
+
+    def coop_discord_pressed(self):
+        self.coop_discord_error.configure(text='')
+        if self.coop_discord_stop:
+            self.coop_discord_stop.set()
+        elif bbport_coop.is_signed_in_global(self.coop):
+            self.coop.update(bbport_coop.signed_out_global(self.coop))
+            self.coop_discord_done()
+        else:
+            self.coop_discord_stop = bbport_discord.sign_in_thread(
+                bbport_coop.global_url(self.coop),
+                lambda account, failed: self.ui_calls.put(lambda: self.coop_discord_answered(account, failed)))
+            self.coop_discord_refresh()
+
+    def coop_discord_answered(self, account, failed):
+        self.coop_discord_stop = None
+        if account:
+            self.coop.update(bbport_coop.signed_in_global(self.coop, account))
+        else:
+            self.coop_discord_error.configure(text=_(failed))
+        self.coop_discord_done()
+
+    def coop_discord_done(self):
+        try:
+            bbport_coop.save_settings(PORT_DIR, self.coop)
+        except OSError:
+            pass
+        self.coop_discord_refresh()
+        self.coop_changed_soon()
 
     def coop_rule_var(self, key):
         """A host rule's '1' or '' (Kaniel 2026-10-25: each off by default); the team's leader's are the team's
@@ -4425,13 +4501,16 @@ class Launcher:
     def coop_missing_by_step(self):
         """(step, what) of each thing the co-op settings lack: the step of the setup that asks for it."""
         missing = []
+        on_global = self.coop.get('server_type') == 'global'
+        if on_global and not bbport_coop.is_signed_in_global(self.coop):
+            missing.append((0, _('Sign in with Discord', 'Войти через Discord')))
         if not self.coop_game_folder():
-            missing.append((0, _('the game folder', 'папка игры')))
-        if not bbport_coop.valid_host(self.coop.get('host_ip', '')):
-            missing.append((0, _("the host's IP", 'IP хоста')))
+            missing.append((1, _('the game folder', 'папка игры')))
+        if not on_global and not bbport_coop.valid_host(self.coop.get('host_ip', '')):
+            missing.append((1, _("the host's IP", 'IP хоста')))
         # Auto scaling needs no level of its own (the game takes its own steps with the team's size).
         if self.coop.get('rule_scale') != '1' and 'harder' not in getattr(self, 'coop_picked', {'harder'}):
-            missing.append((1, _('the enemies', 'враги')))
+            missing.append((2, _('the enemies', 'враги')))
         return missing
 
     def open_coop(self, required=False):
@@ -4491,7 +4570,13 @@ class Launcher:
             bbport_coop.save_settings(PORT_DIR, self.coop)
         except OSError:
             pass
-        self.coop['role'] = 'host' if bbport_coop.is_this_pc(self.coop.get('host_ip', '')) else 'guest'
+        on_global = self.coop.get('server_type') == 'global'
+        self.coop['role'] = 'host' if not on_global and bbport_coop.is_this_pc(self.coop.get('host_ip', '')) else 'guest'
+        # The host's address is Local's; Global's comes with the launcher.
+        if on_global:
+            self.coop_host_cell.grid_remove()
+        else:
+            self.coop_host_cell.grid()
         if not self.coop_searching:
             self.coop_show_game()
         self.coop_show_step()
@@ -4817,7 +4902,8 @@ class Launcher:
         self.coop_id_tries = 0  # new ids made after the server refused this one's address (coop_watch_line)
         self.play_button.configure(state='disabled')
         self.set_running(False, preparing=True)
-        threading.Thread(target=self.coop_prepare_and_play, args=(dict(self.coop),), daemon=True).start()
+        threading.Thread(target=self.coop_prepare_and_play,
+                         args=(dict(bbport_coop.played_settings(self.coop)),), daemon=True).start()
 
     def coop_prepare_and_play(self, settings):
         """Off the window's thread: the firewall and the game folder; then the game starts on the window's
@@ -4844,7 +4930,9 @@ class Launcher:
             # as to a host's IP.
             # A region's directory (https://...) names the shard: the least loaded, or the player's own
             # (docs/SCALING.md); the shards send the game on by themselves later.
-            if bbport_coop.region_url(settings['host_ip']):
+            if settings.get('server_type') == 'global':
+                settings = bbport_coop.global_game_settings(settings)
+            elif bbport_coop.region_url(settings['host_ip']):
                 settings = bbport_coop.region_settings(settings)
             else:
                 address = bbport_coop.resolve_host(settings['host_ip'])
@@ -4915,6 +5003,14 @@ class Launcher:
         if bbport_coop.other_key(line):
             self.status.configure(text=_(bbport_coop.OTHER_KEY_TEXT), fg=BAD)
             return
+        # Global: no new id without a sign-in, and no other id to try.
+        if bbport_coop.needs_discord(line):
+            self.status.configure(text=_('Sign in with Discord again (Co-op settings, the first step).',
+                                         'Войдите через Discord снова (настройки кооператива, первый шаг).'), fg=BAD)
+            self.coop_new_id = 'give_up_account'
+            if self.job:
+                self.job.terminate()
+            return
         tries = getattr(self, 'coop_id_tries', 0)
         what = bbport_coop.id_retry(line, tries)
         if what is None:
@@ -4943,6 +5039,8 @@ class Launcher:
             settings, root = playing
             account, secret = bbport_coop.player_id_for(self.coop, settings['server'])
             self.coop_start_game(dict(settings, account=account, password=secret), root, None, '')
+        elif what == 'give_up_account':
+            pass  # the status line already says why (coop_watch_line)
         elif what == 'give_up':
             self.status.configure(text=_(bbport_coop.NEW_ID_FAILED_TEXT).format(getattr(self, 'coop_id_tries', 0)),
                                   fg=BAD)

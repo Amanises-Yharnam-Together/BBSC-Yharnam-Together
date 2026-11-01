@@ -111,6 +111,54 @@ hunt too, as by its code). Players in no team see the listed teams with room (12
 Invitations and open teams; each shard lists its own. `TeamRequest` actions 19-27, `Team.join`
 12, `LobbyState` fields 7-14.
 
+## Sign in with Discord (Global servers)
+
+The launcher's first Co-op step asks which server: **Local** (a host's own server, by its address:
+the PC's id and per-server ids, exactly as before) or **Global** (the public server). On Global the
+account comes from Discord. There is no login or password anywhere.
+
+1. The launcher asks `GET /bb/discord/config` over HTTPS (plain `http://` is refused before anything
+   is sent), opens Discord's page in the player's browser (OAuth2 authorization code with PKCE S256,
+   scope `identify`, `state` checked) and catches the answer on a fixed loopback address,
+   `http://127.0.0.1:<port>/discord`, the first free of 47231-47234.
+2. It sends `{code, code_verifier, redirect_uri}` to `POST /bb/discord/sign-in`. The server trades
+   the code with Discord (`DiscordClientId`, `DiscordClientSecret`), reads `/users/@me`, and answers
+   `{id, secret, name}`. Discord's token is used for that one request and kept nowhere; codes,
+   verifiers, tokens and the client secret are never logged.
+3. The launcher keeps the id and secret like any server's (`server_ids` in coop.json). Sign out
+   forgets them.
+
+**One Discord user is one account, on every shard and PC** (`src/discord_accounts.h`). Each shard has
+its own SQLite accounts, so a fresh random secret made on one shard would be stale on the others.
+The id (`d` + 14 hex) and the secret are instead HMAC-SHA256 of the Discord user id under a key
+derived from the link key, which every shard of a region holds. Any shard can answer a sign-in, and
+any shard can tell a sign-in's secret at a hello with no store shared between them. The server keeps
+only the secret's password hash, as for any account. If two ids share a virtual address, the next
+salt gives the player a free one.
+
+On a server with Discord set up, an id with no account is refused at the hello
+(`discord: sign in with Discord in the launcher first`), so nobody makes accounts around the sign-in.
+A hello with a sign-in's secret pays no work and no address's account limit: Discord stands for it.
+Accounts that exist already sign in as before.
+
+| Setting | Default | |
+| --- | --- | --- |
+| `DiscordClientId` / `DISCORD_CLIENT_ID` | | the Discord application's id; with the secret, on a `Hosted` server, turns this on |
+| `DiscordClientSecret` / `DISCORD_CLIENT_SECRET` | | keep it in the server's environment or config on the server itself, never in the repository |
+| `DiscordApiBase` | `https://discord.com/api` | a fake Discord for tests (`tests/fake_discord.py`) |
+| `DiscordRedirectPorts` | `47231,47232,47233,47234` | each must be a redirect of the Discord application |
+| `DiscordSignInsPerMinute` | `20` | an address's sign-ins |
+| `DiscordProxied` | `false` | behind our own TLS proxy: the limit counts the last `X-Forwarded-For` |
+
+Setting up the Discord application (discord.com/developers): make one application, add
+`http://127.0.0.1:47231/discord` through `.../47234/discord` under OAuth2 Redirects, and give the
+server its client id and client secret. Only `identify` is asked for.
+
+The endpoint wants TLS in front (Caddy to `WebApiPort`, `DiscordProxied=true`). In a region, send
+`/bb/discord/*` on the region's name to any shard's WebAPI: any of them answers, and the launcher
+keeps `/v1/*` going to the directory. The launcher's address for the public server is
+`GLOBAL_SERVER` in `bbport_coop.py` (`coop.json` `global_server` overrides it for tests).
+
 ## The link's handshake and encryption (link version 4)
 
 On for everyone, both sides (`coop/link_auth.h` and `coop/link_crypto.cpp`, shared by shadNet, the
