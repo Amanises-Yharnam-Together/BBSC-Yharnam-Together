@@ -2771,6 +2771,16 @@ bool IsTeamTitleVerb(std::string_view verb) {
     return verb.starts_with("team-");
 }
 
+// The rig's team-code-share and team-join-code: the leader's code, for the other roles' games
+// (beside the role folders; a typed code never goes in the log).
+std::optional<std::filesystem::path> RigTeamCodeFile() {
+    const char* script = std::getenv("SHADPS4_BLOODBORNE_AUTOPLAY");
+    if (script == nullptr || script[0] == '\0') {
+        return std::nullopt;
+    }
+    return std::filesystem::path{script}.parent_path().parent_path() / "rig-team-code.txt";
+}
+
 bool RunTeamTitleVerb(const AutoplayCommand& command, bool begun, double elapsed,
                       std::string& failure) {
     constexpr double TimeoutSeconds = 180.0;
@@ -2854,6 +2864,38 @@ bool RunTeamTitleVerb(const AutoplayCommand& command, bool begun, double elapsed
                                                     : TeamGate::Choice::Alone);
         }
         done = true;
+    } else if (command.verb == "team-open" && command.args.size() == 1) {
+        // team-open <0|1|2>: the leader says how the team is joined.
+        const auto mode = static_cast<bbcoop::Team::Join>(std::atoi(command.args[0].c_str()));
+        done = lobby && lobby->has_team() && lobby->team().join() == mode;
+        if (lobby && lobby->has_team() && !done && (!begun || elapsed > 5.0)) {
+            bbcoop::Envelope envelope;
+            envelope.mutable_team_request()->set_action(bbcoop::TeamRequest::OPEN);
+            envelope.mutable_team_request()->set_join(mode);
+            QueueLobby(std::move(envelope));
+        }
+    } else if (command.verb == "team-join-open") {
+        // The first open team listed, as its row's Join.
+        done = lobby && lobby->has_team();
+        if (lobby && !done && lobby->open_teams_size() > 0 && (!begun || elapsed > 5.0)) {
+            request(bbcoop::TeamRequest::ASK_JOIN, {}, lobby->open_teams(0).team());
+        }
+    } else if (command.verb == "team-code-share") {
+        done = lobby && lobby->has_team() && !lobby->team().code().empty();
+        if (const auto file = RigTeamCodeFile(); done && file) {
+            std::ofstream{*file} << lobby->team().code();
+        }
+    } else if (command.verb == "team-join-code") {
+        done = lobby && lobby->has_team();
+        if (const auto file = RigTeamCodeFile();
+            lobby && !done && file && (!begun || elapsed > 5.0)) {
+            std::string code;
+            std::ifstream{*file} >> code;
+            bbcoop::Envelope envelope;
+            envelope.mutable_team_request()->set_action(bbcoop::TeamRequest::JOIN_CODE);
+            envelope.mutable_team_request()->set_code(code);
+            QueueLobby(std::move(envelope));
+        }
     } else if (command.verb == "team-leave") {
         done = lobby && !lobby->has_team();
         if (lobby && lobby->has_team() && (!begun || elapsed > 5.0)) {

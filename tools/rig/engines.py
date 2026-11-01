@@ -20,10 +20,12 @@ SHADNET_PORT = 32313
 WEBAPI_PORT = SHADNET_PORT + 2
 BACKEND_PORT = 20453
 GAME_SERVER = "https://ss4.scej-network.jp:20443"
-# The rig's accounts on its shadNet (rig-setup.ps1, run_scenario.py --add-guest2/--add-guest3).
+# The rig's accounts on its shadNet (rig-setup.ps1, run_scenario.py --add-guest2/3/4).
 ACCOUNTS = {"host": "rig_host", "guest": "rig_guest", "guest2": "rig_guest2",
-            "guest3": "rig_guest3"}
+            "guest3": "rig_guest3", "guest4": "rig_guest4"}
 PASSWORD = "rig"
+# A role's (id, secret) instead, when a server gave it one (a Global server's sign-in).
+ACCOUNT_OVERRIDES: dict[str, tuple[str, str]] = {}
 # Every build's game process, the rig's own and anyone else's (a player's copy).
 GAME_PROCESSES = ("shadPS4.exe", "bb-probe.exe")
 # A lane (run_scenario.py --lanes): one of several rig runs side by side, each with its own
@@ -190,8 +192,8 @@ class Port(Emulator):
             # Phase 11, one port: shadNet's link UDP port (the TCP port's + 1) signs the game in.
             "BB_SHADNET_SERVER": f"127.0.0.1:{SHADNET_PORT + 1}",
             "BB_SHADNET_WEBAPI": f"http://127.0.0.1:{WEBAPI_PORT}",
-            "BB_SHADNET_NPID": ACCOUNTS[role],
-            "BB_SHADNET_PASSWORD": PASSWORD,
+            "BB_SHADNET_NPID": ACCOUNT_OVERRIDES.get(role, (ACCOUNTS[role],))[0],
+            "BB_SHADNET_PASSWORD": ACCOUNT_OVERRIDES.get(role, ("", PASSWORD))[1],
             "BB_USER_NAME": ACCOUNTS[role],
             "BB_SHOT_TRIGGER": str(self.shot_request(role)),
             # The game's own button icons (run.py would draw them for a start without the launcher);

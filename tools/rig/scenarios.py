@@ -2587,6 +2587,71 @@ SCENARIOS = {
         "allow": CRASH_CLEANUP,
         "timeout": 1200,
     },
+    # Kaniel 2026-11-01, the ways into a team a player has: by the leader's code, and an open team
+    # from the list (invites are every other scenario's).
+    "join-by-code": {
+        "about": "a guest joins by the leader's team code, typed as the team screen takes it",
+        "roles": {
+            "host": ["team-create", "team-code-share", "sync code-shared", "team-wait 2",
+                     "team-start", START, "wait-session 2 300", "wait 10", "expect-session 2",
+                     "sync joined", "snapshot"],
+            "guest": ["sync code-shared", "team-join-code", "team-ready", START,
+                      "wait-session 2 300", "wait 10", "expect-session 2", "sync joined",
+                      "snapshot"],
+        },
+        "syncs": {name: {"chapter": "join-by-code", "roles": ["host", "guest"]}
+                  for name in ("code-shared", "joined")},
+        "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
+        "timeout": 420,
+    },
+    "join-open-team": {
+        "about": "a guest joins an open team from the list at once, no invite",
+        "roles": {
+            "host": ["team-create", "team-open 2", "sync opened", "team-wait 2", "team-start",
+                     START, "wait-session 2 300", "wait 10", "expect-session 2", "sync joined",
+                     "snapshot"],
+            "guest": ["sync opened", "team-join-open", "team-ready", START, "wait-session 2 300",
+                      "wait 10", "expect-session 2", "sync joined", "snapshot"],
+        },
+        "syncs": {name: {"chapter": "join-open-team", "roles": ["host", "guest"]}
+                  for name in ("opened", "joined")},
+        "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
+        "timeout": 420,
+    },
+    # Kaniel 2026-11-01, the public server: games signed in with Discord through a TLS proxy and a
+    # fake Discord, on a hosted server. The first quick match opens a team, the next joins it.
+    "global-quick-match": {
+        "about": "Hosted server, Sign in with Discord, quick match: the first opens a team, the "
+                 "second joins it, they play one session",
+        "global": True,
+        "roles": {
+            "host": ["team-quick", "sync quick-open", "team-wait 2", "team-start", START,
+                     "wait-session 2 300", "wait 10", "expect-session 2", "sync played", "snapshot"],
+            "guest": ["sync quick-open", "team-quick", "team-ready", START, "wait-session 2 300",
+                      "wait 10", "expect-session 2", "sync played", "snapshot"],
+        },
+        "syncs": {name: {"chapter": "global-quick-match", "roles": ["host", "guest"]}
+                  for name in ("quick-open", "played")},
+        "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
+        "timeout": 420,
+    },
+    # Amanises 2026-10-29, teams of five: the fourth guest takes player slot 4. All five in one
+    # session, each one's portrait and vitals on the others' boards; a trip to the Dream and back
+    # re-forms the session with five.
+    "five-hunters": {
+        "about": "a team of five in one session (player slots 7, 6, 5, 4), through a lamp trip",
+        "roles": {role: [START, "wait-session 5 500", "wait 20", "expect-session 5",
+                         "sync five-together", f"travel {HUNTERS_DREAM}", "wait 25",
+                         f"travel {CENTRAL_YHARNAM_LAMP}", "wait-session 5 300", "wait 15",
+                         "expect-session 5", "snapshot", "sync five-done"]
+                  for role in ("host", "guest", "guest2", "guest3", "guest4")},
+        "syncs": {name: {"chapter": "five-hunters",
+                         "roles": ["host", "guest", "guest2", "guest3", "guest4"]}
+                  for name in ("five-together", "five-done")},
+        "forbid": {role: SESSION_HOLDS for role in ("host", "guest", "guest2", "guest3", "guest4")},
+        "allow": CRASH_CLEANUP,
+        "timeout": 1200,
+    },
     # The same with three games (one each), for a PC with less room.
     "teams-apart3": {
         "about": "three one-player teams on one server in three worlds: each one's flags reach "

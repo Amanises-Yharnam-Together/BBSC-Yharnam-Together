@@ -19,6 +19,7 @@ stay in rig/runs/<when>/<scenario>/ (the last RUNS_KEPT batches).
   py -3.12 tools/rig/run_scenario.py --save-baseline
   py -3.12 tools/rig/run_scenario.py --add-guest2   (a third game for parties of three)
   py -3.12 tools/rig/run_scenario.py --add-guest3   (a fourth game: teams apart, invasions)
+  py -3.12 tools/rig/run_scenario.py --add-guest4   (a fifth game: a full team)
   py -3.12 tools/rig/run_scenario.py --boot-check host [--seconds 40]   (tools/smoke-boot.ps1)
   py -3.12 tools/rig/run_scenario.py --engine port --headless --lane 2 --boot-check host \
       --cache-twice <a cache a game with a GPU wrote>   (one pipeline cached twice: skipped)
@@ -50,6 +51,7 @@ Lanes are shared between threads (lanes.py): a run takes its lane (rig/lanes/<n>
 whose games outlive their run and cannot be stopped is marked blocked until they are gone.
 """
 import argparse
+import atexit
 import math
 import os
 import pathlib
@@ -91,6 +93,8 @@ ROLES = {
     "guest2": {"port": 51602, "role": "guest"},
     # A fourth game (Kaniel 2026-10-31: several teams on one server, an invader beside a team).
     "guest3": {"port": 51603, "role": "guest"},
+    # A fifth (Amanises 2026-10-29: teams of five).
+    "guest4": {"port": 51604, "role": "guest"},
 }
 
 # The build the games run: the emulator unless --engine says otherwise.
@@ -205,7 +209,9 @@ def with_matching_udp_port(config: str, port: int) -> str:
 
 # shadnet.cfg's keys a scenario may set for its run ("server"), and what every other run has, so
 # one run's never stays for the next (Invasions: the server's kill switch, docs/INVASIONS.md).
-SERVER_DEFAULTS = {"Invasions": "false"}
+SERVER_DEFAULTS = {"Invasions": "false", "Hosted": "false", "DiscordClientId": "",
+                   "DiscordClientSecret": "", "DiscordApiBase": "https://discord.com/api",
+                   "DiscordProxied": "false"}
 # The running scenario's own ("server"), set by run() before its servers start.
 SERVER_SETTINGS: dict[str, str] = {}
 
@@ -823,7 +829,7 @@ def setup_port(emulator: engines.Emulator, port: engines.Port) -> list[str]:
 
 
 def add_guest(name: str):
-    """rig/<name> (guest2, guest3): the guest's folder (its save, settings, mods) with its own
+    """rig/<name> (guest2, guest3, guest4): the guest's folder (its save, settings, mods) with its own
     account rig_<name>, registered on the rig's shadNet."""
     account = engines.ACCOUNTS[name]
     source = user_dir("guest")
@@ -1329,9 +1335,22 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
     stop_servers()
     global SERVER_SETTINGS
     SERVER_SETTINGS = server_settings(scenario)
+    # Kaniel 2026-11-01: "global": a hosted server behind TLS with a fake Discord; each game signs
+    # in as the launcher does (global_server.py).
+    engines.ACCOUNT_OVERRIDES.clear()
+    world_server = None
+    if scenario.get("global"):
+        import global_server
+        run_dir.mkdir(parents=True, exist_ok=True)
+        world_server = global_server.GlobalServer(WEBAPI_PORT, run_dir)
+        atexit.register(world_server.stop)
+        SERVER_SETTINGS = {**SERVER_SETTINGS, **world_server.settings()}
     # Every run starts with no party worlds on the server (shadNet keeps them on disk: phase 3).
     shutil.rmtree(lane_dir() / "server" / "bloodborne_worlds", ignore_errors=True)
     start_servers(run_dir)
+    if world_server:
+        world_server.start()
+        engines.ACCOUNT_OVERRIDES.update(world_server.sign_in_roles(list(scenario["roles"])))
     if not server_is_current(run_dir):
         print("  The rig's shadNet is too old (it keeps no party worlds): copy "
               rf"{BB_ROOT}\out\server\shadnet.exe into {RIG}\server.")
@@ -1874,6 +1893,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
                         help="make the third game's rig folder and account")
     parser.add_argument("--add-guest3", action="store_true",
                         help="make the fourth game's rig folder and account")
+    parser.add_argument("--add-guest4", action="store_true",
+                        help="make the fifth game's rig folder and account")
     parser.add_argument("--engine", choices=sorted(engines.ENGINES), default="emulator",
                         help="the build the games run (default: the emulator)")
     parser.add_argument("--setup", action="store_true",
@@ -1944,8 +1965,9 @@ def act(args: argparse.Namespace) -> int:
             print(f"No such scenario: {args.play} (--list shows them)")
             return 2
         return play(args.play, title=args.title)
-    if args.add_guest2 or args.add_guest3:
-        for name, wanted in (("guest2", args.add_guest2), ("guest3", args.add_guest3)):
+    if args.add_guest2 or args.add_guest3 or args.add_guest4:
+        for name, wanted in (("guest2", args.add_guest2), ("guest3", args.add_guest3),
+                             ("guest4", args.add_guest4)):
             if wanted:
                 add_guest(name)
         return 0

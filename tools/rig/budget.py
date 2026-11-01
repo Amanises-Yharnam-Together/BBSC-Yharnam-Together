@@ -102,6 +102,7 @@ LONG = {
     "teams-apart3": "Kaniel 2026-10-31: three games in three worlds, two trips each",
     "team-switch": "Kaniel 2026-10-31: three teams, a team change and a trip",
     "invade-solo": "Kaniel 2026-10-31: an invader's search (up to 5 min), its 10 s notice and its trip home",
+    "five-hunters": "Amanises 2026-10-29: five games, a trip each",
     "solo-death-tick": "70 s and 100 s waits: the co-op time lines come every 30 s",
     "guest-follower-stutter": "three minutes as the enemy follower: the co-op time lines come every 30 s",
     "guest-follower-stutter-harder": "three minutes as the enemy follower: the co-op time lines come every 30 s",
