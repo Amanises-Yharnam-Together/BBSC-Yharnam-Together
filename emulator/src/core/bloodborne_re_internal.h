@@ -658,8 +658,10 @@ void RecreateRemotePlayers(std::span<const u64> only, bool build_missing);
 std::optional<u32> HostMapFromItsPost();
 std::vector<u64> OtherSessionMembers();
 
+// `fresh`: past a miss's wait (SessionNameCache::Lookup), for a re-create about to run.
 std::optional<std::string> SessionMemberBoardName(u64 member,
-                                                  const std::vector<std::string>& online_ids);
+                                                  const std::vector<std::string>& online_ids,
+                                                  bool fresh = false);
 extern bool restore_search_pending;
 void RestoreSearchAfterTrip(bool in_session);
 void PlayGuestAsHost(bool in_session);

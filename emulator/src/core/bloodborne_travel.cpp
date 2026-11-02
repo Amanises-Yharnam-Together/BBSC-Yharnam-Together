@@ -2056,7 +2056,17 @@ void TickPlayersOnThisMap() {
     for (const u64 member : members) {
         names.push_back(SessionMemberBoardName(member, online_ids));
     }
-    const RecreatePlan plan = PlanRecreate(names, board, self, map, recreated_since_trip);
+    RecreatePlan plan = PlanRecreate(names, board, self, map, recreated_since_trip);
+    // A member about to be re-created with no name yet is looked for once more past its miss's
+    // wait: one miss just after the trip had it listed as "?" (rig team-join3 2026-11-02).
+    if (std::ranges::any_of(plan.now, [&](size_t index) { return !names[index]; })) {
+        for (const size_t index : plan.now) {
+            if (!names[index]) {
+                names[index] = SessionMemberBoardName(members[index], online_ids, true);
+            }
+        }
+        plan = PlanRecreate(names, board, self, map, recreated_since_trip);
+    }
     if (!plan.now.empty()) {
         std::vector<u64> now;
         std::string who;
