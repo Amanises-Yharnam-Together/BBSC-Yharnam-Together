@@ -953,6 +953,7 @@ bool TeamLobbySaysPlaying();
 // Kaniel 2026-10-25: this game took its team's host role in play (the host left: the room came
 // here, or the lobby made it the leader); until it leaves the team or the world.
 bool TeamHostTookOver();
+s64 LastPartyWipeMs(); // SteadyMilliseconds of this game's last party wipe, 0 before any
 // Kaniel 2026-10-16: a save loads from the title: what the last one's story removed is forgotten
 // (HoldStoryRemovals).
 void ForgetStoryRemovals();

@@ -559,6 +559,13 @@ TEST(BloodborneThreePlayers, AGuestStillJoiningAtATripIsRebuiltAsAFreshJoin) {
     // data marked synced: a guest with no data behind it, a "Beckoner" name plate and no body.
     const SavedJoinTask joined{RemoteGuestTask, 0xB0, 1, 0xC, InSessionStep};
     const SavedJoinTask joining{RemoteGuestTask, 0xB0, 0, 0x4, 3};
+    EXPECT_FALSE(RebuiltTaskWaits(nullptr, RemoteHostTask));
+    EXPECT_FALSE(RebuiltTaskWaits(&joined, RemoteHostTask));
+    EXPECT_TRUE(RebuiltTaskWaits(&joining, RemoteHostTask)) << "a member's data has not come";
+    EXPECT_TRUE(RebuiltTaskWaits(&joining, RemoteGuestTask));
+    // Rig party-death 2026-11-02: this game's own task saved mid-join waited for itself.
+    EXPECT_FALSE(RebuiltTaskWaits(&joining, LocalTaskKind(false)));
+    EXPECT_FALSE(RebuiltTaskWaits(&joining, LocalTaskKind(true)));
     EXPECT_TRUE(RebuildsFromSave(joined)) << "its data is there: straight to its character";
     EXPECT_FALSE(RebuildsFromSave(joining)) << "the game's own join, from the start";
     EXPECT_TRUE(RebuildsFromSave(SavedJoinTask{RemoteGuestTask, 0xB0, 1, 0x5, 5}))

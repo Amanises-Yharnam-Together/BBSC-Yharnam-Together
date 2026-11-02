@@ -270,6 +270,12 @@ const std::vector<CodePatch>& JoinAnywherePatches();
 // warps the player, e.g. Gascoigne's 24000020) calls StopRequest (returning to 0x0193C65C) and
 // LeaveSession for a member of a session. In a party it is a trip like a lamp's.
 bool IsWorldReloadStopRequest(u64 caller_offset);
+// A StopRequest and LeaveSession the game makes on its own about 15 s after a party wipe, past the
+// wipe's trip, on a host that had joined the team's new host (rig party-death 2026-11-02): it left
+// and joined again and both players' copies went with it. Kept for KeepAfterWipeMs after a wipe in
+// a party session; the game's own leaving at any other time still goes.
+constexpr s64 KeepAfterWipeMs = 45'000;
+bool KeepsSessionAfterWipe(u64 caller_offset, bool in_party_session, s64 since_wipe_ms);
 // The same load's LeaveSession (0x0193C689, returning to 0x0193C68E): a guest's game calls only
 // this one at the Cathedral Ward border (rig 2026-10-13).
 bool IsWorldReloadLeaveSession(u64 caller_offset);
@@ -663,6 +669,17 @@ struct SavedJoinTask {
 // step (its data was there before the trip), or runs the game's own join from the start (it was
 // still joining: its data never came, and a character made without it is a body-less phantom).
 bool RebuildsFromSave(const SavedJoinTask& saved);
+// Whether a task rebuilt as `kind` from `saved` waits at its saved step for a member's data. A
+// remote member's does; this game's own task (kind 2 or 3) has nobody to wait for, and it is
+// what creates the host's character on a guest (rig party-death 2026-11-02: a host that had
+// joined the team's new host was saved at step 3, its wipe's rebuild waited for its own data
+// and the players never saw each other).
+bool RebuiltTaskWaits(const SavedJoinTask* saved, s32 kind);
+// A guest that took the team's host role and opened its session can stand hosting with NetSync
+// at 0 (+0x84, 4 on any host), where the game sends none of ch 6 and drops it on receive: both
+// players' copies then stood at (0, 0, 0) for good (rig party-death 2026-11-02). Only 0: the join
+// runs through 1 to 3 by itself.
+bool TakenOverSyncStalled(bool took_over, s32 matching_state, s32 sync_state);
 // The saved task a rebuilt one of `kind` takes: its member's own, else the only one of that kind.
 std::optional<size_t> PickSavedJoinTask(std::span<const SavedJoinTask> saved, s32 kind,
                                         u64 identity);
@@ -2346,6 +2363,10 @@ inline constexpr std::array NpcDeathDrops{
     NpcDeathDrop{1712, 43200, 0x23000000},
     NpcDeathDrop{1713, 43220, 0x24000000},
     NpcDeathDrop{1790, 43110, 0x1B000000},
+    // Kaniel's playtest 2026-10-30: the Moon rune where the Brain of Mensis fell. m26_00 12600028
+    // ends for a client and awards lot 2605000 (flag 52605000) once 12600027 is on (the Brain has
+    // fallen) and the player stands there: only the host got it.
+    NpcDeathDrop{12600027, 2605000, 0x1A000000},
 };
 // Whether this game gives `drop` now: a party guest in a session on its map, the death flag on,
 // not given yet (`given`: this character, this session), and the lot not the guest's already
@@ -3033,6 +3054,30 @@ std::optional<s32> HeldOwnHitHp(s32 current, s32 after_own_hit, s64 age_ms);
 // down to it (scaled by each copy's max, to 0 for a killing hit: it dies on every screen at
 // once); the owner applies the hit itself (the game's 0x15), and without an owner nothing.
 std::optional<s32> HitNewsHp(EnemyRole role, s32 current, s32 copy_max, s32 hp, s32 max);
+// Rig party-death 2026-11-02: the owner's game can drop a follower's hit (ch 0x15, on a guest
+// that came back and took the map over), and then the two copies' HP split for good. The hit's
+// news (bbcoop::EnemyHit) reaches the owner too: it waits OwnerHitWaitMs for the game, which
+// normally lands the hit first (a kill stays the game's), then HitNewsHp lowers what is left.
+constexpr s64 OwnerHitWaitMs = 500;
+class OwnerHitCatchUp {
+public:
+    struct Hit {
+        u32 handle;
+        s32 hp;
+        s32 max;
+    };
+    void Heard(u32 handle, s32 hp, s32 max, s64 now_ms);
+    std::vector<Hit> Take(s64 now_ms);
+    void Clear();
+
+private:
+    struct Waiting {
+        s32 hp;
+        s32 max;
+        s64 heard_ms;
+    };
+    std::map<u32, Waiting> waiting;
+};
 // What the game sends at all (shadNet routes what it sends, coop/packet_routes.h): a follower's
 // hit (0x15) and near list (0x16) go to the area's owner, not the session's host the game sends
 // them to; what only the owner sends, a follower does not send (the game sees "not sent").
@@ -3427,12 +3472,21 @@ s32 DownedHp(s32 max, u32 landed, u32 needed);
 // TextEffect_KillDemon), 2 YOU DIED, 4 BLOOD ECHOES RETRIEVED, 5 PREY SLAUGHTERED again
 // (TextEffect_KillTarget), 7 ADVERSARY EXPUNGED, 15 UNLOCKED, 16 a wordless one, 17 NIGHTMARE SLAIN
 // (TE_Draw's slot: TextEffect_Draw, text 522007; Mergo's Wet Nurse, Gehrman, the Orphan of Kos).
-// Every banner the HUD has is in use. Party death takes 15 (fe.gfx TextEffect_YouWin, the same
-// timeline and layers as NIGHTMARE SLAIN's): the party HUD (bbport/scripts/hud_patch.py) makes it
-// the yellow YOU ARE DOWN, and the event patch drops its one game event (m29 12900192).
+// Every banner the HUD has is in use. 1.3.1 gave 15 (UNLOCKED, the chalice dungeons' m29 12900192)
+// to party death's YOU ARE DOWN; Kaniel 2026-11-01 missed UNLOCKED, so it is the game's again and
+// YOU ARE DOWN is the party HUD's own sprite (DownedBannerFrame).
 constexpr u64 SetTextEffectOffset = 0x013360B0;
 constexpr std::array<u8, 6> SetTextEffectStart{0x8D, 0x46, 0xFF, 0x83, 0xF8, 0x10};
-constexpr s32 DownedBannerTextEffect = 15;
+constexpr s32 UnlockedTextEffect = 15;
+
+// Party death's yellow YOU ARE DOWN: the party HUD's CoopDownedBanner
+// (bbport/scripts/hud_patch.py), a sprite of two frames: nothing, then a copy of the game's
+// TextEffect_YouWin (its fade-in and blur trail, 125 frames at 30 fps) with our words. It shows
+// frame 2 for DownedBannerShowMs from when the player went down, frame 1 otherwise.
+constexpr s64 DownedBannerShowMs = 4'100;
+constexpr u32 DownedBannerFrame(s64 downed_ms, s64 now_ms) {
+    return now_ms >= downed_ms && now_ms - downed_ms < DownedBannerShowMs ? 2 : 1;
+}
 
 // The party HUD's nameplates: the game's tag over each remote player (fe.gfx RemotePCTag0-6). The
 // HUD tick updates each tag from a TagData (0x01B59E20: rdi the tag, rsi its data), and its one

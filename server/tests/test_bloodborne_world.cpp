@@ -1741,6 +1741,72 @@ int TheFirstMemberOnAnAreaRunsItsEnemies() {
   return 0;
 }
 
+// Kaniel's play test 2026-11-01 (chalice dungeon, three players): after each
+// party wipe everyone reloads in place; the host's load (map 0) handed the map
+// to the guest who came back first, and 3 s later the host took it back: two
+// changes of hands per wipe, every enemy lagging and jumping. After a wipe a
+// load keeps the member's place (and the owner its map) for WipeHoldMs.
+int AWipesReloadKeepsTheEnemyOwner() {
+  Service service{{}};
+  Game host{1000, "host", 11};
+  Game guest{1001, "guest", 12};
+  const std::vector<Game *> games{&host, &guest};
+  qint64 now = 1'000'000;
+  for (Game *game : games) {
+    game->Hello(now);
+  }
+  Pump(service, games, now);
+  constexpr u32 Dungeon = 0x1d000000;
+  host.Map(Dungeon, now);
+  guest.Map(Dungeon, now + 100);
+  Pump(service, games, now + 100);
+  CHECK(guest.OwnerOf(Dungeon) == "host");
+  const u64 epoch = guest.EpochOf(Dungeon);
+
+  // The wipe: both down, both reload; the guest is back first.
+  host.Lifecycle(bbcoop::Lifecycle::WIPE, true, now + 200, Dungeon);
+  guest.Lifecycle(bbcoop::Lifecycle::WIPE, false, now + 210, Dungeon);
+  host.Map(0, now + 300);
+  guest.Map(0, now + 300);
+  Pump(service, games, now + 300);
+  guest.Map(Dungeon, now + 800);
+  Pump(service, games, now + 800);
+  CHECK(guest.OwnerOf(Dungeon) == "host");
+  host.Map(0, now + 1300);
+  Pump(service, games, now + 1300);
+  CHECK(guest.OwnerOf(Dungeon) == "host");
+  host.Map(Dungeon, now + 1500);
+  Pump(service, games, now + 1500);
+  CHECK(guest.OwnerOf(Dungeon) == "host");
+  CHECK(guest.EpochOf(Dungeon) == epoch); // never changed hands
+  for (qint64 at = now + 2500; at <= now + 6500; at += 1000) {
+    host.Map(Dungeon, at);
+    guest.Map(Dungeon, at);
+    Pump(service, games, at);
+  }
+  CHECK(guest.OwnerOf(Dungeon) == "host");
+  CHECK(guest.EpochOf(Dungeon) == epoch);
+
+  // Long after the wipe a load hands the map on at once again.
+  host.Map(0, now + 30'000);
+  guest.Map(Dungeon, now + 30'000);
+  Pump(service, games, now + 30'000);
+  CHECK(guest.OwnerOf(Dungeon) == "guest");
+
+  // A wipe's trip to another map still hands the old one on once it is there.
+  host.Map(Dungeon, now + 31'000);
+  guest.Map(Dungeon, now + 31'000);
+  Pump(service, games, now + 31'000);
+  host.Lifecycle(bbcoop::Lifecycle::WIPE, true, now + 60'000, Dungeon);
+  guest.Lifecycle(bbcoop::Lifecycle::WIPE, false, now + 60'000, Dungeon);
+  guest.Map(0, now + 60'100);
+  Pump(service, games, now + 60'100);
+  guest.Map(0x15010000, now + 61'000);
+  Pump(service, games, now + 61'000);
+  CHECK(host.OwnerOf(0x15010000) == "guest");
+  return 0;
+}
+
 int OnlyTheOwnersKillsAndHpCount() {
   Service service{{}};
   Game host{1000, "host", 11};
@@ -4247,6 +4313,7 @@ int WhatCollectedWorldsKeepIsBounded() {
 
 int main() {
   const std::vector<std::pair<const char *, std::function<int()>>> tests{
+      {"AWipesReloadKeepsTheEnemyOwner", AWipesReloadKeepsTheEnemyOwner},
       {"FriendsAreFoundAskedAndAnsweredInTheLobby",
        FriendsAreFoundAskedAndAnsweredInTheLobby},
       {"MembersFollowTheServersLog", MembersFollowTheServersLog},

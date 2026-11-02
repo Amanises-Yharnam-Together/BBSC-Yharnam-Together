@@ -267,6 +267,14 @@ bool StartsTripOnWorldReload(u64 caller_offset, bool trip_active, bool in_party_
     return IsWorldReloadStopRequest(caller_offset) && !trip_active && in_party_session;
 }
 
+bool KeepsSessionAfterWipe(u64 caller_offset, bool in_party_session, s64 since_wipe_ms) {
+    constexpr u64 AfterWipeStopRequestReturn = 0x01380A6A;
+    constexpr u64 AfterWipeLeaveSessionReturn = 0x01393323;
+    return (caller_offset == AfterWipeStopRequestReturn ||
+            caller_offset == AfterWipeLeaveSessionReturn) &&
+           in_party_session && since_wipe_ms < KeepAfterWipeMs;
+}
+
 bool IsWorldReloadStopRequest(u64 caller_offset) {
     constexpr u64 WorldLoadStopRequestReturn = 0x0193C65C;
     return caller_offset == WorldLoadStopRequestReturn;
@@ -692,6 +700,15 @@ std::optional<size_t> PickSavedJoinTask(std::span<const SavedJoinTask> saved, s3
 
 bool RebuildsFromSave(const SavedJoinTask& saved) {
     return saved.step > CreateCharacterStep;
+}
+
+bool RebuiltTaskWaits(const SavedJoinTask* saved, s32 kind) {
+    return saved && !RebuildsFromSave(*saved) &&
+           (kind == RemoteHostTask || kind == RemoteGuestTask);
+}
+
+bool TakenOverSyncStalled(bool took_over, s32 matching_state, s32 sync_state) {
+    return took_over && matching_state == MatchingStateHosting && sync_state == 0;
 }
 
 bool HasAllMemberData(u8 parts) {
@@ -4508,6 +4525,33 @@ std::optional<s32> HitNewsHp(EnemyRole role, s32 current, s32 copy_max, s32 hp, 
     const s64 scaled = (s64{hp} * copy_max + max - 1) / max;
     const s32 target = static_cast<s32>(std::clamp<s64>(scaled, 0, copy_max));
     return target < current ? std::optional<s32>{target} : std::nullopt;
+}
+
+void OwnerHitCatchUp::Heard(u32 handle, s32 hp, s32 max, s64 now_ms) {
+    constexpr size_t MostWaiting = 256;
+    if (const auto it = waiting.find(handle); it != waiting.end()) {
+        it->second.hp = hp; // the newer HP, on the first hit's clock
+        it->second.max = max;
+    } else if (waiting.size() < MostWaiting) {
+        waiting.emplace(handle, Waiting{hp, max, now_ms});
+    }
+}
+
+std::vector<OwnerHitCatchUp::Hit> OwnerHitCatchUp::Take(s64 now_ms) {
+    std::vector<Hit> due;
+    for (auto it = waiting.begin(); it != waiting.end();) {
+        if (now_ms - it->second.heard_ms < OwnerHitWaitMs) {
+            ++it;
+            continue;
+        }
+        due.push_back({it->first, it->second.hp, it->second.max});
+        it = waiting.erase(it);
+    }
+    return due;
+}
+
+void OwnerHitCatchUp::Clear() {
+    waiting.clear();
 }
 
 bool TakesOverEnemyHp(const EnemyOwnerEntry& owner) {

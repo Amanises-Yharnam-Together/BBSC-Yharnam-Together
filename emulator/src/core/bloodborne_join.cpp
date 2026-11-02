@@ -1122,7 +1122,7 @@ static void RebuildJoinTask(u64 manager, u64 member_id, s32 kind, const SavedJoi
     using Construct = void PS4_SYSV_ABI (*)(u64 task, u64 member_id, s32 kind);
     reinterpret_cast<Construct>(image_base + JoinTaskConstructOffset)(task, member_id, kind);
     // A member still joining when the trip began: back at its step, waiting for its data.
-    const bool waiting = saved && !RebuildsFromSave(*saved);
+    const bool waiting = RebuiltTaskWaits(saved, kind);
     if (saved) {
         WriteValue(task, 0xEC, saved->slot);
     }

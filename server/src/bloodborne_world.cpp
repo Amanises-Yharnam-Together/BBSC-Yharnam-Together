@@ -963,6 +963,7 @@ void Service::OnLifecycle(Member& member, const bbcoop::Lifecycle& lifecycle, qi
     const QString who = QString::fromStdString(member.name);
     switch (lifecycle.event()) {
     case bbcoop::Lifecycle::WIPE:
+        world.owners.Wipe(now_ms); // its reloads keep the enemy owners (EnemyOwners::Wipe)
         // Invasions: the team wiped with an invader in its world: the invader wins.
         if (const auto invasion = invasions.find(world.name);
             invasion != invasions.end() && invasion->second.joined) {

@@ -979,6 +979,23 @@ TEST(BloodborneSharedLoot, AGuestsOwnTalkGivesItsNpcGift) {
 // Firing Hammer Badge, and krolebord no Gatling Gun. Their drops are map events that wait for the
 // NPC's death flag and end for a client or unless the local player is alive; a guest on the map
 // gets the lot once the death flag is on, while it is not the guest's already.
+// Kaniel's playtest 2026-10-30: the host got the Moon rune from the Brain of Mensis, the guests
+// did not. m26_00 12600028 ends for a client (1003:6) and awards lot 2605000 (its flag 52605000)
+// once 12600027 is on (the Brain has fallen) and the player stands where it fell; Kaniel's log has
+// the lot and trophy 9, Lisara's and krolebord's neither. A guest on the Nightmare of Mensis gets
+// it once 12600027 is on, while its own 52605000 is off.
+TEST(BloodborneSharedLoot, AGuestGetsTheMoonRuneFromTheFallenBrain) {
+    const auto it = std::ranges::find(NpcDeathDrops, 12600027, &NpcDeathDrop::death_flag);
+    ASSERT_NE(it, NpcDeathDrops.end());
+    EXPECT_EQ(it->lot, 2605000);
+    EXPECT_EQ(it->map, 0x1A000000u);
+    EXPECT_TRUE(GivesNpcDeathDrop(*it, true, 0x1A000000, true, false, false, false, false));
+    EXPECT_FALSE(GivesNpcDeathDrop(*it, true, 0x1A000000, true, true, false, false, false))
+        << "this guest's own 52605000: it has it";
+    EXPECT_FALSE(GivesNpcDeathDrop(*it, false, 0x1A000000, true, false, false, false, false))
+        << "the host's own event gives the host its own";
+}
+
 TEST(BloodborneSharedLoot, AGuestGetsAnNpcsDeathDrop) {
     const auto drop = [](s32 death_flag) {
         const auto it = std::ranges::find(NpcDeathDrops, death_flag, &NpcDeathDrop::death_flag);
@@ -3664,4 +3681,17 @@ TEST(BloodborneGameObjects, ASeenVtableIsNamedByItsImageOffset) {
     EXPECT_EQ(DescribeVtable(0x12'3456'7890, Base, 0x6000000), "0x1234567890")
         << "outside the image";
     EXPECT_EQ(DescribeVtable(0, Base, 0x6000000), "0x0");
+}
+
+// Kaniel 2026-11-01: the chalice UNLOCKED banner is the game's again; YOU ARE DOWN is the party
+// HUD's own sprite, its banner shown from going down for the copy's fade-in and trail.
+TEST(BloodbornePartyDeathBanner, ShowsFromGoingDownForTheBannersLength) {
+    EXPECT_EQ(DownedBannerFrame(-1'000'000, 0), 1u);
+    EXPECT_EQ(DownedBannerFrame(10'000, 9'999), 1u);
+    EXPECT_EQ(DownedBannerFrame(10'000, 10'000), 2u);
+    EXPECT_EQ(DownedBannerFrame(10'000, 10'000 + DownedBannerShowMs - 1), 2u);
+    EXPECT_EQ(DownedBannerFrame(10'000, 10'000 + DownedBannerShowMs), 1u);
+    // 125 frames at 30 fps, less its last few (faded out).
+    EXPECT_LE(DownedBannerShowMs, 125 * 1000 / 30);
+    EXPECT_GE(DownedBannerShowMs, 120 * 1000 / 30);
 }

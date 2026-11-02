@@ -15,7 +15,7 @@ import socket
 import sys
 import time
 import zipfile
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import bbport_coop
 
@@ -33,8 +33,44 @@ def bundle_name(now=None):
     return time.strftime('Yharnam Together support %Y%m%d-%H%M%S.zip', time.localtime(now))
 
 
-def default_folder(home=None):
-    """Where the zip goes: the Desktop (OneDrive's too), else the home folder."""
+def known_desktop():
+    """The Desktop Windows shows (its known folder, which OneDrive or a policy may have moved), or None."""
+    if os.name != 'nt':
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class Guid(ctypes.Structure):
+            _fields_ = [('a', wintypes.DWORD), ('b', wintypes.WORD), ('c', wintypes.WORD), ('d', ctypes.c_ubyte * 8)]
+
+        # FOLDERID_Desktop {B4BFCC3A-DB2C-424C-B029-7FE99A87C641}
+        desktop = Guid(0xB4BFCC3A, 0xDB2C, 0x424C, (ctypes.c_ubyte * 8)(0xB0, 0x29, 0x7F, 0xE9, 0x9A, 0x87, 0xC6, 0x41))
+        path = ctypes.c_wchar_p()
+        if ctypes.windll.shell32.SHGetKnownFolderPath(ctypes.byref(desktop), 0, None, ctypes.byref(path)) != 0:
+            return None
+        try:
+            return path.value
+        finally:
+            ctypes.windll.ole32.CoTaskMemFree(path)
+    except (OSError, AttributeError, ValueError):
+        return None
+
+
+def reveal_command(target, windows_dir):
+    """Explorer's command line that opens the zip's folder with the zip selected. A string, not a list: a list
+    quotes the whole "/select,<path>" switch (the name has spaces), which Explorer does not read, and it opened
+    its default folder instead (Kaniel 2026-11-01)."""
+    return f'"{PureWindowsPath(windows_dir) / "explorer.exe"}" /select,"{PureWindowsPath(target)}"'
+
+
+def default_folder(home=None, known_desktop=None):
+    """Where the zip goes: the Desktop Windows shows, else %USERPROFILE%\\Desktop (OneDrive's too), else the
+    home folder. Kaniel 2026-11-01: with a moved Desktop an empty %USERPROFILE%\\Desktop can still be there."""
+    if known_desktop is None and home is None:
+        known_desktop = globals()['known_desktop']()
+    if known_desktop and Path(known_desktop).is_dir():
+        return Path(known_desktop)
     home = Path(home or Path.home())
     for desktop in (home / 'Desktop', home / 'OneDrive' / 'Desktop'):
         if desktop.is_dir():
@@ -103,13 +139,83 @@ def network_report(settings, answers=port_answers, addresses=None, this_pc=None)
     return '\n'.join(lines) + '\n'
 
 
-def system_report(versions, now=None):
-    """The launcher's and the release's versions, Windows, Python and the CPU."""
+# Where Windows lists the Vulkan layers every Vulkan game loads by itself (overlays: Discord, Steam, RTSS,
+# OBS, GeForce, HudSight...): each value names a layer's manifest, its data 0 when the layer is on.
+IMPLICIT_LAYER_KEYS = (r'SOFTWARE\Khronos\Vulkan\ImplicitLayers', r'SOFTWARE\WOW6432Node\Khronos\Vulkan\ImplicitLayers')
+
+
+def registry_layers():
+    """[(manifest path, data)] from both hives' ImplicitLayers keys; none off Windows."""
+    try:
+        import winreg
+    except ImportError:
+        return []
+    entries = []
+    for hive in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+        for path in IMPLICIT_LAYER_KEYS:
+            try:
+                with winreg.OpenKey(hive, path) as key:
+                    index = 0
+                    while True:
+                        try:
+                            name, data, _ = winreg.EnumValue(key, index)
+                        except OSError:
+                            break
+                        entries.append((str(name), data))
+                        index += 1
+            except OSError:
+                continue
+    return entries
+
+
+def vulkan_layers(read=registry_layers):
+    """[(layer name or '?', manifest path, on)]: the overlays' Vulkan layers the game will load (Kaniel
+    2026-11-01: players said an overlay stops them joining, and no log said which)."""
+    layers = []
+    try:
+        entries = read()
+    except OSError:
+        return layers
+    for manifest, data in entries:
+        name = '?'
+        try:
+            layer = json.loads(Path(manifest).read_text(encoding='utf-8', errors='replace')).get('layer') or {}
+            name = str(layer.get('name') or '?')
+        except (OSError, ValueError, AttributeError):
+            pass
+        layers.append((name, manifest, data == 0))
+    return layers
+
+
+def overlay_log_line(layers, disabled):
+    """The game log's first line: the overlay layers, those the launcher skips (DISABLED, the
+    VK_LOADER_LAYERS_DISABLE globs) and those switched off marked."""
+    import fnmatch
+    globs = [item for item in disabled.split(',') if item]
+    parts = []
+    for name, manifest, on in layers:
+        text = name if name != '?' else f'? ({manifest})'
+        if not on:
+            text += ' (off)'
+        elif any(fnmatch.fnmatchcase(name, glob) for glob in globs):
+            text += ' (skipped)'
+        parts.append(text)
+    return f'Launcher: Vulkan overlay layers: {", ".join(parts) or "none"}\n'
+
+
+def system_report(versions, now=None, layers=None):
+    """The launcher's and the release's versions, Windows, Python, the CPU and the Vulkan overlay layers."""
     lines = [f'Made: {time.strftime("%Y-%m-%d %H:%M:%S %z", time.localtime(now))}']
     lines += [f'{name}: {value}' for name, value in versions.items()]
     lines += [f'System: {platform.platform()}', f'Machine: {platform.machine()}',
               f'Processor: {platform.processor() or "?"}', f'CPU threads: {os.cpu_count()}',
               f'Python: {sys.version.split()[0]}']
+    layers = vulkan_layers() if layers is None else layers
+    if not layers:
+        lines.append('Vulkan overlay layers: none')
+    else:
+        lines.append(f'Vulkan overlay layers ({len(layers)}):')
+        lines += [f'  {name} {"on" if on else "off"} ({manifest})' for name, manifest, on in layers]
     return '\n'.join(lines) + '\n'
 
 
