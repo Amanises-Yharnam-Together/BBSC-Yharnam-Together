@@ -321,8 +321,34 @@ int AGoneGameLeavesAStartedTeamInSeconds() {
   CHECK(lobby.TeamOf("c") != nullptr && lobby.TeamOf("c")->members_size() == 2);
   // A game's new hello is heard: not quiet any more.
   lobby.Arrive("b", "Player b", true);
-  CHECK(lobby.Expire(3000 + 2 * LeftGraceMs).departed.size() == 1);
+  CHECK(!lobby.Expire(3000 + 2 * LeftGraceMs).changed); // a guest: a blip
+  CHECK(lobby.Expire(3000 + QuietGraceMs).departed.size() == 1);
   CHECK(lobby.TeamOf("c") == nullptr && lobby.TeamOf("b")->leader() == "b");
+  return 0;
+}
+
+// Kaniel 2026-11-02 (rig late-quiet3, link-cut): a guest's quiet link may be a
+// Wi-Fi blip; one of 45 s keeps it in its team. A game signed out (closed, at
+// the title) still leaves after LeftGraceMs, and so does one whose game came
+// back from another link (it restarted: kills-after-crash).
+int ABlipKeepsAGuestInItsTeamASignOutOrRestartDoesNot() {
+  ThreePlaying t;
+  TeamLobby &lobby = t.lobby;
+  lobby.Quiet("c", true, 1000);
+  CHECK(!lobby.Expire(1000 + 45'000).changed);
+  CHECK(lobby.TeamOf("c") != nullptr);
+  lobby.Quiet("c", false, 46'000);
+  CHECK(!lobby.Expire(46'000 + QuietGraceMs).changed);
+  lobby.Leave("b");
+  CHECK(lobby.Expire(50'000).departed.empty());
+  CHECK(lobby.Expire(50'000 + LeftGraceMs - 1).departed.empty());
+  const TeamLobby::Outcome out = lobby.Expire(50'000 + LeftGraceMs);
+  CHECK(out.departed.size() == 1 && out.departed[0].member == "b");
+  lobby.Quiet("c", true, 60'000);
+  lobby.Restarted("c");
+  CHECK(lobby.Expire(60'000 + LeftGraceMs - 1).departed.empty());
+  const TeamLobby::Outcome again = lobby.Expire(60'000 + LeftGraceMs);
+  CHECK(again.departed.size() == 1 && again.departed[0].member == "c");
   return 0;
 }
 
@@ -1522,6 +1548,7 @@ int main() {
   failed |= ALeaderBackAtTheTitleHandsTheTeamOver();
   failed |= TheLastOneBackAtTheTitleKeepsTheTeam();
   failed |= AGoneGameLeavesAStartedTeamInSeconds();
+  failed |= ABlipKeepsAGuestInItsTeamASignOutOrRestartDoesNot();
   failed |= TheLeadFollowsTheSessionsHost();
   failed |= AStartedTeamStaysStartedWhileItsGamesLoad();
   failed |= LeaveAndRemove();

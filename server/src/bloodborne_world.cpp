@@ -1888,9 +1888,11 @@ Service::Result Service::Tick(qint64 now_ms) {
         for (const TeamLobby::Departure& out : expired.departed) {
             gone.append(QString::fromStdString(out.member));
         }
-        result.log.append(QStringLiteral("team lobby: %1 gone (its game quiet %2 ms while its "
-                                         "team plays, or offline %3 min): out of its team")
+        result.log.append(QStringLiteral("team lobby: %1 gone (its game quiet %2 ms or signed "
+                                         "out %3 ms while its team plays, or offline %4 min): "
+                                         "out of its team")
                               .arg(gone.join(QStringLiteral(", ")))
+                              .arg(QuietGraceMs)
                               .arg(LeftGraceMs)
                               .arg(OfflineGraceMs / 60000));
         TakeOutOfTeams(expired, now_ms, result);
@@ -1969,7 +1971,9 @@ Service::Result Service::Forget(const ServerLink::Endpoint& link) {
         const bool elsewhere = std::any_of(members.begin(), members.end(), [&](const auto& m) {
             return m.first != link.Key() && m.second.lobby == name;
         });
-        if (!elsewhere) {
+        if (elsewhere) {
+            lobby.Restarted(name); // its game came back from another link
+        } else {
             lobby.Leave(name);
             lobby_sent.erase(name);
             lobby_changed = true;

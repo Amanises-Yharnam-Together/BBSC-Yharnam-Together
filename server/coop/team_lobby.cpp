@@ -450,9 +450,16 @@ TeamLobby::Outcome TeamLobby::Lead(const std::string& member) {
     return {.changed = true};
 }
 
+void TeamLobby::Restarted(const std::string& member) {
+    if (quiet_since.contains(member)) {
+        restarted.insert(member);
+    }
+}
+
 void TeamLobby::Quiet(const std::string& member, bool quiet, s64 now_ms) {
     if (!quiet) {
         quiet_since.erase(member);
+        restarted.erase(member);
     } else if (players.contains(member)) {
         quiet_since.try_emplace(member, now_ms);
     }
@@ -464,6 +471,7 @@ void TeamLobby::DropTeam(const std::string& team_id) {
         for (const bbcoop::TeamMember& m : team->members()) {
             gone_since.erase(m.member());
             quiet_since.erase(m.member());
+            restarted.erase(m.member());
         }
     }
     std::erase_if(teams, [&](const bbcoop::Team& t) { return t.id() == id; });
@@ -619,7 +627,12 @@ TeamLobby::Outcome TeamLobby::Expire(s64 now_ms) {
             const s64 gone =
                 signed_in ? 0 : gone_since.try_emplace(m.member(), now_ms).first->second;
             const s64 since = quiet != quiet_since.end() ? quiet->second : gone;
-            if (team.started() && OthersPlay(team, m.member()) && now_ms - since >= LeftGraceMs) {
+            // A guest's quiet may be a blip; the leader's, a signed-out or a restarted game's is
+            // not.
+            const bool blip =
+                signed_in && !restarted.contains(m.member()) && team.leader() != m.member();
+            const s64 grace = blip ? QuietGraceMs : LeftGraceMs;
+            if (team.started() && OthersPlay(team, m.member()) && now_ms - since >= grace) {
                 left.push_back(m.member());
             } else if (!signed_in && now_ms - gone >= OfflineGraceMs) {
                 expired.push_back(m.member());
@@ -628,6 +641,7 @@ TeamLobby::Outcome TeamLobby::Expire(s64 now_ms) {
     }
     Outcome outcome;
     for (const std::string& member : left) {
+        restarted.erase(member);
         if (bbcoop::Team* team = const_cast<bbcoop::Team*>(TeamOf(member))) {
             outcome.departed.push_back(Depart(*team, member));
         }

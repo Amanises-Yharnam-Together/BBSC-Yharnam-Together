@@ -38,6 +38,12 @@ constexpr s64 OfflineGraceMs = 10 * 60 * 1000;
 // one back at the title is at once: the others play on, led by whoever hosts their session now,
 // and it has a standing invite back as a guest.
 constexpr s64 LeftGraceMs = 2000;
+// Kaniel 2026-11-02 (rig late-quiet3 and link-cut): a guest's link that is only quiet may be a
+// Wi-Fi blip, so its game stays in its team this long ("it could be a few min"). The leader's
+// still goes after LeftGraceMs: its session must move before the others' games give up on it
+// (about 10 s, rig host-crash3), as does a game signed out (closed, back at the title) or one
+// that came back from another link (restarted). Under the link's own forget (60 s).
+constexpr s64 QuietGraceMs = 60'000;
 
 // Kaniel 2026-10-17: the server lists this many worlds (the last played); a new one past them puts
 // the least lately played aside.
@@ -161,6 +167,8 @@ public:
     Outcome Leave(const std::string& member);
     // Its game's link went quiet (or was heard again): gone, unless heard again in time.
     void Quiet(const std::string& member, bool quiet, s64 now_ms);
+    // The member's game came back from another link (it restarted): its quiet is no blip.
+    void Restarted(const std::string& member);
     // Members gone for LeftGraceMs while another member of their started team plays leave it
     // (Depart); others gone (not signed in) for OfflineGraceMs leave their teams. The clock of a
     // member not signed in starts at the first call that finds it gone.
@@ -275,6 +283,7 @@ private:
     std::map<std::string, std::string> names; // every member's last known name
     std::map<std::string, s64> gone_since;    // team members not signed in, since when
     std::map<std::string, s64> quiet_since;   // signed in, their games' links quiet since when
+    std::set<std::string> restarted;          // quiet, but back from another link (Restarted)
     // Amanises 2026-10-25: who asked to join each open team (by team id), in the order asked.
     std::map<std::string, std::vector<std::string>> asks;
     void DropAsksBy(const std::string& member);
