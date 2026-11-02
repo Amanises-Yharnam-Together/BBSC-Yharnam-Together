@@ -124,8 +124,30 @@ class HeldPortsTest(unittest.TestCase):
         port = run_scenario.SHADNET_PORT
         netstat = (f"  TCP    0.0.0.0:{port}    0.0.0.0:0    LISTENING    53880\n"
                    f"  TCP    127.0.0.1:{port}    127.0.0.1:5000    ESTABLISHED    1\n")
-        self.assertEqual(run_scenario.held_server_ports(netstat), f"{port} (pid 53880)")
-        self.assertEqual(run_scenario.held_server_ports(""), "")
+        self.assertEqual(run_scenario.held_server_ports(netstat, set()), f"{port} (pid 53880)")
+        self.assertEqual(run_scenario.held_server_ports("", set()), "")
+
+    def test_an_open_port_netstat_misses_is_held_all_the_same(self):
+        # Rig 2026-11-02 (Windows 26300): a listening shadNet shown as CLOSED, or not at all.
+        port = run_scenario.SHADNET_PORT
+        netstat = f"  TCP    127.0.0.1:{port}    0.0.0.0:0    CLOSED    94308\n"
+        with unittest.mock.patch.object(run_scenario, "lane_server_pids", return_value={94308}):
+            self.assertEqual(run_scenario.held_server_ports(netstat, {port}),
+                             f"{port} (pid unknown), this lane's servers: pid 94308")
+
+
+class LaneServerPidsTest(unittest.TestCase):
+    def test_the_lanes_servers_are_found_by_what_they_run(self):
+        shadnet = run_scenario.lane_dir() / "server" / "shadnet.exe"
+        other = run_scenario.lane_dir(5) / "server" / "shadnet.exe"
+        port = run_scenario.BACKEND_PORT
+        listing = (f"94308\t{str(shadnet).upper()}\t\"{shadnet}\"\n"
+                   f"777\t{other}\t\"{other}\"\n"
+                   f"812\tC:\\py\\python.exe\tpython bb_dummy_server.py --address 127.0.0.1 "
+                   f"--port {port} --shadnet-webapi x\n"
+                   f"813\tC:\\py\\python.exe\tpython bb_dummy_server.py --port {port + 1}\n"
+                   "not a pid\tx\ty\n")
+        self.assertEqual(run_scenario.lane_server_pids(listing), {94308, 812})
 
 
 if __name__ == "__main__":
