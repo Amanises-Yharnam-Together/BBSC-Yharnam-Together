@@ -161,7 +161,7 @@ WIPE_TAKEN_AS_OWN = r"this death is no party wipe"
 
 
 def wipe(roles, name: str = "wipe", guests_point: int | None = None,
-         hurt_first: bool = False) -> dict:
+         hurt_first: bool = False, guest_leads: bool = False) -> dict:
     """Party death's wipe, last in its suite (the map reloads): every guest goes down, then the
     host falls with nobody standing; all die, wake at their lamps with the map reset (Kaniel
     2026-10-11: after the wipe 16 enemies stayed hidden and the mob showed three HPs), each with
@@ -169,7 +169,10 @@ def wipe(roles, name: str = "wipe", guests_point: int | None = None,
 
     `hurt_first`: the host hurts ENEMY first and every game sees it hurt; after the wipe it
     is whole again in every game (Kaniel's playtest 2026-10-18: enemies kept the HP they had
-    when the party wiped)."""
+    when the party wiped).
+
+    `guest_leads`: an earlier chapter left the guest as the team's host, so the old host wakes at
+    the guest's point (`guests_point`), not the other way round."""
     players = len(roles)
     # Each falls on its own spot a few metres from the lamp, so nobody lands on another member's
     # body (rig 2026-10-12: a body under the fall took its damage and guest2 never went down; the
@@ -200,16 +203,18 @@ def wipe(roles, name: str = "wipe", guests_point: int | None = None,
                         f"expect-session {players}"]
         if guests_point:
             steps[role].append(f"expect-others-near {players - 1} 30")
+    woke_at_host = rf"respawn at the host's point {guests_point} \(own {CENTRAL_YHARNAM_LAMP}\)" \
+        if guest_leads else rf"respawn at the host's point {CENTRAL_YHARNAM_LAMP} \(own {guests_point}\)"
     # The dog's +0x28 reads 1 at full HP in every game after a wipe (rig 2026-10-12, smoke): the
     # map's own state, not a kill hiding it (its HP is checked).
     return chapter(
         name, "a party wipe resets the map for everyone, the same in every game", steps,
         expect={"host": [r"party death: died for real on map 0x18010000 \(reset=true\)",
-                         r"travelling there \(reset=true, void fall=false\)", BLOODSTAIN_DROPPED, WIPE_RAN],
+                         r"travelling there \(reset=true, void fall=false\)", BLOODSTAIN_DROPPED, WIPE_RAN,
+                         *([woke_at_host] if guest_leads else [])],
                 **{guest: [r"party death: wipe \d+ ends down \d+; dies \(reset=true",
                            r"travelling there \(reset=true, void fall=false\)", BLOODSTAIN_DROPPED, WIPE_RAN,
-                           *([rf"respawn at the host's point {CENTRAL_YHARNAM_LAMP} "
-                              rf"\(own {guests_point}\)"] if guests_point else [])]
+                           *([woke_at_host] if guests_point and not guest_leads else [])]
                    for guest in roles[1:]}},
         forbid={role: SESSION_HOLDS + [BLOODSTAIN_STOLEN, WIPE_TAKEN_AS_OWN] for role in roles})
 
@@ -857,7 +862,7 @@ SUITES = {
                     allow=CRASH_CLEANUP),
             # Kaniel 2026-10-13: after a wipe everyone wakes where the host does. Kaniel
             # 2026-10-18: the enemy the host hurt before it is whole again.
-            wipe(PARTY2, guests_point=2412951, hurt_first=True),
+            wipe(PARTY2, guests_point=2412951, hurt_first=True, guest_leads=True),
             chapter("stain-after-wipe", "after the wipe the guest's game dies and comes back: "
                                         "in the host's world it sees its own bloodstain from "
                                         "the wipe, with its echoes",

@@ -65,6 +65,8 @@
 #include "core/memory.h"
 
 namespace Core::Bloodborne {
+
+static std::atomic<s64> last_party_wipe_ms{0};
 namespace {
 
 // Invasions (bloodborne_invasion.h): the invader's bodies here as of the last presence tick (the
@@ -137,6 +139,10 @@ bool LooksLikeBloodstain(u64 stain) {
 } // namespace
 
 namespace Coop {
+
+s64 LastPartyWipeMs() {
+    return last_party_wipe_ms.load(std::memory_order_relaxed);
+}
 
 // The stain's marker (+0x88) and effect (+0x98) are what 0x01868A50 makes when it shows the
 // stain (and frees when it hides it): a stain recorded but never shown has neither (Kaniel
@@ -444,6 +450,7 @@ void MoveToRespawnPoint(bool arriving_from_trip) {
             TellServerMapWipe(map);
         }
     } else if (call == DeathReset::PartyWipe) {
+        last_party_wipe_ms.store(SteadyMilliseconds(), std::memory_order_relaxed);
         OnLifecycle(Lifecycle::Wipe); // kills and enemy HP, see their RegisterLifecycleReset
     }
     const u64 global = GetGlobalState();

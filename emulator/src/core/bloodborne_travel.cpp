@@ -1244,6 +1244,13 @@ bool PS4_SYSV_ABI KeepSessionAfterTrip(u64, const GuestRegisterSnapshot* registe
         StartPartyTrip(registers, true);
         LOG_INFO(Debug, "Bloodborne party: a world reload's leave is a trip once it loads");
     }
+    if (!PartyTripActive() && return_address >= image_base &&
+        KeepsSessionAfterWipe(return_address - image_base, InPartySession(),
+                              SteadyMilliseconds() - LastPartyWipeMs())) {
+        LOG_INFO(Debug, "Bloodborne party: kept the session through the game's LeaveSession "
+                        "after the wipe");
+        return true;
+    }
     if (!PartyTripActive()) {
         // Diagnostics: a session that broke right after a boss kill (host to the title screen,
         // a lone guest dropped after lighting the lamp): who leaves. Every world load calls it,
@@ -2173,6 +2180,13 @@ bool PS4_SYSV_ABI KeepMatchingDuringTrip(u64, const GuestRegisterSnapshot* regis
         if (return_address == image_base + IrregularLeaveStopReturn && TeamHostTookOver()) {
             LOG_INFO(Debug, "Bloodborne party: kept the team's session this game hosts now (a "
                             "member's irregular leave would end it)");
+            return true;
+        }
+        if (return_address >= image_base &&
+            KeepsSessionAfterWipe(return_address - image_base, InPartySession(),
+                                  SteadyMilliseconds() - LastPartyWipeMs())) {
+            LOG_INFO(Debug, "Bloodborne party: kept the session through the game's StopRequest "
+                            "after the wipe");
             return true;
         }
         if (party_controller && InPartySession()) {

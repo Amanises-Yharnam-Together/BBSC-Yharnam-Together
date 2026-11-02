@@ -81,6 +81,30 @@ TEST(EnemyOwner, TheOwnerRunsTheAiAFollowerTheNetworkController) {
     EXPECT_EQ(EnemyOwnershipWord(EnemyRole::Unknown), std::nullopt);
 }
 
+// Rig party-death 2026-11-02: the game left a session by itself 15 s after a wipe.
+TEST(EnemyOwner, OnlyTheStopRequestAfterAWipeIsKept) {
+    constexpr u64 AfterWipe = 0x01380A6A;
+    EXPECT_TRUE(KeepsSessionAfterWipe(AfterWipe, true, 15'000));
+    EXPECT_TRUE(KeepsSessionAfterWipe(0x01393323, true, 15'000)) << "its LeaveSession";
+    EXPECT_FALSE(KeepsSessionAfterWipe(0x01393323, false, 15'000));
+    EXPECT_TRUE(KeepsSessionAfterWipe(AfterWipe, true, KeepAfterWipeMs - 1));
+    EXPECT_FALSE(KeepsSessionAfterWipe(AfterWipe, true, KeepAfterWipeMs));
+    EXPECT_FALSE(KeepsSessionAfterWipe(AfterWipe, false, 15'000)) << "no party session";
+    EXPECT_FALSE(KeepsSessionAfterWipe(0x0193C65C, true, 15'000)) << "another caller";
+}
+
+// Rig party-death 2026-11-02: hosting with NetSync at 0 no player state moves (ch 6).
+TEST(EnemyOwner, ATakenOverHostStuckAtSyncZeroIsTheOnlyStall) {
+    EXPECT_TRUE(TakenOverSyncStalled(true, MatchingStateHosting, 0));
+    EXPECT_FALSE(TakenOverSyncStalled(false, MatchingStateHosting, 0)) << "a host from the start";
+    EXPECT_FALSE(TakenOverSyncStalled(true, MatchingStateHosting, 4));
+    for (const s32 joining : {1, 2, 3}) {
+        EXPECT_FALSE(TakenOverSyncStalled(true, MatchingStateHosting, joining));
+    }
+    EXPECT_FALSE(TakenOverSyncStalled(true, 0, 0)) << "out of any session";
+    EXPECT_FALSE(TakenOverSyncStalled(true, MatchingStateSummonedGuest, 0));
+}
+
 // Rig party-death 2026-11-02: a guest had come back and owned the map; the host's hit (ch 0x15)
 // never landed on its copy, so the two HPs split and no wipe came. The news is the repair.
 TEST(EnemyOwner, TheOwnerTakesAHitOnlyAfterItsGameHadItsChance) {

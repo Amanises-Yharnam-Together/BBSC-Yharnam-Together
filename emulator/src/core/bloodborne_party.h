@@ -270,6 +270,12 @@ const std::vector<CodePatch>& JoinAnywherePatches();
 // warps the player, e.g. Gascoigne's 24000020) calls StopRequest (returning to 0x0193C65C) and
 // LeaveSession for a member of a session. In a party it is a trip like a lamp's.
 bool IsWorldReloadStopRequest(u64 caller_offset);
+// A StopRequest and LeaveSession the game makes on its own about 15 s after a party wipe, past the
+// wipe's trip, on a host that had joined the team's new host (rig party-death 2026-11-02): it left
+// and joined again and both players' copies went with it. Kept for KeepAfterWipeMs after a wipe in
+// a party session; the game's own leaving at any other time still goes.
+constexpr s64 KeepAfterWipeMs = 45'000;
+bool KeepsSessionAfterWipe(u64 caller_offset, bool in_party_session, s64 since_wipe_ms);
 // The same load's LeaveSession (0x0193C689, returning to 0x0193C68E): a guest's game calls only
 // this one at the Cathedral Ward border (rig 2026-10-13).
 bool IsWorldReloadLeaveSession(u64 caller_offset);
@@ -669,6 +675,11 @@ bool RebuildsFromSave(const SavedJoinTask& saved);
 // joined the team's new host was saved at step 3, its wipe's rebuild waited for its own data
 // and the players never saw each other).
 bool RebuiltTaskWaits(const SavedJoinTask* saved, s32 kind);
+// A guest that took the team's host role and opened its session can stand hosting with NetSync
+// at 0 (+0x84, 4 on any host), where the game sends none of ch 6 and drops it on receive: both
+// players' copies then stood at (0, 0, 0) for good (rig party-death 2026-11-02). Only 0: the join
+// runs through 1 to 3 by itself.
+bool TakenOverSyncStalled(bool took_over, s32 matching_state, s32 sync_state);
 // The saved task a rebuilt one of `kind` takes: its member's own, else the only one of that kind.
 std::optional<size_t> PickSavedJoinTask(std::span<const SavedJoinTask> saved, s32 kind,
                                         u64 identity);

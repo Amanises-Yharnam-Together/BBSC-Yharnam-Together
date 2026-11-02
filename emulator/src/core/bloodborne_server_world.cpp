@@ -2155,6 +2155,15 @@ bool TickTeamJoin(bool ready) {
     if (!in_team) {
         return true; // alone (from the title, or out of its team since): no session to open or join
     }
+    const u64 net_sync = ReadValue<u64>(image_base + SummonSessionRulesPointerOffset, 0);
+    if (net_sync >= 0x10000 && HasMemoryAccess(net_sync + 0x84, 4, MemoryProt::CpuWrite) &&
+        TakenOverSyncStalled(TeamHostTookOver(), ReadValue<s32>(manager, 0x124),
+                             ReadValue<s32>(net_sync, 0x84))) {
+        WriteValue(net_sync, 0x84, s32{4});
+        LOG_INFO(Debug,
+                 "Co-op team join: this game took the team over and hosts, but NetSync stood "
+                 "at 0: 4, as on any host");
+    }
     const TeamJoin::Frame frame{
         .host = !IsPartyGuestRole(),
         .matching_state = ReadValue<s32>(manager, 0x124),

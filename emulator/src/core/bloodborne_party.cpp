@@ -267,6 +267,15 @@ bool StartsTripOnWorldReload(u64 caller_offset, bool trip_active, bool in_party_
     return IsWorldReloadStopRequest(caller_offset) && !trip_active && in_party_session;
 }
 
+bool KeepsSessionAfterWipe(u64 caller_offset, bool in_party_session, s64 since_wipe_ms) {
+    constexpr u64 AfterWipeStopRequestReturn = 0x01380A6A;
+    constexpr u64 AfterWipeLeaveSessionReturn = 0x01393323;
+    return (caller_offset == AfterWipeStopRequestReturn ||
+            caller_offset == AfterWipeLeaveSessionReturn) &&
+           in_party_session &&
+           since_wipe_ms < KeepAfterWipeMs;
+}
+
 bool IsWorldReloadStopRequest(u64 caller_offset) {
     constexpr u64 WorldLoadStopRequestReturn = 0x0193C65C;
     return caller_offset == WorldLoadStopRequestReturn;
@@ -697,6 +706,10 @@ bool RebuildsFromSave(const SavedJoinTask& saved) {
 bool RebuiltTaskWaits(const SavedJoinTask* saved, s32 kind) {
     return saved && !RebuildsFromSave(*saved) &&
            (kind == RemoteHostTask || kind == RemoteGuestTask);
+}
+
+bool TakenOverSyncStalled(bool took_over, s32 matching_state, s32 sync_state) {
+    return took_over && matching_state == MatchingStateHosting && sync_state == 0;
 }
 
 bool HasAllMemberData(u8 parts) {
