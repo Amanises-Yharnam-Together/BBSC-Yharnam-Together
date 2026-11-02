@@ -134,6 +134,12 @@ def join(roles, about: str = "every game joins the host by itself (the bells rin
                    forbid=holds(roles))
 
 
+def with_first_steps(chapter_: dict, role: str, *steps: str) -> dict:
+    """The chapter with `steps` first in `role`'s game."""
+    return {**chapter_, "steps": {**chapter_["steps"],
+                                  role: [*steps, *chapter_["steps"].get(role, [])]}}
+
+
 def with_expect(chapter_: dict, role: str, *patterns: str) -> dict:
     """The chapter with more lines `role`'s game must log in it."""
     expect = {name: list(lines) for name, lines in chapter_.get("expect", {}).items()}
@@ -849,7 +855,10 @@ SUITES = {
                     allow=CRASH_CLEANUP),
             # Kaniel 2026-10-13: after a wipe everyone wakes where the host does. Kaniel
             # 2026-10-18: the enemy the host hurt before it is whole again.
-            wipe(PARTY2, guests_point=2412951, hurt_first=True),
+            # Echoes on the guest first: stain-after-wipe looks for its stain's echoes (rig
+            # 2026-11-02: the guest died holding none, record_38=0, and nothing was shown).
+            with_first_steps(wipe(PARTY2, guests_point=2412951, hurt_first=True), "guest",
+                             "trade-stock echoes 5000"),
             chapter("stain-after-wipe", "after the wipe the guest's game dies and comes back: "
                                         "in the host's world it sees its own bloodstain from "
                                         "the wipe, with its echoes",
@@ -865,14 +874,16 @@ SUITES = {
                     {"host": [f"travel {HUNTERS_DREAM}", "sync alone-away", "sync alone-woken",
                               f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240"],
                      # The host's trip first: with it still on the map the fall is a down.
+                     # It wakes where the host is, in the Dream (rig 2026-11-02: "respawn at
+                     # the host's point"), and goes back with it.
                      "guest": ["sync alone-away", "wait 15", "godmode off", *LETHAL_FALL,
                                "wait-vital dead 30", "wait-vital up 120", "godmode",
-                               "sync alone-woken", "wait-members 2 300"]},
+                               "sync alone-woken", f"travel {CENTRAL_YHARNAM_LAMP}",
+                               "wait-members 2 300"]},
                     expect={"guest": [r"party death: died for real on map 0x18010000 "
                                       r"\(reset=true\)", r"travelling there \(reset=true, void fall=false\)"]},
                     # Right after stain-after-wipe's restart (as smoke's wipe after rejoin).
-                    known_bug="after a guest's restart and rejoin its lethal fall is neither a "
-                              "down nor a death alone (rig 2026-10-15, twice)",
+                    # known_bug dropped (rig 2026-11-02): the death alone came, reset=true.
                     forbid={"host": SESSION_HOLDS,
                             "guest": SESSION_HOLDS + [r"party death: down \d+"]}),
             # Last: the host's game dies in it, and after that the guest leads and owns the map
