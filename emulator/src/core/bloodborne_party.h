@@ -925,6 +925,27 @@ struct FlagChanges {
 };
 FlagChanges ChangedFlags(u32 block, u32 flags_per_block, std::span<const u8> before,
                          std::span<const u8> after);
+// What differs between two copies of the flag store: both hold their blocks by rising id, and a
+// block only one of them has is no change.
+template <typename Block>
+FlagChanges ChangedFlagsBetween(const std::vector<Block>& before, const std::vector<Block>& now,
+                                u32 flags_per_block) {
+    FlagChanges all;
+    size_t old_index = 0;
+    for (const Block& block : now) {
+        while (old_index < before.size() && before[old_index].id < block.id) {
+            ++old_index;
+        }
+        if (old_index >= before.size() || before[old_index].id != block.id) {
+            continue;
+        }
+        const FlagChanges changes =
+            ChangedFlags(block.id, flags_per_block, before[old_index].bytes, block.bytes);
+        all.set.insert(all.set.end(), changes.set.begin(), changes.set.end());
+        all.cleared.insert(all.cleared.end(), changes.cleared.begin(), changes.cleared.end());
+    }
+    return all;
+}
 // Ritual altars (see FlagTable, bloodborne_altar.h): a ritual or a join writes "the current
 // altar", flags 92900000-92905999, a view of the altar k the player talks to (94k00000-94k05999).
 bool IsCurrentAltarFlag(s32 flag);
@@ -2759,7 +2780,8 @@ constexpr const char* LauncherBackupNote = "launcher.txt";
 // Deletes all but the newest `kept` of the game's backups; returns how many went.
 std::size_t PruneSaveBackups(const std::filesystem::path& user_dir, std::size_t kept);
 
-// The co-op trace (docs/WORLD_SYNC.md, Stage B): every co-op game writes
+// The co-op trace (docs/WORLD_SYNC.md, Stage B), for bug reports: with BB_COOP_TRACE=1 (bbport.ini
+// coop_trace=1) a co-op game writes, and its tick runs the parts that only log:
 // user/log/coop-trace-<local time>-<process>.txt, one record per line, "<UTC ms> <kind>
 // <key>=<value> ...", each value escaped (TraceEscape) so a line has no spaces or line ends of
 // its own. The kinds:
@@ -2786,7 +2808,7 @@ std::size_t PruneSaveBackups(const std::filesystem::path& user_dir, std::size_t 
 //                        rtt)
 //                        and detail
 // An "-in" record leaves out what did not change since its kind's last record, and its lists
-// only name what came, changed or went (TraceListDelta). SHADPS4_BLOODBORNE_TRACE=0 turns it off.
+// only name what came, changed or went (TraceListDelta).
 // 2: the world log's records. 3: the game's packets.
 constexpr int CoopTraceVersion = 3;
 constexpr std::size_t TraceBodyCap = 8 * 1024;

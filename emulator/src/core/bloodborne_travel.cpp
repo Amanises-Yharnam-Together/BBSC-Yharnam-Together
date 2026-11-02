@@ -1923,8 +1923,10 @@ void KeepOwnedWeaponFlagsOwn() {
 namespace Coop {
 
 void TickPlayersOnThisMap() {
-    TimeTickStep("LogItemModuleChecks", LogItemModuleChecks);
-    TimeTickStep("LogItemButtonAndMapItems", LogItemButtonAndMapItems);
+    if (CoopTraceOn()) {
+        TimeTickStep("LogItemModuleChecks", LogItemModuleChecks);
+        TimeTickStep("LogItemButtonAndMapItems", LogItemButtonAndMapItems);
+    }
     TimeTickStep("KeepGuestFullHp", KeepGuestFullHp);
     TimeTickStep("PolishMultiplayerUi", PolishMultiplayerUi);
     const bool in_session = InPartySession();
@@ -1970,7 +1972,9 @@ void TickPlayersOnThisMap() {
     TimeTickStep("TickTrades", TickTrades);
     TimeTickStep("FinishWaitingJoins", [&] { FinishWaitingJoins(in_session); });
     TimeTickStep("ResendOwnDataOnChange", [&] { ResendOwnDataOnChange(in_session); });
-    TimeTickStep("LogMemberDataChanges", [&] { LogMemberDataChanges(in_session); });
+    if (CoopTraceOn()) {
+        TimeTickStep("LogMemberDataChanges", [&] { LogMemberDataChanges(in_session); });
+    }
     TimeTickStep("GiveEncounterInsight", [&] { GiveEncounterInsight(in_session); });
     TimeTickStep("KeepImpurityBonus", [&] { KeepImpurityBonus(in_session); });
     // Whether this character has been to the Hunter's Dream: its own world has the first visit's

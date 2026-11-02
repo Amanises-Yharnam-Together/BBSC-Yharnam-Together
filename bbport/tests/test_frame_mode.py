@@ -1,7 +1,9 @@
 """run.py's frame rate mode: the in-game FPS limit (bbport.ini fps_limit) needs the unlocked mode."""
 from paths import ROOT
 import importlib.util
+import tempfile
 import unittest
+from pathlib import Path
 
 spec = importlib.util.spec_from_file_location('bbport_run', ROOT / 'run.py')
 run = importlib.util.module_from_spec(spec)
@@ -28,6 +30,27 @@ class FramePacingTests(unittest.TestCase):
         run.frame_pacing(env, '30')
         self.assertEqual(env['BB_VBLANK_HZ'], '120')
         self.assertNotIn('BB_AUTO_VBLANK', env)
+
+
+class CoopTraceSettingTests(unittest.TestCase):
+    """A player's game runs without the co-op trace; bbport.ini turns it on for a bug report."""
+
+    def trace_with(self, ini_text, env):
+        with tempfile.TemporaryDirectory() as folder:
+            ini = Path(folder) / 'bbport.ini'
+            ini.write_text(ini_text, encoding='utf-8')
+            run.coop_trace(env, ini)
+        return env.get('BB_COOP_TRACE')
+
+    def test_off_unless_asked_for(self):
+        self.assertIsNone(self.trace_with('fov=43\n', {}))
+        self.assertIsNone(self.trace_with('coop_trace=0\n', {}))
+
+    def test_the_ini_turns_it_on(self):
+        self.assertEqual(self.trace_with('coop_trace=1\n', {}), '1')
+
+    def test_a_setting_given_at_the_start_stays(self):
+        self.assertEqual(self.trace_with('coop_trace=1\n', {'BB_COOP_TRACE': '0'}), '0')
 
 
 class FrameModeTests(unittest.TestCase):

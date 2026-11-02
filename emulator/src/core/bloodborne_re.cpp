@@ -3,6 +3,7 @@
 
 #include "core/bloodborne_compass.h"
 #include "core/bloodborne_crash_dump.h"
+#include "core/bloodborne_memory_window.h"
 #include "core/bloodborne_party.h"
 #include "core/bloodborne_re.h"
 #include "core/bloodborne_re_internal.h"
@@ -73,6 +74,7 @@ namespace Coop {
 namespace {
 
 thread_local u64 memory_checks_here = 0;
+thread_local MemoryWindows memory_windows;
 
 } // namespace
 
@@ -81,22 +83,36 @@ u64 MemoryChecksOnThisThread() {
 }
 
 bool HasMemoryAccess(u64 address, size_t size, MemoryProt required) {
-    ++memory_checks_here;
     if (size == 0 || address > std::numeric_limits<u64>::max() - size) {
         return false;
     }
 
     auto* memory = Memory::Instance();
-    if (memory == nullptr || !memory->IsValidMapping(address, size)) {
+    if (memory == nullptr) {
+        return false;
+    }
+    const u64 generation = memory->MappingGeneration();
+    const u32 required_bits = static_cast<u32>(required);
+    if (memory_windows.Covers(generation, address, size, required_bits)) {
+        return true;
+    }
+    ++memory_checks_here;
+    if (!memory->IsValidMapping(address, size)) {
         return false;
     }
 
     void* mapping_start{};
     void* mapping_end{};
     u32 protection{};
-    const u32 required_bits = static_cast<u32>(required);
-    return memory->QueryProtection(address, &mapping_start, &mapping_end, &protection) == 0 &&
-           (protection & required_bits) == required_bits &&
+    bool guest = false;
+    if (memory->QueryProtection(address, &mapping_start, &mapping_end, &protection, &guest) != 0) {
+        return false;
+    }
+    if (guest) {
+        memory_windows.Note(generation, reinterpret_cast<u64>(mapping_start),
+                            reinterpret_cast<u64>(mapping_end), protection);
+    }
+    return (protection & required_bits) == required_bits &&
            address >= reinterpret_cast<u64>(mapping_start) &&
            address + size <= reinterpret_cast<u64>(mapping_end);
 }
@@ -1079,6 +1095,49 @@ TickStepTimer::~TickStepTimer() {
     NoteTickSpike(name, NanosecondsSince(started), MemoryChecksOnThisThread() - checks);
 }
 
+namespace {
+
+OffMainSwitches& OffMainParts() {
+    static OffMainSwitches& parts = *new OffMainSwitches{[] {
+        const char* setting = std::getenv("BB_COOP_OFFMAIN");
+        return setting == nullptr || std::string_view{setting} != "0";
+    }()};
+    return parts;
+}
+
+// user/log/coop-offmain.txt, read while the game runs (see OffMainSwitches).
+void ReadOffMainFile() {
+    static const std::filesystem::path path =
+        Common::FS::GetUserPath(Common::FS::PathType::LogDir) / "coop-offmain.txt";
+    static std::string last;
+    std::ifstream file{path, std::ios::binary};
+    if (!file) {
+        return;
+    }
+    std::string text{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+    if (text != last) {
+        OffMainParts().Apply(text);
+        LOG_INFO(Debug, "Co-op worker: switches changed: {}", text);
+        last = std::move(text);
+    }
+}
+
+} // namespace
+
+bool OffMainOn(OffMainPart part) {
+    return OffMainParts().On(part);
+}
+
+CoopWorker& CoopOffMain() {
+    // Never destroyed, as the trace's writer: the game ends with TerminateProcess.
+    static CoopWorker& worker = *new CoopWorker{[] {
+                                                    Common::SetCurrentThreadName("CoopWorker");
+                                                    LowerThisThreadPriority();
+                                                },
+                                                ReadOffMainFile};
+    return worker;
+}
+
 void ReportCoopTime(s64 now_ms) {
     // A warning, so the port's console shows it beside its Perf lines.
     if (const auto line = coop_time.Report(now_ms)) {
@@ -1097,9 +1156,18 @@ void TimeTickPart(std::string_view name, Part&& part) {
     part();
 }
 
+// A part that only says what it sees, for a bug report: it runs with the trace (BB_COOP_TRACE=1).
+template <typename Part>
+void TimeTracePart(std::string_view name, Part&& part) {
+    if (CoopTraceOn()) {
+        TimeTickPart(name, std::forward<Part>(part));
+    }
+}
+
 } // namespace
 
 void TickPartyController() {
+    TimeTickPart("OffMainApply", [] { CoopOffMain().ApplyPending(); });
     TimeTickPart("NoteGameThreadTick", NoteGameThreadTick);
     TimeTickPart("TickPlace", TickPlace);
     TimeTickPart("TickAutoplay", TickAutoplay);
@@ -1108,25 +1176,25 @@ void TickPartyController() {
     TimeTickPart("TickHostRules", TickHostRules);
     TimeTickPart("TickMapScreen", TickMapScreen);
     TimeTickPart("CheckAutoplayWatch", CheckAutoplayWatch);
-    TimeTickPart("LogBossFightBullets", LogBossFightBullets);
-    TimeTickPart("LogJoinTaskChanges", LogJoinTaskChanges);
+    TimeTracePart("LogBossFightBullets", LogBossFightBullets);
+    TimeTracePart("LogJoinTaskChanges", LogJoinTaskChanges);
     TimeTickPart("WatchSummonJoin", WatchSummonJoin);
     TimeTickPart("KeepGuestBloodstainMark", KeepGuestBloodstainMark);
     TimeTickPart("ShowGuestBloodstain", ShowGuestBloodstain);
-    TimeTickPart("LogBloodstainStateChanges", LogBloodstainStateChanges);
+    TimeTracePart("LogBloodstainStateChanges", LogBloodstainStateChanges);
     TimeTickPart("LogMapChanges", LogMapChanges);
-    TimeTickPart("LogLocalEffectChanges", LogLocalEffectChanges);
+    TimeTracePart("LogLocalEffectChanges", LogLocalEffectChanges);
     if (party_controller) {
-        TimeTickPart("LogActionBlockingState", LogActionBlockingState);
+        TimeTracePart("LogActionBlockingState", LogActionBlockingState);
         TimeTickPart("KeepBossHpInStep", KeepBossHpInStep);
-        TimeTickPart("LogNearbyEnemyControl", LogNearbyEnemyControl);
-        TimeTickPart("LogEnemyTargets", LogEnemyTargets);
+        TimeTracePart("LogNearbyEnemyControl", LogNearbyEnemyControl);
+        TimeTracePart("LogEnemyTargets", LogEnemyTargets);
         TimeTickPart("ClearStaleDeathMarks", ClearStaleDeathMarks);
-        TimeTickPart("LogJoinTasksOnChange", LogJoinTasksOnChange);
+        TimeTracePart("LogJoinTasksOnChange", LogJoinTasksOnChange);
         TimeTickPart("ReconcileMemberPresence", ReconcileMemberPresence);
-        TimeTickPart("LogUnsharedNearbyCharacters", LogUnsharedNearbyCharacters);
+        TimeTracePart("LogUnsharedNearbyCharacters", LogUnsharedNearbyCharacters);
     }
-    TimeTickPart("LogOtherPlayersChanges", LogOtherPlayersChanges);
+    TimeTracePart("LogOtherPlayersChanges", LogOtherPlayersChanges);
     TimeTickPart("ObserveLocalAliveState", ObserveLocalAliveState);
     {
         const auto started = std::chrono::steady_clock::now();
