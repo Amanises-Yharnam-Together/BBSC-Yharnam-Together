@@ -81,6 +81,17 @@ TEST(EnemyOwner, TheOwnerRunsTheAiAFollowerTheNetworkController) {
     EXPECT_EQ(EnemyOwnershipWord(EnemyRole::Unknown), std::nullopt);
 }
 
+// Rig party-death 2026-11-02: a guest that took the team's host role, then the enemies, stopped
+// forcing its words; its game, the old host's client, left them negative and the other player's
+// hits fell on enemies nobody ran.
+TEST(EnemyOwner, OnlyAGameThatHostedFromTheStartKeepsItsOwnWords) {
+    EXPECT_TRUE(GameKeepsOwnerWords(EnemyRole::Owner, false, false));
+    EXPECT_FALSE(GameKeepsOwnerWords(EnemyRole::Owner, true, false));
+    EXPECT_FALSE(GameKeepsOwnerWords(EnemyRole::Owner, false, true));
+    EXPECT_FALSE(GameKeepsOwnerWords(EnemyRole::Follower, false, false));
+    EXPECT_FALSE(GameKeepsOwnerWords(EnemyRole::Unknown, false, false));
+}
+
 // Playtest 2026-10-18: krolebord was levelling up at the Doll when the Dream's owner changed; the
 // Doll went to the new owner's game in the middle of the talk (and to where she stood there, 16 m
 // away) and he stayed kneeling for good. The Doll runs in each player's own game.

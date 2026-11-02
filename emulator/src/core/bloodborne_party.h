@@ -3015,6 +3015,12 @@ std::optional<s32> EnemySyncState(EnemyRole role, s32 state);
 // The state the hit on an enemy (0x01A29E40) sees instead: a host that follows sends its hits.
 std::optional<s32> EnemyHitState(EnemyRole role, s32 state);
 std::optional<u16> EnemyOwnershipWord(EnemyRole role);
+// Whether the owner's ownership words are left to its game: a game that hosted from the start
+// puts them back itself every frame (rig 2026-10-14). A guest does not, nor does a guest that
+// took the team's host role in play: its game is the old host's client underneath, its words
+// stay negative and nobody runs the map (rig party-death 2026-11-02: the other player's hits,
+// sent to this owner, fell on enemies it did not run).
+bool GameKeepsOwnerWords(EnemyRole role, bool guest_role, bool took_over_team);
 // The Doll (m21_00 entity 2100700, 0x10000001 in the Dream) stays in each player's own game
 // whatever its role on the map (Kaniel 2026-10-18: the Doll only): handed over in the middle of a
 // level-up, she went to where the new owner's copy stood (16 m away) and the talk never ended

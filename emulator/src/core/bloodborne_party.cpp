@@ -4526,6 +4526,10 @@ std::optional<u16> EnemyOwnershipWord(EnemyRole role) {
     return std::nullopt;
 }
 
+bool GameKeepsOwnerWords(EnemyRole role, bool guest_role, bool took_over_team) {
+    return role == EnemyRole::Owner && !guest_role && !took_over_team;
+}
+
 bool ChangesHandsWithTheMap(s32 entity) {
     return entity != HuntersDreamDoll;
 }

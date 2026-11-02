@@ -1428,7 +1428,8 @@ void TickEnemyOwner(bool in_session, u32 map) {
     }
     // The session's host runs its map's enemies the game's own way: its game puts its own words
     // back every frame (rig 2026-10-14). Phase 8: no guest runs one at any distance.
-    if (!wanted || world < 0x10000 || (role == EnemyRole::Owner && !IsPartyGuestRole())) {
+    if (!wanted || world < 0x10000 ||
+        GameKeepsOwnerWords(role, IsPartyGuestRole(), TeamHostTookOver())) {
         return;
     }
     size_t changed = 0;
