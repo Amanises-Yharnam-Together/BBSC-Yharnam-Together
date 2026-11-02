@@ -866,8 +866,7 @@ SUITES = {
                                "sync saw-back"],
                      "host": ["sync saw-back"]},
                     expect={"guest": [r"showed the guest's own bloodstain \([1-9]\d* echoes\)"]},
-                    known_bug="after a wipe and a restart the guest is not shown its own "
-                              "bloodstain (rig 2026-10-15; after a give-up it is)",
+                    # known_bug dropped (rig 2026-11-02): shown once the guest held echoes.
                     allow=CRASH_CLEANUP),
             chapter("down-alone", "with the host in the Dream nobody else is on the guest's map: "
                                   "its lethal fall is a real death that reloads the map",
@@ -892,7 +891,10 @@ SUITES = {
             chapter("down-session-lost", "the guest is down when the host's game dies: its down "
                                          "ends in a death a few seconds later, not a kneel with no "
                                          "banner (the review, PR #65), and they join again",
-                    {"guest": ["godmode off", *GUEST_FALL, "wait-vital down 30", "sync dsl-down",
+                    # wait 15: right after down-alone's travel the fall was no down (rig
+                    # 2026-11-02: the map still set up, 3 s after the load).
+                    {"guest": ["wait 15", "godmode off", *GUEST_FALL, "wait-vital down 30",
+                               "sync dsl-down",
                                "wait-vital dead 60", "wait-vital up 120", "godmode",
                                "wait-session 2 480", "sync dsl-back", "expect-session 2"],
                      "host": ["wait-member-vital down 120", "sync dsl-down", RESTART, START,
