@@ -101,7 +101,6 @@ LONG = {
     "echoes-apart": "an 80 s wait",
     "team-world": "a 60 s wait, measured 472 s",
     "team-world-lamps": "two team loads for the guest, a trip and a 20 s wait",
-    "trade-menus": "a 40 s wait",
     "pickup-after-reload": "an 80 s wait",
     "dead-before-session": "a 60 s wait",
     "border-fight": "a 60 s wait",
