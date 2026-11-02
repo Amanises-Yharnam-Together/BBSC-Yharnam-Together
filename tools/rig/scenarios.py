@@ -392,22 +392,6 @@ SCENARIOS = {
         "expect": {"host": [r"Bloodborne autoplay snapshot: map 0x"]},
         "timeout": 300,
     },
-    "join": {
-        "about": "host and guest join each other by themselves (the port's team without a bell, "
-                 "shadPS4's bells on their own); the guest keeps its full HP and its own level",
-        "roles": {
-            "host": [START, "wait-session 2 300", "wait 10", "snapshot", "expect-session 2"],
-            "guest": [START, "note-max-hp", "wait-session 2 300", "wait 10", "snapshot",
-                      "expect-session 2", "expect-max-hp self == noted",
-                      f"expect-effect {LEVEL_SYNC} 0"],
-        },
-        "expect": {
-            "host": [HOST_JOINS],
-            "guest": [GUEST_JOINS],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 300,
-    },
     "fps-pace": {
         "about": "Kaniel 2026-10-22, the unlocked frame rate online: host and guest together for 40 "
                  "s with the native packet trace (SHADPS4_BLOODBORNE_PACKET_TRACE=1), the host "
@@ -484,180 +468,7 @@ SCENARIOS = {
                              r"enemy 10000001 jumped"]},
         "timeout": 300,
     },
-    "trip": {
-        "about": "the host goes to the Hunter's Dream and back; the session holds and the players "
-                 "are re-created by name",
-        "roles": {
-            "host": [START, "wait-session 2 300", "wait 10", f"travel {HUNTERS_DREAM}", "wait 5",
-                     f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 120", "wait 15", "snapshot",
-                     "expect-session 2"],
-            "guest": [START, "wait-session 2 300", "wait 30", "wait-members 2 240", "wait 25",
-                      "snapshot", "expect-session 2"],
-        },
-        "expect": {
-            "host": [r"party trip started", r"re-creating rig_guest on map 0x18010000"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 300,
-    },
-    "kill-apart": {
-        "about": "the host kills an enemy while the guest is in the Dream; the guest's copy of it "
-                 "is hidden when it comes back",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 45", *attack(ENEMY),
-                     "wait 5", "wait-members 2 240", "wait 20", "snapshot"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 10", f"travel {HUNTERS_DREAM}",
-                      "wait 40", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240", "wait 25",
-                      "snapshot"],
-        },
-        "expect": {
-            "host": [r"kill board gets 1 kills"],
-            "guest": [r"(?:hid 1 enemies a member killed on map 0x18010000|0x18010000, 1 near died)"],
-        },
-        "forbid": {"host": only_kill(ENEMY)},
-        "timeout": 720,
-    },
-    "trade": {
-        "about": "trading on the server (the port with the server world): "
-                 "the host gives the guest 4 Blood Vials, swaps 3000 Blood Echoes for 5 Quicksilver "
-                 "Bullets, then offers 2 vials the guest declines (they come back)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 10",
-                     "trade-stock vials 10", "trade-stock bullets 0", "trade-stock echoes 5000",
-                     "wait 5",
-                     "trade-offer vials 4 120", "expect-held vials 6", "wait-trade accepted 120",
-                     "trade-offer echoes 3000 for bullets 5 60", "expect-held echoes 2000",
-                     "expect-held bullets 5 60",
-                     "trade-offer vials 2 60", "expect-held vials 4", "wait-trade declined 120",
-                     "expect-held vials 6 30", "wait-trade returned 10"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 10",
-                      "trade-stock vials 0", "trade-stock bullets 10", "trade-stock echoes 0",
-                      "trade-answer yes 180", "expect-held vials 4 30", "wait-trade received 10",
-                      "trade-answer yes 120", "expect-held echoes 3000 30", "expect-held bullets 5",
-                      "trade-answer no 120", "wait 10", "expect-held vials 4"],
-        },
-        "expect": {
-            "host": [r"Bloodborne trade: offered .* 4 Blood Vials",
-                     r"Bloodborne trade: added 5 Quicksilver Bullets",
-                     r"Bloodborne trade: added 2 Blood Vials"],
-            "guest": [r"Bloodborne trade: added 4 Blood Vials",
-                      r"Bloodborne trade: added 3,000 Blood Echoes",
-                      r"Bloodborne trade: declined offer"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 300,
-    },
-    "trade-any": {
-        "about": "trading any item (Kaniel 2026-10-15): the host gives the guest a key item (Oedon "
-                 "Tomb Key), a weapon with a blood gem in it (Hunter Axe +5) and armor (Charred "
-                 "Hunter Garb) in one offer; the guest gets each, the weapon with its gem",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 10",
-                     "trade-stock goods:4000 1", "trade-stock weapon:5000500 1",
-                     "trade-socket weapon:5000500 gem:1000000 13101",
-                     "trade-stock armor:11000 1", "wait 5",
-                     "trade-offer goods:4000 1 weapon:5000500 1 armor:11000 1 120",
-                     "expect-held goods:4000 0", "expect-held weapon:5000500 0",
-                     "expect-held armor:11000 0", "wait-trade accepted 120"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 10",
-                      "trade-stock goods:4000 0", "trade-stock weapon:5000500 0",
-                      "trade-stock armor:11000 0",
-                      "trade-answer yes 180", "expect-held goods:4000 1 30",
-                      "expect-held weapon:5000500 1 30",
-                      "expect-socketed weapon:5000500 gem:1000000 13101",
-                      "expect-held armor:11000 1", "wait-trade received 10"],
-        },
-        "expect": {
-            "host": [r"Bloodborne trade: offered .* Oedon Tomb Key, Hunter Axe \+5, Charred "
-                     r"Hunter Garb"],
-            "guest": [r"Bloodborne trade: added Oedon Tomb Key, Hunter Axe \+5, Charred Hunter "
-                      r"Garb",
-                      # A trade's grant keeps the item-received popup (key-items-silent's are
-                      # silent).
-                      r"item-get popup goods 4000 x 1 queued"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 300,
-    },
-    "trade-menus": {
-        "about": "trading's menus (drawn): the guest answers the "
-                 "host's offer in the game's yes/no box and the host sees the game's box saying it "
-                 "was accepted; then the host gives 2 vials through the inventory's Give row and the "
-                 "game's quantity picker, and 2,000 Blood Echoes through Give Blood Echoes; the "
-                 "guest accepts both",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 10",
-                     "trade-stock vials 10", "trade-stock bullets 10", "trade-stock echoes 2000",
-                     "wait 5", "trade-offer vials 4 120", "wait-trade accepted 120", "wait 3",
-                     "shot host-notice", "press cross", "wait 2",
-                     # Blood Vial (the first row) -> Give -> 2 in the picker.
-                     "press options", "wait 2", "press cross", "wait 2", "shot host-inventory",
-                     "press cross", "wait 2", "press down", "wait 1", "press down", "wait 1",
-                     "shot host-commands-give", "press cross", "wait 2", "shot host-quantity",
-                     "press up", "wait 1", "press left", "wait 1", "shot host-quantity-2",
-                     "press cross", "wait 2",
-                     "expect-held vials 4", "shot host-offered",
-                     # Blood Vial -> Give Blood Echoes -> the picker's top (all of them).
-                     "press cross", "wait 2", "press down", "wait 1", "press down", "wait 1",
-                     "press down", "wait 1", "press cross", "wait 2", "shot host-echoes",
-                     "press down", "wait 1", "press left", "wait 1", "shot host-echoes-max",
-                     "press cross", "wait 2",
-                     "expect-held echoes 0",
-                     "press circle", "wait 1", "press circle", "wait 1", "press circle",
-                     "wait 1", "press circle", "wait 40", "shot host-end"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 10",
-                      "trade-stock vials 0", "trade-stock echoes 0", "wait 40",
-                      "shot guest-ask", "press left", "wait 1", "shot guest-ask-yes", "press cross",
-                      "wait 3", "shot guest-received", "press cross", "expect-held vials 4 30",
-                      "wait 30", "shot guest-ask-2", "press left", "wait 1", "press cross",
-                      "wait 3", "shot guest-received-2", "expect-held vials 6 30",
-                      "wait 10", "shot guest-ask-3", "press left", "wait 1", "press cross",
-                      "wait 3", "shot guest-received-3", "expect-held echoes 2000 30"],
-        },
-        "expect": {
-            "host": [r"Bloodborne trade: offered .* 4 Blood Vials",
-                     r"Bloodborne trade: offered .* 2 Blood Vials",
-                     r"Bloodborne trade: offered .* 2,000 Blood Echoes"],
-            "guest": [r"Bloodborne trade: accepted offer", r"Bloodborne trade: added 4 Blood Vials",
-                      r"Bloodborne trade: added 2,000 Blood Echoes"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 900,
-    },
-    "trade-echoes": {
-        "about": "giving Blood Echoes through the menus (Kaniel 2026-10-16: a clearer soul trade): "
-                 "the host holding 54,321 opens Give Blood Echoes (the last row of any item's "
-                 "commands); the picker opens on 1,000 and steps by 1,000, so Up twice is 3,000; "
-                 "then Down from 1,000 wraps to all the rest; the guest accepts both",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 10",
-                     "trade-stock vials 10", "trade-stock bullets 0", "trade-stock echoes 54321",
-                     "wait 5", "press options", "wait 2", "press cross", "wait 2",
-                     # The first row's commands -> Up wraps to Give Blood Echoes -> 3,000 -> Yes.
-                     "press cross", "wait 2", "press up", "wait 1", "press cross", "wait 2",
-                     "press up", "wait 1", "press up", "wait 1", "press left", "wait 1",
-                     "press cross", "wait 3", "expect-held echoes 51321",
-                     # The menu closes after an offer; the game's OK box says it was accepted.
-                     "wait-trade accepted 60", "wait 2", "press cross", "wait 2",
-                     # Again: Down from the first step is all of them.
-                     "press options", "wait 2", "press cross", "wait 2",
-                     "press cross", "wait 2", "press up", "wait 1", "press cross", "wait 2",
-                     "press down", "wait 1", "press left", "wait 1", "press cross", "wait 3",
-                     "expect-held echoes 0", "wait 5"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 10",
-                      "trade-stock echoes 0", "trade-answer yes 180",
-                      "expect-held echoes 3000 30", "trade-answer yes 120",
-                      "expect-held echoes 54321 30", "wait-trade received 10"],
-        },
-        "expect": {
-            "host": [r"Bloodborne trade: offered .* 3,000 Blood Echoes",
-                     r"Bloodborne trade: offered .* 51,321 Blood Echoes"],
-            "guest": [r"Bloodborne trade: added 3,000 Blood Echoes",
-                      r"Bloodborne trade: added 51,321 Blood Echoes"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 300,
-    },
+    # trade, trade-any, trade-menus, trade-echoes: the trade suite (suites.py, rig 2026-11-02).
     "server-restart": {
         "about": "phase 3, the party's world on the server (the port): the host kills an enemy while the guest is in the Dream, shadNet restarts "
                  "mid-session, the host kills another; the guest coming back finds both dead (a "
@@ -704,38 +515,6 @@ SCENARIOS = {
         },
         "syncs": {"guest-back": {"chapter": "story-npc-trips", "roles": ["host", "guest"]}},
         "forbid": {"host": [GILBERT_SEEN] + SESSION_HOLDS, "guest": [GILBERT_SEEN] + SESSION_HOLDS},
-        "timeout": 300,
-    },
-    "dog": {
-        "about": "Kaniel's dog: the guest kills an enemy while the host is in the Dream; the host "
-                 "coming back finds it dead, not alive again",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 10", f"travel {HUNTERS_DREAM}",
-                     "wait 40", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240", "wait 25",
-                     "snapshot"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 45", *attack(ENEMY),
-                      "wait 5", "wait-members 2 240", "wait 20", "snapshot"],
-        },
-        "expect": {
-            "guest": [r"kill board gets 1 kills"],
-            "host": [r"(?:hid 1 enemies a member killed on map 0x18010000|0x18010000, 1 near died)"],
-        },
-        "forbid": {"guest": only_kill(ENEMY)},
-        "timeout": 720,
-    },
-    "story-hidden": {
-        "about": "a character the host's story hides (Iosefka) stays hidden on the guest after "
-                 "its join: the guest hides and shows every character as the host does",
-        "roles": {
-            "host": [START, "godmode", "census 80", "wait-session 2 300", "wait 20", "census 80",
-                     f"expect-hidden {STORY_HIDDEN} 1"],
-            "guest": [START, "godmode", "census 80", "wait-session 2 300", "wait 20", "census 80",
-                      f"expect-hidden {STORY_HIDDEN} 1 30", "wait 10",
-                      f"expect-hidden {STORY_HIDDEN} 1"],
-        },
-        "expect": {"guest": [rf"characters as the host has them on map 0x18010000: hid \d+, "
-                             rf"showed \d+:.* {STORY_HIDDEN}"]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 300,
     },
     "story-switched-on": {
@@ -822,37 +601,8 @@ SCENARIOS = {
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 600,
     },
-    "phantom-look": {
-        "about": "how a guest is drawn (Kaniel 2026-10-11: no blue phantom tint on guests): "
-                 "after the join each player dumps its own character and model and takes a "
-                 "picture; the guest's own character shows the tint",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 20", "dump self",
-                     "shot host-self", "wait 30"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 20", "dump self",
-                      "shot guest-self", "dump nearest", "wait 10"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 300,
-    },
     # Kaniel 2026-10-14: with the host far away on the same map, the enemies beside a guest stood
     # still and did not attack (the host's game runs the map's enemies, and woke only its own).
-    "guest-alone-mobs": {
-        "about": "the host far away on the same map (by Iosefka's door), the guest walks up to an "
-                 "enemy alone: it comes for the guest (moves) and hits it",
-        # Rig 2026-10-29: without godmode its hit put the guest down, the enemies forgot the
-        # downed player (party death) and it walked home before the last census, about 1 in 3.
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", f"teleport {IOSEFKA_WAIT}",
-                     "wait 75", "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 15", f"census 40",
-                      f"teleport {GUEST_ALONE_SPOT}", "wait 3", "census 40", "wait 25",
-                      "census 40", "expect-session 2"],
-        },
-        "moves": {"guest": ENEMY},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 600,
-    },
     # Kaniel 2026-10-14: the guest's game runs an enemy by it while the host is far; its hits
     # still meet the host's HP (the owner applies them and sends the HP back).
     "guest-alone-hits": {
@@ -958,36 +708,6 @@ SCENARIOS = {
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 600,
     },
-    "hp-together": {
-        "about": "both players hit one enemy in one world (after the join), then the host goes "
-                 "to the Dream and back, then the guest, and both hit it again from their own "
-                 "worlds; each time both games show the same HP with both players' damage in it, "
-                 "and at the end each sees the other (Kaniel 2026-10-10: HP bars apart after "
-                 "trips; host and guest unseen after the host's early trip). The guest hits once "
-                 "the second time: its weapon kills the enemy in two more",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 30", "census 40",
-                     f"hit {ENEMY} 30", "wait 1", f"hit {ENEMY} 30", "wait 12", "census 40",
-                     "wait 10", f"travel {HUNTERS_DREAM}", "wait 5", f"travel {CENTRAL_YHARNAM_LAMP}",
-                     "wait-members 2 240", "wait 70", "census 40", f"hit {ENEMY} 30", "wait 1",
-                     f"hit {ENEMY} 30", "wait 8", "census 40", "wait 4", "census 40",
-                     "expect-others-near 1 40", "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 30", "census 40",
-                      f"hit {ENEMY} 30", "wait 1", f"hit {ENEMY} 30", "wait 12", "census 40",
-                      "wait 25", "wait-members 2 240", "wait 5", f"travel {HUNTERS_DREAM}",
-                      "wait 5", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240", "wait 15",
-                      "census 40", f"hit {ENEMY} 30", "wait 46",
-                      "census 40", "wait 4", "census 40", "expect-others-near 1 40",
-                      "expect-session 2"],
-        },
-        # The second census of each (after the hits in one world), and the last.
-        "same_hp": ENEMY,
-        "same_hp_census": [1],
-        "expect": {"host": [HP_SHARED],
-                   "guest": [HP_SHARED]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 900,
-    },
     "early-trip": {
         "about": "the host goes to the Dream and back while the guest is still loading in: back "
                  "on the map the host asks the guest for its character data and both see each "
@@ -1008,39 +728,6 @@ SCENARIOS = {
                    "guest": [r"stats or face changed; sent its data"]},
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 800,
-    },
-    "ward-npc": {
-        "about": "both players by the Cathedral Ward lamp (Oedon Chapel): the host hurts the NPC "
-                 "there and the guest's copy follows (the game sends no NPC HP), then the guest "
-                 "hits it and the host's copy follows; one HP in both games (Kaniel 2026-10-10)",
-        "roles": {
-            "host": [START, f"ensure-map {CATHEDRAL_WARD} {CATHEDRAL_WARD_LAMP}", "godmode",
-                     "wait-session 2 420", "wait 15", f"hurt {WARD_NPC} 600", "wait 40", "census 60", "wait 10", "census 60",
-                     "expect-session 2"],
-            "guest": [START, f"ensure-map {CATHEDRAL_WARD} {CATHEDRAL_WARD_LAMP}", "godmode",
-                      "wait-session 2 420", "wait 25", "census 60",
-                      f"expect-hp {WARD_NPC} <= 600", "peek self 88", f"peek {WARD_NPC} 88",
-                      f"hit {WARD_NPC} 20", "wait 8",
-                      "census 60", "wait 20", "census 60", "expect-session 2"],
-        },
-        "same_hp": WARD_NPC,
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 700,
-    },
-    "hurt-before-join": {
-        "about": "an enemy hurt in the guest's own world before it joins stays whole in the "
-                 "host's: no HP crosses worlds outside a session, and the session forming "
-                 "kills nothing (the dog by the first lamp)",
-        "roles": {
-            "host": [START, "godmode", "wait 25", f"expect-hp {DOG} == 364",
-                     "wait-session 2 300", "wait 30", "census 60", f"expect-hp {DOG} == 364",
-                     "expect-session 2"],
-            "guest": [START, "godmode", f"hurt {DOG} 5", "wait-session 2 300", "wait 30",
-                      "census 60", f"expect-hp {DOG} > 300", "expect-session 2"],
-        },
-        "forbid": {"host": SESSION_HOLDS + [r"Bloodborne echoes: \+\d+"],
-                   "guest": SESSION_HOLDS},
-        "timeout": 300,
     },
     "clinic": {
         "about": "both players by Iosefka's Clinic in the session: what each world shows and "
@@ -1082,35 +769,6 @@ SCENARIOS = {
         },
         "timeout": 300,
     },
-    "guest-flags-stay": {
-        "about": "flags a guest's own world sets in the session stay in it: the host's world "
-                 "does not get them (lamps and boss fogs go over the party's flag board)",
-        "roles": {
-            "host": [START, "godmode", f"expect-flag {OTHER_MAP_FLAG} 0",
-                     f"expect-flag {THIS_MAP_FLAG} 0", "wait-session 2 300", "wait 45",
-                     f"expect-flag {OTHER_MAP_FLAG} 0", f"expect-flag {THIS_MAP_FLAG} 0",
-                     "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 10",
-                      f"set-flag {OTHER_MAP_FLAG} 1", f"set-flag {THIS_MAP_FLAG} 1", "wait 40",
-                      f"expect-flag {OTHER_MAP_FLAG} 1", "expect-session 2"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 600,
-    },
-    "hp-apart": {
-        "about": "after the guest's trip each runs its own copy of the map; the host hurts an "
-                 "enemy and the guest's copy follows",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 55", "wait-members 2 240",
-                     "wait 20", f"hurt {ENEMY} 200", "wait 12", "snapshot",
-                     f"expect-hp {ENEMY} <= 200"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 10", f"travel {HUNTERS_DREAM}",
-                      "wait 10", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240", "wait 45",
-                      "snapshot", f"expect-hp {ENEMY} <= 200"],
-        },
-        "expect": {"guest": [HP_LOWERED]},
-        "timeout": 720,
-    },
     "guest-drops": {
         "about": "Kaniel 2026-10-16: the enemies the host kills drop in the guest's world with a "
                  "handle each (krolebord found every kill's drop on the first wolf: one pickup "
@@ -1125,41 +783,6 @@ SCENARIOS = {
         "forbid": {"host": SESSION_HOLDS,
                    "guest": SESSION_HOLDS + [r"0x38: [1-9]\d* items, \d+ usable, 0 with handle"]},
         "timeout": 600,
-    },
-    "boss-kill": {
-        "about": "the Cleric Beast dies in the host's world with the guest there; the session "
-                 "holds (no leave after the boss-clear script)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 15", f"kill {CLERIC_BEAST}",
-                     f"wait-flag {CLERIC_BEAST_DEFEATED} 1 60", "wait 40", "snapshot",
-                     "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 90", "snapshot",
-                      "expect-session 2"],
-        },
-        "expect": {"host": [r"flags in session: set [^|]*\b4000\b"]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 600,
-    },
-    "boss-refight": {
-        "about": "the host fights Father Gascoigne, whom the guest beat long ago in its own "
-                 "world: he stays in the host's world (the guest's old kill must not hide him) "
-                 "and dies there with the guest in the session",
-        "roles": {
-            "host": [START, f"set-flag {GASCOIGNE_DEFEATED} 0", f"travel {CENTRAL_YHARNAM_LAMP}",
-                     "godmode", "wait-session 2 300", "wait 20", f"expect-hp {GASCOIGNE} > 0",
-                     f"kill {GASCOIGNE}", f"wait-flag {GASCOIGNE_DEFEATED} 1 60", "wait 20",
-                     "snapshot", "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 90", "snapshot",
-                      "expect-session 2"],
-        },
-        # Before the fight nothing hides Gascoigne; once the host kills him the guest sees him die
-        # in the session and posts that, which is fine.
-        "forbid": {
-            "host": SESSION_HOLDS + [r"(?s)hid \d+ enemies a member killed.*autoplay: kill "
-                                     r"0x1001409c"],
-            "guest": SESSION_HOLDS,
-        },
-        "timeout": 720,
     },
     "gascoigne-together": {
         "about": "neither player has beaten Father Gascoigne; the guest hurts him in the session and "
@@ -1235,25 +858,6 @@ SCENARIOS = {
         "expect": {"host": [r"Bloodborne save backups: every 1 min", r"Bloodborne save backup: "]},
         "timeout": 300,
     },
-    "boss-putdown": {
-        "about": "the reverse of boss-refight (Kaniel 2026-10-11, Prey Slaughtered after a "
-                 "teleport): the host beat Father Gascoigne long ago, the guest has not; after "
-                 "the host's trip its world puts him down again, and the guest's own boss event "
-                 "must not take that for its kill (no banner, echoes, trophy or defeated flag)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 20", f"travel {HUNTERS_DREAM}",
-                     "wait 5", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240", "wait 60",
-                     f"expect-flag {GASCOIGNE_DEFEATED} 1", "expect-session 2"],
-            "guest": [START, f"set-flag {GASCOIGNE_DEFEATED} 0", f"travel {CENTRAL_YHARNAM_LAMP}",
-                      "godmode", f"expect-hp {GASCOIGNE} > 0", "wait-session 2 300", "wait 30",
-                      "wait-members 2 240", "wait 60", f"dump {GASCOIGNE}", "expect-session 2"],
-        },
-        "forbid": {
-            "host": SESSION_HOLDS,
-            "guest": SESSION_HOLDS + [r"sharing trophy 14 ", r"Bloodborne echoes: \+3200 "],
-        },
-        "timeout": 900,
-    },
     "prey-replay": {
         "about": "Kaniel 2026-10-11 (Prey Slaughtered), on the characters each game has now (no saves put back; copy the "
                  "ones to test into rig/port/<role> first): the host waits in the Dream while the "
@@ -1273,18 +877,6 @@ SCENARIOS = {
         },
         "timeout": 900,
     },
-    "lamp-share": {
-        "about": "a lamp the guest lights is lit in the host's world too",
-        "roles": {
-            "host": [START, f"expect-flag {FORBIDDEN_WOODS_LAMP_LIT} 0", "wait-session 2 300",
-                     f"wait-flag {FORBIDDEN_WOODS_LAMP_LIT} 1 90", "snapshot"],
-            # The guest's world loads again 10-20 s after the join; a flag set in the same 3 s
-            # reads as part of that load and is not shared, so the lamp is lit after it.
-            "guest": [START, "wait-session 2 300", "wait 30",
-                      f"set-flag {FORBIDDEN_WOODS_LAMP_LIT} 1", "wait 30", "snapshot"],
-        },
-        "timeout": 300,
-    },
     "door-share": {
         "about": "a door the guest opens on another map (Old Yharnam's gate) is open in the "
                  "host's world too",
@@ -1298,62 +890,6 @@ SCENARIOS = {
                       f"set-flag {OLD_YHARNAM_GATE_DONE} 1", "wait 30", "snapshot"],
         },
         "timeout": 300,
-    },
-    "join-ward": {
-        "about": "joining in Cathedral Ward, whose co-op the guest's own world has not opened",
-        "roles": {
-            "host": [START, f"ensure-map {CATHEDRAL_WARD} {CATHEDRAL_WARD_LAMP}", "godmode",
-                     "wait-session 2 360", "wait 10", "snapshot", "expect-session 2"],
-            "guest": [START, f"ensure-map {CATHEDRAL_WARD} {CATHEDRAL_WARD_LAMP}", "godmode",
-                      "wait-session 2 360", "wait 10", "snapshot", "expect-session 2"],
-        },
-        "expect": {"host": [r"join-anywhere patch"]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 300,
-    },
-    "join-apart": {
-        "about": "joining across maps: the host in Cathedral Ward, the guest in Central Yharnam; "
-                 "the guest joins where it is and the session holds (no kick)",
-        "roles": {
-            "host": [START, f"ensure-map {CATHEDRAL_WARD} {CATHEDRAL_WARD_LAMP}", "godmode",
-                     "wait-session 2 360", "wait 60", "snapshot", "expect-session 2",
-                     f"expect-map {CATHEDRAL_WARD}"],
-            "guest": [START, "godmode", "wait-session 2 360", "wait 60", "snapshot",
-                      "expect-session 2", f"expect-map {CENTRAL_YHARNAM}"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 720,
-    },
-    "join-after-trip": {
-        "about": "a guest that travelled on its own before any session (in its own world) still "
-                 "rings and joins the host on another map",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 420", "wait 30", "snapshot",
-                     "expect-session 2", f"expect-map {CENTRAL_YHARNAM}"],
-            "guest": [START, f"ensure-map {CATHEDRAL_WARD} {CATHEDRAL_WARD_LAMP}", "godmode",
-                      "wait-session 2 420", "wait 30", "snapshot", "expect-session 2",
-                      f"expect-map {CATHEDRAL_WARD}"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 300,
-    },
-    "lone-guest": {
-        "about": "a guest alone on a map runs its enemies, and hands them back when the host comes",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 60",
-                     f"travel {CATHEDRAL_WARD_LAMP}", "wait-members 2 240", "wait 20",
-                     "snapshot"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 10",
-                      f"travel {CATHEDRAL_WARD_LAMP}", "wait-members 2 300", "wait 25",
-                      "snapshot"],
-        },
-        "expect": {
-            "guest": [r"(?:guest alone on map 0x18000000 took over \d+ enemies|"
-                      r"enemy owner: took over \d+ enemies on map 0x18000000)",
-                      r"(?:guest no longer alone; handed back|"
-                      r"enemy owner: this game follows \w+ on map 0x18000000)"],
-        },
-        "timeout": 720,
     },
     "host-arrives-hurt-enemy": {
         "about": "Kaniel's play test 2026-10-18: the guest alone in Cathedral Ward moves an enemy "
@@ -1445,36 +981,6 @@ SCENARIOS = {
         },
         "timeout": 600,
     },
-    "host-death": {
-        "about": "the host dies (goes down and gives up); it gets up without a reload and the "
-                 "session holds",
-        "settings": PARTY_DEATH,
-        "roles": {
-            "host": [START, "wait-session 2 300", "wait 15", *GIVE_UP, "wait 40", "snapshot",
-                     "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait-member-vital down 120",
-                      "wait 60", "snapshot", "expect-session 2"],
-        },
-        "expect": {"host": [r"party death: giving up ends down \d+; dies \(reset=false",
-                            r"live player died in a party session"]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 600,
-    },
-    "guest-death": {
-        "about": "the guest dies (goes down and gives up) in the host's world; it gets up there "
-                 "and the session holds",
-        "settings": PARTY_DEATH,
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait-member-vital down 120",
-                     "wait 60", "snapshot", "expect-session 2"],
-            "guest": [START, "wait-session 2 300", "wait 15", *GIVE_UP, "wait 40", "snapshot",
-                      "expect-session 2"],
-        },
-        "expect": {"guest": [r"party death: giving up ends down \d+; dies \(reset=false",
-                             r"party guest died; revived"]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 600,
-    },
     "guest-death-target": {
         "about": "the guest dies for real (goes down and gives up) and gets up in the host's world; "
                  "its body on the host's game loses the death mark, so the enemies there take it "
@@ -1492,87 +998,6 @@ SCENARIOS = {
                              r"party guest died; revived"]},
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 300,
-    },
-    "host-crash": {
-        "about": "the host's game crashes (the GPU's device lost does that in play); the guest "
-                 "stays where it is and leads the team now (it hosts), and the old host's game "
-                 "comes back as its guest (Kaniel 2026-10-25)",
-        "roles": {
-            "host": [[START, "godmode", "wait-session 2 300", "wait 15", "done"],
-                     [START, "godmode", "wait-session 2 420", "wait 10", "snapshot",
-                      "expect-session 2"]],
-            "guest": [START, "godmode", "wait-session 2 300", "wait-solo 120", "wait 10",
-                      "snapshot", f"expect-map {CENTRAL_YHARNAM}", "wait-session 2 420", "wait 10",
-                      "snapshot", "expect-session 2"],
-        },
-        "expect": {"guest": [LEADS_NOW], "host": [PLAYS_AS_GUEST]},
-        "allow": CRASH_CLEANUP,
-        "timeout": 300,
-    },
-    "guest-crash": {
-        "about": "the guest's game crashes; the host plays on, and they join again once the guest "
-                 "is back (a dead game's sign must not stall the host)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait-solo 120", "wait 10",
-                     "snapshot", f"expect-map {CENTRAL_YHARNAM}", "wait-session 2 420", "wait 10",
-                     "snapshot", "expect-session 2"],
-            "guest": [[START, "godmode", "wait-session 2 300", "wait 15", "done"],
-                      [START, "godmode", "wait-session 2 420", "wait 10", "snapshot",
-                       "expect-session 2"]],
-        },
-        "allow": CRASH_CLEANUP,
-        "timeout": 300,
-    },
-    "resume": {
-        "about": "a guest whose game dies in the host's world comes back where it was (its own "
-                 "save still has it at the lamp it joined from) and joins the host again",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 40", "wait-solo 120",
-                     "wait-session 2 420", "wait 20", "snapshot", "expect-session 2"],
-            "guest": [[START, "godmode", "wait-session 2 300", "wait 10",
-                       f"teleport {AWAY_FROM_LAMP}", "wait 15", "snapshot", "done"],
-                      ["godmode", "wait-session 2 420", "wait 10", "snapshot",
-                       "expect-session 2", f"expect-map {CENTRAL_YHARNAM}"]],
-        },
-        "expect": {"guest": [r"guest resumed at \(-21\d(\.\d+)?, -5\d(\.\d+)?, "
-                             r"17\d(\.\d+)?\) on map 0x18010000"]},
-        "allow": CRASH_CLEANUP,
-        "timeout": 900,
-    },
-    "crash-apart": {
-        "about": "a guest's game dies while it is apart from the host (in the Ward); the host "
-                 "stays in its world (it once went to the title screen) and the guest comes back "
-                 "beside the host (#225, as the crashes suite's crash-apart)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 40", "wait-solo 120",
-                     "wait 30", "snapshot", f"expect-map {CENTRAL_YHARNAM}",
-                     "wait-session 2 420", "wait 20", "snapshot", "expect-session 2"],
-            "guest": [[START, "godmode", "wait-session 2 300", "wait 10",
-                       f"travel {CATHEDRAL_WARD_LAMP}", "wait 25", "snapshot", "done"],
-                      ["godmode", f"wait-map {CENTRAL_YHARNAM} 180", "wait-session 2 420",
-                       "wait 10", "snapshot", "expect-session 2",
-                       f"expect-map {CENTRAL_YHARNAM}"]],
-        },
-        "allow": CRASH_CLEANUP,
-        "timeout": 900,
-    },
-    "host-crash-apart": {
-        "about": "the host's game dies while the guest is apart from it (in the Ward); the guest "
-                 "stays there and leads the team now (it hosts there), and the old host's game "
-                 "comes back as its guest, beside it in the Ward (Kaniel 2026-10-25)",
-        "roles": {
-            "host": [[START, "godmode", "wait-session 2 300", "wait 60", "done"],
-                     [START, "godmode", "wait-session 2 420", "wait 20", "snapshot",
-                      "expect-session 2", f"expect-map {CATHEDRAL_WARD}"]],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 10",
-                      f"travel {CATHEDRAL_WARD_LAMP}", "wait 15", "snapshot",
-                      f"expect-map {CATHEDRAL_WARD}", "wait-solo 180", "wait 10", "snapshot",
-                      f"expect-map {CATHEDRAL_WARD}", "wait-session 2 420", "wait 20",
-                      "snapshot", "expect-session 2", f"expect-map {CATHEDRAL_WARD}"],
-        },
-        "expect": {"guest": [LEADS_NOW], "host": [PLAYS_AS_GUEST]},
-        "allow": CRASH_CLEANUP,
-        "timeout": 1080,
     },
     # Phase 5: the team lobby. The party is no setting: on the title the host creates a team and
     # invites, the guests accept; each one's Continue is its Ready, the host's is the team's Start.
@@ -2115,23 +1540,6 @@ SCENARIOS = {
         },
         "expect": {"guest": [r"autoplay stains: \[compass own[\s\S]*autoplay stains: \[map own"
                              r"[\s\S]*autoplay stains: \[compass own"]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 300,
-    },
-    # The guest's game quits after the give-up and joins again (the join reload).
-    "bloodstain-rejoin": {
-        "about": "a guest gives up by the lamp, its game quits and joins the host again; its own "
-                 "stain is still on its compass and map",
-        "settings": PARTY_DEATH,
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait-member-vital dead 180",
-                     "wait-solo 120", "wait-session 2 420", "wait 30", "wait 20"],
-            "guest": [[START, "wait-session 2 300", "trade-give echoes 500", "wait 15", *GIVE_UP,
-                       "wait-vital up 60", "wait 6", "expect-stains 1 1 30", "wait 5", "done"],
-                      [START, "wait-session 2 420", "wait 15", "expect-stains 1 1 30",
-                       "shot guest-stain-rejoin", "wait 3"]],
-        },
-        "expect": {"guest": [r"autoplay stains: \[compass own"]},
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 300,
     },
@@ -2728,18 +2136,6 @@ SCENARIOS = {
         "allow": CRASH_CLEANUP,
         "timeout": 1500,
     },
-    "join3": {
-        "about": "a party of three: both guests join the host (one bell summons both)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 3 480", "wait 10", "snapshot",
-                     "expect-session 3"],
-            "guest": [START, "godmode", "wait-session 3 480", "wait 10", "snapshot",
-                      "expect-session 3"],
-            "guest2": [START, "godmode", "wait-session 3 480", "wait 10", "snapshot",
-                       "expect-session 3"],
-        },
-        "timeout": 300,
-    },
     # Kaniel 2026-10-15: between two guests, one guest's actions played on the other guest's own
     # character (a pick-up's gesture, a backstab's teleport, levers). The second guest stands
     # still; its census shows where its own character is before and after the first one acts.
@@ -2756,25 +2152,6 @@ SCENARIOS = {
         "stays": {"guest2": 3.0},
         "timeout": 900,
     },
-    # Kaniel 2026-10-15: the host and a guest went to the Hunter's Dream and the second guest still
-    # saw them in Central Yharnam. It sees neither while they are away, both once they are back.
-    "away-unseen3": {
-        "about": "a party of three: the host and the first guest go to the Hunter's Dream; the "
-                 "second guest shows neither of them meanwhile, and both again once they are back",
-        "roles": {
-            "host": [START, "godmode", "wait-session 3 480", "wait 20", f"travel {HUNTERS_DREAM}",
-                     "wait 60", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 3 240", "wait 30",
-                     "expect-session 3"],
-            "guest": [START, "godmode", "wait-session 3 480", "wait 25",
-                      f"travel {HUNTERS_DREAM}", "wait 55", f"travel {CENTRAL_YHARNAM_LAMP}",
-                      "wait-members 3 240", "wait 30", "expect-session 3"],
-            # Both away from about 40 s on, back after about 85 s.
-            "guest2": [START, "godmode", "wait-session 3 480", "wait 15", "expect-others-shown 2",
-                       "wait 40", "expect-others-shown 0", "wait-members 3 240", "wait 20",
-                       "expect-others-shown 2", "expect-session 3"],
-        },
-        "timeout": 1000,
-    },
     "join3-uncap": {
         "about": "join3 at the kit's frame rate (Uncap FPS++): rig 2026-10-12, the host saw the "
                  "second guest's sign and never claimed it (3 runs of 3; at 30 FPS it joined)",
@@ -2788,58 +2165,6 @@ SCENARIOS = {
         },
         "settings": {"BB_FPS": "uncap"},
         "timeout": 900,
-    },
-    "trip3": {
-        "about": "a party of three apart (everyone sees both others at the end): the second guest waits in the Dream while the host "
-                 "goes there and back; the host re-creates only the guest on its map, then the "
-                 "second guest when it comes back",
-        "roles": {
-            "host": [START, "godmode", "wait-session 3 480", "wait 40", f"travel {HUNTERS_DREAM}",
-                     "wait 5", f"travel {CENTRAL_YHARNAM_LAMP}", "wait 60", "wait-members 3 300",
-                     "wait 20", "snapshot", "expect-session 3", "expect-others-near 2 15"],
-            "guest": [START, "godmode", "wait-session 3 480", "wait 150", "wait-members 3 300",
-                      "wait 25", "snapshot", "expect-session 3", "expect-others-near 2 15"],
-            "guest2": [START, "godmode", "wait-session 3 480", "wait 10",
-                       f"travel {HUNTERS_DREAM}", "wait 90", f"travel {CENTRAL_YHARNAM_LAMP}",
-                       "wait-members 3 300", "wait 25", "snapshot", "expect-session 3",
-                       "expect-others-near 2 15"],
-        },
-        "expect": {
-            "host": [r"re-creating rig_guest on map 0x18010000 \(1 of 2 members\)",
-                     # Since PR #41 both may be named in one line ("rig_guest rig_guest2").
-                     r"re-creating (?:\S+ )*rig_guest2 (?:\S+ )*on map 0x18010000"],
-        },
-        "timeout": 1200,
-    },
-    "guest-trip3": {
-        "about": "a party of three: one guest goes to the Dream and back; afterwards both guests "
-                 "and the host see each other (Kaniel 2026-10-09: guests did not see each other "
-                 "after travelling)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 3 480", "wait 150", "wait-members 3 300",
-                     "wait 25", "snapshot", "expect-session 3", "expect-others-near 2 15"],
-            "guest": [START, "godmode", "wait-session 3 480", "wait 20",
-                      f"travel {HUNTERS_DREAM}", "wait 20", f"travel {CENTRAL_YHARNAM_LAMP}",
-                      "wait-members 3 300", "wait 25", "snapshot", "expect-session 3",
-                      "expect-others-near 2 15"],
-            "guest2": [START, "godmode", "wait-session 3 480", "wait 150", "wait-members 3 300",
-                       "wait 25", "snapshot", "expect-session 3", "expect-others-near 2 15"],
-        },
-        "timeout": 1200,
-    },
-    "guest-talk-at-lamp": {
-        "about": "a guest in the session presses X at the first Central Yharnam lamp, where "
-                 "Gilbert's window is (Kaniel 2026-10-09: the 'Talk' prompt took the guest to "
-                 "the Dream through the lamp); the talk log shows which script answered",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 80", "snapshot",
-                     "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 15", "snapshot",
-                      "press cross 200", "wait 8", "press cross 200", "wait 8",
-                      "press circle 200", "wait 8", "snapshot", f"expect-map {CENTRAL_YHARNAM}",
-                      "expect-session 2"],
-        },
-        "timeout": 600,
     },
     "guest-lamp-rest": {
         "about": "a guest in the session uses the Cathedral Ward lamp (Oedon Chapel) with X and rests "
@@ -2880,102 +2205,6 @@ SCENARIOS = {
                              r"guest talk answers: .*\bf26=0x"]},
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS + [r"\bf26=1x"]},
         "timeout": 1100,
-    },
-    "pickup": {
-        "about": "host and guest each pick up a map item with X in a session (the host could not "
-                 "pick up items in the Forbidden Woods, 2026-10-09)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 10", "pickup 60", "wait 5",
-                     "snapshot", "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 30", "pickup 60", "wait 5",
-                      "snapshot", "expect-session 2"],
-        },
-        "timeout": 300,
-    },
-    "pickup-after-crash": {
-        "about": "after the guest's game crashes and it joins again, both still pick up map items "
-                 "with X (friend run 2026-10-09: no pickups after a crash); the item by the lamp: "
-                 "the next one is 21 m down, and a jump there drops the player through the floor "
-                 "and crashes the game in 0x0191B6E0 (twice with the guest back, twice without)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait-solo 120",
-                     "wait-session 2 420", "wait 15", "pickup 20", "wait 5", "snapshot",
-                     "expect-session 2"],
-            "guest": [[START, "godmode", "wait-session 2 300", "wait 15", "done"],
-                      [START, "godmode", "wait-session 2 420", "wait 40", "pickup 20", "wait 5",
-                       "snapshot", "expect-session 2"]],
-        },
-        "allow": CRASH_CLEANUP,
-        "timeout": 900,
-    },
-    "pickup-after-leave": {
-        "about": "the guest's game goes away and the host, alone now, picks up a map item with X "
-                 "before anyone joins again (the leave's 'load wait' stayed on: Kaniel "
-                 "2026-10-11, no pickups or talks after a friend left)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait-solo 120", "wait 10",
-                     "pickup 20", "wait 3", "snapshot"],
-            "guest": [[START, "godmode", "wait-session 2 300", "wait 15", "done"],
-                      ["wait 1", "done"]],
-        },
-        "expect": {"host": [r"lost a member; staying where it is"]},
-        "allow": CRASH_CLEANUP,
-        "timeout": 300,
-    },
-    "pickup-after-leave3": {
-        "about": "a party of three: one guest's game goes away; the host and the other guest "
-                 "still pick up map items with X (Kaniel 2026-10-11: after a friend left neither "
-                 "could pick up or talk, only fight)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 3 480", "wait 20", "wait-session 2 120",
-                     "wait 10", "pickup 20", "wait 3", "snapshot"],
-            "guest": [START, "godmode", "wait-session 3 480", "wait 20", "wait-session 2 120",
-                      "wait 10", "pickup 20", "wait 3", "snapshot"],
-            "guest2": [[START, "godmode", "wait-session 3 480", "wait 10", "done"],
-                       ["wait 1", "done"]],
-        },
-        "expect": {role: [r"lost a member; staying where it is"] for role in ("host", "guest")},
-        "allow": CRASH_CLEANUP,
-        "timeout": 300,
-    },
-    "guest-talk-by-the-lamp": {
-        "about": "a guest in the session presses X on each side of the character beside the first "
-                 "Central Yharnam lamp (Gilbert's window), turned towards it; it must not take the "
-                 "lamp to the Dream (Kaniel 2026-10-09: 'Talk' there used the lamp)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 140", "snapshot",
-                     "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 10", "snapshot",
-                      f"approach {BY_THE_LAMP} 0 1.2 0", "wait 3", "snapshot", "press cross 200", "wait 6", "press circle 200", "wait 4", "snapshot",
-                      f"expect-map {CENTRAL_YHARNAM}",
-                      f"approach {BY_THE_LAMP} 0 -1.2 3.14", "wait 3", "snapshot", "press cross 200", "wait 6", "press circle 200", "wait 4", "snapshot",
-                      f"expect-map {CENTRAL_YHARNAM}",
-                      f"approach {BY_THE_LAMP} 1.2 0 1.57", "wait 3", "snapshot", "press cross 200", "wait 6", "press circle 200", "wait 4", "snapshot",
-                      f"expect-map {CENTRAL_YHARNAM}",
-                      f"approach {BY_THE_LAMP} 1.2 0 -1.57", "wait 3", "snapshot", "press cross 200", "wait 6", "press circle 200", "wait 4", "snapshot",
-                      f"expect-map {CENTRAL_YHARNAM}",
-                      f"approach {BY_THE_LAMP} -1.2 0 -1.57", "wait 3", "snapshot", "press cross 200", "wait 6", "press circle 200", "wait 4", "snapshot",
-                      f"expect-map {CENTRAL_YHARNAM}",
-                      f"approach {BY_THE_LAMP} -1.2 0 1.57", "wait 3", "snapshot", "press cross 200", "wait 6", "press circle 200", "wait 4", "snapshot",
-                      f"expect-map {CENTRAL_YHARNAM}",
-                      "expect-session 2"],
-        },
-        "timeout": 700,
-    },
-    "pickup-after-trip": {
-        "about": "after a trip that keeps the session (the host to the Dream and back, the guest "
-                 "to the Dream and back) both still pick up the item by the lamp with X (Kaniel "
-                 "2026-10-09: no pickups in the Forbidden Woods after the time-of-day reload)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 10", f"travel {HUNTERS_DREAM}",
-                     "wait 5", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 120", "wait 15",
-                     "pickup 20", "wait 5", "snapshot", "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 90", f"travel {HUNTERS_DREAM}",
-                      "wait 10", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240",
-                      "wait 15", "pickup 20", "wait 5", "snapshot", "expect-session 2"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 720,
     },
     "pickup-after-reload": {
         "about": "after each one's map reloads in place in the session (a warp to the lamp it "
@@ -3023,39 +2252,6 @@ SCENARIOS = {
         },
         "timeout": 900,
     },
-    "hp-after-host-trip": {
-        "about": "after the host's trip to the Dream and back, enemy HP still goes both ways: the "
-                 "host's hit reaches the guest's copy and the guest's real hit the host's (Kaniel "
-                 "2026-10-10: HP not shared after trips, he thinks)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 10", f"travel {HUNTERS_DREAM}",
-                     "wait 5", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 120", "wait 20",
-                     f"hurt {ENEMY} 300", "wait 40", "snapshot", f"expect-hp {ENEMY} < 300",
-                     "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 45", "wait-members 2 240",
-                      "wait 30", "snapshot", f"expect-hp {ENEMY} <= 300", f"hit {ENEMY}",
-                      "wait 10", "snapshot", "expect-session 2"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 720,
-    },
-    "hp-after-guest-trip": {
-        "about": "after the guest's trip to the Dream and back, enemy HP still goes both ways: the "
-                 "host's hit reaches the guest's copy and the guest's real hit the host's",
-        "roles": {
-            # The host hits once the guest is back (its wait-members), the guest looks 14 s
-            # later and then hits (the t= on step lines puts both logs on one clock).
-            "host": [START, "godmode", "wait-session 2 300", "wait 60", "wait-members 2 240",
-                     "wait 20", f"hurt {ENEMY} 300", "wait 60", "snapshot",
-                     f"expect-hp {ENEMY} < 300", "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 10", f"travel {HUNTERS_DREAM}",
-                      "wait 10", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240",
-                      "wait 60", "snapshot", f"expect-hp {ENEMY} <= 300", f"hit {ENEMY}",
-                      "wait 10", "snapshot", "expect-session 2"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 720,
-    },
     "dead-before-session": {
         "about": "an enemy the host killed before the guest joined stays dead for the guest after "
                  "its trip to the Dream and back, in its own world (Kaniel 2026-10-11: the "
@@ -3069,91 +2265,6 @@ SCENARIOS = {
         },
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 720,
-    },
-    "guest-hit-once": {
-        "about": "after both players' trips each runs its own copy of the map; the guest's real "
-                 "hits reach the host's copy through the game and count once: the host does not "
-                 "post them back, and both end at max HP less the guest's hits (Kaniel's friend "
-                 "2026-10-11: each hit repeated a split second later)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 10", f"travel {HUNTERS_DREAM}",
-                     "wait 5", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 120", "wait 120",
-                     "census 40", "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 45", "wait-members 2 240",
-                      "wait 5", f"travel {HUNTERS_DREAM}", "wait 5", f"travel {CENTRAL_YHARNAM_LAMP}",
-                      "wait-members 2 240", "wait 20", f"hit {ENEMY} 30", "wait 1",
-                      f"hit {ENEMY} 30", "wait 20", "census 40", "expect-session 2"],
-        },
-        "same_hp": ENEMY,
-        "hp_sums_hits": ENEMY,
-        "expect": {"host": [HP_SHARED],
-                   "guest": [r"hit on 0x1001400b by this player",
-                             HP_SHARED]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 720,
-    },
-    "hit-after-host-trip": {
-        "about": "only the host went to the Dream and back: the guest's hits must still reach "
-                 "the host's copy (rig 2026-10-11: the guest stayed in 'one world' mode, its "
-                 "copy went back to the host's full HP and its hits were lost)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 10", f"travel {HUNTERS_DREAM}",
-                     "wait 5", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 120", "wait 90",
-                     "census 40", "expect-session 2"],
-            "guest": [START, "godmode", "wait-session 2 300", "wait 45", "wait-members 2 240",
-                      "wait 30", f"hit {ENEMY} 30", "wait 1", f"hit {ENEMY} 30", "wait 20",
-                      "census 40", "expect-session 2"],
-        },
-        "same_hp": ENEMY,
-        "hp_sums_hits": ENEMY,
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 720,
-    },
-    "hit3": {
-        "about": "a party of three, each back from its own trip (worlds apart): all three hit "
-                 "one enemy in turn, and every game ends at its max HP less the three hits, each "
-                 "counted once (Kaniel 2026-10-11)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 3 480", "wait 10", f"travel {HUNTERS_DREAM}",
-                     "wait 5", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 3 300", "wait 100",
-                     f"hit {ENEMY} 30", "wait 70", "census 40", "expect-session 3"],
-            "guest": [START, "godmode", "wait-session 3 480", "wait 45", "wait-members 3 300",
-                      "wait 5", f"travel {HUNTERS_DREAM}", "wait 5", f"travel {CENTRAL_YHARNAM_LAMP}",
-                      "wait-members 3 300", "wait 60", f"hit {ENEMY} 30", "wait 55",
-                      "census 40", "expect-session 3"],
-            "guest2": [START, "godmode", "wait-session 3 480", "wait 45", "wait-members 3 300",
-                       "wait 25", f"travel {HUNTERS_DREAM}", "wait 5",
-                       f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 3 300", "wait 75",
-                       f"hit {ENEMY} 30", "wait 45", "census 40", "expect-session 3"],
-        },
-        "same_hp": ENEMY,
-        "hp_sums_hits": ENEMY,
-        # From a hit to the other games' bars, on average (0.47 s on a 200 ms board round, 0.30 s
-        # posting on the hit with 100 ms rounds, then straight from game to game over the P2P
-        # link; forest run 2026-10-11: the host's two-hit kills ended before the guests' bars
-        # moved).
-        "max_hp_lag": 0.15,
-        "expect": {"host": [HP_SHARED]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS, "guest2": SESSION_HOLDS},
-        "timeout": 1200,
-    },
-    "crash-rejoin-hp": {
-        "about": "after the guest's game crashes and it joins again, the host's hit still reaches "
-                 "the guest's copy of an enemy "
-                 "(friend run 2026-10-09: HP bars apart after a crash)",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait-solo 120",
-                     "wait-session 2 420", "wait 20", f"hurt {ENEMY} 300", "wait 40", "snapshot",
-                     "expect-session 2"],
-            "guest": [[START, "godmode", "wait-session 2 300", "wait 15", "done"],
-                      [START, "godmode", "wait-session 2 420", "wait 35", "snapshot",
-                       f"expect-hp {ENEMY} <= 300", "expect-session 2"]],
-        },
-        # In a session the host's game owns its enemies' HP and sends it to the guest itself (a
-        # guest writing its copy's HP is put back within seconds), so only the host's hit is
-        # checked here; the boards cover members apart (hp-apart).
-        "allow": CRASH_CLEANUP,
-        "timeout": 900,
     },
     "owner-leaves": {
         "about": "phase 4: the host runs Central Yharnam's enemies and hurts one; it goes to the "
@@ -3178,24 +2289,6 @@ SCENARIOS = {
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 300,
     },
-    "owner-crash": {
-        "about": "phase 4: the guest runs Central Yharnam's enemies (the host went to the Dream and "
-                 "came back to follow it); the guest's game crashes and the host takes the area "
-                 "over: its own hit lands",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 10", f"travel {HUNTERS_DREAM}",
-                     "wait 10", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240",
-                     "wait 20", "sync back", "wait 30", f"hit {ENEMY} 30", "wait 5",
-                     f"expect-hp {ENEMY} < 484", "snapshot"],
-            "guest": [[START, "godmode", "wait-session 2 300", "wait 20", "wait-members 2 240",
-                       "wait 20", "sync back", "wait 2", "done"],
-                      [START, "wait 20", "snapshot"]],
-        },
-        "syncs": {"back": {"chapter": "owner-crash", "roles": ["host", "guest"]}},
-        "expect": {"host": [OWNER_FOLLOWS, OWNER_RUNS], "guest": [OWNER_RUNS]},
-        "allow": CRASH_CLEANUP,
-        "timeout": 900,
-    },
     "border-fight": {
         "about": "phase 4: the guest joins in place in Cathedral Ward while the host is in Central "
                  "Yharnam, two blocks of one area: each runs its own block's enemies, then the "
@@ -3217,88 +2310,6 @@ SCENARIOS = {
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 900,
     },
-    "hp-across-blocks": {
-        "about": "the guest joins in place in Cathedral Ward while the host is in Central "
-                 "Yharnam (two blocks of one area); HP reports still count between them",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 420", "wait 30", f"hurt {ENEMY} 200",
-                     "wait 30", "snapshot", "expect-session 2"],
-            "guest": [START, f"ensure-map {CATHEDRAL_WARD} {CATHEDRAL_WARD_LAMP}", "godmode",
-                      "wait-session 2 420", "wait 20", f"travel {CENTRAL_YHARNAM_LAMP}",
-                      "wait-members 2 240", "wait 20", "snapshot", f"expect-hp {ENEMY} <= 200",
-                      "expect-session 2"],
-        },
-        "expect": {"guest": [HP_LOWERED]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 300,
-    },
-    "guest-death-seen": {
-        "about": "the guest dies (goes down and gives up) away from the lamp in the host's world "
-                 "and gets up at the lamp; the host sees it there alive (friend run 2026-10-09: "
-                 "invisible after respawning)",
-        "settings": PARTY_DEATH,
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait-member-vital down 120",
-                     "wait 60", "wait-members 2 120", "wait 10", "snapshot",
-                     "expect-others-near 1 12", "expect-session 2"],
-            "guest": [START, "wait-session 2 300", "wait 10", f"teleport {AWAY_FROM_LAMP}",
-                      "wait 5", *GIVE_UP, "wait 50", "wait-members 2 120", "snapshot",
-                      "expect-others-near 1 12", "expect-session 2"],
-        },
-        "expect": {"guest": [r"party guest died; revived"]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-        "timeout": 600,
-    },
-    "echoes-after-crash": {
-        "about": "after the guest's crash and rejoin, a kill it makes alone in Cathedral Ward still "
-                 "sends the host its echoes and reaches the kill board",
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait-solo 120",
-                     "wait-session 2 420", "wait 90", "snapshot", "expect-session 2"],
-            "guest": [[START, "godmode", "wait-session 2 300", "wait 15", "done"],
-                      [START, "godmode", "wait-session 2 420", "wait 10",
-                       f"travel {CATHEDRAL_WARD_LAMP}", "wait 10", *attack(WARD_ENEMY),
-                       "wait 15", "snapshot", "expect-session 2"]],
-        },
-        "expect": {
-            "guest": [r"kill board gets 1 kills"],
-            "host": [r"added \d+ echoes from a kill another member made apart"],
-        },
-        "allow": CRASH_CLEANUP,
-        "timeout": 1080,
-    },
-    "lamp-after-crash": {
-        "about": "a lamp the guest lights in the session stays lit in both worlds after the "
-                 "guest's game crashes and comes back",
-        "roles": {
-            "host": [START, f"expect-flag {FORBIDDEN_WOODS_LAMP_LIT} 0", "wait-session 2 300",
-                     f"wait-flag {FORBIDDEN_WOODS_LAMP_LIT} 1 90", "wait-solo 120",
-                     "wait-session 2 420", "wait 20", "snapshot",
-                     f"expect-flag {FORBIDDEN_WOODS_LAMP_LIT} 1", "expect-session 2"],
-            "guest": [[START, "wait-session 2 300", "wait 30",
-                       f"set-flag {FORBIDDEN_WOODS_LAMP_LIT} 1", "wait 20", "done"],
-                      [START, "wait-session 2 420", "wait 20", "snapshot",
-                       f"expect-flag {FORBIDDEN_WOODS_LAMP_LIT} 1", "expect-session 2"]],
-        },
-        "allow": CRASH_CLEANUP,
-        "timeout": 1080,
-    },
-    "crash3": {
-        "about": "a party of three: one guest's game crashes; host and the other guest stay "
-                 "together, and the party is three again once it is back",
-        "roles": {
-            "host": [START, "godmode", "wait-session 3 480", "wait 30", "wait-session 2 120",
-                     "wait-session 3 480", "wait 20", "snapshot", "expect-session 3"],
-            "guest": [START, "godmode", "wait-session 3 480", "wait 30", "wait-session 2 120",
-                      "snapshot", "expect-session 2", "wait-session 3 480", "wait 20",
-                      "snapshot", "expect-session 3"],
-            "guest2": [[START, "godmode", "wait-session 3 480", "wait 20", "done"],
-                       [START, "godmode", "wait-session 3 480", "wait 20", "snapshot",
-                        "expect-session 3"]],
-        },
-        "allow": CRASH_CLEANUP,
-        "timeout": 1500,
-    },
     "host-death-boss": {
         "about": "the host dies (goes down and gives up) in the middle of the Cleric Beast fight; "
                  "it gets up without a reload, the session holds and the boss is still there",
@@ -3314,55 +2325,6 @@ SCENARIOS = {
                             r"live player died in a party session"]},
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 600,
-    },
-    "down-revive": {
-        "about": "party death: the guest falls with 1 HP and goes down instead of dying; the host "
-                 "comes over and strikes it until its weapon has dealt the guest's max HP, and it gets up with half its HP",
-        "settings": PARTY_DEATH,
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait-member-vital down 120",
-                     "shot sees-down", "approach-downed", "wait 2", "shot revive-prompt",
-                     *REVIVE_HITS, "wait-member-vital up 30", "wait 3", "shot after-revive",
-                     "wait 2", "snapshot", "expect-session 2"],
-            "guest": [START, "wait-session 2 300", "wait 15", *LETHAL_FALL, "wait-vital down 30",
-                      "expect-hp self == 1", "wait 2", "shot down", "wait-vital up 90",
-                      "wait 3", "shot after-revive", "snapshot", "expect-hp self > 1",
-                      "expect-session 2"],
-        },
-        "expect": {
-            # The prompt names the guest's character (website shots 2026-10-19: its online id).
-            "host": [r"party death: ((real )?revive hit on|revive swing at)",
-                     r'party HUD: prompt "Strike to revive (?!rig_)[^"]+"'],
-            "guest": [r"party death: down \d+ on map 0x18010000",
-                      r"party death: revived from down"],
-        },
-        "forbid": {"host": SESSION_HOLDS + [r'party HUD: prompt "Strike to revive rig_'],
-                   "guest": SESSION_HOLDS + [r"party guest died"]},
-        "timeout": 300,
-    },
-    "down-wait": {
-        "about": "party death: the guest goes down (no kneel, Kaniel 2026-10-15) while nobody "
-                 "strikes it for 12 s "
-                 "(playtest 2026-10-13: the others saw Lisara kneel and no strike landed, so he had "
-                 "to give up); then the host strikes it and it gets up",
-        "settings": PARTY_DEATH,
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait-member-vital down 120",
-                     "wait 12", "shot sees-down", "approach-downed", "wait 2", *REVIVE_HITS,
-                     "wait-member-vital up 30", "wait 3", "shot after-revive", "wait 2", "snapshot",
-                     "expect-session 2"],
-            "guest": [START, "wait-session 2 300", "wait 15", *LETHAL_FALL, "wait-vital down 30",
-                      "wait 2", "shot down", "wait-vital up 120", "wait 3", "snapshot",
-                      "expect-hp self > 1", "expect-session 2"],
-        },
-        "expect": {
-            "host": [r"party death: (real revive hit on|revive swing at)"],
-            "guest": [r"party death: down \d+ on map 0x18010000",
-                      r"party death: revived from down"],
-        },
-        "forbid": {"host": SESSION_HOLDS + [KNEEL],
-                   "guest": SESSION_HOLDS + [r"party guest died", KNEEL]},
-        "timeout": 300,
     },
     "portrait": {
         "about": "party portraits: each player opens its status page (its face is taken from it), "
@@ -3418,24 +2380,6 @@ SCENARIOS = {
         "expect": {"host": [r"party portraits: took the character's portrait from the status page"]},
         "timeout": 300,
     },
-    "give-up": {
-        "about": "party death: the downed guest holds Circle and dies as a party member dies "
-                 "today: it gets up at its lamp without a reload and the session holds",
-        "settings": PARTY_DEATH,
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait-member-vital down 120",
-                     "wait 60", "snapshot", "expect-session 2"],
-            "guest": [START, "wait-session 2 300", "wait 15", *LETHAL_FALL, "wait-vital down 30",
-                      "wait 2", "press circle 3600", "wait-vital dead 15", "wait-vital up 90",
-                      "wait 10", "snapshot", "expect-session 2"],
-        },
-        "expect": {
-            "guest": [r"party death: giving up ends down \d+; dies \(reset=false",
-                      r"party guest died; revived"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS + [r"reset=true"]},
-        "timeout": 600,
-    },
     "give-up-by-enemy": {
         "about": "party death: the guest goes down next to an enemy and gives up; it wakes at its "
                  "lamp standing, not downed (Kaniel 2026-10-25: the hook's catches on the dying "
@@ -3460,135 +2404,6 @@ SCENARIOS = {
                    "guest": SESSION_HOLDS + [
                        r"party death: up again after a real death(?:\n.*){0,400}?\n"
                        r".*party death: down \d+"]},
-        "timeout": 300,
-    },
-    "wipe": {
-        "about": "party death: the guest goes down, then the host falls with nobody left "
-                 "standing; both die (the guest by the server's wipe) and wake at their lamps "
-                 "with the map reloaded, and the session holds",
-        "settings": PARTY_DEATH,
-        "roles": {
-            "host": [START, "wait-session 2 300", "wait-member-vital down 120", "wait 3",
-                     *LETHAL_FALL, "wait-vital dead 30", "wait-vital up 120",
-                     "wait-members 2 240", "wait 15", "snapshot", "expect-session 2"],
-            "guest": [START, "wait-session 2 300", "wait 15", *LETHAL_FALL, "wait-vital down 30",
-                      "wait-vital dead 60", "wait-vital up 120", "wait-members 2 240", "wait 15",
-                      "snapshot", "expect-session 2"],
-        },
-        "expect": {
-            "host": [r"party death: died for real on map 0x18010000 \(reset=true\)",
-                     r"travelling there \(reset=true, void fall=false\)", BLOODSTAIN_DROPPED],
-            "guest": [r"party death: wipe \d+ ends down \d+; dies \(reset=true",
-                      r"travelling there \(reset=true, void fall=false\)", BLOODSTAIN_DROPPED],
-        },
-        "forbid": {"host": SESSION_HOLDS + [BLOODSTAIN_STOLEN],
-                   "guest": SESSION_HOLDS + [BLOODSTAIN_STOLEN]},
-        "timeout": 300,
-    },
-    "down-alone": {
-        "about": "party death: with the host away in the Hunter's Dream nobody else stands on the "
-                 "guest's map, so its lethal fall is a real death that reloads the map (a wipe "
-                 "of one)",
-        "settings": PARTY_DEATH,
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait 10", f"travel {HUNTERS_DREAM}",
-                     "wait 120", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240",
-                     "wait 10", "snapshot", "expect-session 2"],
-            "guest": [START, "wait-session 2 300", "wait 70", *LETHAL_FALL, "wait-vital dead 30",
-                      "wait-vital up 120", "wait-members 2 300", "wait 10", "snapshot",
-                      "expect-session 2"],
-        },
-        "expect": {
-            "guest": [r"party death: died for real on map 0x18010000 \(reset=true\)",
-                      r"travelling there \(reset=true, void fall=false\)"],
-        },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS + [r"party death: down \d+"]},
-        "timeout": 900,
-    },
-    "down-by-enemy": {
-        "about": "party death: the guest with 1 HP stands next to an ordinary enemy until it "
-                 "hits; it goes down, the enemy leaves it alone (still 1 HP after 20 s), and the "
-                 "host revives it",
-        "settings": PARTY_DEATH,
-        "roles": {
-            "host": [START, "godmode", "wait-session 2 300", "wait-member-vital down 150",
-                     "wait 22", "approach-downed", "wait 2", *REVIVE_HITS,
-                     "wait 5", "snapshot", "expect-session 2"],
-            "guest": [START, "wait-session 2 300", "wait 15", "hurt self 1", f"approach {ENEMY}",
-                      "wait-vital down 90", "wait 20", "expect-hp self == 1", "wait-vital up 90",
-                      "wait 3", "snapshot", "expect-hp self > 1", "expect-session 2"],
-        },
-        "expect": {
-            "host": [r"party death: ((real )?revive hit on|revive swing at)"],
-            "guest": [r"party death: down \d+ on map 0x18010000",
-                      r"party death: enemies forgot \d+ target\(s\) on downed players "
-                      r"\(self down=true",
-                      r"party death: revived from down"],
-        },
-        "forbid": {"host": SESSION_HOLDS,
-                   "guest": SESSION_HOLDS + [r"party death: killed while down"]},
-        "timeout": 300,
-    },
-    "down-revive3": {
-        "about": "party death in a party of three: the guest goes down and the second guest, "
-                 "not the host, revives it",
-        "settings": PARTY_DEATH,
-        "roles": {
-            # The host only watches: with the downed body's swings counted the revive can be over
-            # in seconds, before its board shows the down (rig 2026-10-14).
-            "host": [START, "godmode", "wait-session 3 480", "wait 60", "snapshot",
-                     "expect-session 3"],
-            # Checked at once: a missed swing counts within 0.4 s now (Kaniel 2026-10-16), so the
-            # second guest's first ones may already be in a few seconds later.
-            "guest": [START, "wait-session 3 480", "wait 20", *LETHAL_FALL, "wait-vital down 30",
-                      "expect-hp self == 1", "wait 2", "shot down", "wait-vital up 90",
-                      "wait 3", "shot after-revive", "snapshot", "expect-hp self > 1",
-                      "expect-session 3"],
-            "guest2": [START, "godmode", "wait-session 3 480", "wait-member-vital down 180",
-                       "shot sees-down", "approach-downed", "wait 2", "shot revive-prompt",
-                       *REVIVE_HITS, "wait 5", "snapshot", "expect-session 3"],
-        },
-        "expect": {
-            "guest": [r"party death: down \d+ on map 0x18010000",
-                      r"party death: revived from down"],
-            "guest2": [r"party death: ((real )?revive hit on|revive swing at)"],
-        },
-        "forbid": {"host": SESSION_HOLDS + [r"party death: ((real )?revive hit on|revive swing at)"],
-                   "guest": SESSION_HOLDS, "guest2": SESSION_HOLDS},
-        "timeout": 900,
-    },
-    "wipe3": {
-        "about": "party death in a party of three: both guests go down, then the host falls with "
-                 "nobody left standing; all three die and wake at their lamps with the map "
-                 "reloaded, and the session holds",
-        "settings": PARTY_DEATH,
-        "roles": {
-            "host": [START, "wait-session 3 480", "wait-member-vital down 180", "wait 25",
-                     "shot sees-both-down", f"teleport {WIPE3_SPOT['host']}", "wait 2",
-                     *LETHAL_FALL, "wait-vital dead 30", "wait-vital up 150",
-                     "wait-members 3 300", "wait 15", "snapshot", "expect-session 3"],
-            "guest": [START, "wait-session 3 480", "wait 20", f"teleport {WIPE3_SPOT['guest']}",
-                      "wait 2", *LETHAL_FALL, "wait-vital down 30", "wait-vital dead 90",
-                      "wait-vital up 150", "wait-members 3 300", "wait 15", "snapshot",
-                      "expect-session 3"],
-            "guest2": [START, "wait-session 3 480", "wait-member-vital down 180", "wait 5",
-                       f"teleport {WIPE3_SPOT['guest2']}", "wait 2", *LETHAL_FALL,
-                       "wait-vital down 30", "wait-vital dead 90",
-                       "wait-vital up 150", "wait-members 3 300", "wait 15", "snapshot",
-                       "expect-session 3"],
-        },
-        "expect": {
-            "host": [r"party death: died for real on map 0x18010000 \(reset=true\)",
-                     r"travelling there \(reset=true, void fall=false\)", BLOODSTAIN_DROPPED],
-            "guest": [r"party death: wipe \d+ ends down \d+; dies \(reset=true",
-                      r"travelling there \(reset=true, void fall=false\)", BLOODSTAIN_DROPPED],
-            "guest2": [r"party death: down \d+ on map 0x18010000",
-                       r"party death: wipe \d+ ends down \d+; dies \(reset=true",
-                       r"travelling there \(reset=true, void fall=false\)", BLOODSTAIN_DROPPED],
-        },
-        "forbid": {"host": SESSION_HOLDS + [BLOODSTAIN_STOLEN],
-                   "guest": SESSION_HOLDS + [BLOODSTAIN_STOLEN],
-                   "guest2": SESSION_HOLDS + [BLOODSTAIN_STOLEN]},
         "timeout": 300,
     },
     # Rig refresh (2026-10-15): its own boot, a brand-new character's first load in a team (the
@@ -5888,10 +4703,10 @@ for _name, _runner, _dies, _downed, _about in (
 # 500-600 ms). The guest stands by the enemies for three minutes as the follower; every co-op tick
 # part or step over 4 ms gets a "Co-op tick spike" line (BB_COOP_SPIKE_MS), naming what a slower
 # PC stalls in. Run with BB_RIG_FPS=60, as the player played.
-def _follower_stutter(about, role_settings=None):
+def _follower_stutter(about, role_settings=None, settings=None):
     return {
         "about": about,
-        "settings": {"BB_COOP_SPIKE_MS": "4"},
+        "settings": {"BB_COOP_SPIKE_MS": "4", **(settings or {})},
         "role_settings": role_settings or {},
         "roles": {
             "host": [START, "godmode", "wait-session 2 300", "wait 200", "expect-session 2"],
@@ -5912,6 +4727,10 @@ SCENARIOS["guest-follower-stutter"] = _follower_stutter(
 SCENARIOS["guest-follower-stutter-harder"] = _follower_stutter(
     "guest-follower-stutter with harder enemies on the guest only (its once-a-second param "
     "scans)", {"guest": HARDER})
+SCENARIOS["guest-follower-player-build"] = _follower_stutter(
+    "guest-follower-stutter as a player's game runs: no co-op trace, so none of the tick's parts "
+    "that only log (the before/after numbers of the co-op tick)",
+    settings={"BB_COOP_TRACE": "0"})
 
 
 # Kaniel 2026-10-28, the boss tempo host rule (docs/BOSS_TEMPO.md): Paarl fights the host alone
@@ -5991,3 +4810,28 @@ SCENARIOS["boss-tempo-party"] = {
     "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
     "timeout": 600,
 }
+
+# Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
+# look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
+# --play <name>) and in no tier.
+PROBE_NAMES = (
+    # rig tools (make the baseline saves, boot check)
+    "setup", "boot",
+    # packet trace for tools/re/packet_summary.py
+    "fps-pace",
+    # 2026-10-10/11 investigations; mine/prey use whatever saves the games have now
+    "iosefka-look", "iosefka-new", "iosefka-mine", "prey-replay",
+    # pictures to look at (visible runs)
+    "frame-gen-look", "logarius-look", "shadows-look", "aspect-hud-wide", "aspect-hud-16x9",
+    "aspect-team-43", "team-load-art", "team-screen", "portrait-dressed",
+    # perf measurements for player reports
+    "solo-death-tick", "guest-follower-stutter", "guest-follower-stutter-harder",
+    "guest-follower-player-build",
+    # boss tempo tuning logs
+    "boss-tempo-vanilla", "boss-tempo-aggressive", "boss-tempo-relentless",
+    # altar record captures (RE)
+    "altar-record-capture", "chalice-remove-record",
+    # known failure kept for the uncapped-FPS summon bug
+    "join3-uncap",
+)
+PROBES = {name: SCENARIOS.pop(name) for name in PROBE_NAMES}

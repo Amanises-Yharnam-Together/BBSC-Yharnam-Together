@@ -14,8 +14,11 @@ tests for the recent bugs, keep scenarios short, and use lanes to run rigs in pa
 
 Tiers (run_scenario.py --tier <name> [more names]):
 - quick: smoke, plus the suites of the code being changed (named after it), on every change.
-- full: every suite and the RECENT bugs' scenarios, before a PR merges into server-coop.
+- full: every suite and every single scenario that fits the budget, before a PR merges.
 - long: LONG, before a local release.
+
+The rig rework (Kaniel 2026-11-01, tools/rig/REWORK.md): every test is in a tier; probes
+(scenarios.PROBES: measurements and pictures) are in none.
 """
 import re
 
@@ -29,62 +32,20 @@ BOOT_S = 100
 # A suite's games boot and join once (its join chapter's budget is its own); this is the rest.
 SUITE_BOOT_S = 150
 
-# The scenarios of the recent playtest bugs (Kaniel 2026-10-25: "update rig with recent bugs"),
-# run in the full tier after the suites; a LONG one runs in the long tier instead.
-RECENT = {
-    "give-up-by-enemy": "10-25 a guest who gave up beside an enemy woke downed at its lamp",
-    "dog-alone": "10-23 a lone guest drew the NPCs its story hid (#356)",
-    "dog-alone3": "10-24 Eileen: a guest following another guest's game drew her (#390)",
-    "lone-guest-kill": "10-23 the hag a lone guest killed lived on for the host (#356)",
-    "lone-guest-progress": "10-23 a door a lone guest opened stayed shut for the host (#356)",
-    "lone-guest-progress3": "10-23 the same with three games (#356)",
-    "host-progress3": "10-23 the host's own progress with a lone guest about (#356)",
-    "team-story-trip": "10-23 a guest's own story steps over the team world at a trip (#356)",
-    "void-fall-respawn": "10-22 a player fallen into the void stayed invisible (#341, #372)",
-    "downed-void-fall": "10-29 a downed player pushed off a cliff stayed invisible",
-    "bloodstain": "10-20 bloodstains on the compass and the map (#299)",
-    "bloodstain-alone": "10-22 a guest dying apart from the host (#343)",
-    "bloodstain-far-lamp": "10-22 a guest's stain by a far lamp (#343)",
-    "bloodstain-trip": "10-22 a stain after a trip (#343)",
-    "impurity-rune": "10-22 the Impurity rune gave no HP in co-op (#340)",
-    "shop-own-weapons": "10-22 the shop sold a guest the host's weapons (#329)",
-    "dream-shop-messengers": "10-22 the Dream's shop messengers for a guest (#331)",
-    "nightmare-flags": "10-24 Wandering Nightmares vanished because of a guest (#384)",
-    "pings": "10-24 team pings (#386)",
-    "rot-death-lamp": "10-25 host rules: rot from a death, cured by the stain and a lamp",
-    "travel-together": "10-25 host rules: a team trip takes the guest along",
-    "travel-vote-no": "10-25 host rules: one No stops the team trip",
-    "scale-team-size": "10-25 host rules: enemies scale with the hunters on the map",
-    "build-check-harder": "10-25 a game on other settings links, warned (#381 follow-up)",
-    "build-check-version": "10-25 only another release is refused on join (#381 follow-up)",
-    "build-check-same": "10-24 games on the same settings still link (#381)",
-    "altar-record-capture": "10-24 the chalice dungeon crash: whole altar records (#391)",
-    "chalice-enter-broken": "10-24 entering a dungeon with a broken altar record crashed (#391)",
-    "guest-cutscene-cainhurst": "10-25 audit: a guest missed the story cutscenes",
-    "guest-death-target": "10-25 Logarius went for the host only: a dead guest's mark stayed",
-    "yahargul-mummy-guest": "10-30 Provi: only the host could inspect Yahar'gul's mummy",
-    "yahargul-mummy-host": "10-30 Provi: the host's inspection of the mummy is its own trip",
-}
-
 # Single scenarios that do not fit the budget (their own boot plus fixed waits over 30 s, or
 # runs measured near or over 300 s), each kept for the long tier until it becomes a suite
 # chapter. Most are older versions of a suite chapter (named after the arrow).
 LONG = {
     "boss-death-spectate": "#414: a boss fight to a teammate's death and the fight after (600 s)",
     "boss-death-wipe": "#414: a boss fight to the whole party's deaths (600 s)",
-    "boss-tempo-vanilla": "Kaniel 2026-10-28 boss tempo: 90 s of Paarl's fight at the game's tempo",
-    "boss-tempo-aggressive": "Kaniel 2026-10-28 boss tempo: 90 s of Paarl's fight at Aggressive",
-    "boss-tempo-relentless": "Kaniel 2026-10-28 boss tempo: 90 s of Paarl's fight at Relentless",
     "boss-tempo-party": "Kaniel 2026-10-28 boss tempo: a join, then 60 s of Paarl's fight at the leader's Relentless",
     "boss-targets-host": "Kaniel 2026-10-28 passive bosses: a boss fight held a minute",
     "boss-targets-guest": "Kaniel 2026-10-28 passive bosses: a boss fight held a minute",
     "boss-targets-runner-dies": "Kaniel 2026-10-28 passive bosses: a boss fight held a minute, a death and the walk back",
     "boss-targets-teammate-revived": "Kaniel 2026-10-28 passive bosses: a boss fight held a minute, a down and its revive",
     "logarius-spells": "Kaniel 2026-10-25 boss spells: a trip to the boss and a phase of its fight",
-    "logarius-look": "Kaniel 2026-10-25 boss spells: a trip to the boss and a phase of its fight",
     "logarius-runner-leaves": "Kaniel 2026-10-25 boss spells: a trip to the boss and a phase of its fight",
     "shadows-spells": "Kaniel 2026-10-25 boss spells: a trip to the boss and a phase of its fight",
-    "shadows-look": "Kaniel 2026-10-25 boss spells: a trip to the boss and a phase of its fight",
     "shadows-runner-leaves": "Kaniel 2026-10-25 boss spells: a trip to the boss and a phase of its fight",
     "story-hostless": "the 10-20 case #286: a team join and a trip",
     "key-items-kept": "the 10-19 playtest case #267: a join, two trips",
@@ -98,19 +59,19 @@ LONG = {
     "paarl-after-wipe": "Kaniel's playtest 2026-10-22: three games, a wipe, a wake and a walk back",
     "kill-reaches-arrival": "the 10-19 playtest case #278: three games, two trips",
     "soak": "a long session by design",
+    "join-by-code": "1.3.2: a team made and joined by code before the session (420 s)",
+    "join-open-team": "1.3.2: an open team made and joined from the list (420 s)",
+    "global-quick-match": "1.3.2: Discord sign-in on the hosted server, then a quick match (420 s)",
+    "duel-teams": "1.3.2: two teams made, then a team duel (420 s)",
     "teams-apart": "Kaniel 2026-10-31: four games in three worlds, two trips each",
     "teams-apart3": "Kaniel 2026-10-31: three games in three worlds, two trips each",
     "team-switch": "Kaniel 2026-10-31: three teams, a team change and a trip",
     "invade-solo": "Kaniel 2026-10-31: an invader's search (up to 5 min), its 10 s notice and its trip home",
     "five-hunters": "Amanises 2026-10-29: five games, a trip each",
-    "solo-death-tick": "70 s and 100 s waits: the co-op time lines come every 30 s",
-    "guest-follower-stutter": "three minutes as the enemy follower: the co-op time lines come every 30 s",
-    "guest-follower-stutter-harder": "three minutes as the enemy follower: the co-op time lines come every 30 s",
     "chalice-team": "two rituals and two dungeon loads, measured 313 s",
     "chalice-load-inside-guest": "Kaniel 2026-10-24: a ritual, two dungeon loads, a restart",
     "chalice-load-inside-host": "Kaniel 2026-10-24: a ritual, two dungeon loads, a restart",
     "chalice-altar-same": "Kaniel 2026-10-24: a ritual and six dungeon loads",
-    "chalice-remove-record": "a ritual, two dungeon loads and two rituals' menus",
     "chalice-remove-team-host": "Kaniel 2026-10-30: two rituals and four dungeon loads",
     "chalice-remove-team-guest": "Kaniel 2026-10-30: two rituals and four dungeon loads",
     "chalice-altar-host": "a ritual and two dungeon loads, measured 315 s",
@@ -133,18 +94,9 @@ LONG = {
     "team-world-pickups": "two stages (two boots): the guest's save takes the team world again",
     "ward-door": "a 420 s wait for the Ward door",
     "save-backups": "waits out the save backups' 150 s timer",
-    "hit3": "measured 277-304 s; suite chapter: smoke/hit3, party3/hit3",
-    "trip3": "measured 235-278 s; suite chapter: party3/trip3",
-    "guest-trip3": "a 150 s wait; suite chapter: party3/guest-trip3",
-    "hp-together": "measured 226-261 s; suite chapter: together/hp-together",
-    "guest-hit-once": "a 120 s wait; suite chapter: trips/guest-hit-once",
     "guest-lamp-rest": "a 200 s wait for the rest",
     "guest-talk-gilbert": "a 230 s wait for the talk",
-    "guest-talk-by-the-lamp": "a 140 s wait; suite chapter: together/talk-by-the-lamp",
-    "away-unseen3": "60 s waits, three games",
     "iosefka-gift": "a 90 s wait for her gift",
-    "iosefka-look": "a 60 s wait for pictures",
-    "guest-alone-mobs": "a 75 s wait for the mob",
     "guest-far-positions": "a 75 s wait for the mob",
     "guest-alone-hits": "a 75 s wait for the mob",
     "guests-pair-mobs": "an 80 s wait for the mob",
@@ -152,49 +104,16 @@ LONG = {
     "guest-hits-host-comes": "a 50 s wait for the mob",
     "guest-mobs-host-near": "40 s waits for the mob",
     "guest-acts-for-two": "a 70 s wait for the mob",
-    "guest-talk-at-lamp": "an 80 s wait for the talk",
     "early-trip": "a 60 s wait",
-    "ward-npc": "a 40 s wait; suite chapter: trips/ward-npc",
     "clinic": "a 40 s wait",
-    "guest-flags-stay": "a 45 s wait; suite chapter: together/guest-flags-stay",
-    "hp-apart": "a 55 s wait; suite chapter: trips/hp-apart",
-    "boss-kill": "a 90 s wait; suite chapter: together/boss-kill",
-    "boss-refight": "a 90 s wait; suite chapter: together/boss-refight",
     "gascoigne-together": "a 40 s wait",
-    "boss-putdown": "a 60 s wait; suite chapter: trips/boss-putdown",
-    "prey-replay": "60 s waits",
-    "join-apart": "a 60 s wait; suite chapter: joins/join-apart",
-    "lone-guest": "a 60 s wait; suite chapter: trips/lone-guest",
     "echoes-apart": "an 80 s wait",
-    "host-death": "a 60 s wait",
-    "guest-death": "a 60 s wait",
-    "resume": "a 40 s wait; suite chapter: crashes/resume",
-    "crash-apart": "a 40 s wait; suite chapter: crashes/crash-apart",
-    "host-crash-apart": "a 60 s wait; suite chapter: crashes/host-crash-apart",
     "team-world": "a 60 s wait, measured 472 s",
     "team-world-lamps": "two team loads for the guest, a trip and a 20 s wait",
-    "kill-apart": "a 45 s wait; suite chapter: smoke/kill-apart, trips/kill-apart",
-    "dog": "a 45 s wait; suite chapter: trips/dog",
-    "trade-menus": "a 40 s wait",
-    "pickup-after-crash": "a 40 s wait",
-    "pickup-after-trip": "a 90 s wait; suite chapter: trips/pickup-after-trip",
     "pickup-after-reload": "an 80 s wait",
-    "hp-after-host-trip": "a 45 s wait",
-    "hp-after-guest-trip": "a 60 s wait",
     "dead-before-session": "a 60 s wait",
-    "hit-after-host-trip": "a 90 s wait; suite chapter: trips/hit-after-host-trip",
-    "crash-rejoin-hp": "a 40 s wait",
     "border-fight": "a 60 s wait",
-    "guest-death-seen": "a 60 s wait",
-    "echoes-after-crash": "a 90 s wait",
     "host-death-boss": "a 60 s wait",
-    "give-up": "a 60 s wait; suite chapter: party-death/give-up",
-    "down-alone": "a 120 s wait; suite chapter: party-death/down-alone",
-    "down-revive3": "a 60 s wait; suite chapter: party3/down-revive3",
-    "crash3": "two boots of three games; suite chapter: party3/crash3",
-    "join3-uncap": "measured 546-564 s when the third game is not summoned",
-    "lamp-after-crash": "two boots and a lamp",
-    "owner-crash": "two boots, measured 200-209 s",
 }
 
 WAIT = re.compile(r"wait (\d+(?:\.\d+)?)$")
@@ -276,9 +195,11 @@ def suite_timeout(suite: dict) -> int:
 def tiers(suites: dict, scenarios: dict) -> dict[str, list[str]]:
     """Each tier's runs, the longest first (lanes take them in turn)."""
     full = sorted(suites, key=lambda name: -suite_timeout(suites[name]))
+    singles = sorted((name for name in scenarios if name not in LONG),
+                     key=lambda name: -scenarios[name].get("timeout", 600))
     return {
         "quick": ["smoke"],
-        "full": full + [name for name in RECENT if name in scenarios and name not in LONG],
+        "full": full + singles,
         "long": [name for name in LONG if name in scenarios],
     }
 

@@ -51,6 +51,15 @@ PARTY_LIST_ICONS = r"party list is the HUD's own \(\d+ tags, icons (?!none)"
 HOSTS_MESSENGERS = (r"characters switched like the host has them on map 0x15000000 \(off, \+on\):"
                     r".* 0x1000000[0-3]\b")
 
+# #403 (Kaniel 2026-10-25): a host's game that dies hands the team to a guest, and comes back
+# as that guest's guest.
+# owner-crash-fight: the enemy stood 1.1 m from the guest at GUEST_ALONE_SPOT, too close to walk
+# the 1.5 m "moves" needs (rig 2026-11-02); the guest steps 4 m back so it has to come for it.
+OCF_STEP_BACK = "-214.0 -54.5 181.0"
+GUEST_LEADS = (r"Co-op team play: this guest leads the team now: it hosts|Co-op team join: the "
+               r"session host moved to this game")
+OLD_HOST_IS_GUEST = r"Co-op team lobby: the save plays in team \w+ as its guest"
+
 RESTART = "<restart>"
 # Steps a game runs on its title screen, before it is in the world (the lobby's, the title's).
 TITLE_STEPS = ("team-", "title-")
@@ -123,6 +132,19 @@ def join(roles, about: str = "every game joins the host by itself (the bells rin
                    expect={"host": [HOST_JOINS],
                            **{guest: [GUEST_JOINS] for guest in roles[1:]}},
                    forbid=holds(roles))
+
+
+def with_first_steps(chapter_: dict, role: str, *steps: str) -> dict:
+    """The chapter with `steps` first in `role`'s game."""
+    return {**chapter_, "steps": {**chapter_["steps"],
+                                  role: [*steps, *chapter_["steps"].get(role, [])]}}
+
+
+def with_expect(chapter_: dict, role: str, *patterns: str) -> dict:
+    """The chapter with more lines `role`'s game must log in it."""
+    expect = {name: list(lines) for name, lines in chapter_.get("expect", {}).items()}
+    expect[role] = expect.get(role, []) + list(patterns)
+    return {**chapter_, "expect": expect}
 
 
 def map_reset(roles, name: str = "everyone-leaves") -> dict:
@@ -418,7 +440,11 @@ SUITES = {
         "settings": AS_PLAYERS,
         "join_within": 180,
         "chapters": [
-            join(PARTY2),
+            # The old story-hidden scenario's line: the guest hides what the host's story hid as
+            # it joins (rig 2026-11-02: during the join, before the story-hidden chapter).
+            with_expect(join(PARTY2), "guest",
+                        r"characters as the host has them on map 0x18010000: hid \d+, showed "
+                        rf"\d+:.* {STORY_HIDDEN}"),
             chapter("story-hidden", "a character the host's story hides (Iosefka) stays hidden "
                                     "on the guest: it hides and shows characters as the host",
                     {"host": ["census 80", f"expect-hidden {STORY_HIDDEN} 1"],
@@ -739,7 +765,9 @@ SUITES = {
                     # PR #69: Options and R3 do nothing while down; PR #71: R1 hits count as light
                     # ones. No kneel (Kaniel 2026-10-15).
                     expect={"host": [r"party death: ((real )?revive hit on .*, light\)|"
-                                     r"revive swing at)"],
+                                     r"revive swing at)",
+                                     # the revive prompt names the character, not the account
+                                     r'party HUD: prompt "Strike to revive (?!rig_)[^"]+"'],
                             "guest": [r"party death: down \d+ on map 0x18010000",
                                       r"party death: down, the pad dropped buttons",
                                       r"party death: revived from down"]},
@@ -799,9 +827,7 @@ SUITES = {
                     expect={"host": [r"party death: enemies forgot \d+ target\(s\) on downed "
                                      r"players \(self down=false, others down=1"],
                             "guest": [r"party death: giving up ends down"]},
-                    known_bug="phase 8: with 1 HP (hurt self 1) the owner-run enemy beside the "
-                              "guest never strikes; at full HP it strikes and downs the guest (rig "
-                              "2026-10-15)",
+                    # known_bug dropped: not seen in the rig run of 2026-11-02.
                     forbid={"host": SESSION_HOLDS,
                             "guest": SESSION_HOLDS + [r"party death: killed while down"]}),
             chapter("give-up", "the downed guest holds Circle and dies; it gets up at its lamp "
@@ -819,31 +845,56 @@ SUITES = {
                                           "sees its own stain with its echoes (Kaniel "
                                           "2026-10-11: only the host found a bloodstain)",
                     {"guest": [RESTART, START, "godmode", "wait-session 2 480", "wait 20",
+                               # the old bloodstain-rejoin scenario: on its compass and map
+                               "expect-stains 1 1 30", "shot guest-stain-rejoin",
                                "sync stain-back"],
                      "host": ["sync stain-back"]},
                     # Its game made a new HUD after the restart: the party list has its icons.
                     expect={"guest": [r"showed the guest's own bloodstain \([1-9]\d* echoes\)",
-                                      PARTY_LIST_ICONS]},
+                                      PARTY_LIST_ICONS, r"autoplay stains: \[compass own"]},
+                    allow=CRASH_CLEANUP),
+            # Kaniel 2026-10-13: after a wipe everyone wakes where the host does. Kaniel
+            # 2026-10-18: the enemy the host hurt before it is whole again.
+            # Echoes on the guest first: stain-after-wipe looks for its stain's echoes (rig
+            # 2026-11-02: the guest died holding none, record_38=0, and nothing was shown).
+            with_first_steps(wipe(PARTY2, guests_point=2412951, hurt_first=True), "guest",
+                             "trade-stock echoes 5000"),
+            chapter("stain-after-wipe", "after the wipe the guest's game dies and comes back: "
+                                        "in the host's world it sees its own bloodstain from "
+                                        "the wipe, with its echoes",
+                    {"guest": [RESTART, START, "godmode", "wait-session 2 480", "wait 20",
+                               "sync saw-back"],
+                     "host": ["sync saw-back"]},
+                    expect={"guest": [r"showed the guest's own bloodstain \([1-9]\d* echoes\)"]},
+                    # known_bug dropped (rig 2026-11-02): shown once the guest held echoes.
                     allow=CRASH_CLEANUP),
             chapter("down-alone", "with the host in the Dream nobody else is on the guest's map: "
                                   "its lethal fall is a real death that reloads the map",
                     {"host": [f"travel {HUNTERS_DREAM}", "sync alone-away", "sync alone-woken",
                               f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240"],
                      # The host's trip first: with it still on the map the fall is a down.
+                     # It wakes where the host is, in the Dream (rig 2026-11-02: "respawn at
+                     # the host's point"), and goes back with it.
                      "guest": ["sync alone-away", "wait 15", "godmode off", *LETHAL_FALL,
                                "wait-vital dead 30", "wait-vital up 120", "godmode",
-                               "sync alone-woken", "wait-members 2 300"]},
+                               "sync alone-woken", f"travel {CENTRAL_YHARNAM_LAMP}",
+                               "wait-members 2 300"]},
                     expect={"guest": [r"party death: died for real on map 0x18010000 "
                                       r"\(reset=true\)", r"travelling there \(reset=true, void fall=false\)"]},
-                    # Right after stain-after-rejoin's restart (as smoke's wipe after rejoin).
-                    known_bug="after a guest's restart and rejoin its lethal fall is neither a "
-                              "down nor a death alone (rig 2026-10-15, twice)",
+                    # Right after stain-after-wipe's restart (as smoke's wipe after rejoin).
+                    # known_bug dropped (rig 2026-11-02): the death alone came, reset=true.
                     forbid={"host": SESSION_HOLDS,
                             "guest": SESSION_HOLDS + [r"party death: down \d+"]}),
+            # Last: the host's game dies in it, and after that the guest leads and owns the map
+            # (#403); the wipe needs the host as the owner (rig 2026-11-02: after it the
+            # host's hit never reached the guest's copy of the enemy).
             chapter("down-session-lost", "the guest is down when the host's game dies: its down "
                                          "ends in a death a few seconds later, not a kneel with no "
                                          "banner (the review, PR #65), and they join again",
-                    {"guest": ["godmode off", *GUEST_FALL, "wait-vital down 30", "sync dsl-down",
+                    # wait 15: right after down-alone's travel the fall was no down (rig
+                    # 2026-11-02: the map still set up, 3 s after the load).
+                    {"guest": ["wait 15", "godmode off", *GUEST_FALL, "wait-vital down 30",
+                               "sync dsl-down",
                                "wait-vital dead 60", "wait-vital up 120", "godmode",
                                "wait-session 2 480", "sync dsl-back", "expect-session 2"],
                      "host": ["wait-member-vital down 120", "sync dsl-down", RESTART, START,
@@ -854,19 +905,6 @@ SUITES = {
                     # guest is down with nobody standing, a wipe, and dies all the same.
                     expect={"guest": [r"party death: (?:the party session ending|wipe \d+) ends "
                                       r"down \d+; dies"]},
-                    allow=CRASH_CLEANUP),
-            # Kaniel 2026-10-13: after a wipe everyone wakes where the host does. Kaniel
-            # 2026-10-18: the enemy the host hurt before it is whole again.
-            wipe(PARTY2, guests_point=2412951, hurt_first=True),
-            chapter("stain-after-wipe", "after the wipe the guest's game dies and comes back: "
-                                        "in the host's world it sees its own bloodstain from "
-                                        "the wipe, with its echoes",
-                    {"guest": [RESTART, START, "godmode", "wait-session 2 480", "wait 20",
-                               "sync saw-back"],
-                     "host": ["sync saw-back"]},
-                    expect={"guest": [r"showed the guest's own bloodstain \([1-9]\d* echoes\)"]},
-                    known_bug="after a wipe and a restart the guest is not shown its own "
-                              "bloodstain (rig 2026-10-15; after a give-up it is)",
                     allow=CRASH_CLEANUP),
         ],
     },
@@ -1079,6 +1117,8 @@ SUITES = {
                      "host": ["wait-members 2 240", "sync hc-ready", RESTART, START, "godmode",
                               "wait-session 2 420", "wait 10", "expect-session 2",
                               "sync hc-back"]},
+                    # #403 (Kaniel 2026-10-25): the guest leads now, the old host is its guest.
+                    expect={"guest": [GUEST_LEADS], "host": [OLD_HOST_IS_GUEST]},
                     allow=CRASH_CLEANUP),
             chapter("leave", "the guest's game goes away and the host, alone now, picks up a map "
                              "item before anyone joins again (Kaniel 2026-10-11: no pickups "
@@ -1093,6 +1133,40 @@ SUITES = {
                     expect={"host": [r"(?:lost a member; staying where it is|member left, session "
                                      r"epoch)"]},
                     allow=CRASH_CLEANUP),
+            # Phase 8: the map's owner dies mid-fight; the other game takes the map over with the
+            # enemy as hurt as it was, where it was, and it keeps fighting. Before host-crash-apart
+            # (rig 2026-11-02): after it the guest leads in the Ward (#403) and the host is no
+            # owner of Central Yharnam. After leave the guest's game is back: both wait for the
+            # session first.
+            chapter("owner-crash-fight", "the host (the map's owner) hurts the enemy by the guest "
+                                         "and its game dies: the guest's game runs it on, as "
+                                         "hurt as it was, and it keeps coming for the guest",
+                    {"host": ["wait-members 2 300", "sync ocf-go", f"teleport {GUEST_ALONE_SPOT}",
+                              "wait 3", "sync ocf-hit",
+                              f"hurt {ENEMY} 200", "wait 3", "sync ocf-hurt", RESTART, START,
+                              "godmode", "wait-session 2 420", "wait 5", "expect-session 2",
+                              "sync ocf-back"],
+                     # godmode: its game came back in leave without it (rig 2026-11-02: the
+                     # guest died for real once the host's game was gone, and the wipe reset the
+                     # enemy to full HP).
+                     # The guest's hit starts the fight: the enemy has a target before the
+                     # crash (rig 2026-11-02: with none it stood still after the takeover). From
+                     # beside it, and before the host's hurt (a hit passes on any HP drop: at
+                     # 3.9 m the swing missed and the hurt counted as it).
+                     "guest": ["godmode", "wait-session 2 420", "sync ocf-go",
+                               f"teleport {GUEST_ALONE_SPOT}", "wait 2", f"approach {ENEMY}",
+                               f"hit {ENEMY} 30", "sync ocf-hit", "sync ocf-hurt",
+                               "wait-solo 180", "wait 3", f"expect-hp {ENEMY} <= 200",
+                               "census 40", f"teleport {OCF_STEP_BACK}", "wait 10", "census 40",
+                               f"expect-hp {ENEMY} <= 200", "sync ocf-back"]},
+                    # The old owner-crash scenario's check: the guest's game runs the map now. Its
+                    # game leads the team from here on (#403): the line comes in this chapter, not
+                    # in host-crash-apart (rig 2026-11-02).
+                    expect={"guest": [r"enemy owner: this game runs map 0x18010000's enemies",
+                                      GUEST_LEADS]},
+                    # known_bug dropped (rig 2026-11-02): no crash in its run; it failed because
+                    # it ran after host-crash-apart.
+                    moves={"guest": ENEMY}, allow=CRASH_CLEANUP),
             # Last: the guest's game crashes in it (a crash ends the suite).
             # #403 (Kaniel 2026-10-25): the guest leads the team and hosts where it stands, and the
             # old host's game comes back as its guest, beside it in the Ward (as the scenario
@@ -1107,24 +1181,9 @@ SUITES = {
                                "sync hca-ready", "wait-solo 180", "wait 10",
                                f"expect-map {CATHEDRAL_WARD}", "sync hca-back", "wait 10",
                                "expect-session 2", f"expect-map {CATHEDRAL_WARD}"]},
+                    # The guest leads since owner-crash-fight, so its GUEST_LEADS line came there.
+                    expect={"host": [OLD_HOST_IS_GUEST]},
                     allow=CRASH_CLEANUP),
-            # Phase 8: the map's owner dies mid-fight; the other game takes the map over with the
-            # enemy as hurt as it was, where it was, and it keeps fighting.
-            chapter("owner-crash-fight", "the host (the map's owner) hurts the enemy by the guest "
-                                         "and its game dies: the guest's game runs it on, as "
-                                         "hurt as it was, and it keeps coming for the guest",
-                    {"host": ["sync ocf-go", f"teleport {GUEST_ALONE_SPOT}", "wait 3",
-                              f"hurt {ENEMY} 200", "wait 3", "sync ocf-hurt", RESTART, START,
-                              "godmode", "wait-session 2 420", "wait 5", "expect-session 2",
-                              "sync ocf-back"],
-                     "guest": ["sync ocf-go", f"teleport {GUEST_ALONE_SPOT}", "sync ocf-hurt",
-                               "wait-solo 180", "wait 3", f"expect-hp {ENEMY} <= 200",
-                               "census 40", "wait 10", "census 40", f"expect-hp {ENEMY} <= 200",
-                               "sync ocf-back"]},
-                    moves={"guest": ENEMY}, allow=CRASH_CLEANUP,
-                    known_bug="the guest's game crashes (eboot+0x13cffba) once the dead owner's "
-                              "game comes back, as in host-crash-apart (backlog: Krolebord's crash "
-                              "after a rejoin; rig 2026-10-15)"),
         ],
     },
     "joins": {
@@ -1401,6 +1460,146 @@ SUITES = {
                     forbid={role: SESSION_HOLDS + [r"Co-op lifecycle: (leave|join)",
                                                    r"world teardown"]
                             for role in PARTY3}),
+        ],
+    },
+    # The rig rework (Kaniel 2026-11-01): the four trade scenarios in one boot. Each chapter sets
+    # its own stock first (trade-stock), so none depends on what the last one gave.
+    "trade": {
+        "about": "trading on the server: vials, echoes for bullets, a declined offer, any item "
+                 "with its gem, Blood Echoes through the menus, and the menus' boxes",
+        "roles": PARTY2,
+        "settings": AS_PLAYERS,
+        "join_within": 180,
+        "chapters": [
+            join(PARTY2),
+            # Rig 2026-11-02: the game's notice boxes queue, and a chapter's menu presses close
+            # the ones earlier chapters left instead of driving its menu: the two menu chapters
+            # come first, each closes its own boxes, and the host waits for the guest's yes by a
+            # sync (wait-trade counts every notice since the boot). trade-menus first: the guest
+            # answers trade-echoes' offers by script and keeps their boxes (rig 2026-11-02, second
+            # run: trade-menus after it pressed into them).
+            # Drawn menus: pictures of each box. Syncs instead of the old scenario's 40 s and
+            # 30 s waits for the next offer.
+            chapter("trade-menus", "the guest answers in the game's yes/no box and the host sees "
+                                   "the game's box saying it was accepted; then 2 vials through "
+                                   "the inventory's Give row and the quantity picker, and 2,000 "
+                                   "Blood Echoes through Give Blood Echoes; the guest accepts both",
+                    {"host": ["trade-stock vials 10", "trade-stock bullets 10",
+                              "trade-stock echoes 2000", "sync menus-stocked",
+                              "trade-offer vials 4 60", "sync menus-offer-1",
+                              "sync menus-accepted-1", "wait 2", "shot host-notice",
+                              "press cross", "wait 2", "press options", "wait 2", "press cross",
+                              "wait 2", "shot host-inventory", "press cross", "wait 2",
+                              "press down", "wait 1", "press down", "wait 1",
+                              "shot host-commands-give", "press cross", "wait 2",
+                              "shot host-quantity", "press up", "wait 1", "press left", "wait 1",
+                              "shot host-quantity-2", "press cross", "wait 2",
+                              "expect-held vials 4", "shot host-offered", "sync menus-offer-2",
+                              # The guest's yes opens a box here: close it before the menu
+                              # (rig 2026-11-02: it ate the menu presses of the third offer).
+                              "sync menus-accepted-2", "wait 2", "press cross", "wait 2",
+                              # The menu closed after the offer: open it again, the way
+                              # trade-echoes does (Up from the inventory wraps to Give Blood
+                              # Echoes; Down from 1,000 takes all of them).
+                              "press options", "wait 2", "press cross", "wait 2", "press cross",
+                              "wait 2", "press up", "wait 1", "press cross", "wait 2",
+                              "shot host-echoes", "press down", "wait 1", "press left", "wait 1",
+                              "shot host-echoes-max", "press cross", "wait 3",
+                              "expect-held echoes 0", "sync menus-offer-3", "press circle",
+                              "wait 1", "press circle", "wait 1", "press circle", "wait 1",
+                              "press circle", "sync menus-answered", "wait 3", "shot host-end",
+                              "press cross", "wait 2"],
+                     "guest": ["trade-stock vials 0", "trade-stock echoes 0",
+                               "sync menus-stocked", "sync menus-offer-1", "wait 3",
+                               "shot guest-ask", "press left", "wait 1", "shot guest-ask-yes",
+                               "press cross", "wait 3", "shot guest-received", "press cross",
+                               "expect-held vials 4 30", "sync menus-accepted-1",
+                               "sync menus-offer-2", "wait 3",
+                               "shot guest-ask-2", "press left", "wait 1", "press cross",
+                               "wait 3", "shot guest-received-2", "expect-held vials 6 30",
+                               "sync menus-accepted-2", "sync menus-offer-3", "wait 3", "shot guest-ask-3", "press left",
+                               "wait 1", "press cross", "wait 3", "shot guest-received-3",
+                               "press cross", "expect-held echoes 2000 30",
+                               "sync menus-answered"]},
+                    expect={"host": [r"Bloodborne trade: offered .* 4 Blood Vials",
+                                     r"Bloodborne trade: offered .* 2 Blood Vials",
+                                     r"Bloodborne trade: offered .* 2,000 Blood Echoes"],
+                            "guest": [r"Bloodborne trade: accepted offer",
+                                      r"Bloodborne trade: added 4 Blood Vials",
+                                      r"Bloodborne trade: added 2,000 Blood Echoes"]},
+                    forbid=holds(PARTY2)),
+            chapter("trade-echoes", "Blood Echoes through the menus (Kaniel 2026-10-16): the "
+                                    "host holding 54,321 opens Give Blood Echoes; the picker "
+                                    "opens on 1,000 and steps by 1,000 (Up twice is 3,000), "
+                                    "Down from 1,000 wraps to all the rest; the guest accepts both",
+                    {"host": ["trade-stock vials 10", "trade-stock bullets 0",
+                              "trade-stock echoes 54321", "sync echoes-stocked",
+                              "press options", "wait 2", "press cross", "wait 2", "press cross",
+                              "wait 2", "press up", "wait 1", "press cross", "wait 2", "press up",
+                              "wait 1", "press up", "wait 1", "press left", "wait 1",
+                              "press cross", "wait 3", "expect-held echoes 51321",
+                              "sync echoes-accepted-1", "wait 2", "press cross", "wait 2",
+                              "press options", "wait 2", "press cross", "wait 2", "press cross",
+                              "wait 2", "press up", "wait 1", "press cross", "wait 2",
+                              "press down", "wait 1", "press left", "wait 1", "press cross",
+                              "wait 3", "expect-held echoes 0", "sync echoes-accepted-2",
+                              "wait 2", "press cross", "wait 2"],
+                     "guest": ["trade-stock echoes 0", "sync echoes-stocked",
+                               "trade-answer yes 60", "expect-held echoes 3000 30",
+                               "sync echoes-accepted-1", "trade-answer yes 60",
+                               "expect-held echoes 54321 30", "sync echoes-accepted-2",
+                               "wait-trade received 10"]},
+                    expect={"host": [r"Bloodborne trade: offered .* 3,000 Blood Echoes",
+                                     r"Bloodborne trade: offered .* 51,321 Blood Echoes"],
+                            "guest": [r"Bloodborne trade: added 3,000 Blood Echoes",
+                                      r"Bloodborne trade: added 51,321 Blood Echoes"]},
+                    forbid=holds(PARTY2)),
+            chapter("trade", "the host gives the guest 4 Blood Vials, swaps 3000 Blood Echoes "
+                             "for 5 Quicksilver Bullets, then offers 2 vials the guest declines "
+                             "(they come back)",
+                    {"host": ["trade-stock vials 10", "trade-stock bullets 0",
+                              "trade-stock echoes 5000", "sync trade-stocked",
+                              "trade-offer vials 4 120", "expect-held vials 6",
+                              "wait-trade accepted 120",
+                              "trade-offer echoes 3000 for bullets 5 60",
+                              "expect-held echoes 2000", "expect-held bullets 5 60",
+                              "trade-offer vials 2 60", "expect-held vials 4",
+                              "wait-trade declined 120", "expect-held vials 6 30",
+                              "wait-trade returned 10"],
+                     "guest": ["trade-stock vials 0", "trade-stock bullets 10",
+                               "trade-stock echoes 0", "sync trade-stocked",
+                               "trade-answer yes 100", "expect-held vials 4 30",
+                               "wait-trade received 10", "trade-answer yes 60",
+                               "expect-held echoes 3000 30", "expect-held bullets 5",
+                               "trade-answer no 60", "wait 10", "expect-held vials 4"]},
+                    expect={"host": [r"Bloodborne trade: offered .* 4 Blood Vials",
+                                     r"Bloodborne trade: added 5 Quicksilver Bullets",
+                                     r"Bloodborne trade: added 2 Blood Vials"],
+                            "guest": [r"Bloodborne trade: added 4 Blood Vials",
+                                      r"Bloodborne trade: added 3,000 Blood Echoes",
+                                      r"Bloodborne trade: declined offer"]},
+                    forbid=holds(PARTY2)),
+            chapter("trade-any", "any item (Kaniel 2026-10-15): a key item, a weapon with a blood "
+                                 "gem in it and armor in one offer; the guest gets each, the "
+                                 "weapon with its gem",
+                    {"host": ["trade-stock goods:4000 1", "trade-stock weapon:5000500 1",
+                              "trade-socket weapon:5000500 gem:1000000 13101",
+                              "trade-stock armor:11000 1", "sync any-stocked",
+                              "trade-offer goods:4000 1 weapon:5000500 1 armor:11000 1 100",
+                              "expect-held goods:4000 0", "expect-held weapon:5000500 0",
+                              "expect-held armor:11000 0", "wait-trade accepted 100"],
+                     "guest": ["trade-stock goods:4000 0", "trade-stock weapon:5000500 0",
+                               "trade-stock armor:11000 0", "sync any-stocked",
+                               "trade-answer yes 100", "expect-held goods:4000 1 30",
+                               "expect-held weapon:5000500 1 30",
+                               "expect-socketed weapon:5000500 gem:1000000 13101",
+                               "expect-held armor:11000 1", "wait-trade received 10"]},
+                    expect={"host": [r"Bloodborne trade: offered .* Oedon Tomb Key, Hunter Axe "
+                                     r"\+5, Charred Hunter Garb"],
+                            "guest": [r"Bloodborne trade: added Oedon Tomb Key, Hunter Axe \+5, "
+                                      r"Charred Hunter Garb",
+                                      r"item-get popup goods 4000 x 1 queued"]},
+                    forbid=holds(PARTY2)),
         ],
     },
 }

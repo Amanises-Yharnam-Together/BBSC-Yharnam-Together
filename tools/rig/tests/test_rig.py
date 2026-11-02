@@ -33,6 +33,9 @@ VERBS = {
     "expect-stains", "pickup-stain",  # Kaniel 2026-10-20: bloodstains on the compass and map
     "ping-aim", "ping-map", "expect-pings",  # Kaniel 2026-10-24: team pings
     "duel-propose", "duel-answer", "duel-cancel", "wait-duel", "duel-strike",  # 2026-10-25: duels
+    "duel-propose-teams",  # 1.3.2: team duels
+    "team-quick", "team-open", "team-join-open", "team-wait-open", "team-code-share",
+    "team-join-code",  # 1.3.2: quick match, open teams, join by code
     "pickup", "hit", "rise", "approach-downed", "revive-downed", "wait-vital", "wait-member-vital",
     "shot", "expect-hidden", "expect-disabled", "set-disabled", "census", "peek", "poke", "dump", "raise-stat",
     "add-effect",  # #300: Insight for Hemwick's mist ambush
@@ -508,9 +511,10 @@ class LaneTest(unittest.TestCase):
     def test_a_scenario_sets_its_servers_settings_and_the_next_run_gets_the_defaults(self):
         # Kaniel 2026-10-31 (invade-solo): invasions are off on a server unless its shadnet.cfg
         # says Invasions=true; one run's must never stay on for the runs after it.
-        self.assertEqual(run_scenario.server_settings({}), {"Invasions": "false"})
+        self.assertEqual(run_scenario.server_settings({}), run_scenario.SERVER_DEFAULTS)
+        self.assertEqual(run_scenario.SERVER_DEFAULTS["Invasions"], "false")
         self.assertEqual(run_scenario.server_settings(scenarios.SCENARIOS["invade-solo"]),
-                         {"Invasions": "true"})
+                         {**run_scenario.SERVER_DEFAULTS, "Invasions": "true"})
         with self.assertRaises(ValueError):
             run_scenario.server_settings({"server": {"Invasion": "true"}})
         with tempfile.TemporaryDirectory() as folder:
@@ -794,8 +798,10 @@ class RunnerTest(unittest.TestCase):
                              "a request no frame took is not taken by the next run's first frame")
 
     def test_play_gets_the_games_into_the_world_together_and_leaves_the_rest_to_you(self):
-        for name, players in (("down-revive", 2), ("down-revive3", 3)):
-            scenario = scenarios.SCENARIOS[name]
+        # The rig rework: down-revive and down-revive3 are suite chapters now; their suites
+        # play the same (party death on).
+        for name, players in (("party-death", 2), ("party3", 3)):
+            scenario = run_scenario.RUNNABLE[name]
             scripts = run_scenario.play_scripts(scenario)
             with self.subTest(scenario=name):
                 self.assertEqual(list(scripts), list(scenario["roles"]))
