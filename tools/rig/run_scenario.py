@@ -575,10 +575,17 @@ def stop_servers():
     netstat = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True,
                              text=True).stdout
     for pid in listening_pids(netstat, SHADNET_PORT) | listening_pids(netstat, BACKEND_PORT):
-        subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True)
+        killed = subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True,
+                                text=True)
+        # Rig 2026-11-02: a lane's shadNet outlived its run and nothing said why.
+        if killed.returncode != 0:
+            print(f"  could not stop server pid {pid}: "
+                  f"{(killed.stderr or killed.stdout).strip() or f'exit {killed.returncode}'}")
     deadline = time.time() + 15
     while time.time() < deadline and (port_open(SHADNET_PORT) or port_open(BACKEND_PORT)):
         time.sleep(0.5)
+    if held := held_server_ports():
+        print(f"  server ports still held after stopping: {held}")
 
 
 def held_server_ports(netstat: str | None = None) -> str:
