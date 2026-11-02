@@ -318,6 +318,22 @@ def physical_cores():
     return os.cpu_count() or 8
 
 
+def frame_pacing(env, fps):
+    """The vblank rate for the frame rate mode, chosen here at every start. The in-game restart inherits the
+    previous start's environment, and a value kept from it held a frame rate changed in the game's menu at the
+    old pacing. An explicit one (set before the first start, for measurements) is used as given. From Supermedo's
+    bloodborne_pc cedc28b (nick24051998)."""
+    if env.get('BB_AUTO_VBLANK') == '1' or not env.get('BB_VBLANK_HZ'):
+        env['BB_VBLANK_HZ'] = {'uncap': '480', '90': '90'}.get(fps, '60')
+        env['BB_AUTO_VBLANK'] = '1'
+
+
+def coop_trace(env, config):
+    """The co-op trace for a bug report: bbport.ini coop_trace=1, or BB_COOP_TRACE as given."""
+    if ini_value(config, 'coop_trace') == '1':
+        env.setdefault('BB_COOP_TRACE', '1')
+
+
 def find_executable(name):
     """bin/ (packaged), else out/ (built with build.sh)."""
     for candidate in (PORT / 'bin' / name, PORT / 'out' / name):
@@ -474,6 +490,7 @@ def main():
         fps = env.get('BB_FPS', 'uncap') if 'fps' in groups else '30'
         asked = fps
         online = env.get('BB_ONLINE') == '1'
+        coop_trace(env, config)
         online_unlocked = env.get('BB_ONLINE_UNLOCKED_FPS') == '1'
         fps = frame_mode(fps, ini_value(config, 'fps_limit'), online=online, online_unlocked=online_unlocked)
         if fps != asked and online and not online_unlocked:
@@ -567,8 +584,7 @@ def main():
         env.setdefault('BB_COPY_GPU_BUFFERS', '1')
         env.setdefault('BB_GPU_WRITE_TWINS', '1')
         env.setdefault('BB_GPU_WRITE_TWINS_MAX', '65536')
-        if not env.get('BB_VBLANK_HZ'):
-            env['BB_VBLANK_HZ'] = {'uncap': '480', '90': '90'}.get(fps, '60')
+        frame_pacing(env, fps)
 
         # The in-game restart starts this script again once this process is gone.
         # GPU caches (shaders, pipelines) beside the saves; read before main(), so set here.

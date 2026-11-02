@@ -263,7 +263,12 @@ public:
 
     s32 UnmapMemory(VAddr virtual_addr, u64 size);
 
-    s32 QueryProtection(VAddr addr, void** start, void** end, u32* prot);
+    s32 QueryProtection(VAddr addr, void** start, void** end, u32* prot, bool* guest = nullptr);
+
+    // Co-op memory checks (MemoryWindows): odd is "changing", so nothing is cached here.
+    u64 MappingGeneration() const {
+        return 1;
+    }
 
     s32 Protect(VAddr addr, u64 size, MemoryProt prot);
 

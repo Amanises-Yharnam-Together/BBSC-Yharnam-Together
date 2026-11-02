@@ -1,11 +1,56 @@
 """run.py's frame rate mode: the in-game FPS limit (bbport.ini fps_limit) needs the unlocked mode."""
 from paths import ROOT
 import importlib.util
+import tempfile
 import unittest
+from pathlib import Path
 
 spec = importlib.util.spec_from_file_location('bbport_run', ROOT / 'run.py')
 run = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(run)
+
+
+class FramePacingTests(unittest.TestCase):
+    """The in-game restart inherits the previous start's environment (Supermedo's cedc28b)."""
+
+    def test_a_frame_rate_changed_in_the_menu_gets_its_own_pacing_after_the_restart(self):
+        env = {}
+        run.frame_pacing(env, 'uncap')
+        self.assertEqual(env['BB_VBLANK_HZ'], '480')
+        run.frame_pacing(env, '30')
+        self.assertEqual(env['BB_VBLANK_HZ'], '60')
+        run.frame_pacing(env, '90')
+        self.assertEqual(env['BB_VBLANK_HZ'], '90')
+        run.frame_pacing(env, 'uncap')
+        self.assertEqual(env['BB_VBLANK_HZ'], '480')
+
+    def test_a_rate_set_before_the_first_start_is_used_as_given(self):
+        env = {'BB_VBLANK_HZ': '120'}
+        run.frame_pacing(env, 'uncap')
+        run.frame_pacing(env, '30')
+        self.assertEqual(env['BB_VBLANK_HZ'], '120')
+        self.assertNotIn('BB_AUTO_VBLANK', env)
+
+
+class CoopTraceSettingTests(unittest.TestCase):
+    """A player's game runs without the co-op trace; bbport.ini turns it on for a bug report."""
+
+    def trace_with(self, ini_text, env):
+        with tempfile.TemporaryDirectory() as folder:
+            ini = Path(folder) / 'bbport.ini'
+            ini.write_text(ini_text, encoding='utf-8')
+            run.coop_trace(env, ini)
+        return env.get('BB_COOP_TRACE')
+
+    def test_off_unless_asked_for(self):
+        self.assertIsNone(self.trace_with('fov=43\n', {}))
+        self.assertIsNone(self.trace_with('coop_trace=0\n', {}))
+
+    def test_the_ini_turns_it_on(self):
+        self.assertEqual(self.trace_with('coop_trace=1\n', {}), '1')
+
+    def test_a_setting_given_at_the_start_stays(self):
+        self.assertEqual(self.trace_with('coop_trace=1\n', {'BB_COOP_TRACE': '0'}), '0')
 
 
 class FrameModeTests(unittest.TestCase):
