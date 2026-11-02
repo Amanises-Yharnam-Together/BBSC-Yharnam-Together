@@ -8,6 +8,28 @@ run = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(run)
 
 
+class FramePacingTests(unittest.TestCase):
+    """The in-game restart inherits the previous start's environment (Supermedo's cedc28b)."""
+
+    def test_a_frame_rate_changed_in_the_menu_gets_its_own_pacing_after_the_restart(self):
+        env = {}
+        run.frame_pacing(env, 'uncap')
+        self.assertEqual(env['BB_VBLANK_HZ'], '480')
+        run.frame_pacing(env, '30')
+        self.assertEqual(env['BB_VBLANK_HZ'], '60')
+        run.frame_pacing(env, '90')
+        self.assertEqual(env['BB_VBLANK_HZ'], '90')
+        run.frame_pacing(env, 'uncap')
+        self.assertEqual(env['BB_VBLANK_HZ'], '480')
+
+    def test_a_rate_set_before_the_first_start_is_used_as_given(self):
+        env = {'BB_VBLANK_HZ': '120'}
+        run.frame_pacing(env, 'uncap')
+        run.frame_pacing(env, '30')
+        self.assertEqual(env['BB_VBLANK_HZ'], '120')
+        self.assertNotIn('BB_AUTO_VBLANK', env)
+
+
 class FrameModeTests(unittest.TestCase):
     def test_an_fps_limit_unlocks_the_frame_rate(self):
         # Kaniel 2026-10-10: 240 set in the game's menu, still 60 on top (the kit's 60 FPS mode is

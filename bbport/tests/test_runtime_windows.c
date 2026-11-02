@@ -4,10 +4,12 @@
  * - a debug exception raised by the guest stops the process without exit handlers or static
  *   destructors, which would run under the game's still running threads;
  * - guest threads above the game's priorities (FMOD's mixer and output, 256-265) run at
- *   THREAD_PRIORITY_HIGHEST, the rest at normal priority (BB_THREAD_PRIORITY=0: all normal).
+ *   THREAD_PRIORITY_HIGHEST, the rest at normal priority (BB_THREAD_PRIORITY=0: all normal);
+ * - the in-game restart's new launch keeps the standard handles and nothing else of this process.
  * A failed check exits at once (no abort(): its report could wait for a click).
  * After configuring the GPU build: ninja -C out/gpu runtime-windows-test && out/gpu/runtime-windows-test.exe */
 #include "runtime.h"
+#include "restart_launch.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,8 +59,53 @@ static int guest_thread_priority(int prio) {
     return (int)(intptr_t)result;
 }
 
+/* The new launch's side: says it runs through the output handle, then stays until it is ended. */
+static int restart_child(void) {
+    DWORD written=0;
+    if (!WriteFile(GetStdHandle(STD_OUTPUT_HANDLE),"child output",12,&written,NULL) || written!=12) return 4;
+    Sleep(60000);
+    return 5;
+}
+
+static void test_restart_keeps_only_the_standard_handles(const char *self) {
+    /* The write end stands for the shadNet socket: inheritable like a plain ::socket(). Once this
+     * process closes it, the pipe is broken unless the new launch holds a copy, as the session
+     * stayed open on the server. */
+    SECURITY_ATTRIBUTES inheritable={.nLength=sizeof(inheritable),.bInheritHandle=TRUE};
+    HANDLE session_end,session,reader,writer;
+    CHECK(CreatePipe(&session_end,&session,&inheritable,0));
+    CHECK(CreatePipe(&reader,&writer,&inheritable,0));
+    HANDLE saved=GetStdHandle(STD_OUTPUT_HANDLE);
+    CHECK(SetStdHandle(STD_OUTPUT_HANDLE,writer));
+    char line[MAX_PATH+32];
+    snprintf(line,sizeof(line),"\"%s\" --restart-child",self);
+    PROCESS_INFORMATION process;
+    const BOOL started=restart_launch_start(line,&process);
+    SetStdHandle(STD_OUTPUT_HANDLE,saved);
+    CHECK(started);
+    CloseHandle(writer);
+    CloseHandle(session);
+    char text[64]={0};
+    DWORD got=0;
+    CHECK(ReadFile(reader,text,sizeof(text)-1,&got,NULL));
+    printf("restart child output: \"%s\"\n",text);
+    CHECK(strstr(text,"child output"));
+    const BOOL open=PeekNamedPipe(session_end,NULL,0,NULL,NULL,NULL);
+    const DWORD error=GetLastError();
+    TerminateProcess(process.hProcess,0);
+    WaitForSingleObject(process.hProcess,10000);
+    CloseHandle(process.hProcess);
+    CloseHandle(process.hThread);
+    CloseHandle(reader);
+    CloseHandle(session_end);
+    printf("session after the restart: %s (%lu)\n",open?"still open in the new launch":"closed",error);
+    CHECK(!open && error==ERROR_BROKEN_PIPE);
+    puts("restart launch keeps only the standard handles: ok");
+}
+
 int main(int argc, char **argv) {
     setvbuf(stdout, NULL, _IONBF, 0);
+    if (argc > 1 && !strcmp(argv[1], "--restart-child")) return restart_child();
     runtime_memory_reserve();
     runtime_thread_tcb_offset();
     runtime_start(1);
@@ -67,6 +114,7 @@ int main(int argc, char **argv) {
         GET(Raise, "OMDRKKAZ8I4#p#J")(1, 2);
         return 99;
     }
+    test_restart_keeps_only_the_standard_handles(argv[0]);
     void *self = GET(ThreadSelf, "aI+OeCz8xrQ#p#J")();
     CHECK(self);
     printf("main thread handle %p\n", self);
