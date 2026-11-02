@@ -3015,12 +3015,6 @@ std::optional<s32> EnemySyncState(EnemyRole role, s32 state);
 // The state the hit on an enemy (0x01A29E40) sees instead: a host that follows sends its hits.
 std::optional<s32> EnemyHitState(EnemyRole role, s32 state);
 std::optional<u16> EnemyOwnershipWord(EnemyRole role);
-// Whether the owner's ownership words are left to its game: a game that hosted from the start
-// puts them back itself every frame (rig 2026-10-14). A guest does not, nor does a guest that
-// took the team's host role in play: its game is the old host's client underneath, its words
-// stay negative and nobody runs the map (rig party-death 2026-11-02: the other player's hits,
-// sent to this owner, fell on enemies it did not run).
-bool GameKeepsOwnerWords(EnemyRole role, bool guest_role, bool took_over_team);
 // The Doll (m21_00 entity 2100700, 0x10000001 in the Dream) stays in each player's own game
 // whatever its role on the map (Kaniel 2026-10-18: the Doll only): handed over in the middle of a
 // level-up, she went to where the new owner's copy stood (16 m away) and the talk never ended
@@ -3043,6 +3037,30 @@ std::optional<s32> HeldOwnHitHp(s32 current, s32 after_own_hit, s64 age_ms);
 // down to it (scaled by each copy's max, to 0 for a killing hit: it dies on every screen at
 // once); the owner applies the hit itself (the game's 0x15), and without an owner nothing.
 std::optional<s32> HitNewsHp(EnemyRole role, s32 current, s32 copy_max, s32 hp, s32 max);
+// Rig party-death 2026-11-02: the owner's game can drop a follower's hit (ch 0x15, on a guest
+// that came back and took the map over), and then the two copies' HP split for good. The hit's
+// news (bbcoop::EnemyHit) reaches the owner too: it waits OwnerHitWaitMs for the game, which
+// normally lands the hit first (a kill stays the game's), then HitNewsHp lowers what is left.
+constexpr s64 OwnerHitWaitMs = 500;
+class OwnerHitCatchUp {
+public:
+    struct Hit {
+        u32 handle;
+        s32 hp;
+        s32 max;
+    };
+    void Heard(u32 handle, s32 hp, s32 max, s64 now_ms);
+    std::vector<Hit> Take(s64 now_ms);
+    void Clear();
+
+private:
+    struct Waiting {
+        s32 hp;
+        s32 max;
+        s64 heard_ms;
+    };
+    std::map<u32, Waiting> waiting;
+};
 // What the game sends at all (shadNet routes what it sends, coop/packet_routes.h): a follower's
 // hit (0x15) and near list (0x16) go to the area's owner, not the session's host the game sends
 // them to; what only the owner sends, a follower does not send (the game sees "not sent").

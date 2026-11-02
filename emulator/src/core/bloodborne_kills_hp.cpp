@@ -1428,8 +1428,7 @@ void TickEnemyOwner(bool in_session, u32 map) {
     }
     // The session's host runs its map's enemies the game's own way: its game puts its own words
     // back every frame (rig 2026-10-14). Phase 8: no guest runs one at any distance.
-    if (!wanted || world < 0x10000 ||
-        GameKeepsOwnerWords(role, IsPartyGuestRole(), TeamHostTookOver())) {
+    if (!wanted || world < 0x10000 || (role == EnemyRole::Owner && !IsPartyGuestRole())) {
         return;
     }
     size_t changed = 0;
@@ -1872,9 +1871,14 @@ void ShareEnemyHpByOwner(EnemyRole role, u32 map, u64 source, std::span<const En
     }
     // Phase 8 (one HP path): the others' hits, at once on a follower's copies; each holds against
     // the owner's older HP as this game's own hit does (HoldOwnHits).
+    static OwnerHitCatchUp owner_hits;
     for (const EnemyHitNews& hit : TakeEnemyHits()) {
         const auto it = data.find(hit.handle);
         if (hit.map != map || it == data.end()) {
+            continue;
+        }
+        if (role == EnemyRole::Owner) {
+            owner_hits.Heard(hit.handle, hit.hp, hit.max, now_ms);
             continue;
         }
         const auto copy = std::ranges::find(standing, hit.handle, &EnemyCopy::handle);
@@ -1896,6 +1900,28 @@ void ShareEnemyHpByOwner(EnemyRole role, u32 map, u64 source, std::span<const En
         if (*hp == 0) {
             LOG_INFO(Debug, "Bloodborne party: enemy death seen: {:#x} (t={:.1f})", hit.handle,
                      now_ms / 1000.0);
+        }
+    }
+    if (wipe_held || role != EnemyRole::Owner) {
+        owner_hits.Clear(); // the wipe's HP, or nothing this game runs
+    }
+    for (const OwnerHitCatchUp::Hit& hit : owner_hits.Take(now_ms)) {
+        const auto it = data.find(hit.handle);
+        const auto copy = std::ranges::find(standing, hit.handle, &EnemyCopy::handle);
+        if (it == data.end() || copy == standing.end()) {
+            continue;
+        }
+        const auto hp = HitNewsHp(EnemyRole::Follower, copy->hp, copy->max, hit.hp, hit.max);
+        if (!hp || !HasMemoryAccess(it->second.first, 0xFC, MemoryProt::CpuWrite)) {
+            continue; // the game's own hit landed: the usual case
+        }
+        WriteValue(it->second.first, 0xF8, *hp);
+        static u32 logged_missed = 0;
+        if (++logged_missed <= 100) {
+            LOG_INFO(Debug,
+                     "Bloodborne party: the owner's game dropped a hit on map {:#x}: {:#x} "
+                     "{}->{} from the news (t={:.1f})",
+                     map, hit.handle, copy->hp, *hp, now_ms / 1000.0);
         }
     }
     // The log's HP (the owner's reports): a new owner's copies take it, and a follower's always.

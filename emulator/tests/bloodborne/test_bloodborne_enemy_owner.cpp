@@ -81,15 +81,34 @@ TEST(EnemyOwner, TheOwnerRunsTheAiAFollowerTheNetworkController) {
     EXPECT_EQ(EnemyOwnershipWord(EnemyRole::Unknown), std::nullopt);
 }
 
-// Rig party-death 2026-11-02: a guest that took the team's host role, then the enemies, stopped
-// forcing its words; its game, the old host's client, left them negative and the other player's
-// hits fell on enemies nobody ran.
-TEST(EnemyOwner, OnlyAGameThatHostedFromTheStartKeepsItsOwnWords) {
-    EXPECT_TRUE(GameKeepsOwnerWords(EnemyRole::Owner, false, false));
-    EXPECT_FALSE(GameKeepsOwnerWords(EnemyRole::Owner, true, false));
-    EXPECT_FALSE(GameKeepsOwnerWords(EnemyRole::Owner, false, true));
-    EXPECT_FALSE(GameKeepsOwnerWords(EnemyRole::Follower, false, false));
-    EXPECT_FALSE(GameKeepsOwnerWords(EnemyRole::Unknown, false, false));
+// Rig party-death 2026-11-02: a guest had come back and owned the map; the host's hit (ch 0x15)
+// never landed on its copy, so the two HPs split and no wipe came. The news is the repair.
+TEST(EnemyOwner, TheOwnerTakesAHitOnlyAfterItsGameHadItsChance) {
+    OwnerHitCatchUp hits;
+    hits.Heard(0x280B, 482, 484, 1000);
+    EXPECT_TRUE(hits.Take(1000 + OwnerHitWaitMs - 1).empty());
+    const auto due = hits.Take(1000 + OwnerHitWaitMs);
+    ASSERT_EQ(due.size(), 1u);
+    EXPECT_EQ(due[0].handle, 0x280Bu);
+    EXPECT_EQ(due[0].hp, 482);
+    EXPECT_EQ(due[0].max, 484);
+    EXPECT_TRUE(hits.Take(1000 + OwnerHitWaitMs).empty()); // once
+}
+
+TEST(EnemyOwner, AQuickSecondHitReplacesTheFirstAndDoesNotWaitLonger) {
+    OwnerHitCatchUp hits;
+    hits.Heard(0x280B, 482, 484, 1000);
+    hits.Heard(0x280B, 470, 484, 1000 + OwnerHitWaitMs - 1);
+    const auto due = hits.Take(1000 + OwnerHitWaitMs);
+    ASSERT_EQ(due.size(), 1u);
+    EXPECT_EQ(due[0].hp, 470);
+}
+
+TEST(EnemyOwner, AWipeForgetsTheHitsStillWaiting) {
+    OwnerHitCatchUp hits;
+    hits.Heard(0x280B, 482, 484, 1000);
+    hits.Clear();
+    EXPECT_TRUE(hits.Take(1000 + OwnerHitWaitMs).empty());
 }
 
 // Playtest 2026-10-18: krolebord was levelling up at the Doll when the Dream's owner changed; the
