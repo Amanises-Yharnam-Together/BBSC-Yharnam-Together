@@ -118,5 +118,15 @@ class TierProxiesTest(unittest.TestCase):
         self.assertEqual(started, [])
 
 
+class HeldPortsTest(unittest.TestCase):
+    def test_a_server_left_from_an_earlier_run_is_named_with_its_pid(self):
+        # Rig 2026-11-02: an old shadNet still listened, and the run said "too old".
+        port = run_scenario.SHADNET_PORT
+        netstat = (f"  TCP    0.0.0.0:{port}    0.0.0.0:0    LISTENING    53880\n"
+                   f"  TCP    127.0.0.1:{port}    127.0.0.1:5000    ESTABLISHED    1\n")
+        self.assertEqual(run_scenario.held_server_ports(netstat), f"{port} (pid 53880)")
+        self.assertEqual(run_scenario.held_server_ports(""), "")
+
+
 if __name__ == "__main__":
     unittest.main()

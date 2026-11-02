@@ -581,6 +581,19 @@ def stop_servers():
         time.sleep(0.5)
 
 
+def held_server_ports(netstat: str | None = None) -> str:
+    """Which of the rig's server ports something still listens on, with its pids ("" for none)."""
+    if netstat is None:
+        if not (port_open(SHADNET_PORT) or port_open(BACKEND_PORT)):
+            return ""
+        netstat = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True,
+                                 text=True).stdout
+    held = [f"{port} (pid {', '.join(map(str, sorted(pids)))})"
+            for port in (SHADNET_PORT, BACKEND_PORT)
+            if (pids := listening_pids(netstat, port))]
+    return ", ".join(held)
+
+
 # A console of its own (as before) but no window: with Windows Terminal as the default terminal a
 # new console opened a Terminal window on the player's desktop (2026-10-25).
 SERVER_CONSOLE = getattr(subprocess, "CREATE_NO_WINDOW", 0) | build_lock.priority_flags()
@@ -1312,6 +1325,12 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
         return False
     build_lock.wait_for_cpu(f"the {name} run")  # the PC is Kaniel's: leave him CPU
     stop_servers()
+    if held := held_server_ports():
+        # Rig 2026-11-02: a shadNet from a run before still listened 15 minutes later, so this
+        # run's own never started and the check below called it "too old".
+        print(f"  the rig's server ports are still held after stopping them: {held} (close "
+              "those processes, then run again)")
+        return False
     # Every run starts with no party worlds on the server (shadNet keeps them on disk: phase 3).
     shutil.rmtree(lane_dir() / "server" / "bloodborne_worlds", ignore_errors=True)
     start_servers(run_dir)
