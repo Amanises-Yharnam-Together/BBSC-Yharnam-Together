@@ -398,6 +398,8 @@ add_executable(shadps4_bloodborne_test
     bloodborne/test_bloodborne_flag_rules.cpp
     bloodborne/test_bloodborne_place.cpp
     bloodborne/test_bloodborne_coop_trace.cpp
+    bloodborne/test_bloodborne_memory_window.cpp
+    bloodborne/test_bloodborne_coop_worker.cpp
     bloodborne/test_bloodborne_channel_table.cpp
     bloodborne/test_bloodborne_enemy_owner.cpp
     bloodborne/test_bloodborne_world_log.cpp

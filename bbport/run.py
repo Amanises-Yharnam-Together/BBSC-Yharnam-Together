@@ -328,6 +328,12 @@ def frame_pacing(env, fps):
         env['BB_AUTO_VBLANK'] = '1'
 
 
+def coop_trace(env, config):
+    """The co-op trace for a bug report: bbport.ini coop_trace=1, or BB_COOP_TRACE as given."""
+    if ini_value(config, 'coop_trace') == '1':
+        env.setdefault('BB_COOP_TRACE', '1')
+
+
 def find_executable(name):
     """bin/ (packaged), else out/ (built with build.sh)."""
     for candidate in (PORT / 'bin' / name, PORT / 'out' / name):
@@ -484,6 +490,7 @@ def main():
         fps = env.get('BB_FPS', 'uncap') if 'fps' in groups else '30'
         asked = fps
         online = env.get('BB_ONLINE') == '1'
+        coop_trace(env, config)
         online_unlocked = env.get('BB_ONLINE_UNLOCKED_FPS') == '1'
         fps = frame_mode(fps, ini_value(config, 'fps_limit'), online=online, online_unlocked=online_unlocked)
         if fps != asked and online and not online_unlocked:

@@ -3647,10 +3647,10 @@ std::size_t PruneSaveBackups(const fs::path& user_dir, std::size_t kept) {
 
 bool CoopTraceEnabled(const char* setting) {
     if (setting == nullptr) {
-        return true;
+        return false;
     }
     const std::string_view value{setting};
-    return value != "0" && value != "off";
+    return value == "1" || value == "on";
 }
 
 std::optional<std::string> TraceRecord::Field(std::string_view key) const {

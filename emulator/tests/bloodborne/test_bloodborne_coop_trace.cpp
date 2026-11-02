@@ -49,10 +49,11 @@ std::vector<std::string> Lines(const std::string& text) {
 
 } // namespace
 
-TEST(CoopTrace, OnUnlessSwitchedOff) {
-    EXPECT_TRUE(CoopTraceEnabled(nullptr));
-    EXPECT_TRUE(CoopTraceEnabled(""));
+TEST(CoopTrace, OffUnlessAskedFor) {
+    EXPECT_FALSE(CoopTraceEnabled(nullptr));
+    EXPECT_FALSE(CoopTraceEnabled(""));
     EXPECT_TRUE(CoopTraceEnabled("1"));
+    EXPECT_TRUE(CoopTraceEnabled("on"));
     EXPECT_FALSE(CoopTraceEnabled("0"));
     EXPECT_FALSE(CoopTraceEnabled("off"));
 }

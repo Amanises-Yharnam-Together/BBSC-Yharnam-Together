@@ -1008,6 +1008,7 @@ def game_environment(role: str, script: pathlib.Path | None, party: str,
         "SHADPS4_BLOODBORNE_PARTY": party,
         "SHADPS4_BLOODBORNE_PARTY_ROLE": ROLES[role]["role"],
         "SHADPS4_BLOODBORNE_RE_TRACE": "1",
+        "BB_COOP_TRACE": "1",  # the log lines the scenarios expect; a player's game has it off
     })
     env.pop("SHADPS4_BLOODBORNE_AUTOPLAY", None)
     if script is not None:
