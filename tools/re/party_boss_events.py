@@ -346,11 +346,12 @@ CHALICE_REWARD_EVENTS = {'m29.emevd.dcx': 12901693}
 GOTO_IF_MULTIPLAYER_STATE = (1003, 105)
 
 
-# The game's banner 15 (TextEffect_YouWin, UNLOCKED) is party death's YOU ARE DOWN in the HUD patch
-# (bbport/scripts/hud_patch.py): every banner is in use and this one has NIGHTMARE SLAIN's timeline
-# and layers. Its only event shows none; the message box after it still says what happened.
-# SetTextEffect takes ids 1 to 17, so id 0 queues nothing.
-DROPPED_BANNER_EVENTS = {'m29.emevd.dcx': {12900192}}
+# Events whose banner (2007:2) shows nothing. 1.3.1 dropped m29 12900192's UNLOCKED (slot 15,
+# TextEffect_YouWin) because party death's YOU ARE DOWN had taken that slot; the HUD patch now
+# gives YOU ARE DOWN a banner of its own (bbport/scripts/hud_patch.py CoopDownedBanner), so the
+# chalice dungeons say UNLOCKED again (Kaniel 2026-11-01). SetTextEffect takes ids 1 to 17, so
+# id 0 queues nothing.
+DROPPED_BANNER_EVENTS: dict[str, set[int]] = {}
 SET_TEXT_EFFECT = (2007, 2)
 DOWNED_BANNER_ID = 15
 

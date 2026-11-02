@@ -4,12 +4,13 @@
 from the player's copy (or the mod that replaces it, such as Compact HUD) and put over the mods as the last
 layer. Nothing of the game's is kept in the port: the movie is read and patched where it is.
 
-The banner is the game's TextEffect_YouWin (UNLOCKED, SetTextEffect id 15): its text fields are renamed, so that
-the game no longer fills them from its text tables (fields named StaticText_<id>), and get our words in the
-game's font, in yellow. The game's fade-in and blur trail stay as they are. It has the same timeline and layers
-as TextEffect_Draw, which stays the game's NIGHTMARE SLAIN (text 522007, SetTextEffect id 17: Mergo's Wet Nurse,
-Gehrman, the Orphan of Kos; player report 2026-10-29). Only one event shows UNLOCKED, m29 12900192, and the event
-patch drops its banner (tools/re/party_boss_events.py DROPPED_BANNER_EVENTS).
+The banner is a copy of the game's TextEffect_YouWin (UNLOCKED, SetTextEffect id 15) of our own, CoopDownedBanner
+(patch_downed_banner): its text fields are renamed, so that the game does not fill them from its text tables
+(fields named StaticText_<id>), and get our words in the game's font, in yellow; its fade-in and blur trail are the
+game's. The game's banner stays UNLOCKED (1.3.1 had taken it over; Kaniel 2026-11-01 missed it in the chalice
+dungeons), and TextEffect_Draw stays the game's NIGHTMARE SLAIN (text 522007, SetTextEffect id 17: Mergo's Wet
+Nurse, Gehrman, the Orphan of Kos; player report 2026-10-29). Party death shows the copy's second frame while the
+player is newly down (bloodborne_party.h DownedBannerFrame).
 
 The party list is three more of the game's own nameplate tags (the sprite RemotePCTag0 shows), placed at the
 top level as CoopParty0-2: party death fills and places them each frame through the game's own tag code
@@ -33,10 +34,11 @@ FE = 'dvdroot_ps4/menu/fe.gfx'
 LAYER = 'party HUD'
 # Part of the generated file's name: a patcher that patches differently makes its file anew (the old
 # one is not reused). Bump it with every change to what patch_fe writes.
-PATCH_VERSION = b'party-hud 17'  # 17: a fourth teammate (Amanises 2026-10-29)
+PATCH_VERSION = b'party-hud 18'  # 18: UNLOCKED is the game's again, YOU ARE DOWN our own copy (2026-11-01)
 DOWNED_BANNER = 'Fe_fla._TextEffect_YouWin_181'
 DOWNED_SOURCE_FIELD = 'StaticText_522002'
 DOWNED_FIELD = 'CoopDownedText'
+DOWNED_SPRITE = 'CoopDownedBanner'
 DOWNED_TEXT = 'YOU ARE DOWN'
 DOWNED_COLOR = 'd8b03c'
 
@@ -118,6 +120,7 @@ def badge_centre(index):
     return x + step, y - step
 # Character ids for what the patch defines, above any the game's movies use.
 FIRST_NEW_ID = 50000
+FIRST_BANNER_ID = 50200  # after the supplies' ids
 
 SHOW_FRAME, PLACE_OBJECT2, PLACE_OBJECT3, EDIT_TEXT, SPRITE, SYMBOL_CLASS = 1, 26, 70, 37, 39, 76
 REMOVE_OBJECT2 = 28
@@ -669,8 +672,8 @@ def add_party_list(tags, strip=None, portraits=True):
     tags[first_frame:first_frame] = added
 
 
-def patch_downed_banner(tags):
-    """The YouWin banner's two text fields become the yellow YOU ARE DOWN."""
+def youwin_banner(tags):
+    """(the defined sprites and edit texts by id, the TextEffect_YouWin sprite's id)."""
     defined = {struct.unpack_from('<H', tag.body)[0]: tag for tag in tags if tag.code in (SPRITE, EDIT_TEXT)}
     banner = None
     for tag in tags:
@@ -685,6 +688,11 @@ def patch_downed_banner(tags):
                 offset = end + 1
     if banner not in defined or defined[banner].code != SPRITE:
         raise ValueError(f'no {DOWNED_BANNER} in this HUD')
+    return defined, banner
+
+
+def banner_fields(defined, banner):
+    """[(the banner layer's holder id, the holder's PlaceObject of the text, the text's DefineEditText)]."""
     fields = []
     for layer in defined[banner].children:
         if layer.code not in (PLACE_OBJECT2, PLACE_OBJECT3):
@@ -698,30 +706,101 @@ def patch_downed_banner(tags):
                 continue
             field, name, _ = place_parts(place)
             if name in (DOWNED_SOURCE_FIELD, DOWNED_FIELD) and field in defined and defined[field].code == EDIT_TEXT:
-                fields.append((place, defined[field]))
+                fields.append((character, place, defined[field]))
     if not fields:
         raise ValueError(f'the banner has no {DOWNED_SOURCE_FIELD} text')
-    for place, text in fields:
-        if place_parts(place)[1] != DOWNED_FIELD:
-            rename(place, DOWNED_FIELD)
-        parts = edit_text_parts(text)
-        if 'text' not in parts or 'color' not in parts:
-            raise ValueError("the banner's text field has no text or colour")
-        if text.body[slice(*parts['color'])] == bytes.fromhex(DOWNED_COLOR) + b'\xff':
-            continue  # done before
-        start, end = parts['text']
-        html = downed_html(text.body[start:end].decode('latin-1')).encode('latin-1')
-        body = text.body[:start] + html + text.body[end:]
-        c0, c1 = parts['color']
-        text.body = body[:c0] + bytes.fromhex(DOWNED_COLOR) + b'\xff' + body[c1:]
+    return fields
+
+
+def with_character(tag, char):
+    """A copy of a PlaceObject2/3 that has a character, showing `char` instead."""
+    body = tag.body
+    if not body[0] & 0x02:
+        raise ValueError('the banner places its layers in a way the patch does not know')
+    offset = 3
+    if tag.code == PLACE_OBJECT3:
+        flags2, offset = body[1], 4
+        if flags2 & 0x08 or flags2 & 0x10:
+            offset = body.index(b'\0', offset) + 1  # class name
+    return Tag(tag.code, body[:offset] + struct.pack('<H', char) + body[offset + 2:], tag.long)
+
+
+def copied(tag, char):
+    """A copy of a sprite or text definition as character `char`."""
+    out = Tag(tag.code, struct.pack('<H', char) + tag.body[2:], tag.long)
+    out.children = list(getattr(tag, 'children', None) or [])
+    return out
+
+
+def downed_text(text):
+    """The banner's text field (a copy) as the yellow YOU ARE DOWN."""
+    parts = edit_text_parts(text)
+    if 'text' not in parts or 'color' not in parts:
+        raise ValueError("the banner's text field has no text or colour")
+    start, end = parts['text']
+    html = downed_html(text.body[start:end].decode('latin-1')).encode('latin-1')
+    body = text.body[:start] + html + text.body[end:]
+    c0, c1 = parts['color']
+    text.body = body[:c0] + bytes.fromhex(DOWNED_COLOR) + b'\xff' + body[c1:]
+    return text
+
+
+def patch_downed_banner(tags):
+    """The game's TextEffect_YouWin stays its UNLOCKED (an older patch's renamed fields get their names back);
+    CoopDownedBanner, placed over the game's banners where TextEffect_YouWin stands, is a sprite of two frames:
+    nothing, then a copy of the banner whose text fields are the yellow YOU ARE DOWN. Party death stops it at
+    its first frame and shows the second while the player is newly downed (the copy plays the game's fade-in
+    and blur trail as it comes)."""
+    defined, banner = youwin_banner(tags)
+    fields = banner_fields(defined, banner)
+    for _, field_place, _ in fields:
+        if place_parts(field_place)[1] != DOWNED_SOURCE_FIELD:
+            rename(field_place, DOWNED_SOURCE_FIELD)
+    first_frame = next(i for i, tag in enumerate(tags) if tag.code == SHOW_FRAME)
+    places = [tag for tag in tags[:first_frame] if tag.code in (PLACE_OBJECT2, PLACE_OBJECT3)]
+    if any(place_parts(tag)[1] == DOWNED_SPRITE for tag in places):
+        return
+    char = FIRST_BANNER_ID
+    added, holders, texts = [], {}, {}
+    for holder, field_place, text in fields:
+        text_id = struct.unpack_from('<H', text.body)[0]
+        if text_id not in texts:
+            texts[text_id] = char
+            added.append(downed_text(copied(text, char)))
+            char += 1
+        if holder not in holders:
+            holders[holder] = char
+            copy = copied(defined[holder], char)
+            copy.children = [with_character(child, texts[text_id]) if child is field_place else child
+                             for child in copy.children]
+            for child in copy.children:
+                if child.code in (PLACE_OBJECT2, PLACE_OBJECT3) and place_parts(child)[0] == texts[text_id]:
+                    rename(child, DOWNED_FIELD)
+            added.append(copy)
+            char += 1
+    copy = copied(defined[banner], char)
+    copy.children = [with_character(child, holders[place_parts(child)[0]])
+                     if child.code in (PLACE_OBJECT2, PLACE_OBJECT3) and place_parts(child)[0] in holders else child
+                     for child in copy.children]
+    added.append(copy)
+    wrapper = Tag(SPRITE, struct.pack('<HH', char + 1, 2), True)
+    wrapper.children = [Tag(SHOW_FRAME, b'', False), place(char, 1), Tag(SHOW_FRAME, b'', False), Tag(0, b'', False)]
+    added.append(wrapper)
+    stands = next((tag for tag in places if place_parts(tag)[0] == banner), None)
+    where = place_matrix(stands) if stands is not None and stands.code == PLACE_OBJECT2 else None
+    depth = max(place_depth(tag) for tag in places) + 2
+    added.append(place(char + 1, depth, DOWNED_SPRITE,
+                       matrix(where[0], where[1], where[2]) if where is not None else None))
+    tags[first_frame:first_frame] = added
 
 
 def patch_fe(data, strip=None, portraits=True):
-    """The game's HUD movie with the downed banner in place of the YouWin banner and the party list (see the
+    """The game's HUD movie with the party list and the downed banner, a copy of the YouWin banner (see the
     module's note); `strip` is the list's icons (party_hud_icons.bin), none without it (and no portraits)."""
     header, tags = read_movie(data)
-    patch_downed_banner(tags)
+    youwin_banner(tags)  # a HUD without it is not patched at all
     add_party_list(tags, strip, portraits)
+    patch_downed_banner(tags)  # over the list too
     return write_movie((header, tags))
 
 

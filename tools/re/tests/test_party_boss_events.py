@@ -117,9 +117,8 @@ def strings_of(emevd: bytes) -> bytes:
 
 
 class GuestsEnterBossFogFirst(unittest.TestCase):
-    def test_the_unlocked_banner_gives_way_to_the_downed_banner(self):
-        """Slot 15 (TextEffect_YouWin) is party death's YOU ARE DOWN in the HUD patch: m29 12900192, the
-        only event that queues it, shows none (id 0 is out of SetTextEffect's range)."""
+    def test_a_dropped_banner_shows_none(self):
+        """A banner event drop_banners is given shows none (id 0 is out of SetTextEffect's range)."""
         banner = (2007, 2, struct.pack('<i', tool.DOWNED_BANNER_ID))
         other = (2007, 2, struct.pack('<i', 16))
         edits: list = []
@@ -130,7 +129,11 @@ class GuestsEnterBossFogFirst(unittest.TestCase):
         self.assertEqual(events[12900192], [(2007, 2, struct.pack('<i', 0))])
         self.assertEqual(events[12900193], [banner, other])
         self.assertEqual(edits[0]['event'], 12900192)
-        self.assertEqual(tool.DROPPED_BANNER_EVENTS, {'m29.emevd.dcx': {12900192}})
+
+    def test_the_chalice_unlocked_banner_shows_again(self):
+        """Kaniel 2026-11-01: the chalice dungeons' UNLOCKED (m29 12900192, slot 15) was gone; YOU ARE DOWN is
+        the HUD patch's own banner now (CoopDownedBanner), so no event loses its banner."""
+        self.assertEqual(tool.DROPPED_BANNER_EVENTS, {})
 
     """A white phantom's boss fog event waits for the host's "entered" flag, so a guest could
     never enter first and was stuck behind the fog after a world reset."""

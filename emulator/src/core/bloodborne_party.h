@@ -3431,12 +3431,21 @@ s32 DownedHp(s32 max, u32 landed, u32 needed);
 // TextEffect_KillDemon), 2 YOU DIED, 4 BLOOD ECHOES RETRIEVED, 5 PREY SLAUGHTERED again
 // (TextEffect_KillTarget), 7 ADVERSARY EXPUNGED, 15 UNLOCKED, 16 a wordless one, 17 NIGHTMARE SLAIN
 // (TE_Draw's slot: TextEffect_Draw, text 522007; Mergo's Wet Nurse, Gehrman, the Orphan of Kos).
-// Every banner the HUD has is in use. Party death takes 15 (fe.gfx TextEffect_YouWin, the same
-// timeline and layers as NIGHTMARE SLAIN's): the party HUD (bbport/scripts/hud_patch.py) makes it
-// the yellow YOU ARE DOWN, and the event patch drops its one game event (m29 12900192).
+// Every banner the HUD has is in use. 1.3.1 gave 15 (UNLOCKED, the chalice dungeons' m29 12900192)
+// to party death's YOU ARE DOWN; Kaniel 2026-11-01 missed UNLOCKED, so it is the game's again and
+// YOU ARE DOWN is the party HUD's own sprite (DownedBannerFrame).
 constexpr u64 SetTextEffectOffset = 0x013360B0;
 constexpr std::array<u8, 6> SetTextEffectStart{0x8D, 0x46, 0xFF, 0x83, 0xF8, 0x10};
-constexpr s32 DownedBannerTextEffect = 15;
+constexpr s32 UnlockedTextEffect = 15;
+
+// Party death's yellow YOU ARE DOWN: the party HUD's CoopDownedBanner (bbport/scripts/hud_patch.py),
+// a sprite of two frames: nothing, then a copy of the game's TextEffect_YouWin (its fade-in and
+// blur trail, 125 frames at 30 fps) with our words. It shows frame 2 for DownedBannerShowMs from
+// when the player went down, frame 1 otherwise.
+constexpr s64 DownedBannerShowMs = 4'100;
+constexpr u32 DownedBannerFrame(s64 downed_ms, s64 now_ms) {
+    return now_ms >= downed_ms && now_ms - downed_ms < DownedBannerShowMs ? 2 : 1;
+}
 
 // The party HUD's nameplates: the game's tag over each remote player (fe.gfx RemotePCTag0-6). The
 // HUD tick updates each tag from a TagData (0x01B59E20: rdi the tag, rsi its data), and its one

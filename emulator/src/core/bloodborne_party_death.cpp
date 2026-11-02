@@ -1278,28 +1278,13 @@ void SetPlayerFlag(u64 offset, u8 value) {
     WriteValue(image_base + offset, 0, value);
 }
 
-// The yellow YOU ARE DOWN banner (the party HUD's, in place of the game's UNLOCKED banner): queued
-// by the game's own SetTextEffect, as YOU DIED is. Without the party HUD it would say UNLOCKED, so
-// it is left out where the HUD is not the port's (the emulator) or is off (BB_PARTY_HUD=0).
+// When the player last went down: the party HUD shows its yellow YOU ARE DOWN banner
+// (CoopDownedBanner, DownedBannerFrame) from then, in the HUD tick (UpdateDownedBanner). Kaniel
+// 2026-11-01: it is the HUD's own sprite, so the game's UNLOCKED banner (slot 15) is its own again.
+std::atomic<s64> downed_banner_ms{-1'000'000};
+
 void ShowDownedBanner() {
-#ifdef BLOODBORNE_PARTY_HUD
-    static const bool party_hud = [] {
-        const char* setting = std::getenv("BB_PARTY_HUD"); // run.py's switch for the patched HUD
-        return setting == nullptr || std::string_view{setting} != "0";
-    }();
-    if (!party_hud) {
-        return;
-    }
-    const auto* start = reinterpret_cast<const u8*>(image_base + SetTextEffectOffset);
-    if (!std::ranges::equal(std::span<const u8>{start, SetTextEffectStart.size()},
-                            SetTextEffectStart)) {
-        LOG_ERROR(Debug, "Bloodborne party death: SetTextEffect is not where it should be; no "
-                         "downed banner");
-        return;
-    }
-    reinterpret_cast<void PS4_SYSV_ABI (*)(u64, s32)>(image_base + SetTextEffectOffset)(
-        0, DownedBannerTextEffect);
-#endif
+    downed_banner_ms.store(SteadyMilliseconds(), std::memory_order_relaxed);
 }
 
 void GoDown(PartyDeathRun& run, u64 data, s64 now_ms) {
@@ -2245,6 +2230,10 @@ struct NativePartyList {
     std::array<u32, PartyListSize> supply_frames{};
     std::array<std::array<u8*, 2>, PartyListSize> supply_texts{};
     std::array<std::array<std::string, 2>, PartyListSize> supply_said{};
+    // CoopDownedBanner's value (object interface, data) and the frame it was stopped at; none in a
+    // HUD without it (a mod's, or one patched before it).
+    std::pair<u64, u64> downed_banner{};
+    u32 downed_banner_frame = 0;
     // CoopPrompt: the game's interact prompt widget made for it; null without it.
     u8* prompt = nullptr;
     std::array<u8, HudPromptDataSize> prompt_data{};
@@ -2336,6 +2325,25 @@ void FindListSprites(u64 hud, const char* format, NativePartyList::Sprites& spri
             return;
         }
     }
+}
+
+// The HUD's sprite `name` (a top-level one): its value, kept for the HUD's life as the list's
+// sprites are; none without it.
+std::pair<u64, u64> FindHudSprite(u64 hud, const char* name) {
+    auto* path = new (std::align_val_t{16}) u8[HudPathRefSize]{};
+    reinterpret_cast<HudLookup>(image_base + HudChildLookupOffset)(path, hud, name);
+    u32 type = 0;
+    std::memcpy(&type, path + HudPathRefTypeAt, sizeof(type));
+    const bool found = (type & 0x8F) != 0;
+    std::pair<u64, u64> sprite{};
+    if (found) {
+        std::memcpy(&sprite.first, path + HudPathRefInterfaceAt, 8);
+        std::memcpy(&sprite.second, path + HudPathRefObjectAt, 8);
+    }
+    if (HudValueFate(type, found) == HudValueKeep::Drop) {
+        ::operator delete[](path, std::align_val_t{16});
+    }
+    return sprite;
 }
 
 // The text fields under `format` (a slash path from the HUD, one per list slot): their PathRefs,
@@ -2478,6 +2486,24 @@ void ShowListSprite(const NativePartyList::Sprites& sprites, std::array<u32, Par
                                                                              true);
 }
 
+// The yellow YOU ARE DOWN banner (CoopDownedBanner): its banner while the player is newly down,
+// nothing otherwise (the sprite would play through its two frames on its own).
+void UpdateDownedBanner() {
+    const auto [object, value] = native_list.downed_banner;
+    if (object < 0x10000) {
+        return;
+    }
+    const u32 frame =
+        DownedBannerFrame(downed_banner_ms.load(std::memory_order_relaxed), SteadyMilliseconds());
+    if (frame == native_list.downed_banner_frame) {
+        return;
+    }
+    native_list.downed_banner_frame = frame;
+    const u64 goto_frame = ReadValue<u64>(ReadValue<u64>(object, 0), HudGotoFrameSlot);
+    reinterpret_cast<void PS4_SYSV_ABI (*)(u64, u64, u32, bool)>(goto_frame)(object, value, frame,
+                                                                             true);
+}
+
 // The list slot's icon, portrait and badge (PartyListArtFor).
 void ShowListArt(int index, const PartyListArt& art) {
     ShowListSprite(native_list.icons, native_list.icon_frames, index, art.icon);
@@ -2497,7 +2523,11 @@ void PS4_SYSV_ABI UpdatePartyList(u64, const GuestRegisterSnapshot* registers) {
     if (PartyListOutdated(hud, generation, native_list.hud, native_list.generation)) {
         native_list = NativePartyList{.hud = hud, .generation = generation};
         native_list.ready = MakePartyListTags(hud);
+        native_list.downed_banner = FindHudSprite(hud, "CoopDownedBanner");
+        LOG_INFO(Debug, "Bloodborne party HUD: YOU ARE DOWN is the HUD's own banner: {}",
+                 native_list.downed_banner.first != 0 ? "yes" : "no (no CoopDownedBanner)");
     }
+    UpdateDownedBanner();
     if (!native_list.ready) {
         return;
     }

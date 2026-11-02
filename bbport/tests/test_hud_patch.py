@@ -56,7 +56,7 @@ DEAD_HTML = DRAW_HTML.replace('9b2102', '960807').replace('HUNTED NIGHTMARE', 'Y
 WIN_HTML = DRAW_HTML.replace('9b2102', 'fefefe').replace('HUNTED NIGHTMARE', 'UNLOCKED')
 
 
-def fe_movie():
+def fe_movie(win_field='StaticText_522002'):
     """A small fe.gfx: TextEffect_Draw and TextEffect_YouWin (two layers of their text) and TextEffect_Dead, as
     the game's is built."""
     return movie(
@@ -65,8 +65,8 @@ def fe_movie():
         sprite(14, place2(1, 11, ''), place2(3, 13, '')),
         edit_text(20, DEAD_HTML, b'\x96\x08\x07\xff'), sprite(21, place2(1, 20, 'StaticText_522001')),
         sprite(22, place2(1, 21, '')),
-        edit_text(50, WIN_HTML, bytes.fromhex('fefefeff')), sprite(51, place2(1, 50, 'StaticText_522002')),
-        edit_text(52, WIN_HTML, bytes.fromhex('fefefeff')), sprite(53, place2(1, 52, 'StaticText_522002')),
+        edit_text(50, WIN_HTML, bytes.fromhex('fefefeff')), sprite(51, place2(1, 50, win_field)),
+        edit_text(52, WIN_HTML, bytes.fromhex('fefefeff')), sprite(53, place2(1, 52, win_field)),
         sprite(54, place2(1, 51, ''), place2(3, 53, '')),
         sprite(30, tag(1, b'')), sprite(31, tag(1, b'')),
         # The player's HUD: its vial (TriDrug: a drawing, Stock/Stock) and bullet (AmmoItem: a drawing).
@@ -105,15 +105,61 @@ class GfxTests(unittest.TestCase):
         self.assertEqual(banner_tags(tags), banner_tags(original))
         self.assertEqual(hud_patch.write_movie(hud_patch.read_movie(patched)), patched)
 
-    def test_the_downed_banner_takes_the_youwin_slot(self):
+    def test_unlocked_stays_the_games(self):
+        # Kaniel 2026-11-01: the chalice dungeons' UNLOCKED banner was gone (1.3.1 gave its slot to YOU ARE DOWN).
+        data = fe_movie()
+        patched = hud_patch.patch_fe(data)
+        self.assertEqual(patched.count(b'StaticText_522002'), 2)
+        self.assertEqual(patched.count(WIN_HTML.encode()), 2)
+        _, original = hud_patch.read_movie(data)
+        _, tags = hud_patch.read_movie(patched)
+
+        def banner_tags(tags):
+            return {struct.unpack_from('<H', t.body)[0]: t.encode() for t in tags
+                    if t.code in (hud_patch.SPRITE, hud_patch.EDIT_TEXT) and 50 <= struct.unpack_from('<H', t.body)[0] <= 54}
+        self.assertEqual(banner_tags(tags), banner_tags(original))
+
+    def test_the_downed_banner_is_a_copy_of_youwin_of_our_own(self):
         patched = hud_patch.patch_fe(fe_movie())
-        self.assertEqual(hud_patch.DOWNED_BANNER, 'Fe_fla._TextEffect_YouWin_181')
         self.assertEqual(patched.count(b'<b>YOU ARE DOWN</b>'), 2)  # both layers of the banner
         self.assertIn(b'color="#d8b03c"', patched)
-        self.assertNotIn(b'UNLOCKED', patched)
-        # The game fills fields named StaticText_<id> from its text tables: the banner's fields are renamed.
-        self.assertNotIn(b'StaticText_522002', patched)
         self.assertEqual(patched.count(hud_patch.DOWNED_FIELD.encode()), 2)
+        _, tags = hud_patch.read_movie(patched)
+        defined = {struct.unpack_from('<H', t.body)[0]: t for t in tags
+                   if t.code in (hud_patch.SPRITE, hud_patch.EDIT_TEXT, 2)}
+        # Every character defined once.
+        ids = [struct.unpack_from('<H', t.body)[0] for t in tags if t.code in (hud_patch.SPRITE, hud_patch.EDIT_TEXT, 2)]
+        self.assertEqual(len(ids), len(set(ids)))
+        first_frame = next(i for i, t in enumerate(tags) if t.code == hud_patch.SHOW_FRAME)
+        places = {hud_patch.place_parts(t)[1]: t for t in tags[:first_frame] if t.code == hud_patch.PLACE_OBJECT2}
+        wrapper = defined[hud_patch.place_parts(places[hud_patch.DOWNED_SPRITE])[0]]
+        # Two frames: nothing (party death stops it there), then the banner, which plays its fade-in and trail.
+        self.assertEqual(struct.unpack_from('<H', wrapper.body, 2)[0], 2)
+        kids = wrapper.children
+        self.assertEqual(kids[0].code, hud_patch.SHOW_FRAME)
+        copy = defined[hud_patch.place_parts(kids[1])[0]]
+        self.assertGreaterEqual(struct.unpack_from('<H', copy.body)[0], hud_patch.FIRST_BANNER_ID)
+        layers = [hud_patch.place_parts(t)[0] for t in copy.children if t.code == hud_patch.PLACE_OBJECT2]
+        self.assertEqual(len(layers), 2)
+        for holder in layers:
+            self.assertNotIn(holder, (51, 53))
+            field, name, _ = hud_patch.place_parts(defined[holder].children[0])
+            self.assertEqual(name, hud_patch.DOWNED_FIELD)
+            self.assertNotIn(field, (50, 52))
+            self.assertIn(b'<b>YOU ARE DOWN</b>', defined[field].body)
+        # Above the game's banners, where TextEffect_YouWin stands.
+        self.assertGreater(hud_patch.place_depth(places[hud_patch.DOWNED_SPRITE]), 7)
+        self.assertEqual(hud_patch.place_matrix(places[hud_patch.DOWNED_SPRITE]),
+                         hud_patch.place_matrix(places['TextEffect_YouWin']))
+
+    def test_a_hud_an_older_patch_gave_the_youwin_slot_gets_unlocked_back(self):
+        older = fe_movie(win_field=hud_patch.DOWNED_FIELD)
+        patched = hud_patch.patch_fe(older)
+        self.assertEqual(patched.count(b'StaticText_522002'), 2)
+        self.assertEqual(patched.count(hud_patch.DOWNED_FIELD.encode()), 2)
+
+    def test_the_downed_banner_makes_a_new_patch_version(self):
+        self.assertEqual(hud_patch.PATCH_VERSION, b'party-hud 18')
 
     def test_a_movie_without_the_youwin_banner_is_refused(self):
         with self.assertRaises(ValueError):
@@ -391,7 +437,7 @@ class GfxTests(unittest.TestCase):
         patched = hud_patch.patch_fe(data)
         self.assertEqual(patched.count(b'StaticText_522007'), data.count(b'StaticText_522007'))  # NIGHTMARE SLAIN
         self.assertEqual(patched.count(b'<b>YOU ARE DOWN</b>'), 2)
-        self.assertNotIn(b'StaticText_522002', patched)
+        self.assertEqual(patched.count(b'StaticText_522002'), data.count(b'StaticText_522002'))  # UNLOCKED
         for name in hud_patch.PARTY_LIST:
             self.assertEqual(patched.count(name.encode() + b'\0'), 1)
         with_icons = hud_patch.patch_fe(data, hud_patch.HUD_ICONS.read_bytes())

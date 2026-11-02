@@ -3682,3 +3682,16 @@ TEST(BloodborneGameObjects, ASeenVtableIsNamedByItsImageOffset) {
         << "outside the image";
     EXPECT_EQ(DescribeVtable(0, Base, 0x6000000), "0x0");
 }
+
+// Kaniel 2026-11-01: the chalice UNLOCKED banner is the game's again; YOU ARE DOWN is the party
+// HUD's own sprite, its banner shown from going down for the copy's fade-in and trail.
+TEST(BloodbornePartyDeathBanner, ShowsFromGoingDownForTheBannersLength) {
+    EXPECT_EQ(DownedBannerFrame(-1'000'000, 0), 1u);
+    EXPECT_EQ(DownedBannerFrame(10'000, 9'999), 1u);
+    EXPECT_EQ(DownedBannerFrame(10'000, 10'000), 2u);
+    EXPECT_EQ(DownedBannerFrame(10'000, 10'000 + DownedBannerShowMs - 1), 2u);
+    EXPECT_EQ(DownedBannerFrame(10'000, 10'000 + DownedBannerShowMs), 1u);
+    // 125 frames at 30 fps, less its last few (faded out).
+    EXPECT_LE(DownedBannerShowMs, 125 * 1000 / 30);
+    EXPECT_GE(DownedBannerShowMs, 120 * 1000 / 30);
+}
