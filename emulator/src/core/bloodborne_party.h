@@ -663,6 +663,12 @@ struct SavedJoinTask {
 // step (its data was there before the trip), or runs the game's own join from the start (it was
 // still joining: its data never came, and a character made without it is a body-less phantom).
 bool RebuildsFromSave(const SavedJoinTask& saved);
+// Whether a task rebuilt as `kind` from `saved` waits at its saved step for a member's data. A
+// remote member's does; this game's own task (kind 2 or 3) has nobody to wait for, and it is
+// what creates the host's character on a guest (rig party-death 2026-11-02: a host that had
+// joined the team's new host was saved at step 3, its wipe's rebuild waited for its own data
+// and the players never saw each other).
+bool RebuiltTaskWaits(const SavedJoinTask* saved, s32 kind);
 // The saved task a rebuilt one of `kind` takes: its member's own, else the only one of that kind.
 std::optional<size_t> PickSavedJoinTask(std::span<const SavedJoinTask> saved, s32 kind,
                                         u64 identity);

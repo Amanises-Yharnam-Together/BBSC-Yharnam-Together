@@ -694,6 +694,11 @@ bool RebuildsFromSave(const SavedJoinTask& saved) {
     return saved.step > CreateCharacterStep;
 }
 
+bool RebuiltTaskWaits(const SavedJoinTask* saved, s32 kind) {
+    return saved && !RebuildsFromSave(*saved) &&
+           (kind == RemoteHostTask || kind == RemoteGuestTask);
+}
+
 bool HasAllMemberData(u8 parts) {
     return (parts & MemberDataParts) == MemberDataParts;
 }
