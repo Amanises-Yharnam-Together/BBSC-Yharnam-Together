@@ -1724,6 +1724,7 @@ SCENARIOS = {
     # but Quit): the team screen opens over the game and its Close goes back to the game. The
     # team's loading screen lingers a while after the join (the menu does not open under it).
     "team-menu-insert": {
+        "draws": True,  # headless games draw nothing (rig 2026-11-02)
         "about": "in game, the Insert menu's Co-op Team row opens the team screen; its Close "
                  "closes it again, the session holds",
         "roles": {
@@ -2102,6 +2103,7 @@ SCENARIOS = {
         "timeout": 600,
     },
     "portrait": {
+        "draws": True,  # headless games draw nothing (rig 2026-11-02)
         "about": "party portraits: each player opens its status page (its face is taken from it), "
                  "then they join; each party list shows the other's face with its icon as a badge (the "
                  "downed drop once the guest falls)",
@@ -2126,6 +2128,7 @@ SCENARIOS = {
         "timeout": 300,
     },
     "portrait-auto": {
+        "draws": True,  # headless games draw nothing (rig 2026-11-02)
         "about": "each player's portrait without the status page (Kaniel 2026-10-13: 'ideally "
                  "yes'): no kept portraits, the players never open a menu; each game draws its "
                  "character's status model off-screen and the other's party list shows it",
@@ -2250,6 +2253,7 @@ SCENARIOS = {
         "timeout": 300,
     },
     "menu-languages": {
+        "draws": True,  # headless games draw nothing (rig 2026-11-02)
         "about": "the port's menus in the game's language (Simplified Chinese here, the game's "
                  "own font for it) and every other the game has, chosen in the Insert menu: "
                  "Japanese, German, Korean, Traditional Chinese, then back to the game's",
@@ -2286,7 +2290,8 @@ SCENARIOS = {
         "roles": {
             # The player's own area is drawn ahead while the screen is shut; another as it shows.
             "host": [START, "godmode", f"set-flag {CATHEDRAL_WARD_LAMP_LIT}", "wait 25", "keys map", "wait 10",
-                     "shot map-central-yharnam", "keys start", "wait 2", "shot map-centred",
+                     "shot map-central-yharnam",
+                     # (no "keys start": the map has no re-centre key, rig 2026-11-02)
                      # Kaniel 2026-10-17 ("one big map"): Triangle, the whole waking world drawn so far.
                      "keys triangle", "wait 20", "shot map-world", "keys l1",
                      "wait 30", "shot map-cathedral-ward", "keys enter", "wait 2", "shot map-question",
