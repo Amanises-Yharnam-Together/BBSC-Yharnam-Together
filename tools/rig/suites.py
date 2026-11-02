@@ -1458,33 +1458,9 @@ SUITES = {
             # Rig 2026-11-02: the game's notice boxes queue, and a chapter's menu presses close
             # the ones earlier chapters left instead of driving its menu: the two menu chapters
             # come first, each closes its own boxes, and the host waits for the guest's yes by a
-            # sync (wait-trade counts every notice since the boot).
-            chapter("trade-echoes", "Blood Echoes through the menus (Kaniel 2026-10-16): the "
-                                    "host holding 54,321 opens Give Blood Echoes; the picker "
-                                    "opens on 1,000 and steps by 1,000 (Up twice is 3,000), "
-                                    "Down from 1,000 wraps to all the rest; the guest accepts both",
-                    {"host": ["trade-stock vials 10", "trade-stock bullets 0",
-                              "trade-stock echoes 54321", "sync echoes-stocked",
-                              "press options", "wait 2", "press cross", "wait 2", "press cross",
-                              "wait 2", "press up", "wait 1", "press cross", "wait 2", "press up",
-                              "wait 1", "press up", "wait 1", "press left", "wait 1",
-                              "press cross", "wait 3", "expect-held echoes 51321",
-                              "sync echoes-accepted-1", "wait 2", "press cross", "wait 2",
-                              "press options", "wait 2", "press cross", "wait 2", "press cross",
-                              "wait 2", "press up", "wait 1", "press cross", "wait 2",
-                              "press down", "wait 1", "press left", "wait 1", "press cross",
-                              "wait 3", "expect-held echoes 0", "sync echoes-accepted-2",
-                              "wait 2", "press cross", "wait 2"],
-                     "guest": ["trade-stock echoes 0", "sync echoes-stocked",
-                               "trade-answer yes 60", "expect-held echoes 3000 30",
-                               "sync echoes-accepted-1", "trade-answer yes 60",
-                               "expect-held echoes 54321 30", "sync echoes-accepted-2",
-                               "wait-trade received 10"]},
-                    expect={"host": [r"Bloodborne trade: offered .* 3,000 Blood Echoes",
-                                     r"Bloodborne trade: offered .* 51,321 Blood Echoes"],
-                            "guest": [r"Bloodborne trade: added 3,000 Blood Echoes",
-                                      r"Bloodborne trade: added 51,321 Blood Echoes"]},
-                    forbid=holds(PARTY2)),
+            # sync (wait-trade counts every notice since the boot). trade-menus first: the guest
+            # answers trade-echoes' offers by script and keeps their boxes (rig 2026-11-02, second
+            # run: trade-menus after it pressed into them).
             # Drawn menus: pictures of each box. Syncs instead of the old scenario's 40 s and
             # 30 s waits for the next offer.
             chapter("trade-menus", "the guest answers in the game's yes/no box and the host sees "
@@ -1528,6 +1504,32 @@ SUITES = {
                             "guest": [r"Bloodborne trade: accepted offer",
                                       r"Bloodborne trade: added 4 Blood Vials",
                                       r"Bloodborne trade: added 2,000 Blood Echoes"]},
+                    forbid=holds(PARTY2)),
+            chapter("trade-echoes", "Blood Echoes through the menus (Kaniel 2026-10-16): the "
+                                    "host holding 54,321 opens Give Blood Echoes; the picker "
+                                    "opens on 1,000 and steps by 1,000 (Up twice is 3,000), "
+                                    "Down from 1,000 wraps to all the rest; the guest accepts both",
+                    {"host": ["trade-stock vials 10", "trade-stock bullets 0",
+                              "trade-stock echoes 54321", "sync echoes-stocked",
+                              "press options", "wait 2", "press cross", "wait 2", "press cross",
+                              "wait 2", "press up", "wait 1", "press cross", "wait 2", "press up",
+                              "wait 1", "press up", "wait 1", "press left", "wait 1",
+                              "press cross", "wait 3", "expect-held echoes 51321",
+                              "sync echoes-accepted-1", "wait 2", "press cross", "wait 2",
+                              "press options", "wait 2", "press cross", "wait 2", "press cross",
+                              "wait 2", "press up", "wait 1", "press cross", "wait 2",
+                              "press down", "wait 1", "press left", "wait 1", "press cross",
+                              "wait 3", "expect-held echoes 0", "sync echoes-accepted-2",
+                              "wait 2", "press cross", "wait 2"],
+                     "guest": ["trade-stock echoes 0", "sync echoes-stocked",
+                               "trade-answer yes 60", "expect-held echoes 3000 30",
+                               "sync echoes-accepted-1", "trade-answer yes 60",
+                               "expect-held echoes 54321 30", "sync echoes-accepted-2",
+                               "wait-trade received 10"]},
+                    expect={"host": [r"Bloodborne trade: offered .* 3,000 Blood Echoes",
+                                     r"Bloodborne trade: offered .* 51,321 Blood Echoes"],
+                            "guest": [r"Bloodborne trade: added 3,000 Blood Echoes",
+                                      r"Bloodborne trade: added 51,321 Blood Echoes"]},
                     forbid=holds(PARTY2)),
             chapter("trade", "the host gives the guest 4 Blood Vials, swaps 3000 Blood Echoes "
                              "for 5 Quicksilver Bullets, then offers 2 vials the guest declines "
