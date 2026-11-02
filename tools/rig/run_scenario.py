@@ -1379,8 +1379,17 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
         return False
     for role in roles:
         if not user_dir(role).is_dir():
-            print(f"  {role}: no rig folder at {ENGINE.role_dir(role)}")
+            # Rig 2026-11-02 (five-hunters on lane 2): a lane copies lane 0's role folders, so a
+            # role lane 0 never had is missing in every lane.
+            fix = (f" (make it once with --add-{role}; each lane copies lane 0's)"
+                   if role in ("guest2", "guest3", "guest4") else "")
+            print(f"  {role}: no rig folder at {ENGINE.role_dir(role)}{fix}")
             return False
+    if scenario.get("draws") and os.environ.get("BB_NULL_GPU") == "1":
+        # Rig 2026-11-02: portraits and the port's menus are drawn: a headless game draws
+        # nothing, so these waited out their budgets. The "drawn" tier, in visible games.
+        print(f"  {name} needs drawn frames: run it without --headless (--tier drawn)")
+        return False
     if player_blocks():
         print("  another game is running (someone is playing): not starting the rig's")
         return False
@@ -1973,9 +1982,10 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
                         help="leave the rig's servers running afterwards")
     parser.add_argument("--list", action="store_true",
                         help="list the scenarios and suites, with their times")
-    parser.add_argument("--tier", choices=("quick", "full", "long"),
+    parser.add_argument("--tier", choices=("quick", "full", "long", "drawn"),
                         help="run a tier (budget.py): quick is smoke and the suites named after "
-                             "it, full every suite, long the slow scenarios")
+                             "it, full every suite, long the slow scenarios, drawn the ones that need "
+                             "drawn frames (visible games, not --headless)")
     parser.add_argument("--lanes-status", action="store_true",
                         help="who holds which lane (lanes.py)")
     parser.add_argument("--owner", help="who this run's lane claims name (default BB_RIG_OWNER, "

@@ -711,8 +711,11 @@ SUITES = {
                      "host": ["sync lone-there", "sync lone-killed", "wait 10",
                               f"travel {CATHEDRAL_WARD_LAMP}", "wait-members 2 240", "wait 20",
                               "snapshot"]},
+                    # The role change line too: "took over N enemies" stops after 60 lines a game,
+                    # used up earlier in the suite (rig 2026-11-02).
                     expect={"guest": [r"(?:guest alone on map 0x18000000 took over \d+ enemies|"
-                                      r"enemy owner: took over \d+ enemies on map 0x18000000)",
+                                      r"enemy owner: took over \d+ enemies on map 0x18000000|"
+                                      r"enemy owner: this game runs map 0x18000000's enemies)",
                                       r"(?:guest no longer alone; handed back|"
                                       r"enemy owner: this game follows \w+ on map 0x18000000)",
                                       r"Bloodborne echoes: \+\d+ \(rates 1\) from 0x18fc99b"],
