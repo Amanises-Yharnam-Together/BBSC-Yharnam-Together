@@ -186,12 +186,16 @@ def suite_timeout(suite: dict) -> int:
 def tiers(suites: dict, scenarios: dict) -> dict[str, list[str]]:
     """Each tier's runs, the longest first (lanes take them in turn)."""
     full = sorted(suites, key=lambda name: -suite_timeout(suites[name]))
-    singles = sorted((name for name in scenarios if name not in LONG),
+    # "draws": the scenario needs drawn frames (portraits, the port's menus), which a headless
+    # game never makes: the "drawn" tier, for visible games (rig 2026-11-02).
+    drawn = [name for name in scenarios if scenarios[name].get("draws")]
+    singles = sorted((name for name in scenarios if name not in LONG and name not in drawn),
                      key=lambda name: -scenarios[name].get("timeout", 600))
     return {
         "quick": ["smoke"],
         "full": full + singles,
-        "long": [name for name in LONG if name in scenarios],
+        "long": [name for name in LONG if name in scenarios and name not in drawn],
+        "drawn": drawn,
     }
 
 

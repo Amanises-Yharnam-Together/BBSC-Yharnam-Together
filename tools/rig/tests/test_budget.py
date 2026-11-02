@@ -87,8 +87,12 @@ class BudgetTest(unittest.TestCase):
     def test_the_tiers(self):
         tiers = budget.tiers(suites.SUITES, scenarios.SCENARIOS)
         self.assertEqual(tiers["quick"][0], "smoke")
-        self.assertEqual(set(tiers["full"]),
-                         set(suites.SUITES) | (set(scenarios.SCENARIOS) - set(budget.LONG)))
+        drawn = {name for name, scenario in scenarios.SCENARIOS.items() if scenario.get("draws")}
+        self.assertEqual(set(tiers["full"]), set(suites.SUITES) |
+                         (set(scenarios.SCENARIOS) - set(budget.LONG) - drawn))
+        # Rig 2026-11-02: headless games draw nothing; these run only in visible games.
+        self.assertEqual(set(tiers["drawn"]), drawn)
+        self.assertIn("portrait", drawn)
         self.assertEqual(tiers["full"][:len(suites.SUITES)][-1] in suites.SUITES, True)
         self.assertIn("soak", tiers["long"])
         self.assertIn("ward-door", tiers["long"])
