@@ -1478,6 +1478,9 @@ SUITES = {
                               "shot host-quantity", "press up", "wait 1", "press left", "wait 1",
                               "shot host-quantity-2", "press cross", "wait 2",
                               "expect-held vials 4", "shot host-offered", "sync menus-offer-2",
+                              # The guest's yes opens a box here: close it before the menu
+                              # (rig 2026-11-02: it ate the menu presses of the third offer).
+                              "sync menus-accepted-2", "wait 2", "press cross", "wait 2",
                               "press cross", "wait 2", "press down", "wait 1", "press down",
                               "wait 1", "press down", "wait 1", "press cross", "wait 2",
                               "shot host-echoes", "press down", "wait 1", "press left", "wait 1",
@@ -1494,7 +1497,7 @@ SUITES = {
                                "sync menus-offer-2", "wait 3",
                                "shot guest-ask-2", "press left", "wait 1", "press cross",
                                "wait 3", "shot guest-received-2", "expect-held vials 6 30",
-                               "sync menus-offer-3", "wait 3", "shot guest-ask-3", "press left",
+                               "sync menus-accepted-2", "sync menus-offer-3", "wait 3", "shot guest-ask-3", "press left",
                                "wait 1", "press cross", "wait 3", "shot guest-received-3",
                                "press cross", "expect-held echoes 2000 30",
                                "sync menus-answered"]},

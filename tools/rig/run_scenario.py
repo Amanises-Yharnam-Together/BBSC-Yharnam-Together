@@ -1342,6 +1342,10 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
     shutil.rmtree(lane_dir() / "server" / "bloodborne_worlds", ignore_errors=True)
     start_servers(run_dir)
     if not server_is_current(run_dir):
+        if not (run_dir / "shadnet.log").is_file():
+            # Rig 2026-11-02: something took the port between stopping and starting; whose?
+            print(f"  this run's shadNet never started: its port was taken again "
+                  f"({held_server_ports() or 'by nothing listening now'})")
         print("  The rig's shadNet is too old (it keeps no party worlds): copy "
               rf"{BB_ROOT}\out\server\shadnet.exe into {RIG}\server.")
         return False
