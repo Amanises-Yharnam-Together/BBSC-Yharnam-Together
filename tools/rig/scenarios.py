@@ -1472,12 +1472,12 @@ SCENARIOS = {
             "guest": [START, "godmode", "wait-session 2 300", "wait-members 2 120", "wait 10",
                       f"travel {HUNTERS_DREAM}", "wait-map 0x15000000 120", "wait 10"],
         },
-        "expect": {"host": [r"Bloodborne enemy scaling: 2 hunter\(s\) on this map: x1\.67 HP, "
-                            r"x1\.17 damage, x1\.67 poise",
-                            r"Bloodborne harder enemies: \d+ NpcParam rows, x1\.67 HP",
+        "expect": {"host": [r"Bloodborne enemy scaling: 2 hunter\(s\) on this map: x1\.50 HP, "
+                            r"x1\.12 damage, x1\.50 poise",
+                            r"Bloodborne harder enemies: \d+ NpcParam rows, x1\.50 HP",
                             r"Bloodborne enemy scaling: 1 hunter\(s\) on this map: the normal game",
                             r"Bloodborne harder enemies: \d+ NpcParam rows, the normal game"],
-                   "guest": [r"Bloodborne enemy scaling: 2 hunter\(s\) on this map: x1\.67 HP"]},
+                   "guest": [r"Bloodborne enemy scaling: 2 hunter\(s\) on this map: x1\.50 HP"]},
         "forbid": {"host": SESSION_HOLDS},
         "timeout": 300,
     },
