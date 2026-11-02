@@ -1492,10 +1492,13 @@ SUITES = {
                               # The guest's yes opens a box here: close it before the menu
                               # (rig 2026-11-02: it ate the menu presses of the third offer).
                               "sync menus-accepted-2", "wait 2", "press cross", "wait 2",
-                              "press cross", "wait 2", "press down", "wait 1", "press down",
-                              "wait 1", "press down", "wait 1", "press cross", "wait 2",
+                              # The menu closed after the offer: open it again, the way
+                              # trade-echoes does (Up from the inventory wraps to Give Blood
+                              # Echoes; Down from 1,000 takes all of them).
+                              "press options", "wait 2", "press cross", "wait 2", "press cross",
+                              "wait 2", "press up", "wait 1", "press cross", "wait 2",
                               "shot host-echoes", "press down", "wait 1", "press left", "wait 1",
-                              "shot host-echoes-max", "press cross", "wait 2",
+                              "shot host-echoes-max", "press cross", "wait 3",
                               "expect-held echoes 0", "sync menus-offer-3", "press circle",
                               "wait 1", "press circle", "wait 1", "press circle", "wait 1",
                               "press circle", "sync menus-answered", "wait 3", "shot host-end",
