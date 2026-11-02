@@ -3438,10 +3438,10 @@ constexpr u64 SetTextEffectOffset = 0x013360B0;
 constexpr std::array<u8, 6> SetTextEffectStart{0x8D, 0x46, 0xFF, 0x83, 0xF8, 0x10};
 constexpr s32 UnlockedTextEffect = 15;
 
-// Party death's yellow YOU ARE DOWN: the party HUD's CoopDownedBanner (bbport/scripts/hud_patch.py),
-// a sprite of two frames: nothing, then a copy of the game's TextEffect_YouWin (its fade-in and
-// blur trail, 125 frames at 30 fps) with our words. It shows frame 2 for DownedBannerShowMs from
-// when the player went down, frame 1 otherwise.
+// Party death's yellow YOU ARE DOWN: the party HUD's CoopDownedBanner
+// (bbport/scripts/hud_patch.py), a sprite of two frames: nothing, then a copy of the game's
+// TextEffect_YouWin (its fade-in and blur trail, 125 frames at 30 fps) with our words. It shows
+// frame 2 for DownedBannerShowMs from when the player went down, frame 1 otherwise.
 constexpr s64 DownedBannerShowMs = 4'100;
 constexpr u32 DownedBannerFrame(s64 downed_ms, s64 now_ms) {
     return now_ms >= downed_ms && now_ms - downed_ms < DownedBannerShowMs ? 2 : 1;
