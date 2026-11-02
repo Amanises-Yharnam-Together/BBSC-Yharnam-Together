@@ -4415,10 +4415,10 @@ for _name, _runner, _dies, _downed, _about in (
 # 500-600 ms). The guest stands by the enemies for three minutes as the follower; every co-op tick
 # part or step over 4 ms gets a "Co-op tick spike" line (BB_COOP_SPIKE_MS), naming what a slower
 # PC stalls in. Run with BB_RIG_FPS=60, as the player played.
-def _follower_stutter(about, role_settings=None):
+def _follower_stutter(about, role_settings=None, settings=None):
     return {
         "about": about,
-        "settings": {"BB_COOP_SPIKE_MS": "4"},
+        "settings": {"BB_COOP_SPIKE_MS": "4", **(settings or {})},
         "role_settings": role_settings or {},
         "roles": {
             "host": [START, "godmode", "wait-session 2 300", "wait 200", "expect-session 2"],
@@ -4439,6 +4439,10 @@ SCENARIOS["guest-follower-stutter"] = _follower_stutter(
 SCENARIOS["guest-follower-stutter-harder"] = _follower_stutter(
     "guest-follower-stutter with harder enemies on the guest only (its once-a-second param "
     "scans)", {"guest": HARDER})
+SCENARIOS["guest-follower-player-build"] = _follower_stutter(
+    "guest-follower-stutter as a player's game runs: no co-op trace, so none of the tick's parts "
+    "that only log (the before/after numbers of the co-op tick)",
+    settings={"BB_COOP_TRACE": "0"})
 
 
 # Kaniel 2026-10-28, the boss tempo host rule (docs/BOSS_TEMPO.md): Paarl fights the host alone
@@ -4534,6 +4538,7 @@ PROBE_NAMES = (
     "aspect-team-43", "team-load-art", "team-screen", "portrait-dressed",
     # perf measurements for player reports
     "solo-death-tick", "guest-follower-stutter", "guest-follower-stutter-harder",
+    "guest-follower-player-build",
     # boss tempo tuning logs
     "boss-tempo-vanilla", "boss-tempo-aggressive", "boss-tempo-relentless",
     # altar record captures (RE)

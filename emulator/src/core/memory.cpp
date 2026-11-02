@@ -994,8 +994,11 @@ s32 MemoryManager::UnmapMemoryImpl(VAddr virtual_addr, u64 size) {
     return ORBIS_OK;
 }
 
-s32 MemoryManager::QueryProtection(VAddr addr, void** start, void** end, u32* prot) {
+s32 MemoryManager::QueryProtection(VAddr addr, void** start, void** end, u32* prot, bool* guest) {
     std::shared_lock lk{mutex};
+    if (guest) {
+        *guest = false;
+    }
     VAddr min_query_addr = impl.SystemManagedVirtualBase();
     if (addr < min_query_addr) {
         LOG_ERROR(Kernel_Vmm, "Address {:#x} is not mapped", addr);

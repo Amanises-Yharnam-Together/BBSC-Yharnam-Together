@@ -10,6 +10,7 @@
 
 #include "coop.pb.h"
 #include "core/bloodborne_altar.h"
+#include "core/bloodborne_coop_worker.h"
 #include "core/bloodborne_crash_dump.h"
 #include "core/bloodborne_host_rules.h"
 #include "core/bloodborne_invasion.h"
@@ -229,6 +230,7 @@ bool InstallCoopHook(void* address, std::span<const u8> bytes, u64 tag, GuestFun
 bool InstallCoopHook(void* address, std::span<const u8> bytes, u64 tag, GuestFunctionResult hook);
 
 bool InstallCoopHook(void* address, std::span<const u8> bytes, u64 tag, GuestRegisterEditHook hook);
+// A check inside a guest region this thread already saw is one compare (MemoryWindows).
 bool HasMemoryAccess(u64 address, size_t size, MemoryProt required);
 
 // The value at address + offset, or nothing when that memory is not readable (for reads where 0
@@ -1254,6 +1256,9 @@ void TimeTickStep(std::string_view name, Step&& step) {
     step();
 }
 void ReportCoopTime(s64 now_ms);
+// The worker that takes read-only co-op work off the game's thread (bloodborne_coop_worker.h).
+CoopWorker& CoopOffMain();
+bool OffMainOn(OffMainPart part);
 void InstallPartyDeath(u64 base, u64 image_size);
 void ApplyHealingFountainHostAvailability(const GuestRegisterSnapshot& registers);
 u64 GetSummonManager();

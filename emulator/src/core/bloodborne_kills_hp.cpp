@@ -1344,7 +1344,9 @@ void SetSyncPeriods(EnemyRole role) {
 
 void TickEnemyOwner(bool in_session, u32 map) {
     HoldOwnHits();
-    LogWakeGroups();
+    if (CoopTraceOn()) {
+        LogWakeGroups();
+    }
     const s64 now_ms = SteadyMilliseconds();
     std::string self;
     {

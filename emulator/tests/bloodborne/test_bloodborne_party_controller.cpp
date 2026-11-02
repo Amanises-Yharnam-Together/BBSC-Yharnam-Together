@@ -675,6 +675,15 @@ TEST(BloodborneGuestProgress, FindsTheFlagsABlockChanged) {
     after[2] = 0x01;  // index 23
     before[3] = 0x40; // index 25, cleared
     const FlagChanges changes = ChangedFlags(1241, 1000, before, after);
+    struct Block {
+        u32 id;
+        std::vector<u8> bytes;
+    };
+    const std::vector<Block> old_store{{1000, {0}}, {1241, before}};
+    const std::vector<Block> new_store{{1241, after}, {1300, {0xFF}}};
+    const FlagChanges between = ChangedFlagsBetween(old_store, new_store, 1000);
+    EXPECT_EQ(between.set, changes.set);
+    EXPECT_EQ(between.cleared, changes.cleared);
     EXPECT_EQ(changes.set, (std::vector<s32>{1241000, 1241023}));
     EXPECT_EQ(changes.cleared, (std::vector<s32>{1241025}));
 }

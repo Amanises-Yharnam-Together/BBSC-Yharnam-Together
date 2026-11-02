@@ -79,10 +79,11 @@ player is.
   sessions as regression cases. Game memory itself is not replayed. This covers the sync
   decisions, which are where most desyncs start.
 
-Built (2026-10-12). Every co-op game writes `user/log/coop-trace-<yyyymmdd-hhmmss>-<process>.txt`.
+Built (2026-10-12). A co-op game with `BB_COOP_TRACE=1` (bbport.ini `coop_trace=1`) writes
+`user/log/coop-trace-<yyyymmdd-hhmmss>-<process>.txt`.
 A file holds at most 50 MB, then a new one starts, and the newest 5 are kept. A writer thread
-writes the lines. A full queue drops lines and counts them (a `trace-dropped` record). It is on
-by default; `SHADPS4_BLOODBORNE_TRACE=0` turns it off. The record kinds are listed at
+writes the lines. A full queue drops lines and counts them (a `trace-dropped` record). It is off
+by default, and so are the co-op tick's parts that only log; the rig turns it on. The record kinds are listed at
 `CoopTraceVersion` in `bloodborne_party.h`. A board body is cut at 8 KB, and a body that
 repeats the endpoint's last one is written as `same=1`. The `-in` records hold the inputs of
 `VisitKills`, `SharedDamage`/`LowerToHostHp`, `ShownLikeTheHost` and `AppliesMemberKill`; a
