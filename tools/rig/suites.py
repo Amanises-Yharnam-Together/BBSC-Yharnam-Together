@@ -1142,7 +1142,7 @@ SUITES = {
                                          "and its game dies: the guest's game runs it on, as "
                                          "hurt as it was, and it keeps coming for the guest",
                     {"host": ["wait-members 2 300", "sync ocf-go", f"teleport {GUEST_ALONE_SPOT}",
-                              "wait 3",
+                              "wait 3", "sync ocf-hit",
                               f"hurt {ENEMY} 200", "wait 3", "sync ocf-hurt", RESTART, START,
                               "godmode", "wait-session 2 420", "wait 5", "expect-session 2",
                               "sync ocf-back"],
@@ -1150,10 +1150,12 @@ SUITES = {
                      # guest died for real once the host's game was gone, and the wipe reset the
                      # enemy to full HP).
                      # The guest's hit starts the fight: the enemy has a target before the
-                     # crash (rig 2026-11-02: with none it stood still after the takeover).
+                     # crash (rig 2026-11-02: with none it stood still after the takeover). From
+                     # beside it, and before the host's hurt (a hit passes on any HP drop: at
+                     # 3.9 m the swing missed and the hurt counted as it).
                      "guest": ["godmode", "wait-session 2 420", "sync ocf-go",
-                               f"teleport {GUEST_ALONE_SPOT}", "wait 2", f"hit {ENEMY} 30",
-                               "sync ocf-hurt",
+                               f"teleport {GUEST_ALONE_SPOT}", "wait 2", f"approach {ENEMY}",
+                               f"hit {ENEMY} 30", "sync ocf-hit", "sync ocf-hurt",
                                "wait-solo 180", "wait 3", f"expect-hp {ENEMY} <= 200",
                                "census 40", f"teleport {OCF_STEP_BACK}", "wait 10", "census 40",
                                f"expect-hp {ENEMY} <= 200", "sync ocf-back"]},
