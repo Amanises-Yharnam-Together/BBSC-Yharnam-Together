@@ -1451,7 +1451,8 @@ SUITES = {
                     # (patch site "matching check"); the crash at eboot+0x13cffba went with the
                     # flag block guard.
                     forbid={"host": [r"StopRequest from the game"]},
-                    allow=CRASH_CLEANUP),
+                    allow=CRASH_CLEANUP,
+                    known_bug="the old host rejoining races its greeting (Kaniel 2026-11-02: known for now; candidate fix on branch fix/rejoin-greeting-1.3.2; a rarer form leaves a hidden copy)"),
             # Kaniel's playtest 2026-10-22 (v1.1.5): back after its crash, the host played a minute
             # in the guest's session, then left and joined again five times (a reload each), and
             # came in unseen and unable to move; the guest hosting tore its world down.
@@ -1462,7 +1463,8 @@ SUITES = {
                         for guest in ("guest", "guest2")}},
                     forbid={role: SESSION_HOLDS + [r"Co-op lifecycle: (leave|join)",
                                                    r"world teardown"]
-                            for role in PARTY3}),
+                            for role in PARTY3},
+                    known_bug="the old host rejoining races its greeting (Kaniel 2026-11-02: known for now; candidate fix on branch fix/rejoin-greeting-1.3.2; a rarer form leaves a hidden copy)"),
         ],
     },
     # The rig rework (Kaniel 2026-11-01): the four trade scenarios in one boot. Each chapter sets
