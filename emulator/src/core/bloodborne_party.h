@@ -828,7 +828,10 @@ public:
         Plan plan = Plan::Scan;
         Block block;
     };
-    Look Lookup(u64 identity, std::span<const std::string> online_ids, s64 now_ms) const;
+    // `fresh`: a miss is scanned again at once (a re-create about to run, rig team-join3
+    // 2026-11-02: one miss 8.9 s before it listed the host as "?").
+    Look Lookup(u64 identity, std::span<const std::string> online_ids, s64 now_ms,
+                bool fresh = false) const;
     void Found(u64 identity, std::span<const std::string> online_ids, Block where);
     void Missed(u64 identity, std::span<const std::string> online_ids, s64 now_ms);
     void Forget(u64 identity);

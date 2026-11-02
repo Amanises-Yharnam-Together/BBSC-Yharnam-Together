@@ -539,8 +539,8 @@ std::optional<std::string> FindOnlineIdIn(std::span<const u8> bytes,
 }
 
 SessionNameCache::Look SessionNameCache::Lookup(u64 identity,
-                                                std::span<const std::string> online_ids,
-                                                s64 now_ms) const {
+                                                std::span<const std::string> online_ids, s64 now_ms,
+                                                bool fresh) const {
     const auto entry = std::ranges::find(entries, identity, &Entry::identity);
     if (entry == entries.end() || !std::ranges::equal(entry->online_ids, online_ids)) {
         return {};
@@ -549,7 +549,7 @@ SessionNameCache::Look SessionNameCache::Lookup(u64 identity,
         return {Plan::Recheck, *entry->where};
     }
     const s64 wait = std::min(MissRetryMs << std::min(entry->misses - 1, 3), MissRetryMaxMs);
-    return {now_ms - entry->missed_at < wait ? Plan::StillMissing : Plan::Scan};
+    return {!fresh && now_ms - entry->missed_at < wait ? Plan::StillMissing : Plan::Scan};
 }
 
 void SessionNameCache::Found(u64 identity, std::span<const std::string> online_ids, Block where) {

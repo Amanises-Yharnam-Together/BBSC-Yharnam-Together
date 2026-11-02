@@ -1944,6 +1944,18 @@ TEST(SessionNameCache, AMissIsScannedAgainOnlyAfterAWhile) {
         << "the board's ids changed";
 }
 
+TEST(SessionNameCache, AFreshLookupScansAMissAtOnce) {
+    SessionNameCache cache;
+    const std::vector<std::string> ids{"Hunter-1"};
+    cache.Missed(0x1000, ids, 5'000);
+    EXPECT_EQ(cache.Lookup(0x1000, ids, 6'000, true).plan, SessionNameCache::Plan::Scan);
+    EXPECT_EQ(cache.Lookup(0x1000, ids, 6'000).plan, SessionNameCache::Plan::StillMissing)
+        << "the per-second lookups keep the wait";
+    cache.Found(0x1000, ids, {0x2000, 0x80});
+    EXPECT_EQ(cache.Lookup(0x1000, ids, 6'000, true).plan, SessionNameCache::Plan::Recheck)
+        << "a found member is still only rechecked";
+}
+
 TEST(SessionNameCache, AMemberNeverFoundWaitsLongerEachTime) {
     SessionNameCache cache;
     const std::vector<std::string> ids{"Hunter-1"};
