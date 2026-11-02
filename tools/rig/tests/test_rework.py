@@ -89,6 +89,36 @@ class CpuGuardTest(unittest.TestCase):
             build_lock.wait_for_cpu("smoke", busy=lambda: self.fail("measured"))
 
 
+class BusyWatchTest(unittest.TestCase):
+    def test_the_busiest_window_of_a_run(self):
+        samples = iter([(0, 0), (50, 100), (60, 200), (160, 300)])  # 50%, 90%, 0% busy
+        watch = build_lock.BusyWatch(read=lambda: next(samples), every=10)
+        for now in (0, 5, 10, 20, 30):  # 5 is inside the first window: not read
+            watch.sample(now)
+        self.assertAlmostEqual(watch.busiest, 90.0)
+
+    def test_off_windows_nothing_is_known(self):
+        watch = build_lock.BusyWatch(read=lambda: None)
+        watch.sample(0)
+        watch.sample(20)
+        self.assertIsNone(watch.busiest)
+
+
+class FrameCheckTest(unittest.TestCase):
+    CONSOLES = {"host": "Perf: 27.8 FPS over 30 s, 1% low 28.9 FPS, worst frame 2328.6 ms"}
+
+    def test_a_long_frame_on_a_busy_pc_is_said_not_failed(self):
+        with unittest.mock.patch.dict(os.environ, {"BB_MAX_CPU_BUSY": "70"}):
+            self.assertEqual(run_scenario.console_problems({}, self.CONSOLES, 85.0), [])
+            self.assertEqual(len(run_scenario.console_problems({}, self.CONSOLES, 40.0)), 1)
+            self.assertEqual(len(run_scenario.console_problems({}, self.CONSOLES)), 1)
+
+    def test_a_freeze_fails_however_busy(self):
+        consoles = {"host": "Perf: 1 FPS over 30 s, worst frame 24600.0 ms"}
+        with unittest.mock.patch.dict(os.environ, {"BB_MAX_CPU_BUSY": "70"}):
+            self.assertEqual(len(run_scenario.console_problems({}, consoles, 99.0)), 1)
+
+
 class PriorityTest(unittest.TestCase):
     def test_rig_processes_start_below_normal_on_windows(self):
         with unittest.mock.patch.object(build_lock.os, "name", "nt"), \
