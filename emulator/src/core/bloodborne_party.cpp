@@ -272,8 +272,7 @@ bool KeepsSessionAfterWipe(u64 caller_offset, bool in_party_session, s64 since_w
     constexpr u64 AfterWipeLeaveSessionReturn = 0x01393323;
     return (caller_offset == AfterWipeStopRequestReturn ||
             caller_offset == AfterWipeLeaveSessionReturn) &&
-           in_party_session &&
-           since_wipe_ms < KeepAfterWipeMs;
+           in_party_session && since_wipe_ms < KeepAfterWipeMs;
 }
 
 bool IsWorldReloadStopRequest(u64 caller_offset) {
