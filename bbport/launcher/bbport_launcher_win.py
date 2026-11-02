@@ -7059,6 +7059,13 @@ def start_game(command, env, log_path):
     message and the game's log is lost. A file keeps filling, in-game restarts included."""
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with open(log_path, 'wb') as log:
+        # Kaniel 2026-11-01: an overlay was said to stop players joining; the log now says which run.
+        try:
+            log.write(bbport_support.overlay_log_line(bbport_support.vulkan_layers(),
+                                                      env.get('VK_LOADER_LAYERS_DISABLE', '')).encode('utf-8'))
+            log.flush()
+        except (OSError, ValueError):
+            pass
         return subprocess.Popen(command, cwd=PORT_DIR, env=env, stdin=subprocess.DEVNULL, stdout=log,
                                 stderr=subprocess.STDOUT, creationflags=NO_WINDOW)
 

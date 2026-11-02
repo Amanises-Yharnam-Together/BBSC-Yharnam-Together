@@ -176,6 +176,34 @@ class ReportTests(unittest.TestCase):
         self.assertIn('Launcher: 1.7.1\nRelease: 1.2.0\n', text)
         self.assertIn('System: ', text)
 
+    def test_the_overlays_vulkan_layers_are_listed(self):
+        # Kaniel 2026-11-01: players say an overlay stops them joining; nobody had logs of which one.
+        with tempfile.TemporaryDirectory() as folder:
+            manifest = Path(folder) / 'overlay.json'
+            manifest.write_text('{"layer": {"name": "VK_LAYER_Overlay_x64", "description": "x"}}', encoding='utf-8')
+            entries = [(str(manifest), 0), (str(Path(folder) / 'gone.json'), 1)]
+            layers = support.vulkan_layers(read=lambda: entries)
+        self.assertEqual(layers, [('VK_LAYER_Overlay_x64', str(manifest), True),
+                                  ('?', str(Path(folder) / 'gone.json'), False)])
+        text = support.system_report({}, now=1792900000, layers=layers)
+        self.assertIn('Vulkan overlay layers (2):\n', text)
+        self.assertIn(f'  VK_LAYER_Overlay_x64 on ({manifest})\n', text)
+        self.assertIn('  ? off (', text)
+
+    def test_the_games_log_starts_with_the_overlays_it_loads(self):
+        layers = [('VK_LAYER_Discord_x64', 'C:/d.json', True), ('VK_LAYER_HudSight2', 'C:/h.json', True),
+                  ('VK_LAYER_obs', 'C:/o.json', False), ('?', 'C:/gone.json', True)]
+        line = support.overlay_log_line(layers, '*HudSight*,VK_LAYER_x')
+        self.assertEqual(line, 'Launcher: Vulkan overlay layers: VK_LAYER_Discord_x64, VK_LAYER_HudSight2 '
+                               '(skipped), VK_LAYER_obs (off), ? (C:/gone.json)\n')
+        self.assertEqual(support.overlay_log_line([], ''), 'Launcher: Vulkan overlay layers: none\n')
+
+    def test_no_overlay_layers(self):
+        self.assertEqual(support.vulkan_layers(read=lambda: []), [])
+        self.assertIn('Vulkan overlay layers: none\n', support.system_report({}, now=1792900000, layers=[]))
+        # Off Windows (and the cloud) the registry is not there: nothing, no error.
+        self.assertIsInstance(support.vulkan_layers(), list)
+
 
 class LauncherTests(unittest.TestCase):
     def test_the_button_is_on_the_log_and_co_op_pages_and_translated_everywhere(self):

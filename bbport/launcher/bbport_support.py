@@ -139,13 +139,83 @@ def network_report(settings, answers=port_answers, addresses=None, this_pc=None)
     return '\n'.join(lines) + '\n'
 
 
-def system_report(versions, now=None):
-    """The launcher's and the release's versions, Windows, Python and the CPU."""
+# Where Windows lists the Vulkan layers every Vulkan game loads by itself (overlays: Discord, Steam, RTSS,
+# OBS, GeForce, HudSight...): each value names a layer's manifest, its data 0 when the layer is on.
+IMPLICIT_LAYER_KEYS = (r'SOFTWARE\Khronos\Vulkan\ImplicitLayers', r'SOFTWARE\WOW6432Node\Khronos\Vulkan\ImplicitLayers')
+
+
+def registry_layers():
+    """[(manifest path, data)] from both hives' ImplicitLayers keys; none off Windows."""
+    try:
+        import winreg
+    except ImportError:
+        return []
+    entries = []
+    for hive in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+        for path in IMPLICIT_LAYER_KEYS:
+            try:
+                with winreg.OpenKey(hive, path) as key:
+                    index = 0
+                    while True:
+                        try:
+                            name, data, _ = winreg.EnumValue(key, index)
+                        except OSError:
+                            break
+                        entries.append((str(name), data))
+                        index += 1
+            except OSError:
+                continue
+    return entries
+
+
+def vulkan_layers(read=registry_layers):
+    """[(layer name or '?', manifest path, on)]: the overlays' Vulkan layers the game will load (Kaniel
+    2026-11-01: players said an overlay stops them joining, and no log said which)."""
+    layers = []
+    try:
+        entries = read()
+    except OSError:
+        return layers
+    for manifest, data in entries:
+        name = '?'
+        try:
+            layer = json.loads(Path(manifest).read_text(encoding='utf-8', errors='replace')).get('layer') or {}
+            name = str(layer.get('name') or '?')
+        except (OSError, ValueError, AttributeError):
+            pass
+        layers.append((name, manifest, data == 0))
+    return layers
+
+
+def overlay_log_line(layers, disabled):
+    """The game log's first line: the overlay layers, those the launcher skips (DISABLED, the
+    VK_LOADER_LAYERS_DISABLE globs) and those switched off marked."""
+    import fnmatch
+    globs = [item for item in disabled.split(',') if item]
+    parts = []
+    for name, manifest, on in layers:
+        text = name if name != '?' else f'? ({manifest})'
+        if not on:
+            text += ' (off)'
+        elif any(fnmatch.fnmatchcase(name, glob) for glob in globs):
+            text += ' (skipped)'
+        parts.append(text)
+    return f'Launcher: Vulkan overlay layers: {", ".join(parts) or "none"}\n'
+
+
+def system_report(versions, now=None, layers=None):
+    """The launcher's and the release's versions, Windows, Python, the CPU and the Vulkan overlay layers."""
     lines = [f'Made: {time.strftime("%Y-%m-%d %H:%M:%S %z", time.localtime(now))}']
     lines += [f'{name}: {value}' for name, value in versions.items()]
     lines += [f'System: {platform.platform()}', f'Machine: {platform.machine()}',
               f'Processor: {platform.processor() or "?"}', f'CPU threads: {os.cpu_count()}',
               f'Python: {sys.version.split()[0]}']
+    layers = vulkan_layers() if layers is None else layers
+    if not layers:
+        lines.append('Vulkan overlay layers: none')
+    else:
+        lines.append(f'Vulkan overlay layers ({len(layers)}):')
+        lines += [f'  {name} {"on" if on else "off"} ({manifest})' for name, manifest, on in layers]
     return '\n'.join(lines) + '\n'
 
 
