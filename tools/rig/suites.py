@@ -131,6 +131,13 @@ def join(roles, about: str = "every game joins the host by itself (the bells rin
                    forbid=holds(roles))
 
 
+def with_expect(chapter_: dict, role: str, *patterns: str) -> dict:
+    """The chapter with more lines `role`'s game must log in it."""
+    expect = {name: list(lines) for name, lines in chapter_.get("expect", {}).items()}
+    expect[role] = expect.get(role, []) + list(patterns)
+    return {**chapter_, "expect": expect}
+
+
 def map_reset(roles, name: str = "everyone-leaves") -> dict:
     """Every game goes to the Dream and back: kills held while one stayed come back once
     everyone left (Kaniel 2026-10-11: half the location reset after a trip), and the next
@@ -424,13 +431,15 @@ SUITES = {
         "settings": AS_PLAYERS,
         "join_within": 180,
         "chapters": [
-            join(PARTY2),
+            # The old story-hidden scenario's line: the guest hides what the host's story hid as
+            # it joins (rig 2026-11-02: during the join, before the story-hidden chapter).
+            with_expect(join(PARTY2), "guest",
+                        r"characters as the host has them on map 0x18010000: hid \d+, showed "
+                        rf"\d+:.* {STORY_HIDDEN}"),
             chapter("story-hidden", "a character the host's story hides (Iosefka) stays hidden "
                                     "on the guest: it hides and shows characters as the host",
                     {"host": ["census 80", f"expect-hidden {STORY_HIDDEN} 1"],
                      "guest": ["census 80", f"expect-hidden {STORY_HIDDEN} 1 30"]},
-                    expect={"guest": [r"characters as the host has them on map 0x18010000: hid "
-                                      rf"\d+, showed \d+:.* {STORY_HIDDEN}"]},
                     forbid=holds(PARTY2)),
             chapter("phantom-look", "how a guest is drawn: each dumps itself, with a picture",
                     {"host": ["dump self", "shot host-self"],
@@ -1107,6 +1116,29 @@ SUITES = {
                     expect={"host": [r"(?:lost a member; staying where it is|member left, session "
                                      r"epoch)"]},
                     allow=CRASH_CLEANUP),
+            # Phase 8: the map's owner dies mid-fight; the other game takes the map over with the
+            # enemy as hurt as it was, where it was, and it keeps fighting. Before host-crash-apart
+            # (rig 2026-11-02): after it the guest leads in the Ward (#403) and the host is no
+            # owner of Central Yharnam. After leave the guest's game is back: both wait for the
+            # session first.
+            chapter("owner-crash-fight", "the host (the map's owner) hurts the enemy by the guest "
+                                         "and its game dies: the guest's game runs it on, as "
+                                         "hurt as it was, and it keeps coming for the guest",
+                    {"host": ["wait-members 2 300", "sync ocf-go", f"teleport {GUEST_ALONE_SPOT}",
+                              "wait 3",
+                              f"hurt {ENEMY} 200", "wait 3", "sync ocf-hurt", RESTART, START,
+                              "godmode", "wait-session 2 420", "wait 5", "expect-session 2",
+                              "sync ocf-back"],
+                     "guest": ["wait-session 2 420", "sync ocf-go", f"teleport {GUEST_ALONE_SPOT}",
+                               "sync ocf-hurt",
+                               "wait-solo 180", "wait 3", f"expect-hp {ENEMY} <= 200",
+                               "census 40", "wait 10", "census 40", f"expect-hp {ENEMY} <= 200",
+                               "sync ocf-back"]},
+                    # The old owner-crash scenario's check: the guest's game runs the map now.
+                    expect={"guest": [r"enemy owner: this game runs map 0x18010000's enemies"]},
+                    # known_bug dropped (rig 2026-11-02): no crash in its run; it failed because
+                    # it ran after host-crash-apart.
+                    moves={"guest": ENEMY}, allow=CRASH_CLEANUP),
             # Last: the guest's game crashes in it (a crash ends the suite).
             # #403 (Kaniel 2026-10-25): the guest leads the team and hosts where it stands, and the
             # old host's game comes back as its guest, beside it in the Ward (as the scenario
@@ -1123,25 +1155,6 @@ SUITES = {
                                "expect-session 2", f"expect-map {CATHEDRAL_WARD}"]},
                     expect={"guest": [GUEST_LEADS], "host": [OLD_HOST_IS_GUEST]},
                     allow=CRASH_CLEANUP),
-            # Phase 8: the map's owner dies mid-fight; the other game takes the map over with the
-            # enemy as hurt as it was, where it was, and it keeps fighting.
-            chapter("owner-crash-fight", "the host (the map's owner) hurts the enemy by the guest "
-                                         "and its game dies: the guest's game runs it on, as "
-                                         "hurt as it was, and it keeps coming for the guest",
-                    {"host": ["sync ocf-go", f"teleport {GUEST_ALONE_SPOT}", "wait 3",
-                              f"hurt {ENEMY} 200", "wait 3", "sync ocf-hurt", RESTART, START,
-                              "godmode", "wait-session 2 420", "wait 5", "expect-session 2",
-                              "sync ocf-back"],
-                     "guest": ["sync ocf-go", f"teleport {GUEST_ALONE_SPOT}", "sync ocf-hurt",
-                               "wait-solo 180", "wait 3", f"expect-hp {ENEMY} <= 200",
-                               "census 40", "wait 10", "census 40", f"expect-hp {ENEMY} <= 200",
-                               "sync ocf-back"]},
-                    # The old owner-crash scenario's check: the guest's game runs the map now.
-                    expect={"guest": [r"enemy owner: this game runs map 0x18010000's enemies"]},
-                    moves={"guest": ENEMY}, allow=CRASH_CLEANUP,
-                    known_bug="the guest's game crashes (eboot+0x13cffba) once the dead owner's "
-                              "game comes back, as in host-crash-apart (backlog: Krolebord's crash "
-                              "after a rejoin; rig 2026-10-15)"),
         ],
     },
     "joins": {
