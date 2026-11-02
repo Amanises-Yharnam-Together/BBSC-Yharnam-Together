@@ -1149,8 +1149,10 @@ SUITES = {
                      # godmode: its game came back in leave without it (rig 2026-11-02: the
                      # guest died for real once the host's game was gone, and the wipe reset the
                      # enemy to full HP).
+                     # The guest's hit starts the fight: the enemy has a target before the
+                     # crash (rig 2026-11-02: with none it stood still after the takeover).
                      "guest": ["godmode", "wait-session 2 420", "sync ocf-go",
-                               f"teleport {GUEST_ALONE_SPOT}",
+                               f"teleport {GUEST_ALONE_SPOT}", "wait 2", f"hit {ENEMY} 30",
                                "sync ocf-hurt",
                                "wait-solo 180", "wait 3", f"expect-hp {ENEMY} <= 200",
                                "census 40", f"teleport {OCF_STEP_BACK}", "wait 10", "census 40",
