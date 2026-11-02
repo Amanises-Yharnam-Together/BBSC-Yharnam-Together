@@ -207,6 +207,8 @@ struct Game {
       loads[envelope.load_progress().member()] = envelope.load_progress();
     } else if (envelope.has_enemy_hit()) {
       hits.push_back(envelope.enemy_hit());
+    } else if (envelope.has_enemy_places()) {
+      places.push_back(envelope.enemy_places());
     } else if (envelope.has_altar_record()) {
       altar_records.push_back(envelope.altar_record());
     } else if (envelope.has_ping()) {
@@ -283,6 +285,7 @@ struct Game {
   int sessions = 0;
   std::map<std::string, bbcoop::LoadProgress> loads;
   std::vector<bbcoop::EnemyHit> hits;
+  std::vector<bbcoop::EnemyPlaces> places;
   std::vector<bbcoop::AltarRecord> altar_records;
   std::vector<bbcoop::Ping> pings;
   std::vector<bbcoop::TeamTravel> travels;
@@ -1360,6 +1363,167 @@ int AHitReachesTheOthersAtOnce() {
   }
   CHECK(guest.hits.empty());
   CHECK(host.member.Hp().empty());
+  return 0;
+}
+
+// Rig host-arrives-hurt-enemy: the map's owner's enemy places reach the others
+// under its name, and nobody else's do (only the owner runs them).
+int AnOwnersEnemyPlacesReachTheOthers() {
+  Service service{{}};
+  Game host{1000, "host", 11};
+  Game guest{1001, "guest", 12};
+  const std::vector<Game *> games{&host, &guest};
+  qint64 now = 1'000'000;
+  for (Game *game : games) {
+    game->Hello(now);
+  }
+  Pump(service, games, now);
+  guest.Map(0x18000000, now);
+  Pump(service, games, now);
+  host.Map(0x18000000, now + 100);
+  Pump(service, games, now + 100);
+  CHECK(host.OwnerOf(0x18000000) == "guest");
+  const auto places = [](const char *member) {
+    bbcoop::Envelope envelope;
+    bbcoop::EnemyPlaces &message = *envelope.mutable_enemy_places();
+    message.set_map(0x18000000);
+    message.set_member(member);
+    bbcoop::EnemyPlace &place = *message.add_places();
+    place.set_handle(0x10010021);
+    place.mutable_at()->set_x(8.2f);
+    place.mutable_at()->set_y(-11.0f);
+    place.mutable_at()->set_z(126.4f);
+    place.set_heading(0.5f);
+    return envelope;
+  };
+  guest.Send(places("spoofed"), now + 200);
+  Pump(service, games, now + 200);
+  CHECK(host.places.size() == 1);
+  CHECK(host.places[0].member() == "guest");
+  CHECK(host.places[0].places_size() == 1 &&
+        host.places[0].places(0).handle() == 0x10010021u &&
+        host.places[0].places(0).at().z() == 126.4f);
+  CHECK(guest.places.empty());
+  host.Send(places("host"), now + 300); // the host follows here: not its to say
+  Pump(service, games, now + 300);
+  CHECK(guest.places.empty() && host.places.size() == 1);
+  return 0;
+}
+
+namespace {
+bbcoop::Envelope PlacesOn(u32 map, float z) {
+  bbcoop::Envelope envelope;
+  bbcoop::EnemyPlaces &message = *envelope.mutable_enemy_places();
+  message.set_map(map);
+  bbcoop::EnemyPlace &place = *message.add_places();
+  place.set_handle(0x10010021);
+  place.mutable_at()->set_z(z);
+  return envelope;
+}
+} // namespace
+
+// The server keeps the owner's last places: a member that takes the map over
+// gets them then, though it came after they were sent, or the owner is gone.
+int ANewOwnerGetsTheLastOwnersPlaces() {
+  Service service{{}};
+  Game host{1000, "host", 11};
+  Game guest{1001, "guest", 12};
+  const std::vector<Game *> games{&host, &guest};
+  qint64 now = 1'000'000;
+  for (Game *game : games) {
+    game->Hello(now);
+  }
+  Pump(service, games, now);
+  host.Map(0x18010000, now); // the host elsewhere: the guest owns the Ward
+  guest.Map(0x18000000, now);
+  Pump(service, games, now);
+  guest.Send(PlacesOn(0x18000000, 126.4f), now + 100);
+  guest.Send(PlacesOn(0x18000000, 130.5f), now + 1100); // the latest
+  Pump(service, games, now + 1100);
+  host.places.clear();              // the relays
+  host.Map(0x18000000, now + 2000); // arrives after them
+  Pump(service, games, now + 2000);
+  CHECK(host.OwnerOf(0x18000000) == "guest");
+  CHECK(host.places.empty()); // follows: nothing to take yet
+  guest.Map(0, now + 2500);   // the guest loads: the host takes the Ward
+  Pump(service, games, now + 2500);
+  CHECK(host.OwnerOf(0x18000000) == "host");
+  CHECK(host.places.size() == 1);
+  CHECK(host.places[0].member() == "guest");
+  CHECK(host.places[0].places_size() == 1 &&
+        host.places[0].places(0).at().z() == 130.5f);
+  host.Map(0x18000000, now + 3500); // the same owner: no second hand-over
+  Pump(service, games, now + 3500);
+  CHECK(host.places.size() == 1);
+  CHECK(guest.places.empty());
+  // The owner gone (its leave): its last places still go to the next owner.
+  Service service2{{}};
+  Game host2{1000, "host", 21};
+  Game guest2{1001, "guest", 22};
+  const std::vector<Game *> games2{&host2, &guest2};
+  for (Game *game : games2) {
+    game->Hello(now);
+  }
+  Pump(service2, games2, now);
+  guest2.Map(0x18000000, now);
+  Pump(service2, games2, now);
+  host2.Map(0x18000000, now + 100);
+  guest2.Send(PlacesOn(0x18000000, 99.0f), now + 200);
+  Pump(service2, games2, now + 200);
+  CHECK(host2.places.size() == 1); // the relay
+  guest2.Lifecycle(bbcoop::Lifecycle::LEAVE, false, now + 300);
+  Pump(service2, games2, now + 300);
+  CHECK(host2.OwnerOf(0x18000000) == "host");
+  CHECK(host2.places.size() == 2 &&
+        host2.places[1].places(0).at().z() == 99.0f);
+  return 0;
+}
+
+// A map that starts over (its owner rested at a lamp, or a wipe) has its
+// enemies at their spawns: its kept places go.
+int AMapThatStartsOverDropsItsPlaces() {
+  const qint64 now = 1'000'000;
+  const auto handed = [now](auto reset) -> size_t {
+    Service service{{}};
+    Game host{1000, "host", 11};
+    Game guest{1001, "guest", 12};
+    const std::vector<Game *> games{&host, &guest};
+    for (Game *game : games) {
+      game->Hello(now);
+    }
+    Pump(service, games, now);
+    host.Map(0x18010000, now);
+    guest.Map(0x18000000, now);
+    Pump(service, games, now);
+    guest.Send(PlacesOn(0x18000000, 126.4f), now + 100);
+    Pump(service, games, now + 100);
+    reset(host, guest, now + 200);
+    Pump(service, games, now + 200);
+    host.places.clear();
+    host.Map(0x18000000, now + 300);
+    guest.Map(0x18020000, now + 300); // a new map: no wipe hold
+    Pump(service, games, now + 300);
+    CHECK(host.OwnerOf(0x18000000) == "host");
+    return host.places.size();
+  };
+  CHECK(handed([](Game &, Game &, qint64) {}) == 1); // no reset: handed over
+  CHECK(handed([](Game &, Game &guest, qint64 at) {
+          bbcoop::Envelope rest;
+          rest.mutable_rest()->set_lamp(2412950);
+          guest.Send(rest, at); // the owner rests: its enemies respawn
+        }) == 0);
+  CHECK(handed([](Game &host, Game &, qint64 at) {
+          bbcoop::Envelope rest;
+          rest.mutable_rest()->set_lamp(2412950);
+          host.Send(rest, at); // another rests: the owner's world stands
+        }) == 1);
+  CHECK(handed([](Game &, Game &guest, qint64 at) {
+          guest.Lifecycle(bbcoop::Lifecycle::WIPE, false, at, 0x18000000);
+        }) == 0); // the guest's wipe on its map (the host stands elsewhere)
+  CHECK(handed([](Game &host, Game &guest, qint64 at) {
+          host.Lifecycle(bbcoop::Lifecycle::WIPE, true, at, 0x18010000);
+          guest.Lifecycle(bbcoop::Lifecycle::WIPE, false, at, 0x18000000);
+        }) == 0); // the party's wipe: every map starts over
   return 0;
 }
 
@@ -4386,6 +4550,9 @@ int main() {
       {"EachMembersLoadReachesTheOthers", EachMembersLoadReachesTheOthers},
       {"AFollowersHpIsNeverTheLogs", AFollowersHpIsNeverTheLogs},
       {"AHitReachesTheOthersAtOnce", AHitReachesTheOthersAtOnce},
+      {"AnOwnersEnemyPlacesReachTheOthers", AnOwnersEnemyPlacesReachTheOthers},
+      {"ANewOwnerGetsTheLastOwnersPlaces", ANewOwnerGetsTheLastOwnersPlaces},
+      {"AMapThatStartsOverDropsItsPlaces", AMapThatStartsOverDropsItsPlaces},
       {"AnAltarRecordReachesTheOthersWhole",
        AnAltarRecordReachesTheOthersWhole},
       {"AChaliceTakenOffStartsTheDungeonsOver",

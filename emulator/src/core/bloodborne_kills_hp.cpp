@@ -1342,6 +1342,92 @@ void SetSyncPeriods(EnemyRole role) {
     }
 }
 
+// This world's enemies where they stand now (no player, nor the Doll, nor the dead).
+std::vector<std::pair<u64, EnemyPlace>> EnemyPlacesNow() {
+    std::vector<std::pair<u64, EnemyPlace>> places;
+    const u64 world = ReadValue<u64>(image_base + CandidateLocalStatePointerOffset, 0);
+    if (world < 0x10000) {
+        return places;
+    }
+    std::unordered_set<u64> players{GetLocalPlayer()};
+    for (const OtherPlayer& other : OtherPlayers()) {
+        players.insert(other.character);
+    }
+    const u64 doll = DollCharacter();
+    ForEachWorldCharacter(world, [&](u64 character) {
+        if (players.contains(character) || character == doll || CharacterHp(character) <= 0) {
+            return;
+        }
+        const auto at = CharacterPosition(character);
+        const u64 modules = ReadValue<u64>(character, 0x3B0);
+        const u64 physics = modules >= 0x10000 ? ReadValue<u64>(modules, 0x68) : 0;
+        if (!at || physics < 0x10000) {
+            return;
+        }
+        places.push_back(
+            {character, {ReadValue<u32>(character, 0x08), *at, ReadValue<float>(physics, 0x1D4)}});
+    });
+    return places;
+}
+
+// How long a new owner waits for the last owner's places.
+constexpr s64 EnemyPutBackMs = 3'000;
+
+// About once a second, where this member first saw each enemy on this map (at its load, in any
+// role: a follower's copies stand at their spawn), and, as the owner (`send`), those that moved
+// from there (see EnemyPlace).
+void SendMovedEnemyPlaces(u32 map, s64 now_ms, bool send) {
+    static u32 seen_map = 0;
+    static std::map<u32, std::array<float, 3>> first_seen;
+    static s64 sent_ms = 0;
+    if (map != seen_map) {
+        seen_map = map;
+        first_seen.clear();
+    }
+    if (now_ms - sent_ms < EnemyPlacesEveryMs) {
+        return;
+    }
+    sent_ms = now_ms;
+    std::vector<EnemyPlace> now;
+    for (const auto& [character, place] : EnemyPlacesNow()) {
+        first_seen.try_emplace(place.handle, place.at);
+        now.push_back(place);
+    }
+    if (send) {
+        SendEnemyPlaces(map, MovedEnemyPlaces(now, first_seen));
+    }
+}
+
+// A member that takes the map over: the owner's moved enemies where the owner had them, before
+// this game runs them (see EnemyPlace).
+bool PutBackOwnersEnemyPlaces(u32 map) {
+    const std::vector<EnemyPlace> heard = HeardEnemyPlaces(map);
+    if (heard.empty()) {
+        return false;
+    }
+    DropEnemyPlaces(map);
+    size_t placed = 0;
+    for (const auto& [character, mine] : EnemyPlacesNow()) {
+        const auto place = std::ranges::find(heard, mine.handle, &EnemyPlace::handle);
+        if (place == heard.end()) {
+            continue;
+        }
+        const float dx = place->at[0] - mine.at[0];
+        const float dy = place->at[1] - mine.at[1];
+        const float dz = place->at[2] - mine.at[2];
+        if (dx * dx + dy * dy + dz * dz <= EnemyPlaceMovedMeters * EnemyPlaceMovedMeters) {
+            continue;
+        }
+        placed += PlaceCharacterAt(character, {place->at[0], place->at[1], place->at[2], 1.0f},
+                                   {0.0f, place->heading, 0.0f, 0.0f}, "EnemyPlace", false);
+    }
+    LOG_INFO(Debug,
+             "Bloodborne party: enemy owner: took the map over with {} of the last owner's {} "
+             "moved enemies put back where it had them",
+             placed, heard.size());
+    return true;
+}
+
 void TickEnemyOwner(bool in_session, u32 map) {
     HoldOwnHits();
     if (CoopTraceOn()) {
@@ -1370,6 +1456,7 @@ void TickEnemyOwner(bool in_session, u32 map) {
     // Taking the area over (or arriving on one this member runs) settles its world: deaths now
     // are no kills, and its copies take the log's HP.
     static u32 owned_area = 0;
+    static s64 put_back_until_ms = 0;
     const u32 area = role == EnemyRole::Owner ? EnemyOwnerArea(map) : 0;
     if (area != owned_area) {
         owned_area = area;
@@ -1377,7 +1464,16 @@ void TickEnemyOwner(bool in_session, u32 map) {
         // HP from its own world before it joined killed the dog: Kaniel 2026-10-15).
         if (area != 0 && owner != nullptr && TakesOverEnemyHp(*owner)) {
             became_owner_ms.store(now_ms);
+            put_back_until_ms = now_ms + EnemyPutBackMs;
         }
+    }
+    // The places may come with the take-over or just after it (the server hands the last owner's
+    // to the new one): put back once, while the take-over is new.
+    if (role == EnemyRole::Owner && now_ms < put_back_until_ms && PutBackOwnersEnemyPlaces(map)) {
+        put_back_until_ms = 0;
+    }
+    if (in_session) {
+        SendMovedEnemyPlaces(map, now_ms, role == EnemyRole::Owner);
     }
     if (role != before) {
         world_changed_ms.store(now_ms);
@@ -1823,6 +1919,9 @@ const u32 enemy_hp_source = [] {
 // session each world is its member's own, and in one world the game sends the HP itself.
 // A death respawn reset the map: the damage the others reported on the world before it is left
 // behind (SharedDamage::ForgetDamageBefore).
+// A wipe starts the map over: the enemies are back where they began.
+[[maybe_unused]] const bool enemy_places_reset_registered =
+    RegisterLifecycleReset("enemy places", {Lifecycle::Wipe}, [] { ForgetEnemyPlaces(); });
 std::atomic<bool> party_hp_reset{};
 [[maybe_unused]] const bool party_hp_reset_registered =
     RegisterLifecycleReset("enemy hp", {Lifecycle::Wipe}, [] { party_hp_reset.store(true); });

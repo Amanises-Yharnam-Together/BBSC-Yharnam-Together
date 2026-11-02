@@ -4503,6 +4503,53 @@ std::optional<s32> EnemySyncState(EnemyRole role, s32 state) {
     return wanted != state ? std::optional{wanted} : std::nullopt;
 }
 
+std::vector<EnemyPlace> MovedEnemyPlaces(std::span<const EnemyPlace> now,
+                                         const std::map<u32, std::array<float, 3>>& first_seen) {
+    std::vector<std::pair<float, EnemyPlace>> moved;
+    for (const EnemyPlace& place : now) {
+        const auto seen = first_seen.find(place.handle);
+        if (seen == first_seen.end()) {
+            continue;
+        }
+        const float dx = place.at[0] - seen->second[0];
+        const float dy = place.at[1] - seen->second[1];
+        const float dz = place.at[2] - seen->second[2];
+        const float far = dx * dx + dy * dy + dz * dz;
+        if (far > EnemyPlaceMovedMeters * EnemyPlaceMovedMeters) {
+            moved.emplace_back(far, place);
+        }
+    }
+    std::ranges::stable_sort(moved, std::ranges::greater{}, &std::pair<float, EnemyPlace>::first);
+    std::vector<EnemyPlace> out;
+    for (const auto& [far, place] : moved) {
+        if (out.size() == EnemyPlacesMost) {
+            break;
+        }
+        out.push_back(place);
+    }
+    return out;
+}
+
+void EnemyPlacesBook::Heard(u32 map, std::vector<EnemyPlace> places, s64 now_ms) {
+    by_map[map] = {std::move(places), now_ms};
+}
+
+std::vector<EnemyPlace> EnemyPlacesBook::Take(u32 map, s64 now_ms) const {
+    const auto heard = by_map.find(map);
+    if (heard == by_map.end() || now_ms - heard->second.at_ms >= EnemyPlacesFreshMs) {
+        return {};
+    }
+    return heard->second.places;
+}
+
+void EnemyPlacesBook::Drop(u32 map) {
+    by_map.erase(map);
+}
+
+void EnemyPlacesBook::Clear() {
+    by_map.clear();
+}
+
 std::optional<s32> EnemyHitState(EnemyRole role, s32 state) {
     if (role == EnemyRole::Follower && state == MatchingStateHosting) {
         return MatchingStateSummonedGuest;

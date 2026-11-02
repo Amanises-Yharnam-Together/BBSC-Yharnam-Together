@@ -514,6 +514,11 @@ struct EnemyHitNews {
     std::string member;
 };
 void SendEnemyHit(u32 map, u32 handle, s32 hp, s32 max);
+// The owner's moved enemies (see EnemyPlace), and the places heard for `map` (fresh ones only).
+void SendEnemyPlaces(u32 map, std::span<const EnemyPlace> places);
+std::vector<EnemyPlace> HeardEnemyPlaces(u32 map);
+void DropEnemyPlaces(u32 map);
+void ForgetEnemyPlaces();
 std::vector<EnemyHitNews> TakeEnemyHits();
 // Team altars: a ritual's record to the others through the server (relayed as it is), and the
 // others' as they came (taken once).
@@ -1141,8 +1146,10 @@ void TeleportLocalPlayer(const LampPosition& at, float heading = 0.0f);
 // Has every camera jump to where it should be on its next update (see PlacementCalls).
 void SnapCamera();
 // Any character put there as the player's teleport does (vtable +0x5F8, see PlaceCharacter).
+// `snap_camera` false for a character not the player's (an enemy put back, see EnemyPlace).
 bool PlaceCharacterAt(u64 character, const std::array<float, 4>& position,
-                      const std::array<float, 4>& rotation, const char* what);
+                      const std::array<float, 4>& rotation, const char* what,
+                      bool snap_camera = true);
 // Moves the local player the way the game places it at a lamp (see PlaceCharacter); `what` names
 // the caller in the character check's log.
 bool PlaceLocalPlayer(const std::array<float, 4>& position, const std::array<float, 4>& rotation,

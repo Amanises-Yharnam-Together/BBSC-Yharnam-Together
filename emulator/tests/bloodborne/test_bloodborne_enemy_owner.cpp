@@ -75,6 +75,48 @@ TEST(EnemyOwner, AHostThatFollowsSendsItsHitsAsAGuestDoes) {
     EXPECT_EQ(EnemyHitState(EnemyRole::Unknown, Hosting), std::nullopt);
 }
 
+// Rig host-arrives-hurt-enemy: the owner tells the others where its moved enemies are.
+TEST(EnemyOwner, OnlyTheEnemiesThatMovedAreSentTheFarthestFirst) {
+    const std::map<u32, std::array<float, 3>> first{
+        {0x2021, {6.8f, -11.0f, 122.5f}}, {0x2022, {0.0f, 0.0f, 0.0f}}, {0x2023, {5.0f, 0, 5.0f}}};
+    const std::vector<EnemyPlace> now{
+        {0x2021, {8.2f, -11.0f, 126.4f}, 0.5f}, // 4.1 m
+        {0x2022, {0.5f, 0.0f, 0.0f}, 0.0f},     // 0.5 m: not moved
+        {0x2023, {5.0f, 0.0f, 25.0f}, 1.0f},    // 20 m
+        {0x2024, {1.0f, 2.0f, 3.0f}, 0.0f},     // never seen before: not moved
+    };
+    const std::vector<EnemyPlace> moved = MovedEnemyPlaces(now, first);
+    ASSERT_EQ(moved.size(), 2u);
+    EXPECT_EQ(moved[0].handle, 0x2023u);
+    EXPECT_EQ(moved[1], now[0]);
+    std::vector<EnemyPlace> many;
+    std::map<u32, std::array<float, 3>> many_first;
+    for (u32 i = 0; i < EnemyPlacesMost + 10; ++i) {
+        many.push_back({i, {static_cast<float>(i) + 2.0f, 0.0f, 0.0f}, 0.0f});
+        many_first[i] = {0.0f, 0.0f, 0.0f};
+    }
+    const std::vector<EnemyPlace> capped = MovedEnemyPlaces(many, many_first);
+    ASSERT_EQ(capped.size(), EnemyPlacesMost);
+    EXPECT_EQ(capped.front().handle, EnemyPlacesMost + 9) << "the farthest";
+}
+
+TEST(EnemyOwner, ATakeOverUsesOnlyFreshPlacesOfItsMap) {
+    EnemyPlacesBook book;
+    book.Heard(0x18000000, {{0x2021, {8.2f, -11.0f, 126.4f}, 0.5f}}, 1000);
+    ASSERT_EQ(book.Take(0x18000000, 1000 + EnemyPlacesFreshMs - 1).size(), 1u);
+    EXPECT_TRUE(book.Take(0x18010000, 1000).empty()) << "another map";
+    EXPECT_TRUE(book.Take(0x18000000, 1000 + EnemyPlacesFreshMs).empty()) << "stale";
+    book.Heard(0x18000000, {}, 2000);
+    EXPECT_TRUE(book.Take(0x18000000, 2000).empty()) << "the newest report wins";
+    book.Heard(0x18000000, {{0x2021, {1.0f, 2.0f, 3.0f}, 0.0f}}, 3000);
+    book.Heard(0x18010000, {{0x2022, {1.0f, 2.0f, 3.0f}, 0.0f}}, 3000);
+    book.Drop(0x18000000);
+    EXPECT_TRUE(book.Take(0x18000000, 3000).empty()) << "put back once";
+    EXPECT_EQ(book.Take(0x18010000, 3000).size(), 1u) << "only that map's";
+    book.Clear();
+    EXPECT_TRUE(book.Take(0x18000000, 3000).empty()) << "a wipe forgets them";
+}
+
 TEST(EnemyOwner, TheOwnerRunsTheAiAFollowerTheNetworkController) {
     EXPECT_EQ(EnemyOwnershipWord(EnemyRole::Owner), std::optional<u16>{0});
     EXPECT_EQ(EnemyOwnershipWord(EnemyRole::Follower), std::optional<u16>{0xFFFF});

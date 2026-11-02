@@ -75,6 +75,9 @@ std::atomic<bool> inbox_news{false};
 // The others' hits (bbcoop::EnemyHit) as they came, for the next enemy step.
 std::mutex enemy_hits_mutex;
 std::vector<EnemyHitNews> enemy_hits;
+// The owners' enemy places (bbcoop::EnemyPlaces), for a take-over (see EnemyPlace).
+std::mutex enemy_places_mutex;
+EnemyPlacesBook enemy_places;
 std::mutex altar_records_mutex;
 std::vector<AltarRecordNews> altar_records;
 // Kaniel 2026-10-24: the team's pings (bbcoop::Ping) as they came, for the next pings tick.
@@ -614,6 +617,20 @@ void StreamTick(s64 now_ms) {
                     if (TakeLobbyMessage(*envelope)) {
                         continue;
                     }
+                    if (envelope->has_enemy_places()) {
+                        const bbcoop::EnemyPlaces& news = envelope->enemy_places();
+                        std::vector<EnemyPlace> places;
+                        for (const bbcoop::EnemyPlace& place : news.places()) {
+                            if (places.size() < EnemyPlacesMost) {
+                                places.push_back({place.handle(),
+                                                  {place.at().x(), place.at().y(), place.at().z()},
+                                                  place.heading()});
+                            }
+                        }
+                        std::scoped_lock places_lock{enemy_places_mutex};
+                        enemy_places.Heard(news.map(), std::move(places), now_ms);
+                        continue;
+                    }
                     if (envelope->has_enemy_hit()) {
                         const bbcoop::EnemyHit& hit = envelope->enemy_hit();
                         std::scoped_lock hits_lock{enemy_hits_mutex};
@@ -944,6 +961,39 @@ std::vector<EnemyOwnerEntry> ServerEnemyOwners(s64 now_ms) {
         return {};
     }
     return server_owners;
+}
+
+void SendEnemyPlaces(u32 map, std::span<const EnemyPlace> places) {
+    if (!ServerWorldOn() || !enemy_owner_switch) {
+        return;
+    }
+    bbcoop::Envelope envelope;
+    bbcoop::EnemyPlaces& message = *envelope.mutable_enemy_places();
+    message.set_map(map);
+    for (const EnemyPlace& place : places) {
+        bbcoop::EnemyPlace& out = *message.add_places();
+        out.set_handle(place.handle);
+        out.mutable_at()->set_x(place.at[0]);
+        out.mutable_at()->set_y(place.at[1]);
+        out.mutable_at()->set_z(place.at[2]);
+        out.set_heading(place.heading);
+    }
+    Queue(std::move(envelope));
+}
+
+std::vector<EnemyPlace> HeardEnemyPlaces(u32 map) {
+    std::scoped_lock lock{enemy_places_mutex};
+    return enemy_places.Take(map, SteadyMilliseconds());
+}
+
+void DropEnemyPlaces(u32 map) {
+    std::scoped_lock lock{enemy_places_mutex};
+    enemy_places.Drop(map);
+}
+
+void ForgetEnemyPlaces() {
+    std::scoped_lock lock{enemy_places_mutex};
+    enemy_places.Clear();
 }
 
 void SendEnemyHit(u32 map, u32 handle, s32 hp, s32 max) {

@@ -352,6 +352,14 @@ private:
         // Phase 4: who runs each area's enemies, and what was logged of it.
         EnemyOwners owners;
         QString owners_logged;
+        // Rig host-arrives-hurt-enemy: each map's owner's last enemy places (bbcoop::EnemyPlaces),
+        // for whoever takes the map over next, even when the owner left, crashed or is loading;
+        // `handed_to`: the member that has them already. A map that starts over drops them.
+        struct HeldPlaces {
+            bbcoop::EnemyPlaces places;
+            std::string handed_to;
+        };
+        std::map<std::uint32_t, HeldPlaces> enemy_places;
         QString vitals_logged; // the members' states and the wipes, as last logged
         // Its trades (coop/trade.h): the offers held and the grants owed.
         BloodborneCoop::TradeDesk trades;
@@ -475,6 +483,8 @@ private:
     std::string CharacterOf(const std::string& member) const;
     void CloseSession(PartyWorld& world, qint64 now_ms, Result& result);
     void SendOwners(PartyWorld& world, qint64 now_ms, Result& result, Member* only = nullptr);
+    // A map's new owner gets the last owner's places (PartyWorld::enemy_places).
+    void HandOverEnemyPlaces(PartyWorld& world, qint64 now_ms);
     // Whether `member` may decide the enemies of `map` (phase 4): a game without the owners, or
     // on an area nobody or itself runs.
     bool Decides(const PartyWorld& world, const Member& member, u32 map) const;
