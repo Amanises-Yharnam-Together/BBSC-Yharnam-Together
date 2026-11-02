@@ -570,11 +570,40 @@ def listening_pids(netstat: str, port: int) -> set[int]:
     return pids
 
 
+def lane_server_pids(listing: str | None = None) -> set[int]:
+    """This lane's servers by what they run, not by netstat: its shadNet (the lane's
+    server/shadnet.exe) and a Python backend on its port. Rig 2026-11-02: on Kaniel's PC
+    (Windows build 26300) netstat shows a listening shadNet as CLOSED or FIN_WAIT_1, or not at
+    all, so stop_servers found nothing to stop and the next run's server never started."""
+    if listing is None:
+        if os.name != "nt":
+            return set()
+        listing = subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             "Get-CimInstance Win32_Process -Filter \"Name='shadnet.exe' OR Name LIKE 'py%'\" | "
+             "ForEach-Object { \"$($_.ProcessId)`t$($_.ExecutablePath)`t$($_.CommandLine)\" }"],
+            capture_output=True, text=True).stdout
+    shadnet = str(lane_dir() / "server" / "shadnet.exe").lower()
+    pids = set()
+    for line in listing.splitlines():
+        pid, _, rest = line.partition("\t")
+        path, _, command = rest.partition("\t")
+        if not pid.strip().isdigit():
+            continue
+        backend = command.split()
+        if path.strip().lower() == shadnet or (
+                "bb_dummy_server.py" in command and "--port" in backend
+                and backend[backend.index("--port") + 1:][:1] == [str(BACKEND_PORT)]):
+            pids.add(int(pid))
+    return pids
+
+
 def stop_servers():
     """Stops whatever serves the rig's ports (only the rig's: the online kit's are others)."""
     netstat = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True,
                              text=True).stdout
-    for pid in listening_pids(netstat, SHADNET_PORT) | listening_pids(netstat, BACKEND_PORT):
+    for pid in (listening_pids(netstat, SHADNET_PORT) | listening_pids(netstat, BACKEND_PORT)
+                | lane_server_pids()):
         killed = subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True,
                                 text=True)
         # Rig 2026-11-02: a lane's shadNet outlived its run and nothing said why.
@@ -588,16 +617,26 @@ def stop_servers():
         print(f"  server ports still held after stopping: {held}")
 
 
-def held_server_ports(netstat: str | None = None) -> str:
-    """Which of the rig's server ports something still listens on, with its pids ("" for none)."""
+def held_server_ports(netstat: str | None = None, open_ports: set[int] | None = None) -> str:
+    """Which of the rig's server ports something still listens on, with its pids ("" for none).
+    A port that takes connections with no listener in netstat is held all the same ("pid
+    unknown", and this lane's servers by what they run: lane_server_pids)."""
+    if open_ports is None:
+        open_ports = {port for port in (SHADNET_PORT, BACKEND_PORT) if port_open(port)}
     if netstat is None:
-        if not (port_open(SHADNET_PORT) or port_open(BACKEND_PORT)):
+        if not open_ports:
             return ""
         netstat = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True,
                                  text=True).stdout
-    held = [f"{port} (pid {', '.join(map(str, sorted(pids)))})"
-            for port in (SHADNET_PORT, BACKEND_PORT)
-            if (pids := listening_pids(netstat, port))]
+    held, unknown = [], False
+    for port in (SHADNET_PORT, BACKEND_PORT):
+        if pids := listening_pids(netstat, port):
+            held.append(f"{port} (pid {', '.join(map(str, sorted(pids)))})")
+        elif port in open_ports:
+            held.append(f"{port} (pid unknown)")
+            unknown = True
+    if unknown and (servers := lane_server_pids()):
+        held.append(f"this lane's servers: pid {', '.join(map(str, sorted(servers)))}")
     return ", ".join(held)
 
 
