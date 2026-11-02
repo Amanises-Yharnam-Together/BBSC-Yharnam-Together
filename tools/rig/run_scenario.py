@@ -16,12 +16,13 @@ stay in rig/runs/<when>/<scenario>/ (the last RUNS_KEPT batches).
   py -3.12 tools/rig/run_scenario.py --engine port --lanes 3 smoke trips together ...
   py -3.12 tools/rig/run_scenario.py --engine port --headless --lanes 3 --tier full
   py -3.12 tools/rig/run_scenario.py --engine port --lanes-status   (who holds which lane)
+  py -3.12 tools/rig/run_scenario.py --history [<name>...]   (pass rates and times: history.py)
   py -3.12 tools/rig/run_scenario.py --save-baseline
   py -3.12 tools/rig/run_scenario.py --add-guest2   (a third game for parties of three)
   py -3.12 tools/rig/run_scenario.py --boot-check host [--seconds 40]   (tools/smoke-boot.ps1)
   py -3.12 tools/rig/run_scenario.py --engine port --headless --lane 2 --boot-check host \
       --cache-twice <a cache a game with a GPU wrote>   (one pipeline cached twice: skipped)
-  py -3.12 tools/rig/run_scenario.py --engine port --play down-revive   (games to play by hand)
+  py -3.12 tools/rig/run_scenario.py --engine port --play party-death   (games to play by hand)
 
 A suite (suites.py) runs many chapters in one session from one boot: its games wait for each
 other at sync steps (the runner writes each go file once every game in it got there) and each
@@ -31,8 +32,8 @@ Every scenario starts from the same saves: --save-baseline keeps each role's sav
 (rig/<role>/baseline) and every run puts them back first, so one test's progress (a boss killed,
 a lamp lit, a remembered spot) never leaks into the next.
 
---play <scenario> starts that scenario's games with its settings (down-revive: two players with
-party death on, down-revive3: three), lets them get into the world and into one session by
+--play <scenario> starts that scenario's games with its settings (party-death: two players with
+party death on, party3: three), lets them get into the world and into one session by
 themselves, then leaves them to the person at the PC; the servers stay up until every game is
 closed.
 
@@ -69,18 +70,22 @@ import budget  # noqa: E402
 import build_lock  # noqa: E402
 import check_party_log  # noqa: E402
 import engines  # noqa: E402
+import history  # noqa: E402
 import lanes  # noqa: E402
 import latency  # noqa: E402
 from engines import BACKEND_PORT, BB_ROOT, SHADNET_PORT, WEBAPI_PORT  # noqa: E402
-from scenarios import SCENARIOS, START  # noqa: E402
+from scenarios import PROBES, SCENARIOS, START  # noqa: E402
 from suites import SUITE_SCENARIOS, SUITES, compile_suite  # noqa: E402
 
-# What the runner runs by name: the scenarios and the suites (suites.py), one kind of thing.
-RUNNABLE = {**SCENARIOS, **SUITE_SCENARIOS}
+# What the runner runs by name: the scenarios, the probes and the suites (suites.py), one kind of
+# thing. Only the scenarios and suites are in tiers.
+RUNNABLE = {**SCENARIOS, **PROBES, **SUITE_SCENARIOS}
 
 RIG = BB_ROOT / "rig"
 RUNS = RIG / "runs"
 RUNS_KEPT = 20
+# Every run's result, one JSON line each (history.py): which runs fail often, which are slow.
+HISTORY = RIG / "results.jsonl"
 
 # Each role's game: its P2P port and party role. Its folder (its own user dir, save and account)
 # is the build's (engines.py).
@@ -565,20 +570,79 @@ def listening_pids(netstat: str, port: int) -> set[int]:
     return pids
 
 
+def lane_server_pids(listing: str | None = None) -> set[int]:
+    """This lane's servers by what they run, not by netstat: its shadNet (the lane's
+    server/shadnet.exe) and a Python backend on its port. Rig 2026-11-02: on Kaniel's PC
+    (Windows build 26300) netstat shows a listening shadNet as CLOSED or FIN_WAIT_1, or not at
+    all, so stop_servers found nothing to stop and the next run's server never started."""
+    if listing is None:
+        if os.name != "nt":
+            return set()
+        listing = subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             "Get-CimInstance Win32_Process -Filter \"Name='shadnet.exe' OR Name LIKE 'py%'\" | "
+             "ForEach-Object { \"$($_.ProcessId)`t$($_.ExecutablePath)`t$($_.CommandLine)\" }"],
+            capture_output=True, text=True).stdout
+    shadnet = str(lane_dir() / "server" / "shadnet.exe").lower()
+    pids = set()
+    for line in listing.splitlines():
+        pid, _, rest = line.partition("\t")
+        path, _, command = rest.partition("\t")
+        if not pid.strip().isdigit():
+            continue
+        backend = command.split()
+        if path.strip().lower() == shadnet or (
+                "bb_dummy_server.py" in command and "--port" in backend
+                and backend[backend.index("--port") + 1:][:1] == [str(BACKEND_PORT)]):
+            pids.add(int(pid))
+    return pids
+
+
 def stop_servers():
     """Stops whatever serves the rig's ports (only the rig's: the online kit's are others)."""
     netstat = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True,
                              text=True).stdout
-    for pid in listening_pids(netstat, SHADNET_PORT) | listening_pids(netstat, BACKEND_PORT):
-        subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True)
+    for pid in (listening_pids(netstat, SHADNET_PORT) | listening_pids(netstat, BACKEND_PORT)
+                | lane_server_pids()):
+        killed = subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True,
+                                text=True)
+        # Rig 2026-11-02: a lane's shadNet outlived its run and nothing said why.
+        if killed.returncode != 0:
+            print(f"  could not stop server pid {pid}: "
+                  f"{(killed.stderr or killed.stdout).strip() or f'exit {killed.returncode}'}")
     deadline = time.time() + 15
     while time.time() < deadline and (port_open(SHADNET_PORT) or port_open(BACKEND_PORT)):
         time.sleep(0.5)
+    if held := held_server_ports():
+        print(f"  server ports still held after stopping: {held}")
+
+
+def held_server_ports(netstat: str | None = None, open_ports: set[int] | None = None) -> str:
+    """Which of the rig's server ports something still listens on, with its pids ("" for none).
+    A port that takes connections with no listener in netstat is held all the same ("pid
+    unknown", and this lane's servers by what they run: lane_server_pids)."""
+    if open_ports is None:
+        open_ports = {port for port in (SHADNET_PORT, BACKEND_PORT) if port_open(port)}
+    if netstat is None:
+        if not open_ports:
+            return ""
+        netstat = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True,
+                                 text=True).stdout
+    held, unknown = [], False
+    for port in (SHADNET_PORT, BACKEND_PORT):
+        if pids := listening_pids(netstat, port):
+            held.append(f"{port} (pid {', '.join(map(str, sorted(pids)))})")
+        elif port in open_ports:
+            held.append(f"{port} (pid unknown)")
+            unknown = True
+    if unknown and (servers := lane_server_pids()):
+        held.append(f"this lane's servers: pid {', '.join(map(str, sorted(servers)))}")
+    return ", ".join(held)
 
 
 # A console of its own (as before) but no window: with Windows Terminal as the default terminal a
 # new console opened a Terminal window on the player's desktop (2026-10-25).
-SERVER_CONSOLE = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+SERVER_CONSOLE = getattr(subprocess, "CREATE_NO_WINDOW", 0) | build_lock.priority_flags()
 
 
 def start_server(command: list[str], cwd: pathlib.Path, log: pathlib.Path | None):
@@ -992,7 +1056,8 @@ def background_window_options() -> dict:
     startup = subprocess.STARTUPINFO()
     startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     startup.wShowWindow = 4  # SW_SHOWNOACTIVATE
-    return {"startupinfo": startup, "creationflags": subprocess.CREATE_NO_WINDOW}
+    return {"startupinfo": startup,
+            "creationflags": subprocess.CREATE_NO_WINDOW | build_lock.priority_flags()}
 
 
 def set_aside(path: pathlib.Path):
@@ -1304,7 +1369,14 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
         print(f"  not enough memory for {len(roles)} games: {free:.1f} GB can be committed, "
               f"{need} GB needed (close something big, or give Windows a bigger page file)")
         return False
+    build_lock.wait_for_cpu(f"the {name} run")  # the PC is Kaniel's: leave him CPU
     stop_servers()
+    if held := held_server_ports():
+        # Rig 2026-11-02: a shadNet from a run before still listened 15 minutes later, so this
+        # run's own never started and the check below called it "too old".
+        print(f"  the rig's server ports are still held after stopping them: {held} (close "
+              "those processes, then run again)")
+        return False
     # Every run starts with no party worlds on the server (shadNet keeps them on disk: phase 3).
     shutil.rmtree(lane_dir() / "server" / "bloodborne_worlds", ignore_errors=True)
     start_servers(run_dir)
@@ -1438,6 +1510,7 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
     for problem in suite_problems(scenario, texts) + console_problems(scenario, consoles):
         print(f"    {problem}")
         passed = False
+    failed: list[str] = []
     if chapters := scenario.get("chapters"):
         sections = {role: chapter_sections(text) for role, text in texts.items()}
         for chapter in chapters:
@@ -1459,6 +1532,8 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
                 print(f"    {problem}")
             if ok and not problems and chapter.get("known_bug"):
                 print(f"    known bug no longer seen ({chapter['known_bug']}): drop known_bug")
+            if not ok:
+                failed.append(chapter["name"])
             passed = passed and ok
     else:
         problems = judge(scenario, texts)
@@ -1470,7 +1545,17 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
         passed = passed and ok
     print(f"  {'PASSED' if passed else 'FAILED'} in {time.time() - started:.0f} s (logs in "
           f"{run_dir})")
+    history.record(HISTORY, name, passed, time.time() - started, failed=failed, logs=run_dir,
+                   lane=LANE, build=build_stamp())
     return passed
+
+
+def build_stamp() -> str | None:
+    """When the game's exe was built (the history's "build")."""
+    try:
+        return time.strftime("%Y-%m-%d %H:%M", time.localtime(ENGINE.exe.stat().st_mtime))
+    except OSError:
+        return None
 
 
 # Lines no game of a suite may log (the robustness review's guards, 2026-10-12): a game call
@@ -1870,6 +1955,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
                         help="make lanes 1..N-1 from the rig's folders (--engine port)")
     parser.add_argument("--lane", type=int, default=0, help=argparse.SUPPRESS)
     parser.add_argument("--batch", type=pathlib.Path, help=argparse.SUPPRESS)
+    parser.add_argument("--history", action="store_true",
+                        help="each run's pass rate and time from rig/results.jsonl (only the "
+                             "named ones if any)")
     parser.add_argument("--headless", action="store_true",
                         help="the port's games draw nothing and play no sound (BB_NULL_GPU=1, "
                              "BB_AUDIO=none): nothing on the screen, no pictures")
@@ -1887,6 +1975,12 @@ def main(argv: list[str]) -> int:
         os.environ.update(HEADLESS)
     use_ping(args.ping)
     use_lane(args.lane, args.batch is not None)
+    if args.tier:
+        # Before runs_games: a tier's runs need the ping proxies as named ones do (rig
+        # 2026-10-25: --tier quick --lane 2 started none, and no game reached the server).
+        tier = budget.tiers(SUITES, SCENARIOS)[args.tier]
+        args.scenarios = tier + [name for name in args.scenarios if name not in tier]
+        args.tier = None
     runs_games = (args.play or args.scenarios or args.boot_check) and not args.lanes
     proxies = start_delay_proxies() if runs_games else []
     PROXIES[:] = proxies
@@ -1944,6 +2038,10 @@ def act(args: argparse.Namespace) -> int:
     if args.lanes_status:
         print("\n".join(lanes.status(RIG)))
         return 0
+    if args.history:
+        print("\n".join(history.summary(history.read(HISTORY), args.scenarios or None))
+              or f"no runs in {HISTORY} yet")
+        return 0
     if args.tier:
         tier = budget.tiers(SUITES, SCENARIOS)[args.tier]
         args.scenarios = tier + [name for name in args.scenarios if name not in tier]
@@ -1951,6 +2049,8 @@ def act(args: argparse.Namespace) -> int:
         for name, scenario in SCENARIOS.items():
             print(f"{name}: {scenario.get('about', '')} ({', '.join(scenario['roles'])}; "
                   f"{budget.describe(name, scenario)})")
+        for name, scenario in PROBES.items():
+            print(f"probe {name}: {scenario.get('about', '')} ({', '.join(scenario['roles'])})")
         for name, suite in SUITES.items():
             print(f"suite {name}: {suite['about']} ({', '.join(suite['roles'])}; timeout "
                   f"{budget.suite_timeout(suite)} s): " + ", ".join(

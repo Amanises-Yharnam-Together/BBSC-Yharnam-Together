@@ -51,6 +51,15 @@ PARTY_LIST_ICONS = r"party list is the HUD's own \(\d+ tags, icons (?!none)"
 HOSTS_MESSENGERS = (r"characters switched like the host has them on map 0x15000000 \(off, \+on\):"
                     r".* 0x1000000[0-3]\b")
 
+# #403 (Kaniel 2026-10-25): a host's game that dies hands the team to a guest, and comes back
+# as that guest's guest.
+# owner-crash-fight: the enemy stood 1.1 m from the guest at GUEST_ALONE_SPOT, too close to walk
+# the 1.5 m "moves" needs (rig 2026-11-02); the guest steps 4 m back so it has to come for it.
+OCF_STEP_BACK = "-214.0 -54.5 181.0"
+GUEST_LEADS = (r"Co-op team play: this guest leads the team now: it hosts|Co-op team join: the "
+               r"session host moved to this game")
+OLD_HOST_IS_GUEST = r"Co-op team lobby: the save plays in team \w+ as its guest"
+
 RESTART = "<restart>"
 # Steps a game runs on its title screen, before it is in the world (the lobby's, the title's).
 TITLE_STEPS = ("team-", "title-")
@@ -123,6 +132,19 @@ def join(roles, about: str = "every game joins the host by itself (the bells rin
                    expect={"host": [HOST_JOINS],
                            **{guest: [GUEST_JOINS] for guest in roles[1:]}},
                    forbid=holds(roles))
+
+
+def with_first_steps(chapter_: dict, role: str, *steps: str) -> dict:
+    """The chapter with `steps` first in `role`'s game."""
+    return {**chapter_, "steps": {**chapter_["steps"],
+                                  role: [*steps, *chapter_["steps"].get(role, [])]}}
+
+
+def with_expect(chapter_: dict, role: str, *patterns: str) -> dict:
+    """The chapter with more lines `role`'s game must log in it."""
+    expect = {name: list(lines) for name, lines in chapter_.get("expect", {}).items()}
+    expect[role] = expect.get(role, []) + list(patterns)
+    return {**chapter_, "expect": expect}
 
 
 def map_reset(roles, name: str = "everyone-leaves") -> dict:
@@ -418,7 +440,11 @@ SUITES = {
         "settings": AS_PLAYERS,
         "join_within": 180,
         "chapters": [
-            join(PARTY2),
+            # The old story-hidden scenario's line: the guest hides what the host's story hid as
+            # it joins (rig 2026-11-02: during the join, before the story-hidden chapter).
+            with_expect(join(PARTY2), "guest",
+                        r"characters as the host has them on map 0x18010000: hid \d+, showed "
+                        rf"\d+:.* {STORY_HIDDEN}"),
             chapter("story-hidden", "a character the host's story hides (Iosefka) stays hidden "
                                     "on the guest: it hides and shows characters as the host",
                     {"host": ["census 80", f"expect-hidden {STORY_HIDDEN} 1"],
@@ -739,7 +765,9 @@ SUITES = {
                     # PR #69: Options and R3 do nothing while down; PR #71: R1 hits count as light
                     # ones. No kneel (Kaniel 2026-10-15).
                     expect={"host": [r"party death: ((real )?revive hit on .*, light\)|"
-                                     r"revive swing at)"],
+                                     r"revive swing at)",
+                                     # the revive prompt names the character, not the account
+                                     r'party HUD: prompt "Strike to revive (?!rig_)[^"]+"'],
                             "guest": [r"party death: down \d+ on map 0x18010000",
                                       r"party death: down, the pad dropped buttons",
                                       r"party death: revived from down"]},
@@ -799,9 +827,7 @@ SUITES = {
                     expect={"host": [r"party death: enemies forgot \d+ target\(s\) on downed "
                                      r"players \(self down=false, others down=1"],
                             "guest": [r"party death: giving up ends down"]},
-                    known_bug="phase 8: with 1 HP (hurt self 1) the owner-run enemy beside the "
-                              "guest never strikes; at full HP it strikes and downs the guest (rig "
-                              "2026-10-15)",
+                    # known_bug dropped: not seen in the rig run of 2026-11-02.
                     forbid={"host": SESSION_HOLDS,
                             "guest": SESSION_HOLDS + [r"party death: killed while down"]}),
             chapter("give-up", "the downed guest holds Circle and dies; it gets up at its lamp "
@@ -819,31 +845,56 @@ SUITES = {
                                           "sees its own stain with its echoes (Kaniel "
                                           "2026-10-11: only the host found a bloodstain)",
                     {"guest": [RESTART, START, "godmode", "wait-session 2 480", "wait 20",
+                               # the old bloodstain-rejoin scenario: on its compass and map
+                               "expect-stains 1 1 30", "shot guest-stain-rejoin",
                                "sync stain-back"],
                      "host": ["sync stain-back"]},
                     # Its game made a new HUD after the restart: the party list has its icons.
                     expect={"guest": [r"showed the guest's own bloodstain \([1-9]\d* echoes\)",
-                                      PARTY_LIST_ICONS]},
+                                      PARTY_LIST_ICONS, r"autoplay stains: \[compass own"]},
+                    allow=CRASH_CLEANUP),
+            # Kaniel 2026-10-13: after a wipe everyone wakes where the host does. Kaniel
+            # 2026-10-18: the enemy the host hurt before it is whole again.
+            # Echoes on the guest first: stain-after-wipe looks for its stain's echoes (rig
+            # 2026-11-02: the guest died holding none, record_38=0, and nothing was shown).
+            with_first_steps(wipe(PARTY2, guests_point=2412951, hurt_first=True), "guest",
+                             "trade-stock echoes 5000"),
+            chapter("stain-after-wipe", "after the wipe the guest's game dies and comes back: "
+                                        "in the host's world it sees its own bloodstain from "
+                                        "the wipe, with its echoes",
+                    {"guest": [RESTART, START, "godmode", "wait-session 2 480", "wait 20",
+                               "sync saw-back"],
+                     "host": ["sync saw-back"]},
+                    expect={"guest": [r"showed the guest's own bloodstain \([1-9]\d* echoes\)"]},
+                    # known_bug dropped (rig 2026-11-02): shown once the guest held echoes.
                     allow=CRASH_CLEANUP),
             chapter("down-alone", "with the host in the Dream nobody else is on the guest's map: "
                                   "its lethal fall is a real death that reloads the map",
                     {"host": [f"travel {HUNTERS_DREAM}", "sync alone-away", "sync alone-woken",
                               f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240"],
                      # The host's trip first: with it still on the map the fall is a down.
+                     # It wakes where the host is, in the Dream (rig 2026-11-02: "respawn at
+                     # the host's point"), and goes back with it.
                      "guest": ["sync alone-away", "wait 15", "godmode off", *LETHAL_FALL,
                                "wait-vital dead 30", "wait-vital up 120", "godmode",
-                               "sync alone-woken", "wait-members 2 300"]},
+                               "sync alone-woken", f"travel {CENTRAL_YHARNAM_LAMP}",
+                               "wait-members 2 300"]},
                     expect={"guest": [r"party death: died for real on map 0x18010000 "
                                       r"\(reset=true\)", r"travelling there \(reset=true, void fall=false\)"]},
-                    # Right after stain-after-rejoin's restart (as smoke's wipe after rejoin).
-                    known_bug="after a guest's restart and rejoin its lethal fall is neither a "
-                              "down nor a death alone (rig 2026-10-15, twice)",
+                    # Right after stain-after-wipe's restart (as smoke's wipe after rejoin).
+                    # known_bug dropped (rig 2026-11-02): the death alone came, reset=true.
                     forbid={"host": SESSION_HOLDS,
                             "guest": SESSION_HOLDS + [r"party death: down \d+"]}),
+            # Last: the host's game dies in it, and after that the guest leads and owns the map
+            # (#403); the wipe needs the host as the owner (rig 2026-11-02: after it the
+            # host's hit never reached the guest's copy of the enemy).
             chapter("down-session-lost", "the guest is down when the host's game dies: its down "
                                          "ends in a death a few seconds later, not a kneel with no "
                                          "banner (the review, PR #65), and they join again",
-                    {"guest": ["godmode off", *GUEST_FALL, "wait-vital down 30", "sync dsl-down",
+                    # wait 15: right after down-alone's travel the fall was no down (rig
+                    # 2026-11-02: the map still set up, 3 s after the load).
+                    {"guest": ["wait 15", "godmode off", *GUEST_FALL, "wait-vital down 30",
+                               "sync dsl-down",
                                "wait-vital dead 60", "wait-vital up 120", "godmode",
                                "wait-session 2 480", "sync dsl-back", "expect-session 2"],
                      "host": ["wait-member-vital down 120", "sync dsl-down", RESTART, START,
@@ -854,19 +905,6 @@ SUITES = {
                     # guest is down with nobody standing, a wipe, and dies all the same.
                     expect={"guest": [r"party death: (?:the party session ending|wipe \d+) ends "
                                       r"down \d+; dies"]},
-                    allow=CRASH_CLEANUP),
-            # Kaniel 2026-10-13: after a wipe everyone wakes where the host does. Kaniel
-            # 2026-10-18: the enemy the host hurt before it is whole again.
-            wipe(PARTY2, guests_point=2412951, hurt_first=True),
-            chapter("stain-after-wipe", "after the wipe the guest's game dies and comes back: "
-                                        "in the host's world it sees its own bloodstain from "
-                                        "the wipe, with its echoes",
-                    {"guest": [RESTART, START, "godmode", "wait-session 2 480", "wait 20",
-                               "sync saw-back"],
-                     "host": ["sync saw-back"]},
-                    expect={"guest": [r"showed the guest's own bloodstain \([1-9]\d* echoes\)"]},
-                    known_bug="after a wipe and a restart the guest is not shown its own "
-                              "bloodstain (rig 2026-10-15; after a give-up it is)",
                     allow=CRASH_CLEANUP),
         ],
     },
@@ -1079,6 +1117,8 @@ SUITES = {
                      "host": ["wait-members 2 240", "sync hc-ready", RESTART, START, "godmode",
                               "wait-session 2 420", "wait 10", "expect-session 2",
                               "sync hc-back"]},
+                    # #403 (Kaniel 2026-10-25): the guest leads now, the old host is its guest.
+                    expect={"guest": [GUEST_LEADS], "host": [OLD_HOST_IS_GUEST]},
                     allow=CRASH_CLEANUP),
             chapter("leave", "the guest's game goes away and the host, alone now, picks up a map "
                              "item before anyone joins again (Kaniel 2026-10-11: no pickups "
@@ -1093,6 +1133,40 @@ SUITES = {
                     expect={"host": [r"(?:lost a member; staying where it is|member left, session "
                                      r"epoch)"]},
                     allow=CRASH_CLEANUP),
+            # Phase 8: the map's owner dies mid-fight; the other game takes the map over with the
+            # enemy as hurt as it was, where it was, and it keeps fighting. Before host-crash-apart
+            # (rig 2026-11-02): after it the guest leads in the Ward (#403) and the host is no
+            # owner of Central Yharnam. After leave the guest's game is back: both wait for the
+            # session first.
+            chapter("owner-crash-fight", "the host (the map's owner) hurts the enemy by the guest "
+                                         "and its game dies: the guest's game runs it on, as "
+                                         "hurt as it was, and it keeps coming for the guest",
+                    {"host": ["wait-members 2 300", "sync ocf-go", f"teleport {GUEST_ALONE_SPOT}",
+                              "wait 3", "sync ocf-hit",
+                              f"hurt {ENEMY} 200", "wait 3", "sync ocf-hurt", RESTART, START,
+                              "godmode", "wait-session 2 420", "wait 5", "expect-session 2",
+                              "sync ocf-back"],
+                     # godmode: its game came back in leave without it (rig 2026-11-02: the
+                     # guest died for real once the host's game was gone, and the wipe reset the
+                     # enemy to full HP).
+                     # The guest's hit starts the fight: the enemy has a target before the
+                     # crash (rig 2026-11-02: with none it stood still after the takeover). From
+                     # beside it, and before the host's hurt (a hit passes on any HP drop: at
+                     # 3.9 m the swing missed and the hurt counted as it).
+                     "guest": ["godmode", "wait-session 2 420", "sync ocf-go",
+                               f"teleport {GUEST_ALONE_SPOT}", "wait 2", f"approach {ENEMY}",
+                               f"hit {ENEMY} 30", "sync ocf-hit", "sync ocf-hurt",
+                               "wait-solo 180", "wait 3", f"expect-hp {ENEMY} <= 200",
+                               "census 40", f"teleport {OCF_STEP_BACK}", "wait 10", "census 40",
+                               f"expect-hp {ENEMY} <= 200", "sync ocf-back"]},
+                    # The old owner-crash scenario's check: the guest's game runs the map now. Its
+                    # game leads the team from here on (#403): the line comes in this chapter, not
+                    # in host-crash-apart (rig 2026-11-02).
+                    expect={"guest": [r"enemy owner: this game runs map 0x18010000's enemies",
+                                      GUEST_LEADS]},
+                    # known_bug dropped (rig 2026-11-02): no crash in its run; it failed because
+                    # it ran after host-crash-apart.
+                    moves={"guest": ENEMY}, allow=CRASH_CLEANUP),
             # Last: the guest's game crashes in it (a crash ends the suite).
             # #403 (Kaniel 2026-10-25): the guest leads the team and hosts where it stands, and the
             # old host's game comes back as its guest, beside it in the Ward (as the scenario
@@ -1107,24 +1181,9 @@ SUITES = {
                                "sync hca-ready", "wait-solo 180", "wait 10",
                                f"expect-map {CATHEDRAL_WARD}", "sync hca-back", "wait 10",
                                "expect-session 2", f"expect-map {CATHEDRAL_WARD}"]},
+                    # The guest leads since owner-crash-fight, so its GUEST_LEADS line came there.
+                    expect={"host": [OLD_HOST_IS_GUEST]},
                     allow=CRASH_CLEANUP),
-            # Phase 8: the map's owner dies mid-fight; the other game takes the map over with the
-            # enemy as hurt as it was, where it was, and it keeps fighting.
-            chapter("owner-crash-fight", "the host (the map's owner) hurts the enemy by the guest "
-                                         "and its game dies: the guest's game runs it on, as "
-                                         "hurt as it was, and it keeps coming for the guest",
-                    {"host": ["sync ocf-go", f"teleport {GUEST_ALONE_SPOT}", "wait 3",
-                              f"hurt {ENEMY} 200", "wait 3", "sync ocf-hurt", RESTART, START,
-                              "godmode", "wait-session 2 420", "wait 5", "expect-session 2",
-                              "sync ocf-back"],
-                     "guest": ["sync ocf-go", f"teleport {GUEST_ALONE_SPOT}", "sync ocf-hurt",
-                               "wait-solo 180", "wait 3", f"expect-hp {ENEMY} <= 200",
-                               "census 40", "wait 10", "census 40", f"expect-hp {ENEMY} <= 200",
-                               "sync ocf-back"]},
-                    moves={"guest": ENEMY}, allow=CRASH_CLEANUP,
-                    known_bug="the guest's game crashes (eboot+0x13cffba) once the dead owner's "
-                              "game comes back, as in host-crash-apart (backlog: Krolebord's crash "
-                              "after a rejoin; rig 2026-10-15)"),
         ],
     },
     "joins": {
