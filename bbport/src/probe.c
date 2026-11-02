@@ -15,6 +15,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <timeapi.h>
+#include "restart_launch.h"
 #else
 #include <sys/mman.h>
 #include <malloc.h>
@@ -495,12 +496,8 @@ void runtime_restart(void) {
     puts("Runtime: restarting through run.py");
     if (!command || !*command) { fputs("runtime_restart: BB_RESTART_COMMAND is not set\n",stderr); _exit(1); }
     char *line=_strdup(command);
-    /* Same output handles: a launcher reading the game's log keeps reading the new launch. */
-    STARTUPINFOA startup={.cb=sizeof(startup),.dwFlags=STARTF_USESTDHANDLES,
-                          .hStdInput=GetStdHandle(STD_INPUT_HANDLE),.hStdOutput=GetStdHandle(STD_OUTPUT_HANDLE),
-                          .hStdError=GetStdHandle(STD_ERROR_HANDLE)};
     PROCESS_INFORMATION process;
-    if (!line || !CreateProcessA(NULL,line,NULL,NULL,TRUE,0,NULL,NULL,&startup,&process)) {
+    if (!line || !restart_launch_start(line,&process)) {
         fprintf(stderr,"runtime_restart: CreateProcess failed (%lu)\n",GetLastError()); _exit(1);
     }
     CloseHandle(process.hThread); CloseHandle(process.hProcess);
