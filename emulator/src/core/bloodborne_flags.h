@@ -461,6 +461,12 @@ inline constexpr std::array LastRows{
     Range(52900000, 52999999, FlagOwner::Host, FlagCarriesHome,
           "chalice dungeon item flags: left out of the pickups, kept like any other change"),
     Range(53000000, 53999999, FlagOwner::Host, FlagMapPickup, "map item pickups"),
+    Range(72100100, 72100102, FlagOwner::PerPlayer, 0,
+          "the Doll's blessing after a level up (her talk sets 72100100 once her level-up menu "
+          "closed, m21_00 12100112 then plays the kneel on the local player and sets 72100101, "
+          "12100113 turns her to the player and sets 72100102): this game's own. As the host's "
+          "story steps and the game's own flag messages, the host's level up made every guest "
+          "in the Dream kneel (Kaniel 2026-10-30, again 2026-11-03)"),
     Range(72100300, 72100309, FlagOwner::Session, 0,
           "a ritual altar's layer pick (72100300 + layer, for the Dream's warp event "
           "12107100): a request, not progress; as the host's, a guest's game took it and "
