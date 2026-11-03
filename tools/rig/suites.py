@@ -110,6 +110,9 @@ GUESTS = ("guest", "guest2")
 # fix's to write: the test is its contract.
 # Where a player stands at the first lamp (its census), to come back to without a trip.
 AT_THE_LAMP = "-199.7 -50.7 179.0"
+# owner-crash-fight's step back: the street by the first lamp, on the fight's level, 5-11 m from
+# where the fight leaves the enemy (seen at x -225..-206, z 168..188 on -54.5).
+OCF_FLAT_SPOT = "-216.0 -54.5 180.0"
 # A join from the guest's load's end to its session, at most this long. Phase 7's goal was 10 s;
 # since a join reloads the team's world into the guest's game (#212, ~7 s) and the team's load
 # screen waits until the others stand still for 5 s, a join takes 19-24 s (rig 2026-10-22, on
@@ -1186,11 +1189,12 @@ SUITES = {
                                f"teleport {GUEST_ALONE_SPOT}", "wait 2", f"approach {ENEMY}",
                                f"hit {ENEMY} 30", "sync ocf-hit", "sync ocf-hurt",
                                "wait-solo 180", "wait 3", f"expect-hp {ENEMY} <= 200",
-                               # Back to the lamp, known ground 14-25 m from where the fight
-                               # leaves the enemy, so a chasing enemy walks the 1.5 m "moves"
-                               # needs (rig 2026-11-02: a spot 4 m off was often where it stood
-                               # already, and 5 m from the enemy itself was over the drop).
-                               "census 40", f"teleport {AT_THE_LAMP}", "wait 10", "census 40",
+                               # A step back on the fight's own level (rig 2026-11-03: at the
+                               # lamp, up its steps, a game alone saw the enemy stop 12-14 m
+                               # short; 5 m from the enemy itself was over the drop), then two
+                               # censuses: the enemy comes for the guest ("closes").
+                               "census 40", f"teleport {OCF_FLAT_SPOT}", "census 40", "wait 8",
+                               "census 40",
                                f"expect-hp {ENEMY} <= 200", "sync ocf-moved", "sync ocf-back"]},
                     # The old owner-crash scenario's check: the guest's game runs the map now. Its
                     # game leads the team from here on (#403): the line comes in this chapter, not
@@ -1199,7 +1203,7 @@ SUITES = {
                                       GUEST_LEADS, GUEST_TARGETED_AFTER_TAKEOVER]},
                     # known_bug dropped (rig 2026-11-02): no crash in its run; it failed because
                     # it ran after host-crash-apart.
-                    moves={"guest": ENEMY}, allow=CRASH_CLEANUP),
+                    closes={"guest": ENEMY}, allow=CRASH_CLEANUP),
             # Last: the guest's game crashes in it (a crash ends the suite).
             # #403 (Kaniel 2026-10-25): the guest leads the team and hosts where it stands, and the
             # old host's game comes back as its guest, beside it in the Ward (as the scenario
@@ -1688,6 +1692,7 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
                 stages[role][-1] += [mark, keep_going]
     checks = ("about", "expect", "expect_any", "forbid", "allow", "same_hp", "same_hp_census",
               "hp_sums_hits", "max_hp_lag", "max_hp_lag_each", "killed", "max_kill_lag", "max_join_s", "moves",
+              "closes",
               "grounded", "overlay_textures", "console_expect", "known_bug", "known_problems",
               "files_present",
               "files_absent")

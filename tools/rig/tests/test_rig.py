@@ -130,7 +130,7 @@ class ScenarioTest(unittest.TestCase):
         # wants, and it walked home before the last census: "stood still". A "moves" check's
         # player holds godmode (and never turns it off) so the enemy stays on it.
         for name, scenario in scenarios.SCENARIOS.items():
-            for role in scenario.get("moves", {}):
+            for role in [*scenario.get("moves", {}), *scenario.get("closes", {})]:
                 commands = sum(run_scenario.stages_of(scenario["roles"][role]), [])
                 godmode = [command for command in commands if command.split()[0] == "godmode"]
                 with self.subTest(scenario=name, role=role):
@@ -895,6 +895,24 @@ class RunnerTest(unittest.TestCase):
         self.assertTrue([p for p in run_scenario.judge(spec, {"guest": still}) if "stood" in p])
         self.assertFalse([p for p in run_scenario.judge(spec, {"guest": moved}) if "stood" in p])
         self.assertTrue([p for p in run_scenario.judge(spec, {"guest": ""}) if "stood" in p])
+
+    def test_an_enemy_that_fights_a_player_comes_for_it_after_its_step_back(self):
+        # Rig owner-crash-fight 2026-11-03: "moves" passed on 1.7 m an enemy that then stood 12 m
+        # off. The last two censuses: the enemy closes on the player, or is at it.
+        census = ("[Debug] <Info> () x: Bloodborne autoplay census: 0x1001400b hp 198/484 dead 0x0 "
+                  "hidden 0 disabled 0 at {} m ({}, -54.5, {}) backread 4/4 draw 0x0")
+        spec = {"closes": {"guest": "0x1001400b"}}
+
+        def problems(*distances):
+            text = "\n".join(census.format(d, -210.0, 180.0) for d in distances)
+            return [p for p in run_scenario.judge(spec, {"guest": text}) if "come for" in p]
+
+        self.assertFalse(problems(1.0, 7.0, 2.0), "closed from 7 m to 2 m")
+        self.assertFalse(problems(1.0, 2.0, 2.4), "beside it all along")
+        self.assertTrue(problems(1.0, 7.0, 6.2), "0.8 m nearer: not coming")
+        self.assertTrue(problems(1.0, 6.0, 12.5), "went off")
+        self.assertTrue(problems(3.0), "one census")
+        self.assertTrue(problems(), "none")
 
     def test_a_player_that_stands_still_stays_put(self):
         # Kaniel 2026-10-15: one guest's backstab dragged the other guest to the enemy.

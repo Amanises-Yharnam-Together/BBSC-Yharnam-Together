@@ -336,6 +336,10 @@ def chapter_sections(text: str) -> dict[str, str]:
 
 # How far (m, on the ground) an enemy that comes for a player moves between two censuses.
 EnemyMovesM = 1.5
+# "closes": at its last census the enemy is this near the player, or this much nearer than at the
+# one before (a fighting enemy coming for the player, see judge).
+EnemyAtPlayerM = 2.5
+EnemyClosesM = 1.5
 # How far (m) an enemy may drop below its first census before it counts as fallen through.
 GroundedDropM = 3.0
 
@@ -388,6 +392,16 @@ def judge(spec: dict, texts: dict[str, str]) -> list[str]:
             problems.append(f"{role}: {handle} stood still beside it "
                             f"({'no census' if len(places) < 2 else places[0]} -> "
                             f"{places[-1] if places else ''})")
+    # "closes": an enemy that fights the role's player comes for it after its step back: of its
+    # last two censuses there the last is beside the player or nearer by EnemyClosesM (rig
+    # owner-crash-fight 2026-11-03: "moves" passed on 1.7 m an enemy that then stood 12 m off).
+    for role, handle in spec.get("closes", {}).items():
+        distances = [float(at) for at in re.findall(
+            rf"autoplay census: {re.escape(handle)} hp .* at ([\d.]+) m \(", texts.get(role, ""))]
+        if (len(distances) < 2 or (distances[-1] > EnemyAtPlayerM and
+                                   distances[-1] > distances[-2] - EnemyClosesM)):
+            problems.append(f"{role}: {handle} did not come for it "
+                            f"({' -> '.join(f'{d:.1f} m' for d in distances[-2:]) or 'no census'})")
     # "position_rate": the role's game took [handle]'s position at least [per s] times a second
     # in some 10 s of its follower's log (Kaniel 2026-10-15: every enemy by a far guest lagged).
     for role, (handle, per_s) in spec.get("position_rate", {}).items():
