@@ -4409,10 +4409,14 @@ private:
 // of swings at the downed player. A node of a live character target (+0x02: slot type 1, bit 7
 // alive; +0x28 kind 1) on a downed player's handle (+0x50) gets ForgottenTargetTimer, and the
 // game's own update drops it the next frame (0x012A6AD0). Enemies after anyone else are left be.
-// Rig owner-crash-fight node probe 2026-11-03: the enemy also keeps a memory of the character
-// (slot type 7, kind 1, +0x2C counting down from about 20 s): forgotten too, or it goes on for
-// the crashed host's spot. A last-known place (slot type 3) stays.
+// The enemy's memory of a downed player (slot type 7) stays: dropped, the enemy no longer took a
+// guest at 1 HP beside it (rig down-by-enemy 2/4 against 2/2 without it, 2026-11-03).
 bool ForgetsTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> downed);
+// A gone member's copy (crashed or left, see ReconcileMemberPresence): its current target node
+// and the enemy's memory of it (slot type 7, kind 1, +0x2C counting down from about 20 s) go,
+// or the enemy goes on for the crashed host's spot (rig owner-crash-fight node probe
+// 2026-11-03). A last-known place (slot type 3) stays.
+bool ForgetsGoneTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> gone);
 constexpr u8 TargetSlotCurrent = 1;
 constexpr u8 TargetSlotMemory = 7;
 // A node of an enemy's targeting system as read (see ForgetsTargetNode).

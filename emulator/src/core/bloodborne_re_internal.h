@@ -570,8 +570,8 @@ bool CopyVouchedFor(u64 character);
 // 0x01524B0C; null: none).
 constexpr u64 PhysicsContactObjectOffset = 0xA8;
 void ForgetGroundOfHidden(u64 character);
-// Every enemy here forgets the characters with these handles as targets (see ForgetsTargetNode);
-// how many target nodes it changed.
+// Every enemy here forgets these gone members' copies as targets, its memories of them too (see
+// ForgetsGoneTargetNode); how many target nodes it changed.
 u32 ForgetCharacterTargets(std::span<const u32> handles);
 u64 MemberIdentityOf(u64 character);
 

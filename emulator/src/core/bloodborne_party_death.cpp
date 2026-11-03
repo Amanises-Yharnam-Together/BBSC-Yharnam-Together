@@ -758,9 +758,9 @@ constexpr u8 DownedNoDamageFlags = 0x2 | 0x8;
 constexpr u64 PlayerHideFlagOffset = 0x0553E88E;
 constexpr u64 PlayerSilenceFlagOffset = 0x0553E88F;
 
-// Every enemy in this world forgets the characters with these handles (see ForgetsTargetNode);
-// returns how many target nodes it changed.
-u32 ForgetDownedTargets(std::span<const u32> handles) {
+// Every enemy in this world forgets the characters with these handles (see ForgetsTargetNode,
+// or ForgetsGoneTargetNode for `gone` members' copies); returns how many target nodes it changed.
+u32 ForgetDownedTargets(std::span<const u32> handles, bool gone = false) {
     const u64 world = ReadValue<u64>(image_base + CandidateLocalStatePointerOffset, 0);
     if (handles.empty() || world < 0x10000) {
         return 0;
@@ -786,8 +786,11 @@ u32 ForgetDownedTargets(std::span<const u32> handles) {
         for (int count = 0;
              count < 64 && node >= 0x10000 && HasMemoryAccess(node, 0x54, MemoryProt::CpuWrite);
              ++count, node = ReadValue<u64>(node, 0x08)) {
-            if (ForgetsTargetNode(ReadValue<u8>(node, 0x02), ReadValue<s32>(node, 0x28),
-                                  ReadValue<u32>(node, 0x50), handles) &&
+            const u8 slot = ReadValue<u8>(node, 0x02);
+            const s32 kind = ReadValue<s32>(node, 0x28);
+            const u32 handle = ReadValue<u32>(node, 0x50);
+            if ((gone ? ForgetsGoneTargetNode(slot, kind, handle, handles)
+                      : ForgetsTargetNode(slot, kind, handle, handles)) &&
                 ReadValue<float>(node, 0x2C) != ForgottenTargetTimer) {
                 WriteValue(node, 0x2C, ForgottenTargetTimer);
                 ++forgotten;
@@ -1123,7 +1126,7 @@ const s32 downed_animation = DownedAnimation(std::getenv("SHADPS4_BLOODBORNE_DOW
 namespace Coop {
 
 u32 ForgetCharacterTargets(std::span<const u32> handles) {
-    return ForgetDownedTargets(handles);
+    return ForgetDownedTargets(handles, true);
 }
 
 bool KillCharacterCallable() {
