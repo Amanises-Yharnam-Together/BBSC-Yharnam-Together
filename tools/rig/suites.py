@@ -56,6 +56,12 @@ HOSTS_MESSENGERS = (r"characters switched like the host has them on map 0x150000
 # party3 (Kaniel 2026-11-02: known for now).
 REJOIN_RACE = ("the old host rejoining races its greeting (candidate fix on branch "
                "fix/rejoin-greeting-1.3.2; a rarer form leaves a hidden copy)")
+# owner-crash-fight: after the takeover the guest's own game runs the enemy, and it goes for the
+# guest: LogEnemyTargets lists this player first, then each enemy's targets (rig 2026-11-02: in
+# the failing runs it had none, and "moves" alone could pass on an enemy walking home).
+GUEST_TARGETED_AFTER_TAKEOVER = (
+    r"(?s)enemy owner: this game runs map 0x18010000's enemies.*Bloodborne enemy targets "
+    r"\(map [^)\n]*\): \[player (0x[0-9a-f]+) [^\n]*\[enemy 0x1001400b:[^\]\n]*\b\1\b")
 GUEST_LEADS = (r"Co-op team play: this guest leads the team now: it hosts|Co-op team join: the "
                r"session host moved to this game")
 OLD_HOST_IS_GUEST = r"Co-op team lobby: the save plays in team \w+ as its guest"
@@ -1176,7 +1182,7 @@ SUITES = {
                     # game leads the team from here on (#403): the line comes in this chapter, not
                     # in host-crash-apart (rig 2026-11-02).
                     expect={"guest": [r"enemy owner: this game runs map 0x18010000's enemies",
-                                      GUEST_LEADS]},
+                                      GUEST_LEADS, GUEST_TARGETED_AFTER_TAKEOVER]},
                     # known_bug dropped (rig 2026-11-02): no crash in its run; it failed because
                     # it ran after host-crash-apart.
                     moves={"guest": ENEMY}, allow=CRASH_CLEANUP),

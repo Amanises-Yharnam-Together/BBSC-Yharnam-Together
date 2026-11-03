@@ -206,3 +206,28 @@ class DownByEnemyForgetTest(unittest.TestCase):
         self.assertEqual([p for p in run_scenario.judge(spec, texts) if "forgot" in p], [])
         texts = {"host": "", "guest": "Bloodborne party death: giving up ends down"}
         self.assertTrue([p for p in run_scenario.judge(spec, texts) if "forgot" in p])
+
+
+class OwnerCrashFightTargetsTest(unittest.TestCase):
+    """crashes/owner-crash-fight: after the takeover the guest's own game has the enemy going
+    for the guest (rig 2026-11-02: it stood still, and a step back alone could pass without)."""
+
+    TAKEOVER = "Bloodborne enemy owner: this game runs map 0x18010000's enemies\n"
+    TARGETS = ("Bloodborne enemy targets (map 0x18010000, 2 in the AI list): [player 0x10044000 "
+               "type 0 team 1 info18 0x0: a target] [enemy 0x1001400b: {}]\n")
+
+    def problems(self, text):
+        import suites
+        compiled = suites.compile_suite(suites.SUITES["crashes"])
+        spec = next(c for c in compiled["chapters"] if c["name"] == "owner-crash-fight")
+        return [p for p in run_scenario.judge(spec, {"guest": text, "host": ""})
+                if "enemy targets" in p]
+
+    def test_the_enemy_going_for_the_guest_after_the_takeover_passes(self):
+        self.assertEqual(self.problems(self.TAKEOVER + self.TARGETS.format("0x10044000")), [])
+
+    def test_the_enemy_going_for_someone_else_fails(self):
+        self.assertTrue(self.problems(self.TAKEOVER + self.TARGETS.format("0x10044100")))
+
+    def test_targets_only_before_the_takeover_fail(self):
+        self.assertTrue(self.problems(self.TARGETS.format("0x10044000") + self.TAKEOVER))
