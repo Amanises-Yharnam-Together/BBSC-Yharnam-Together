@@ -478,21 +478,8 @@ def use_plain_action_buttons(emevd: bytes, wanted: dict[int, tuple[int, int]],
 ENDING_EVENTS = {'m21_00_00_00.emevd.dcx': {12100000, 12100002, 12100180}}
 
 
-# The Doll's blessing after a level up (m21_00 12100112: the local player kneels, 72100101;
-# 12100113: she turns, 72100102). Her talk waits on both before it lets the player level up
-# again. Both end unless the local player is alive (4:3 player 10000 type 0, a white phantom is
-# type 1), so only the host's game ran them, for a guest's 72100100 the game's flag sync sent
-# over, and its 72100101/102 came back the same way, the host kneeling with them. Her blessing
-# flags are each game's own now (bloodborne_flags.h); patched, each game runs them for its own
-# player (Kaniel 2026-11-03: a guest who just joined could not level up, the host's level up made
-# the guests kneel).
-GUEST_RUN_EVENTS = {'m21_00_00_00.emevd.dcx': {12100112, 12100113}}
-
-
-def let_guests_run_events(emevd: bytes, wanted: set[int],
-                          edits: list | None = None) -> tuple[bytes, int]:
-    """In each `wanted` event the client end (1003:6 state 1) never matches and every alive check
-    of the local player (4:3 player 10000 type 0) moves to a condition group nothing tests."""
+def let_guests_see_the_endings(emevd: bytes, wanted: set[int],
+                               edits: list | None = None) -> tuple[bytes, int]:
     data = bytearray(emevd)
     fields = struct.unpack_from('<16q', data, 16)
     event_count, event_offset, instruction_offset = fields[0], fields[1], fields[3]
@@ -518,9 +505,6 @@ def let_guests_run_events(emevd: bytes, wanted: set[int],
                 note(edits, event, k, bank, ident, 'alive check no longer waited on')
                 patched += 1
     return bytes(data), patched
-
-
-let_guests_see_the_endings = let_guests_run_events
 
 
 # Items picked up with the action button at a glowing spot (2006:4 its sparkle, 3:24 the button,
@@ -1210,7 +1194,7 @@ def patch_file(name: str, original: bytes) -> tuple[bytes | None, list, dict]:
               'item pickup checks': 0, 'host door effects': 0, 'ambush checks': 0,
               'chalice reward checks': 0, 'one-time enemy checks': 0, 'lake dive checks': 0,
               'ending checks': 0, 'dropped banners': 0, 'own animation checks': 0,
-              'plain action buttons': 0, 'guest run checks': 0}
+              'plain action buttons': 0}
     try:
         if name.startswith('m'):
             emevd, counts['boss event checks'] = patch_events(emevd, edits)
@@ -1226,9 +1210,6 @@ def patch_file(name: str, original: bytes) -> tuple[bytes | None, list, dict]:
         if name in ENDING_EVENTS:
             emevd, counts['ending checks'] = let_guests_see_the_endings(emevd,
                                                                         ENDING_EVENTS[name], edits)
-        if name in GUEST_RUN_EVENTS:
-            emevd, counts['guest run checks'] = let_guests_run_events(
-                emevd, GUEST_RUN_EVENTS[name], edits)
         if name in ACTION_PICKUP_EVENTS:
             emevd, counts['item pickup checks'] = let_guests_pick_up_items(
                 emevd, ACTION_PICKUP_EVENTS[name], edits)
