@@ -1122,6 +1122,10 @@ const s32 downed_animation = DownedAnimation(std::getenv("SHADPS4_BLOODBORNE_DOW
 
 namespace Coop {
 
+u32 ForgetCharacterTargets(std::span<const u32> handles) {
+    return ForgetDownedTargets(handles);
+}
+
 bool KillCharacterCallable() {
     return kill_hook_installed ||
            std::ranges::equal(

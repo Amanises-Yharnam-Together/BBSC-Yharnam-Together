@@ -6989,6 +6989,10 @@ PartyPanel BuildPartyPanel(std::span<const MemberVitals> board, std::string_view
     return panel;
 }
 
+bool ShowsHiddenCopies(bool in_session, bool board_fresh, bool on_map) {
+    return in_session && (!board_fresh || !on_map);
+}
+
 bool PresenceHides(s64 now_ms, s64 first_seen_ms, s64 unmatched_since_ms) {
     return now_ms - unmatched_since_ms >= PresenceGraceMs &&
            now_ms - first_seen_ms >= PresenceNewCharacterMs;

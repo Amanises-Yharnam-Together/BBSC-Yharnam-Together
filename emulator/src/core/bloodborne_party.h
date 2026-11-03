@@ -3943,6 +3943,12 @@ constexpr s64 PresenceNewCharacterMs = 15'000;
 // Whether a character by no member (since `unmatched_since_ms`), first seen at `first_seen_ms`,
 // is hidden now.
 bool PresenceHides(s64 now_ms, s64 first_seen_ms, s64 unmatched_since_ms);
+// Rig owner-crash-fight 2026-11-03: the crashed host's leftover copy, hidden for no member by
+// it, was shown again when this game left its session alone and opened its own, and the enemy
+// fighting the guest went for it. The hidden copies are shown again (as the game has them) only
+// in a session whose board is not to be trusted (stale) or while loading (no map), never on a
+// session's end.
+bool ShowsHiddenCopies(bool in_session, bool board_fresh, bool on_map);
 std::vector<bool> ShownOtherPlayers(std::span<const std::optional<LampPosition>> characters,
                                     std::span<const MemberVitals> board, std::string_view self,
                                     u32 map);

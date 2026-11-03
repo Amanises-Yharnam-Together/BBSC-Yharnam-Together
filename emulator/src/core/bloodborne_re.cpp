@@ -806,8 +806,14 @@ void ReconcileMemberPresence() {
     const u32 map = CurrentPlace().map;
     if (!InPartySession() || !fresh || map == 0) {
         SetInvaderHandles({});
-        // Out of a session (or nothing known): everyone as the game has them (a stale second copy
-        // of a member stays hidden).
+        unmatched_since.clear();
+        // Out of a session the hidden copies stay hidden (see ShowsHiddenCopies): the one of a
+        // member gone stays out of the enemies' sight.
+        if (!ShowsHiddenCopies(InPartySession(), fresh, map != 0)) {
+            return;
+        }
+        // Nothing known (or loading): everyone as the game has them (a stale second copy of a
+        // member stays hidden).
         for (const u64 character : hidden) {
             if (IsCharacterDisabled(character)) {
                 set_disabled(character, false);
@@ -882,12 +888,16 @@ void ReconcileMemberPresence() {
             set_disabled(character, true);
             ForgetGroundOfHidden(character);
             hidden.insert(character);
+            // Rig owner-crash-fight 2026-11-03: and no enemy keeps it as its target (the crashed
+            // host's copy took the enemy off the guest).
+            const u32 handle = ReadValue<u32>(character, 0x08);
+            const u32 forgotten = ForgetCharacterTargets(std::span{&handle, 1});
             const auto& at = others[i].at;
             LOG_INFO(Debug,
                      "Bloodborne presence: no member on map {:#x} by player {:#x} at ({:.0f}, "
-                     "{:.0f}, {:.0f}): hidden",
-                     map, ReadValue<u32>(character, 0x08), at ? (*at)[0] : 0.0f,
-                     at ? (*at)[1] : 0.0f, at ? (*at)[2] : 0.0f);
+                     "{:.0f}, {:.0f}): hidden ({} enemies' targets on it forgotten)",
+                     map, handle, at ? (*at)[0] : 0.0f, at ? (*at)[1] : 0.0f, at ? (*at)[2] : 0.0f,
+                     forgotten);
         }
     }
 }
