@@ -1203,12 +1203,14 @@ SUITES = {
                                # A step back on the fight's own level (rig 2026-11-03: at the
                                # lamp, up its steps, a game alone saw the enemy stop 12-14 m
                                # short; 5 m from the enemy itself was over the drop), and the
-                               # enemy fights the guest: its hit lands within 12 s, godmode off.
+                               # enemy fights the guest: its hit lands within 25 s, godmode off.
                                # Not "comes closer": alone (local probes 2026-11-03, the host
                                # 8.6 and 10.9 m off) it walked in and hit at +6.3 s once, and
-                               # once hit from 10.7 m at +1.5 s and held 9.6 m off.
+                               # once hit from 10.7 m at +1.5 s and held 9.6 m off. Alone 6.7-9.3
+                               # m off (5 probes 2026-11-03) its first hit came at +5.8, 9.4,
+                               # 9.5, 11.1 and 16.0 s: 25 s is that and a half again.
                                "census 40", f"teleport {OCF_FLAT_SPOT}", "godmode off",
-                               "census 40", "wait-hp self < 594 12", "godmode", "census 40",
+                               "census 40", "wait-hp self < 594 25", "godmode", "census 40",
                                f"expect-hp {ENEMY} <= 200", "sync ocf-moved", "sync ocf-back"]},
                     # The old owner-crash scenario's check: the guest's game runs the map now. Its
                     # game leads the team from here on (#403): the line comes in this chapter, not
