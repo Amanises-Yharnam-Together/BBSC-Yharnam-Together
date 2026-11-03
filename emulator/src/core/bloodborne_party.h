@@ -4459,6 +4459,23 @@ private:
     s64 started_ms = 0;
     std::optional<s64> last_ms;
 };
+// This game's run of a map that stops and comes back within GapMs on the same map (rig
+// owner-crash-fight 2026-11-03: alone in the session, the guest re-hosts the team's, its
+// character goes from type 1 team 20 to type 0 team 19 and the enemy dropped it as a target, past
+// the take-over's window): the fights it had then are the take-over's again (TakeoverFights).
+class OwnerGap {
+public:
+    static constexpr s64 GapMs = 5'000;
+    // This game stops running `map`, its enemies with these fights.
+    void Leave(u32 map, std::vector<u32> fights, s64 now_ms);
+    // This game runs `map` again: the fights it left with, if it is back in time (once).
+    std::vector<u32> Back(u32 map, s64 now_ms);
+
+private:
+    std::vector<u32> fights;
+    u32 map = 0;
+    s64 left_ms = 0;
+};
 constexpr float ForgottenTargetTimer = 1.0e-4f;
 // Kaniel's play test 2026-10-19: the Blood-starved Beast never went for Lisara. What the enemies'
 // AI reads to take a character as a target: every ~5 s 0x012A43B0 lists WorldChrMan's players

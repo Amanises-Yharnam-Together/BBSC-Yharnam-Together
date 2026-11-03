@@ -1391,6 +1391,8 @@ std::vector<u32> LivePlayerHandles() {
 
 // The take-over's fights, looked at again (see TakeoverFights).
 TakeoverFights takeover_fights;
+// The fights over this game's own gap in running a map (see OwnerGap).
+OwnerGap owner_gap;
 
 // Whether it holds or remembers a live player here (a crashed member's copy is none).
 bool HasCharacterTarget(u64 targeting) {
@@ -1604,6 +1606,28 @@ void TickEnemyOwner(bool in_session, u32 map) {
     }
     if (in_session) {
         SendMovedEnemyPlaces(map, now_ms, role == EnemyRole::Owner);
+    }
+    // A gap in this game's run of the map (its own session re-host): the fights it had go on.
+    static u32 owned_map = 0;
+    if (before == EnemyRole::Owner && role != EnemyRole::Owner) {
+        std::vector<u32> fights;
+        for (const auto& [character, place] : EnemyPlacesNow()) {
+            if (place.fighting) {
+                fights.push_back(place.handle);
+            }
+        }
+        owner_gap.Leave(owned_map, std::move(fights), now_ms);
+    } else if (role == EnemyRole::Owner && before != EnemyRole::Owner) {
+        if (std::vector<u32> fights = owner_gap.Back(map, now_ms); !fights.empty()) {
+            LOG_INFO(Debug,
+                     "Bloodborne party: enemy owner: runs map {:#x} again: its {} fights go "
+                     "on (t={:.1f})",
+                     map, fights.size(), now_ms / 1000.0);
+            takeover_fights.Start(std::move(fights), now_ms);
+        }
+    }
+    if (role == EnemyRole::Owner) {
+        owned_map = map;
     }
     // The take-over's fights left with no live target get this game's player (TakeoverFights).
     if (const std::vector<u32> due =

@@ -6906,6 +6906,21 @@ std::vector<u32> TakeoverFights::Due(s64 now_ms) {
     return handles;
 }
 
+void OwnerGap::Leave(u32 left_map, std::vector<u32> left_fights, s64 now_ms) {
+    fights = std::move(left_fights);
+    map = left_map;
+    left_ms = now_ms;
+}
+
+std::vector<u32> OwnerGap::Back(u32 back_map, s64 now_ms) {
+    std::vector<u32> back = std::move(fights);
+    fights.clear();
+    if (back_map != map || now_ms - left_ms >= GapMs) {
+        return {};
+    }
+    return back;
+}
+
 bool ForgetsGoneTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> gone) {
     return ForgetsTargetNode(slot, kind, handle, gone);
 }

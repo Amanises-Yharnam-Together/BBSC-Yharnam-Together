@@ -1668,6 +1668,22 @@ TEST(BloodbornePartyDeath, TheTakeoversFightsAreLookedAtAgainForAWhile) {
     EXPECT_EQ(fights.Due(60'000), std::vector<u32>{0x10014057}) << "a new take-over";
 }
 
+// Alone in the session the guest re-hosts the team's and its enemy dropped it: its fights go on.
+TEST(BloodbornePartyDeath, AFightGoesOnOverThisGamesOwnReHost) {
+    OwnerGap gap;
+    EXPECT_TRUE(gap.Back(0x18010000, 0).empty()) << "never left";
+    gap.Leave(0x18010000, {0x1001400b}, 68'424'200);
+    EXPECT_EQ(gap.Back(0x18010000, 68'425'200), std::vector<u32>{0x1001400b});
+    EXPECT_TRUE(gap.Back(0x18010000, 68'425'300).empty()) << "once";
+    gap.Leave(0x18010000, {0x1001400b}, 1000);
+    EXPECT_TRUE(gap.Back(0x18010000, 1000 + OwnerGap::GapMs).empty()) << "back too late";
+    gap.Leave(0x18010000, {0x1001400b}, 1000);
+    EXPECT_TRUE(gap.Back(0x18000000, 2000).empty()) << "another map";
+    EXPECT_TRUE(gap.Back(0x18010000, 2500).empty()) << "the other map's return spent it";
+    gap.Leave(0x18010000, {}, 1000);
+    EXPECT_TRUE(gap.Back(0x18010000, 2000).empty()) << "no fights";
+}
+
 // Kaniel's play test 2026-10-19: the Blood-starved Beast never went for Lisara. Each other player
 // here is checked against the rules the enemies' AI uses to take a character as a target
 // (0x012A43B0's candidate list, 0x012ADC50's filter), and the first one it fails is named.
