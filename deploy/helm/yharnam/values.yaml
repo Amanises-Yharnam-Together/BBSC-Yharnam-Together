@@ -94,6 +94,11 @@ shards:
 # shards.ports and are not taken from here.
 config:
   Hosted: true
+  # Global servers' sign-in (docs/HOSTED_SERVER.md "Global servers: accounts"): password (the
+  # default), discord, both, or open (any id with the work: tests). The accounts live on shard 0
+  # (entrypoint.sh PASSWORD_HOME); the proxy sends /bb/auth/* there.
+  SignIn: password
+  SignInProxied: true
   HostedBuild: ""                 # the build every game must say; empty: the first game decides
   HostedBanList: banned.txt
   HostedLinksPerAddress: 8

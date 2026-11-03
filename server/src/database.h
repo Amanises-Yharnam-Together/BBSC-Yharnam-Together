@@ -84,10 +84,27 @@ public:
     std::optional<int64_t> GetUserId(const QString& npid);
     // Whether an account has this virtual address.
     bool AddressTaken(quint32 address);
-    // Global servers: a Discord account's secrets issued before this are dead (unix seconds, 0:
-    // none), and an account's secret replaced by a newer sign-in's (discord_accounts.h).
-    qint64 DiscordNotBefore(const QString& npid);
-    void SetDiscordNotBefore(const QString& npid, qint64 seconds);
+    // Global servers: a signed account's secrets issued before this are dead (unix seconds, 0:
+    // none; signed_accounts.h), and an account's secret replaced by a newer sign-in's. A later
+    // time never goes back (a region's shards hear each one from the directory, in any order).
+    qint64 SignInNotBefore(const QString& npid);
+    void SetSignInNotBefore(const QString& npid, qint64 seconds);
+    // Global servers' own accounts (password_accounts.h), on the accounts' home shard only: the
+    // name, its online id, the password's Argon2id hash and the recovery code's digest. None
+    // holds a password.
+    struct PasswordAccount {
+        QString nameKey; // NameKey(name): one account a name, whatever its case
+        QString name;    // as typed at signup
+        QString onlineId;
+        QString hash;
+        QString recovery;
+    };
+    std::optional<PasswordAccount> FindPasswordAccount(const QString& name_key);
+    bool PasswordIdTaken(const QString& online_id);
+    // False when the name (or id) has one already.
+    bool AddPasswordAccount(const PasswordAccount& account);
+    bool SetPasswordHash(const QString& name_key, const QString& hash);
+    bool SetPasswordRecovery(const QString& name_key, const QString& recovery);
     bool SetPassword(const QString& npid, const QString& password);
     std::optional<QString> GetUsername(int64_t userId);
     std::optional<QString> GetAvatarUrl(int64_t userId);

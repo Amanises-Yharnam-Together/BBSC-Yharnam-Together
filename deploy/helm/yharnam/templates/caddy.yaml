@@ -15,12 +15,26 @@ data:
       email {$ACME_EMAIL}
       {{- end }}
     }
+    {{- $shard := include "yharnam.shard" . }}
     {{- range .Values.tls.caddy.sites }}
     {$SITE_ADDRESS}:{{ .port }} {
       {{- if $.Values.tls.caddy.internalCA }}
       tls internal
       {{- end }}
-      reverse_proxy 127.0.0.1:{{ .to }}
+      header Strict-Transport-Security "max-age=31536000"
+      {{- if eq (int .to) (int $.Values.shards.ports.webapi) }}
+      # The accounts (docs/HOSTED_SERVER.md "Global servers: accounts"): small bodies only, on
+      # the region's accounts' home, shard 0. Caddy logs no bodies (and no access log is on).
+      handle /bb/auth/* {
+        request_body {
+          max_size 8KB
+        }
+        reverse_proxy {{ $shard }}-0:{{ .to }}
+      }
+      {{- end }}
+      handle {
+        reverse_proxy 127.0.0.1:{{ .to }}
+      }
     }
     {{- end }}
 {{- end }}

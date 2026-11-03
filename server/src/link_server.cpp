@@ -18,8 +18,8 @@
 #include "bbcoop_revision.h"
 #include "config.h"
 #include "coop/build_fingerprint.h"
-#include "discord_accounts.h"
 #include "link_server.h"
+#include "signed_accounts.h"
 
 namespace {
 
@@ -27,8 +27,8 @@ namespace {
 const QByteArray DirectoryDown = "the region's directory does not answer: try again in a minute";
 
 // What a refused hello's game hears when its id got no account for a reason the player can act on.
-// A new id on a Global server (bbport_coop.py DISCORD_FIRST).
-const QByteArray DiscordFirst = "discord: sign in with Discord in the launcher first";
+// A new id on a Global server, or an old or signed-out secret (bbport_coop.py SIGN_IN_FIRST).
+const QByteArray AccountFirst = "account: sign in in the launcher first";
 
 QByteArray RefusalOf(DbError why) {
     if (why == DbError::ExistingAddress)
@@ -81,7 +81,7 @@ LinkServer::LinkServer(SharedState* shared, const QString& db_path, quint16 tcp_
         if (const auto key = ServerLink::KeyFromFile(path, &made, &m_keyError)) {
             m_link.SetStaticKey(*key);
             if (shared)
-                shared->discordKey = DiscordAccounts::KeyFrom(*key);
+                shared->accountsKey = SignedAccounts::KeyFrom(*key);
             if (made)
                 qInfo().noquote() << "Link: a new key made in" << path
                                   << "(only this user reads it)";
@@ -131,7 +131,8 @@ LinkServer::LinkServer(SharedState* shared, const QString& db_path, quint16 tcp_
     // their own thread (a flood of new ids must not stop the games' relay).
     if (shared && shared->config) {
         m_hosted = shared->config->GetHosted();
-        m_discordSignIn = m_hosted.enabled && shared->config->GetDiscord().Enabled();
+        const SignInConfig sign_in = shared->config->GetSignIn();
+        m_signedSignIn = m_hosted.enabled && sign_in.passwords;
     }
     if (m_hosted.enabled) {
         Admission::Limits limits;
@@ -454,15 +455,15 @@ std::optional<ServerLink::SignInVerdict> LinkServer::SignIn(const QByteArray& on
         }
     }
     // Global servers: a sign-in's secret, told by its signature with no store shared between
-    // shards (discord_accounts.h); an old or signed-out one is sent back to the launcher.
-    const bool discord_on = m_discordSignIn && !m_shared->discordKey.isEmpty();
-    const bool discord_account = discord_on && DiscordAccounts::IsDiscordId(online_id);
-    if (discord_account) {
-        const auto verdict = DiscordAccounts::Check(
-            m_shared->discordKey, online_id, secret, QDateTime::currentSecsSinceEpoch(),
-            m_db.DiscordNotBefore(QString::fromUtf8(online_id)));
-        if (verdict != DiscordAccounts::Verdict::Good)
-            return ServerLink::SignInVerdict{false, DiscordFirst};
+    // shards (signed_accounts.h); an old or signed-out one is sent back to the launcher.
+    const bool signed_on = m_signedSignIn && !m_shared->accountsKey.isEmpty();
+    const bool signed_account = signed_on && SignedAccounts::IsSignedId(online_id);
+    if (signed_account) {
+        const auto verdict = SignedAccounts::Check(
+            m_shared->accountsKey, online_id, secret, QDateTime::currentSecsSinceEpoch(),
+            m_db.SignInNotBefore(QString::fromUtf8(online_id)));
+        if (verdict != SignedAccounts::Verdict::Good)
+            return ServerLink::SignInVerdict{false, AccountFirst};
         // A newer sign-in's secret replaces the one remembered here.
         if (const auto held = m_signedIn.constFind(online_id);
             held != m_signedIn.constEnd() && *held != hash)
@@ -501,16 +502,16 @@ std::optional<ServerLink::SignInVerdict> LinkServer::SignIn(const QByteArray& on
     }
     if (m_signInPending.contains(online_id))
         return std::nullopt;
-    // Global servers: a new account comes from Sign in with Discord (discord_accounts.h), which
+    // Global servers: a new account comes from the launcher's sign-in (signed_accounts.h), which
     // any shard can tell from its secret; no other new id, and the work and an address's accounts
     // are for ids anyone can make.
-    if (discord_on && !discord_account && make && !ticketed &&
+    if (signed_on && !signed_account && make && !ticketed &&
         !m_db.GetUserId(QString::fromUtf8(online_id)))
-        return ServerLink::SignInVerdict{false, DiscordFirst};
+        return ServerLink::SignInVerdict{false, AccountFirst};
     // A hello without the work (hub.SetSignupWork) makes no account: one for an id that has one
     // goes on, the others hear how much work, before any password is hashed. A ticket's account is
     // made here as it is elsewhere.
-    if (!paid && make && !ticketed && !discord_account) {
+    if (!paid && make && !ticketed && !signed_account) {
         if (!m_db.GetUserId(QString::fromUtf8(online_id)))
             return ServerLink::SignInVerdict{false, {}, true};
         make = false;
@@ -521,8 +522,8 @@ std::optional<ServerLink::SignInVerdict> LinkServer::SignIn(const QByteArray& on
         return std::nullopt;
     const quint32 address = m_helloAddress;
     const bool counted =
-        make && !ticketed && !discord_account && m_guard.MayMakeAccount(address, now);
-    make = ticketed || discord_account ? make : counted;
+        make && !ticketed && !signed_account && m_guard.MayMakeAccount(address, now);
+    make = ticketed || signed_account ? make : counted;
     if (counted)
         m_guard.Made(address, now); // counted now (checks run at once), given back if none is
     m_signInPending.insert(online_id);
@@ -536,7 +537,7 @@ std::optional<ServerLink::SignInVerdict> LinkServer::SignIn(const QByteArray& on
     // is waiting for it.
     m_signInPool.start(
         [this, online_id, secret, hash, make, address, counted, db_path, claim, directory, token,
-         shard, discord_account] {
+         shard, signed_account] {
             // Each sign-in thread's own connection to the accounts.
             static thread_local std::unique_ptr<Database> db;
             if (!db) {
@@ -562,7 +563,7 @@ std::optional<ServerLink::SignInVerdict> LinkServer::SignIn(const QByteArray& on
                 }
             }
             // Its signature was good: a newer sign-in's secret takes the old one's place here.
-            if (discord_account && existed &&
+            if (signed_account && existed &&
                 !db->CheckUser(id, QString::fromUtf8(secret), {}, false))
                 db->SetPassword(id, QString::fromUtf8(secret));
             DbError why = DbError::None;
@@ -671,6 +672,11 @@ void LinkServer::Heartbeat() {
     QJsonArray started;
     for (const QByteArray& id : std::exchange(m_started, {}))
         started.append(QString::fromUtf8(id));
+    // Sign-ins killed here, for the others; the ones killed elsewhere since the last heard.
+    const auto revoked_here = m_shared->TakeRevoked();
+    QJsonArray revoked;
+    for (const auto& [id, at] : revoked_here)
+        revoked.append(QJsonObject{{"id", id}, {"at", at}});
     const QJsonObject beat{
         {"shard", m_shardConfig.name},
         {"address", m_shardConfig.publicAddress},
@@ -683,16 +689,24 @@ void LinkServer::Heartbeat() {
         {"codes", codes},
         {"worlds", worlds},
         {"started", started},
+        {"revoked", revoked},
+        {"revoked_after", m_revokedHeard},
     };
-    m_directory->Post("/v1/heartbeat", beat, [this](std::optional<QJsonObject> answer) {
-        m_beating = false;
-        if (answer) {
-            TakeView(*answer);
-        } else if (m_beatsLost++ % 30 == 0) {
-            qWarning() << "Region: the directory did not answer a heartbeat (" << m_beatsLost
-                       << "so far); the last view stays";
-        }
-    });
+    m_directory->Post("/v1/heartbeat", beat,
+                      [this, revoked_here](std::optional<QJsonObject> answer) {
+                          m_beating = false;
+                          if (answer) {
+                              TakeView(*answer);
+                          } else {
+                              // Sent again with the next one.
+                              for (const auto& [id, at] : revoked_here)
+                                  m_shared->Revoked(id, at);
+                          }
+                          if (!answer && m_beatsLost++ % 30 == 0) {
+                              qWarning() << "Region: the directory did not answer a heartbeat ("
+                                         << m_beatsLost << "so far); the last view stays";
+                          }
+                      });
 }
 
 void LinkServer::TakeView(const QJsonObject& answer) {
@@ -700,6 +714,14 @@ void LinkServer::TakeView(const QJsonObject& answer) {
     busy.start();
     std::vector<Region::Invite> inbox;
     m_region = Region::ViewOf(answer, &inbox);
+    // Sign-ins killed on the region's other shards: dead here too (signed_accounts.h).
+    for (const QJsonValue item : answer.value("revocations").toArray()) {
+        const QJsonObject revocation = item.toObject();
+        const QString id = revocation.value("id").toString();
+        if (SignedAccounts::IsSignedId(id.toUtf8()))
+            m_db.SetSignInNotBefore(id, revocation.value("at").toInteger());
+        m_revokedHeard = std::max(m_revokedHeard, revocation.value("seq").toInteger());
+    }
     if (!inbox.empty()) {
         std::vector<std::pair<std::string, bbcoop::TeamInvite>> invites;
         for (Region::Invite& invite : inbox)

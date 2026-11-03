@@ -68,20 +68,21 @@ struct ShardConfig {
 
 // Invasions (docs/INVASIONS.md): a solo player invades a team's world that allows it. Off unless
 // the operator turns it on (a hosted server or one at home alike).
-// Global servers: Sign in with Discord (docs/HOSTED_SERVER.md). The client secret comes from the
-// config or the environment (DISCORD_CLIENT_SECRET), never from the repository.
-struct DiscordConfig {
-    QString clientId;
-    QString clientSecret;
-    QString apiBase = QStringLiteral("https://discord.com/api");
-    // The launcher's loopback ports, each registered with Discord as a redirect.
-    QStringList redirectPorts{"47231", "47232", "47233", "47234"};
-    int signInsPerMinute = 20; // an address's
-    // Behind our own TLS proxy: the address is the last X-Forwarded-For's.
-    bool proxied = false;
-    bool Enabled() const {
-        return !clientId.isEmpty() && !clientSecret.isEmpty();
-    }
+// Global servers' sign-in (docs/HOSTED_SERVER.md, "Global servers: accounts"), on a Hosted server
+// only: SignIn=password (the default: a name and a password, password_accounts.h; Kaniel
+// 2026-11-04: the only sign-in) or open (any new id, with the signup work: the hosted server before
+// sign-ins, for tests). The accounts live on one shard of a region, its home
+// (PasswordHome, every lone server's): /bb/auth/* go there; the others tell the secrets.
+struct SignInConfig {
+    bool passwords = true;
+    bool home = true;
+    quint32 hashMemoryKib = 64 * 1024; // PasswordAccounts::HashParams: ~100-150 ms
+    quint32 hashPasses = 2;
+    int hashThreads = 2;     // hashes at once, off the server's threads
+    int hashQueue = 32;      // waiting for one; past it a request hears "busy"
+    int triesPerMinute = 30; // an address's requests to /bb/auth/*
+    QString commonPasswords = QStringLiteral("common-passwords.txt");
+    bool proxied = false; // behind our own TLS proxy (SignInProxied)
 };
 
 struct InvasionConfig {
@@ -168,9 +169,9 @@ public:
         return m_hosted;
     }
 
-    DiscordConfig GetDiscord() const {
+    SignInConfig GetSignIn() const {
         QReadLocker lk(&m_lock);
-        return m_discord;
+        return m_signIn;
     }
 
     BackendConfig GetBackend() const {
@@ -254,7 +255,7 @@ private:
     BackendConfig m_backend;
     HostedConfig m_hosted;
     ShardConfig m_shard;
-    DiscordConfig m_discord;
+    SignInConfig m_signIn;
     InvasionConfig m_invasions;
     bool m_httpLinkedOnly = false;
     QString m_statsPort = "31320";

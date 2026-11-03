@@ -92,16 +92,22 @@ void ConfigManager::Parse(const QString& path) {
         const QString value = str(key, def).trimmed();
         return qEnvironmentVariableIsSet(env) ? qEnvironmentVariable(env).trimmed() : value;
     };
-    m_discord.clientId = shardSetting("DiscordClientId", "DISCORD_CLIENT_ID", "");
-    m_discord.clientSecret = shardSetting("DiscordClientSecret", "DISCORD_CLIENT_SECRET", "");
-    m_discord.apiBase = str("DiscordApiBase", "https://discord.com/api").trimmed();
-    while (m_discord.apiBase.endsWith('/'))
-        m_discord.apiBase.chop(1);
-    if (const QStringList ports = str("DiscordRedirectPorts", "").split(u',', Qt::SkipEmptyParts);
-        !ports.isEmpty())
-        m_discord.redirectPorts = ports;
-    m_discord.signInsPerMinute = std::max(1, str("DiscordSignInsPerMinute", "20").toInt());
-    m_discord.proxied = boolean("DiscordProxied", false);
+    {
+        const QString mode = shardSetting("SignIn", "SIGN_IN", "password").toLower();
+        m_signIn.passwords = mode != "open";
+        if (mode != "open" && mode != "password")
+            qWarning().noquote() << "Config: SignIn=" + mode +
+                                        " is not password or open; password it is";
+    }
+    m_signIn.home = shardSetting("PasswordHome", "PASSWORD_HOME", "true").toLower() != "false";
+    m_signIn.hashMemoryKib =
+        std::clamp(str("PasswordHashMemoryKiB", "65536").toUInt(), 8u * 1024u, 1024u * 1024u);
+    m_signIn.hashPasses = std::clamp(str("PasswordHashPasses", "2").toUInt(), 1u, 16u);
+    m_signIn.hashThreads = std::clamp(str("PasswordHashThreads", "2").toInt(), 1, 64);
+    m_signIn.hashQueue = std::clamp(str("PasswordHashQueue", "32").toInt(), 1, 10'000);
+    m_signIn.triesPerMinute = std::max(1, str("PasswordTriesPerMinute", "30").toInt());
+    m_signIn.commonPasswords = str("CommonPasswordsFile", "common-passwords.txt").trimmed();
+    m_signIn.proxied = boolean("SignInProxied", false);
     m_shard.directoryUrl = shardSetting("DirectoryUrl", "DIRECTORY_URL", "");
     while (m_shard.directoryUrl.endsWith('/'))
         m_shard.directoryUrl.chop(1);

@@ -2618,10 +2618,12 @@ SCENARIOS = {
         "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
         "timeout": 420,
     },
-    # Kaniel 2026-11-01, the public server: games signed in with Discord through a TLS proxy and a
-    # fake Discord, on a hosted server. The first quick match opens a team, the next joins it.
+    # Kaniel 2026-11-01, the public server: games signed in through a TLS proxy on a hosted server
+    # (Kaniel 2026-11-03: its own accounts, a name and a password; the first role also meets a second
+    # install, wrong passwords and their wait, its recovery code and a sign out). The first quick
+    # match opens a team, the next joins it.
     "global-quick-match": {
-        "about": "Hosted server, Sign in with Discord, quick match: the first opens a team, the "
+        "about": "Hosted server, accounts with a password, quick match: the first opens a team, the "
                  "second joins it, they play one session",
         "global": True,
         "roles": {

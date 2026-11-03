@@ -490,53 +490,128 @@ class CoopSettingsTests(unittest.TestCase):
         self.app.coop_vars['server_type'].set('global')
         self.settle(0.5)
 
-    def test_global_signs_in_with_discord_and_never_asks_for_an_ip(self):
-        """Kaniel 2026-11-01: Global is Sign in with Discord; no login, no password, no address."""
-        app = self.app
-        self.assertNotIn('password', [str(k) for k in app.coop_vars], 'no password anywhere')
-        self.global_server()
-        self.assertEqual(app.coop_next.state, 'disabled', 'not signed in yet')
-        self.assertIn('Sign in with Discord', app.coop_missing.cget('text'))
-        secret = format(int(time.time()), '08x') + 'a' * 24
-        account = {'id': 'd0123456789abcd', 'secret': secret, 'name': 'Ada'}
-        with mock.patch.object(launcher.bbport_discord, 'sign_in', return_value=account) as signing:
-            app.coop_discord_pressed()
+    PASSWORD = 'a long and fine password'
+
+    def account(self, **extra):
+        return dict({'id': 'u0123456789abcd', 'secret': format(int(time.time()), '08x') + 'a' * 24,
+                     'name': 'Kaniel'}, **extra)
+
+    def type_in(self, **fields):
+        for key, value in fields.items():
+            self.app.coop_auth_fields[key].set(value)
+
+    def press(self, patch_name, result=None, error=None):
+        """The view's button with bbport_auth.<patch_name> answering `result` (or raising `error`)."""
+        side = {'side_effect': error} if error else {'return_value': result}
+        with mock.patch.object(launcher.bbport_auth, patch_name, **side) as call:
+            self.app.coop_auth_pressed()
             self.settle(0.5)
-        self.assertEqual(signing.call_args[0][0], 'https://play.example.com')
-        self.assertEqual(app.coop_discord_text.cget('text'), 'Signed in as Ada')
+        return call
+
+    def test_global_signs_in_with_a_name_and_a_password_and_never_asks_for_an_ip(self):
+        """Kaniel 2026-11-03: Global is the server's own accounts, secure by default."""
+        app = self.app
+        self.assertNotIn('password', [str(k) for k in app.coop_vars], 'no password in the settings')
+        self.global_server()
+        self.assertEqual(app.coop_auth_view, 'sign_in')
+        self.assertEqual(app.coop_next.state, 'disabled', 'not signed in yet')
+        self.assertIn('Sign in to the public server', app.coop_missing.cget('text'))
+        password = app.coop_auth_entries['password']
+        self.assertEqual(password.cget('show'), '•', 'hidden while typed')
+        password.eye.invoke()
+        self.assertEqual(password.cget('show'), '', 'the eye shows it')
+        password.eye.invoke()
+        self.type_in(name='Kaniel', password=self.PASSWORD)
+        call = self.press('sign_in', self.account())
+        self.assertEqual(call.call_args[0], ('https://play.example.com', 'Kaniel', self.PASSWORD))
+        self.assertEqual(app.coop_auth_view, 'signed_in')
+        self.assertEqual(app.coop_auth_text.cget('text'), 'Signed in as Kaniel')
+        self.assertEqual(app.coop_auth_fields['password'].get(), '', 'the field is emptied once sent')
         self.assertEqual(app.coop_next.state, 'normal')
-        self.assertEqual(bbport_coop.player_id_for(bbport_coop.played_settings(app.coop), 'https://play.example.com'),
-                         ('d0123456789abcd', secret))
-        self.assertEqual(self.saved[-1]['discord_name'], 'Ada')
+        self.assertEqual(self.saved[-1]['global_name'], 'Kaniel')
+        for saved in self.saved:
+            self.assertNotIn(self.PASSWORD, json.dumps(saved), 'never saved')
         app.coop_vars['game'].set(str(self.game))
         self.settle(0.5)
         app.coop_next.invoke()
         self.settle()
         self.assertFalse(app.coop_host_cell.winfo_ismapped(), 'no host address on Global')
-        self.assertNotIn("the host's IP", app.coop_missing.cget('text'))
         app.coop_back.invoke()
         self.settle()
-        app.coop_discord_pressed()  # Sign out
-        self.settle(0.5)
-        self.assertEqual(app.coop_next.state, 'disabled')
-        self.assertEqual(app.coop['discord_name'], '')
-
-    def test_a_failed_sign_in_says_why(self):
-        self.global_server()
-        failing = mock.patch.object(launcher.bbport_discord, 'sign_in',
-                                    side_effect=launcher.bbport_discord.SignInError('The server refused the sign-in: try again.'))
-        with failing:
-            self.app.coop_discord_pressed()
+        with mock.patch.object(launcher.bbport_auth, 'sign_out') as sign_out:
+            app.coop_auth_pressed()  # Sign out
             self.settle(0.5)
-        self.assertIn('refused', self.app.coop_discord_error.cget('text'))
-        self.assertEqual(self.app.coop_next.state, 'disabled')
+        self.assertEqual(sign_out.call_args[0][1], 'u0123456789abcd')
+        self.assertEqual(app.coop_auth_view, 'sign_in')
+        self.assertEqual(app.coop_next.state, 'disabled')
+        self.assertEqual(app.coop['global_name'], '')
+
+    def test_a_new_account_shows_its_recovery_code_once(self):
+        app = self.app
+        self.global_server()
+        app.coop_auth_tab_create.invoke()
+        self.settle()
+        self.assertEqual(app.coop_auth_view, 'create')
+        self.type_in(name='Kaniel', password='short')
+        self.settle(0.2)
+        self.assertEqual(app.coop_auth_strength.cget('text'), 'At least 10 characters')
+        self.type_in(password=self.PASSWORD)
+        self.settle(0.2)
+        self.assertEqual(app.coop_auth_strength.cget('text'), 'Strength: strong')
+        self.press('sign_up', self.account(recovery_code='ABCD-EFGH-JKMN-PQRS-TVWX'))
+        self.assertEqual(app.coop_auth_view, 'code')
+        self.assertEqual(app.coop_auth_code_text.cget('text'), 'ABCD-EFGH-JKMN-PQRS-TVWX')
+        self.assertEqual(app.coop_auth_action.state, 'disabled', 'not before "I saved it"')
+        for saved in self.saved:
+            self.assertNotIn('ABCD-EFGH', json.dumps(saved), 'the code is never kept')
+        with mock.patch.object(app.root, 'clipboard_append') as copied:
+            app.coop_auth_other.invoke()
+        copied.assert_called_once_with('ABCD-EFGH-JKMN-PQRS-TVWX')
+        app.coop_auth_saved.set(True)
+        self.settle(0.2)
+        self.assertEqual(app.coop_auth_action.state, 'normal')
+        app.coop_auth_pressed()
+        self.settle()
+        self.assertEqual(app.coop_auth_view, 'signed_in')
+        self.assertEqual(app.coop_auth_code, '', 'forgotten once saved')
+
+    def test_a_refusal_says_why_and_keeps_the_name(self):
+        app = self.app
+        self.global_server()
+        self.type_in(name='Kaniel', password='not the password')
+        self.press('sign_in', error=launcher.bbport_auth.AuthError(launcher.bbport_auth.WAIT_TEXT, 8))
+        self.assertEqual(app.coop_auth_error.cget('text'), 'Too many wrong tries: wait 8 s and try again.')
+        self.assertEqual(app.coop_auth_fields['name'].get(), 'Kaniel')
+        self.assertEqual(app.coop_auth_fields['password'].get(), '')
+        self.assertEqual(app.coop_next.state, 'disabled')
+
+    def test_forgot_password_and_change_password(self):
+        app = self.app
+        self.global_server()
+        app.coop_auth_other.invoke()  # Forgot password?
+        self.settle()
+        self.assertEqual(app.coop_auth_view, 'forgot')
+        self.type_in(name='Kaniel', code='abcd efgh', new_password='a new and better password')
+        call = self.press('recover', self.account(recovery_code='ZZZZ-EFGH-JKMN-PQRS-TVWX'))
+        self.assertEqual(call.call_args[0][1:], ('Kaniel', 'abcd efgh', 'a new and better password'))
+        self.assertEqual(app.coop_auth_view, 'code', 'the new code, once')
+        app.coop_auth_saved.set(True)
+        app.coop_auth_pressed()
+        self.settle()
+        app.coop_auth_other.invoke()  # Change password
+        self.settle()
+        self.assertEqual(app.coop_auth_view, 'change')
+        self.type_in(password='a new and better password', new_password='the third password here')
+        call = self.press('change_password', self.account())
+        self.assertEqual(call.call_args[0][1:], ('Kaniel', 'a new and better password', 'the third password here'))
+        self.assertEqual(app.coop_auth_view, 'signed_in')
 
     def test_the_public_server_not_open_yet(self):
         with mock.patch.object(bbport_coop, 'GLOBAL_SERVER', ''):
             self.app.coop_vars['server_type'].set('global')
             self.settle(0.5)
-            self.app.coop_discord_refresh()
-        self.assertIn('not open yet', self.app.coop_discord_text.cget('text'))
+            self.app.coop_auth_show()
+        self.assertIn('not open yet', self.app.coop_auth_text.cget('text'))
 
     def test_the_upnp_button_asks_the_router_and_shows_the_answer(self):
         """Kaniel 2026-10-21 asked for a UPnP button in the help; Stop server closes what it opened."""

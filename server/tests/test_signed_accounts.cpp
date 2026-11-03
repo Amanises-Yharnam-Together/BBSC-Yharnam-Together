@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: Copyright 2026 shadNet Project
 // SPDX-License-Identifier: GPL-2.0-or-later
-// One Discord user, one account, on every shard and PC; what a hello can tell
-// (discord_accounts.h).
+// A Global server's signed secret, told on every shard of a region with no
+// store shared between them; what a hello can tell (signed_accounts.h).
 #include <array>
 #include <iostream>
 
-#include "discord_accounts.h"
+#include "signed_accounts.h"
 
 #define CHECK(condition)                                                       \
   if (!(condition)) {                                                          \
@@ -13,7 +13,12 @@
     return 1;                                                                  \
   }
 
-using namespace DiscordAccounts;
+using namespace SignedAccounts;
+
+QString OnlineId(const QByteArray &key, const QString &name, int salt = 0) {
+  return IdOf('u', key,
+              "name|" + name.toUtf8() + "|" + QByteArray::number(salt));
+}
 
 namespace {
 
@@ -21,19 +26,18 @@ const std::array<quint8, 32> LinkSecret{1, 2, 3};
 const std::array<quint8, 32> OtherSecret{9, 9, 9};
 constexpr qint64 Now = 1'800'000'000;
 
-int OneUserIsOneAccount() {
+int OneNameIsOneAccount() {
   const QByteArray key = KeyFrom(LinkSecret);
   CHECK(key ==
         KeyFrom(LinkSecret)); // every shard of a region holds this link key
   CHECK(key != KeyFrom(OtherSecret));
-  const QString id = OnlineId(key, "80351110224678912");
-  CHECK(id == OnlineId(key, "80351110224678912"));
-  CHECK(id != OnlineId(key, "80351110224678913"));
-  CHECK(id != OnlineId(key, "80351110224678912",
-                       1)); // the next try for a free address
-  CHECK(id != OnlineId(KeyFrom(OtherSecret), "80351110224678912"));
+  const QString id = OnlineId(key, "kaniel");
+  CHECK(id == OnlineId(key, "kaniel"));
+  CHECK(id != OnlineId(key, "kanie1"));
+  CHECK(id != OnlineId(key, "kaniel", 1)); // the next try for a free address
+  CHECK(id != OnlineId(KeyFrom(OtherSecret), "kaniel"));
   // As the launcher's own ids: a valid name, a valid secret.
-  CHECK(id.size() == 15 && id.startsWith('d'));
+  CHECK(id.size() == 15 && id.startsWith('u'));
   const QString secret = Secret(key, id, Now);
   CHECK(secret.size() == 32);
   CHECK(secret == Secret(key, id, Now));
@@ -95,18 +99,6 @@ int ASignOutKillsTheOlderOnes() {
   return 0;
 }
 
-int TheRedirectIsOurs() {
-  const QStringList ports{"47231", "47232"};
-  CHECK(ValidRedirect("http://127.0.0.1:47231/discord", ports));
-  CHECK(ValidRedirect("http://127.0.0.1:47232/discord", ports));
-  CHECK(!ValidRedirect("http://127.0.0.1:47233/discord", ports));
-  CHECK(!ValidRedirect("http://127.0.0.1:47231/other", ports));
-  CHECK(!ValidRedirect("http://evil.example.com:47231/discord", ports));
-  CHECK(!ValidRedirect("https://127.0.0.1:47231/discord", ports));
-  CHECK(!ValidRedirect("http://127.0.0.1:47231/discord?x=1", ports));
-  return 0;
-}
-
 int TheAddressIsTheConnections() {
   CHECK(ClientAddress("203.0.113.7", "", false) == "203.0.113.7");
   // Not behind our proxy: a header anyone can send is ignored.
@@ -123,14 +115,13 @@ int TheAddressIsTheConnections() {
 
 int main() {
   int failed = 0;
-  failed |= OneUserIsOneAccount();
+  failed |= OneNameIsOneAccount();
   failed |= AHelloIsTold();
   failed |= ASecretHolds30Days();
   failed |= ASignOutKillsTheOlderOnes();
-  failed |= TheRedirectIsOurs();
   failed |= TheAddressIsTheConnections();
   if (failed == 0) {
-    std::cout << "discord accounts: all checks passed\n";
+    std::cout << "signed accounts: all checks passed\n";
   }
   return failed;
 }

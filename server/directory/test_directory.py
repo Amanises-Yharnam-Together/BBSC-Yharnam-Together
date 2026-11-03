@@ -124,6 +124,27 @@ class DirectoryTests(unittest.TestCase):
         with self.assertRaises(d.Refused):
             self.directory.invite(dict(invite, team='t1'))
 
+    def test_a_sign_out_reaches_every_shard(self):
+        self.directory.heartbeat(beat('a', 1))
+        self.directory.heartbeat(beat('b', 2))
+        killed = dict(beat('a', 1), revoked=[{'id': 'u0123456789abcd', 'at': 1001},
+                                             {'id': 'p0123456789abcd', 'at': 1001},
+                                             {'id': 'not an id', 'at': 1}])
+        own = self.directory.heartbeat(killed)['revocations']
+        self.assertEqual([r['id'] for r in own], ['u0123456789abcd'])  # only signed ids
+        heard = self.directory.heartbeat(dict(beat('b', 2), revoked_after=0))['revocations']
+        self.assertEqual(heard, [{'seq': 1, 'id': 'u0123456789abcd', 'at': 1001}])
+        # Once: the next beat says where it is.
+        self.assertEqual(self.directory.heartbeat(dict(beat('b', 2), revoked_after=1))['revocations'], [])
+        self.directory.heartbeat(dict(beat('b', 2), revoked=[{'id': 'd0123456789abcd', 'at': 1002}],
+                                      revoked_after=1))
+        later = self.directory.heartbeat(dict(beat('a', 1), revoked_after=1))['revocations']
+        self.assertEqual(later, [{'seq': 2, 'id': 'd0123456789abcd', 'at': 1002}])
+        # A new shard hears all of them still alive.
+        self.assertEqual(len(self.directory.heartbeat(beat('c', 3))['revocations']), 2)
+        self.clock.at += d.REVOKED_S + 10
+        self.assertEqual(self.directory.heartbeat(beat('c', 3))['revocations'], [])
+
     def test_a_bad_heartbeat_is_refused(self):
         for bad in (dict(beat('eu-1', 1), shard='a b'), dict(beat('eu-1', 1), address='nowhere'),
                     dict(beat('eu-1', 1), key='12'), dict(beat('eu-1', 1), address='10.0.0.1:0')):
