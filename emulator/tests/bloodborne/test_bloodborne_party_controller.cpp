@@ -3704,3 +3704,48 @@ TEST(BloodbornePartyDeathBanner, ShowsFromGoingDownForTheBannersLength) {
     EXPECT_LE(DownedBannerShowMs, 125 * 1000 / 30);
     EXPECT_GE(DownedBannerShowMs, 120 * 1000 / 30);
 }
+
+// Kaniel 2026-11-03: Lisara's game dropped out of the room and joined again within a second. The
+// member count never stayed down for MemberDepartures, nothing re-created her, and the host saw
+// her old body hidden until both went to another place. A member's leave (the game's own
+// handler) and the members back to as many within RejoinWindowMs is a rejoin: re-create once the
+// count held RejoinSettleMs.
+TEST(BloodbornePartyController, ReCreatesAfterAQuickRejoin) {
+    RecreateAfterRejoin rejoin;
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 0));
+    EXPECT_FALSE(rejoin.Tick(true, 2, true, 1000)) << "the leave, the count not down yet";
+    EXPECT_FALSE(rejoin.Tick(true, 1, false, 1100));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 1400)) << "back: waits for the join to settle";
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 1400 + RecreateAfterRejoin::RejoinSettleMs - 1));
+    EXPECT_TRUE(rejoin.Tick(true, 2, false, 1400 + RecreateAfterRejoin::RejoinSettleMs));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 9000)) << "once";
+}
+
+TEST(BloodbornePartyController, ReCreatesAfterARejoinTheCountNeverShowed) {
+    RecreateAfterRejoin rejoin;
+    rejoin.Tick(true, 2, false, 0);
+    EXPECT_FALSE(rejoin.Tick(true, 2, true, 1000));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 1000 + RecreateAfterRejoin::RejoinSettleMs - 1));
+    EXPECT_TRUE(rejoin.Tick(true, 2, false, 1000 + RecreateAfterRejoin::RejoinSettleMs));
+}
+
+TEST(BloodbornePartyController, NoReCreateForALeaveThatStays) {
+    RecreateAfterRejoin rejoin;
+    rejoin.Tick(true, 2, false, 0);
+    rejoin.Tick(true, 2, true, 1000);
+    for (s64 at = 1100; at < 1000 + RecreateAfterRejoin::RejoinWindowMs + 5000; at += 500) {
+        EXPECT_FALSE(rejoin.Tick(true, 1, false, at));
+    }
+    // Someone joining much later is the game's own join.
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 30000));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 30000 + RecreateAfterRejoin::RejoinSettleMs));
+}
+
+TEST(BloodbornePartyController, NoReCreateOutOfTheSession) {
+    RecreateAfterRejoin rejoin;
+    rejoin.Tick(true, 2, false, 0);
+    rejoin.Tick(true, 2, true, 1000);
+    EXPECT_FALSE(rejoin.Tick(false, 0, false, 1100));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 1200));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 1200 + RecreateAfterRejoin::RejoinSettleMs));
+}

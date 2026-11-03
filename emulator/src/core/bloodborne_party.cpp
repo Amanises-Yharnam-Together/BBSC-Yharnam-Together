@@ -2025,6 +2025,43 @@ size_t MemberDepartures::Tick(bool in_session, bool steady, size_t others, s64 n
     return left;
 }
 
+bool RecreateAfterRejoin::Tick(bool in_session, size_t others, bool left, s64 now_ms) {
+    if (!in_session) {
+        known = 0;
+        left_ms.reset();
+        back_since.reset();
+        return false;
+    }
+    if (left && !left_ms) {
+        left_ms = now_ms;
+        before = std::max(known, others);
+        back_since.reset();
+    }
+    if (!left_ms) {
+        known = others;
+        return false;
+    }
+    if (!back_since && now_ms - *left_ms > RejoinWindowMs) {
+        left_ms.reset(); // gone for good: MemberDepartures' leave, a later join the game's own
+        known = others;
+        return false;
+    }
+    if (before == 0 || others < before) {
+        back_since.reset();
+        return false;
+    }
+    if (!back_since) {
+        back_since = now_ms;
+    }
+    if (now_ms - *back_since < RejoinSettleMs) {
+        return false;
+    }
+    left_ms.reset();
+    back_since.reset();
+    known = others;
+    return true;
+}
+
 void LifecycleResets::Register(std::string name, std::initializer_list<Lifecycle> events,
                                std::function<void()> reset) {
     u32 bits = 0;
