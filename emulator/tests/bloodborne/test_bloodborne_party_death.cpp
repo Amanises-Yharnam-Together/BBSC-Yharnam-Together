@@ -1603,8 +1603,29 @@ TEST(BloodbornePartyDeath, EnemiesForgetADownedPlayersTargetNode) {
     EXPECT_TRUE(ForgetsTargetNode(0x01, 1, 0x10068001, downed));
     EXPECT_FALSE(ForgetsTargetNode(0x81, 1, 0x10068002, downed)) << "another target";
     EXPECT_FALSE(ForgetsTargetNode(0x83, 1, 0x10068000, downed)) << "a last-known place";
+    // Rig owner-crash-fight node probe 2026-11-03: its memory of the character (slot 7, about
+    // 20 s) went on drawing the enemy to the crashed host's spot.
+    EXPECT_TRUE(ForgetsTargetNode(0x87, 1, 0x10068000, downed)) << "its memory of the player";
+    EXPECT_TRUE(ForgetsTargetNode(0x07, 1, 0x10068001, downed));
+    EXPECT_FALSE(ForgetsTargetNode(0x87, 1, 0x10068002, downed)) << "a memory of another";
+    EXPECT_FALSE(ForgetsTargetNode(0x87, 1, 0x10068000, {})) << "revived: its senses pick it up";
     EXPECT_FALSE(ForgetsTargetNode(0x81, 0, 0x10068000, downed)) << "not a character";
     EXPECT_FALSE(ForgetsTargetNode(0x81, 1, 0x10068000, {}));
+}
+
+// Rig owner-crash-fight node probe 2026-11-03: the enemy held only a memory of the crashed host's
+// copy (slot 7 on 0x10044001) and no current target: no fight with a live player.
+TEST(BloodbornePartyDeath, OnlyALivePlayerHeldOrRememberedIsAFight) {
+    const std::vector<u32> live{0x10044000};
+    const std::vector<TargetNodeView> on_the_gone{{0x87, 1, 0x10044001}, {0x8b, 2, 0xffffffff}};
+    EXPECT_FALSE(HoldsLiveTarget(on_the_gone, live)) << "a crashed copy's memory";
+    const std::vector<TargetNodeView> current{{0x81, 1, 0x10044000}};
+    EXPECT_TRUE(HoldsLiveTarget(current, live));
+    const std::vector<TargetNodeView> memory{{0x87, 1, 0x10044000}};
+    EXPECT_TRUE(HoldsLiveTarget(memory, live)) << "it remembers the player";
+    const std::vector<TargetNodeView> place{{0x83, 1, 0x10044000}, {0x81, 0, 0x10044000}};
+    EXPECT_FALSE(HoldsLiveTarget(place, live)) << "a place, not a character";
+    EXPECT_FALSE(HoldsLiveTarget({}, live));
 }
 
 // Kaniel's play test 2026-10-19: the Blood-starved Beast never went for Lisara. Each other player

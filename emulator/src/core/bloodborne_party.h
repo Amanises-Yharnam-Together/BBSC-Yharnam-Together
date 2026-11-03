@@ -4409,7 +4409,21 @@ private:
 // of swings at the downed player. A node of a live character target (+0x02: slot type 1, bit 7
 // alive; +0x28 kind 1) on a downed player's handle (+0x50) gets ForgottenTargetTimer, and the
 // game's own update drops it the next frame (0x012A6AD0). Enemies after anyone else are left be.
+// Rig owner-crash-fight node probe 2026-11-03: the enemy also keeps a memory of the character
+// (slot type 7, kind 1, +0x2C counting down from about 20 s): forgotten too, or it goes on for
+// the crashed host's spot. A last-known place (slot type 3) stays.
 bool ForgetsTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> downed);
+constexpr u8 TargetSlotCurrent = 1;
+constexpr u8 TargetSlotMemory = 7;
+// A node of an enemy's targeting system as read (see ForgetsTargetNode).
+struct TargetNodeView {
+    u8 slot = 0;
+    s32 kind = 0;
+    u32 handle = 0;
+};
+// Whether the enemy holds or remembers one of the `live` characters (their handles) as its target:
+// a target on a crashed member's leftover copy is no fight (see GiveFightOn).
+bool HoldsLiveTarget(std::span<const TargetNodeView> nodes, std::span<const u32> live);
 constexpr float ForgottenTargetTimer = 1.0e-4f;
 // Kaniel's play test 2026-10-19: the Blood-starved Beast never went for Lisara. What the enemies'
 // AI reads to take a character as a target: every ~5 s 0x012A43B0 lists WorldChrMan's players

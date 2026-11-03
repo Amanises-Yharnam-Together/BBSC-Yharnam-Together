@@ -2933,13 +2933,27 @@ void LogEnemyTargets() {
             return;
         }
         std::vector<u32> targets;
+        std::string memories;
         u64 node = ReadValue<u64>(targeting, 0x18);
         for (int count = 0;
              count < 64 && node >= 0x10000 && HasMemoryAccess(node, 0x54, MemoryProt::CpuRead);
              ++count, node = ReadValue<u64>(node, 0x08)) {
-            if ((ReadValue<u8>(node, 0x02) & 0x7F) == 1 && ReadValue<s32>(node, 0x28) == 1) {
-                targets.push_back(ReadValue<u32>(node, 0x50));
+            const u8 slot = ReadValue<u8>(node, 0x02) & 0x7F;
+            if (ReadValue<s32>(node, 0x28) != 1) {
+                continue;
             }
+            if (slot == TargetSlotCurrent) {
+                targets.push_back(ReadValue<u32>(node, 0x50));
+            } else if (slot == TargetSlotMemory) {
+                // No timer here: it counts down every frame, and the line is logged on a change.
+                memories += fmt::format(" {:#x}", ReadValue<u32>(node, 0x50));
+            }
+        }
+        // Its memories of characters in a bracket of their own ("[enemy X memory: ...]"): the
+        // current targets' line stays as the rig reads it.
+        if (!memories.empty()) {
+            enemies.emplace_back(distance, fmt::format(" [enemy {:#x} memory:{}]",
+                                                       ReadValue<u32>(character, 0x08), memories));
         }
         if (targets.empty()) {
             return;

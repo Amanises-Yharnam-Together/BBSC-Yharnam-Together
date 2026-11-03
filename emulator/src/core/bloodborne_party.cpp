@@ -6869,8 +6869,18 @@ DownEnd EndOfDown(bool wiped, bool gave_up, bool revived, s64 board_age_ms, bool
     return board_age_ms >= BoardLostMs ? DownEnd::BoardLost : DownEnd::None;
 }
 
+bool HoldsLiveTarget(std::span<const TargetNodeView> nodes, std::span<const u32> live) {
+    return std::ranges::any_of(nodes, [&](const TargetNodeView& node) {
+        const u8 slot = node.slot & 0x7F;
+        return (slot == TargetSlotCurrent || slot == TargetSlotMemory) && node.kind == 1 &&
+               std::ranges::find(live, node.handle) != live.end();
+    });
+}
+
 bool ForgetsTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> downed) {
-    return (slot & 0x7F) == 1 && kind == 1 && std::ranges::find(downed, handle) != downed.end();
+    const u8 type = slot & 0x7F;
+    return (type == TargetSlotCurrent || type == TargetSlotMemory) && kind == 1 &&
+           std::ranges::find(downed, handle) != downed.end();
 }
 
 std::string TargetCandidateBlock(const TargetCandidate& candidate) {

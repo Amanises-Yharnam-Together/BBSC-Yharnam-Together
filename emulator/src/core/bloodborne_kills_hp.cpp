@@ -1362,17 +1362,36 @@ u64 EnemyTargeting(u64 character) {
                : 0;
 }
 
-// Whether it holds a live character target (as LogEnemyTargets counts them).
-bool HasCharacterTarget(u64 targeting) {
+// Its target nodes (see ForgetsTargetNode).
+std::vector<TargetNodeView> TargetNodesOf(u64 targeting) {
+    std::vector<TargetNodeView> nodes;
     u64 node = ReadValue<u64>(targeting, 0x18);
     for (int count = 0;
          count < 64 && node >= 0x10000 && HasMemoryAccess(node, 0x54, MemoryProt::CpuRead);
          ++count, node = ReadValue<u64>(node, 0x08)) {
-        if ((ReadValue<u8>(node, 0x02) & 0x7F) == 1 && ReadValue<s32>(node, 0x28) == 1) {
-            return true;
+        nodes.push_back(
+            {ReadValue<u8>(node, 0x02), ReadValue<s32>(node, 0x28), ReadValue<u32>(node, 0x50)});
+    }
+    return nodes;
+}
+
+// The players here a fight can be with: this one and the others shown, alive.
+std::vector<u32> LivePlayerHandles() {
+    std::vector<u32> handles;
+    if (const u64 local = GetLocalPlayer(); local >= 0x10000 && CharacterHp(local) > 0) {
+        handles.push_back(ReadValue<u32>(local, 0x08));
+    }
+    for (const OtherPlayer& other : OtherPlayers()) {
+        if (other.hp > 0 && !IsCharacterDisabled(other.character)) {
+            handles.push_back(ReadValue<u32>(other.character, 0x08));
         }
     }
-    return false;
+    return handles;
+}
+
+// Whether it holds or remembers a live player here (a crashed member's copy is none).
+bool HasCharacterTarget(u64 targeting) {
+    return HoldsLiveTarget(TargetNodesOf(targeting), LivePlayerHandles());
 }
 
 // The player an enemy this game runs may be given: this game's own. Another member's copy can be
@@ -1400,6 +1419,24 @@ bool GiveFightOn(u64 character, const std::array<float, 3>& at) {
     const auto [spots, characters] = PlayersToFight();
     const auto pick = NearestStandingPlayer(at, spots);
     if (!pick) {
+        // Rig owner-crash-fight node probe 2026-11-03: once "0 of its 1 fights" with no player
+        // picked; why is logged (a boss in its fight asks every second: the first few).
+        static u32 logged = 0;
+        if (++logged > 20) {
+            return false;
+        }
+        LOG_INFO(Debug,
+                 "Bloodborne party: enemy {:x} gets no fight here: this player {} ({:.1f} m from "
+                 "({:.1f}, {:.1f}, {:.1f}))",
+                 ReadValue<u32>(character, 0x08),
+                 spots.empty()             ? "has no place"
+                 : !spots.front().standing ? "is not standing"
+                                           : "is out of range",
+                 spots.empty()
+                     ? 0.0f
+                     : std::hypot(spots.front().at[0] - at[0], spots.front().at[1] - at[1],
+                                  spots.front().at[2] - at[2]),
+                 at[0], at[1], at[2]);
         return false;
     }
     using AddTarget = bool PS4_SYSV_ABI (*)(u64 list, u32 id, u64 target, u32 type, u64 owner);
