@@ -985,6 +985,21 @@ class RunnerTest(unittest.TestCase):
         self.assertTrue(problems(on_self), "never down")
         self.assertTrue(problems(down), "no targets logged before the down")
         self.assertTrue(problems(down, on_self), "targets only after the down")
+        # Rig party-death 2026-11-03 (owner-gap build): the enemy came to the guest's game just
+        # before the down, its targets were logged after it: the forget on the guest's own player
+        # and its memory of it right after are its down by that enemy.
+        forgot = ("[Debug] <Info> () x: Bloodborne party death: enemies forgot 1 target(s) on "
+                  "downed players (self down=true, others down=0)")
+        remembers = targets.format("[enemy 0x1001400b memory: 0x10044000]")
+        none = targets.format("")
+        self.assertFalse(problems(on_host, none, down, forgot, remembers, none),
+                         "forgotten at the down, remembered after")
+        self.assertTrue(problems(on_host, none, down, remembers), "no forget at the down")
+        self.assertTrue(problems(on_host, none, down, forgot, none, remembers),
+                        "the first targets after the down hold nothing of it")
+        self.assertTrue(problems(on_host, none, down, forgot,
+                                 targets.format("[enemy 0x1001402e memory: 0x10044000]")),
+                        "another enemy's memory")
 
     def test_the_enemy_lets_go_of_the_host_that_stepped_away(self):
         # Rig party-death 2026-11-03: the host steps away from the fight it had; within the

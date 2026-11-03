@@ -356,6 +356,13 @@ def targets_self(line: str, handle: str) -> bool:
     return bool(own and current and own.group(1) in current.group(1).split())
 
 
+def holds_self(line: str, handle: str) -> bool:
+    """Whether [handle] has the line's own player as its current target or in its memory."""
+    own = re.search(r"\[player (0x[0-9a-f]+) ", line)
+    held = re.findall(rf"\[enemy {re.escape(handle)}(?: memory)?: ([^\]]*)\]", line)
+    return bool(own and any(own.group(1) in nodes.split() for nodes in held))
+
+
 def judge(spec: dict, texts: dict[str, str]) -> list[str]:
     """What is wrong in the roles' logs by a scenario's (or a suite chapter's) checks: failed
     steps, expected lines missing, forbidden lines seen, the shared enemy's HP and hits, and the
@@ -435,13 +442,22 @@ def judge(spec: dict, texts: dict[str, str]) -> list[str]:
                             f"({last[0]:.1f}, {last[1]:.1f}, {last[2]:.1f}; at most {meters} m)")
     # "downed_by": at the role's down its log's last enemy targets before it have [handle]'s
     # current target on the role's own player (the first listed) (rig party-death 2026-11-03: the
-    # enemy held the godmode host the whole chapter and the guest never went down).
+    # enemy held the godmode host the whole chapter and the guest never went down). Or, the
+    # targets logged late (they come on a change), the down forgot a target on the role's own
+    # player and the first targets after it have [handle] holding it (owner-gap build: the enemy
+    # came to the guest's game just before the down).
     for role, handle in spec.get("downed_by", {}).items():
         text = texts.get(role, "")
         down = re.search(r"party death: down \d+ on map", text)
         lists = list(ENEMY_TARGETS.finditer(text[:down.start()] if down else ""))
+        after = text[down.end():] if down else ""
+        forgot = re.search(r"party death: enemies forgot [1-9]\d* target\(s\) on downed players "
+                           r"\(self down=true", after)
+        first_after = ENEMY_TARGETS.search(after[forgot.end():]) if forgot else None
         if not down:
             problems.append(f"{role}: not downed by {handle} (never down)")
+        elif first_after and holds_self(first_after.group(0), handle):
+            pass
         elif not lists:
             problems.append(f"{role}: not downed by {handle} (no targets logged before it)")
         elif not targets_self(lists[-1].group(0), handle):
