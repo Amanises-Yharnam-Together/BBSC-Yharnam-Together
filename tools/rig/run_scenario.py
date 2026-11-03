@@ -402,6 +402,23 @@ def judge(spec: dict, texts: dict[str, str]) -> list[str]:
                                    distances[-1] > distances[-2] - EnemyClosesM)):
             problems.append(f"{role}: {handle} did not come for it "
                             f"({' -> '.join(f'{d:.1f} m' for d in distances[-2:]) or 'no census'})")
+    # "alone_with": at the role's last census no other live hostile enemy (team 23) is within
+    # [meters] of its player, so its HP drop was [handle]'s doing (rig owner-crash-fight
+    # 2026-11-03: `wait-hp self` passes on any hit). The nearest other one is named either way.
+    for role, (handle, meters) in spec.get("alone_with", {}).items():
+        text = texts.get(role, "")
+        heads = [m.end() for m in re.finditer(r"autoplay census: map ", text)]
+        last = text[heads[-1]:] if heads else ""
+        last = last.split("autoplay census: map ")[0]
+        others = [(float(at), other) for other, hp, disabled, at, team in re.findall(
+            r"autoplay census: (0x[0-9a-f]+) hp (\d+)/\d+ dead \S+ hidden \d+ disabled (\d+) at "
+            r"([\d.]+) m \([^)]*\)[^\n]* team (\d+)", last)
+            if other != handle and int(hp) > 0 and disabled == "0" and team == "23"]
+        nearest = min(others) if others else None
+        if not heads or (nearest and nearest[0] < meters):
+            problems.append(f"{role}: another hostile enemy near the player at its hit "
+                            f"({'no census' if not heads else f'{nearest[1]} at {nearest[0]:.1f} m'}"
+                            f", within {meters:.0f} m)")
     # "position_rate": the role's game took [handle]'s position at least [per s] times a second
     # in some 10 s of its follower's log (Kaniel 2026-10-15: every enemy by a far guest lagged).
     for role, (handle, per_s) in spec.get("position_rate", {}).items():

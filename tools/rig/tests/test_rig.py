@@ -914,6 +914,29 @@ class RunnerTest(unittest.TestCase):
         self.assertTrue(problems(3.0), "one census")
         self.assertTrue(problems(), "none")
 
+    def test_a_hit_counts_only_with_no_other_hostile_enemy_near(self):
+        # Rig owner-crash-fight 2026-11-03: the guest's HP drop stands for the enemy's hit only
+        # while no other hostile enemy (team 23) is within 15 m at the census after it.
+        head = ("[Debug] <Info> () x: Bloodborne autoplay census: map 0x18010000, 3 characters "
+                "within 40 m of (-216.0, -54.5, 180.0)")
+        entry = ("[Debug] <Info> () x: Bloodborne autoplay census: {} hp {} dead 0x0 hidden 0 "
+                 "disabled {} at {} m (-210.0, -54.5, 180.0) backread 4/4 draw 0x0 team {} entity -1")
+        spec = {"alone_with": {"guest": ["0x1001400b", 15.0]}}
+
+        def problems(*others):
+            lines = [head, entry.format("0x1001400b", "198/484", 0, 2.0, 23)]
+            lines += [entry.format(*other) for other in others]
+            return [p for p in run_scenario.judge(spec, {"guest": "\n".join(lines)})
+                    if "near" in p]
+
+        self.assertFalse(problems(("0x10014057", "143/143", 0, 27.8, 23)), "far enough")
+        self.assertFalse(problems(("0x100140a0", "999/999", 0, 3.0, 26)), "an NPC")
+        self.assertFalse(problems(("0x10014054", "143/143", 1, 4.0, 23)), "disabled")
+        self.assertFalse(problems(("0x1001402e", "0/179", 0, 4.0, 23)), "dead")
+        found = problems(("0x1001402f", "179/179", 0, 9.5, 23))
+        self.assertTrue(found and "9.5 m" in found[0], found)
+        self.assertTrue([p for p in run_scenario.judge(spec, {"guest": ""}) if "near" in p])
+
     def test_a_player_that_stands_still_stays_put(self):
         # Kaniel 2026-10-15: one guest's backstab dragged the other guest to the enemy.
         census = ("[Debug] <Info> () x: Bloodborne autoplay census: map 0x18010000, 1 characters "
