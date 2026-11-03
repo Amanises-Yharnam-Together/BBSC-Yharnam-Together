@@ -758,10 +758,6 @@ constexpr u8 DownedNoDamageFlags = 0x2 | 0x8;
 constexpr u64 PlayerHideFlagOffset = 0x0553E88E;
 constexpr u64 PlayerSilenceFlagOffset = 0x0553E88F;
 
-// The enemies' targeting systems (see ForgetsTargetNode): the enemy one's vtable and its base's.
-constexpr u64 EnemyTargetingVtableOffset = 0x0531B9F0;
-constexpr u64 BaseTargetingVtableOffset = 0x05366280;
-
 // Every enemy in this world forgets the characters with these handles (see ForgetsTargetNode);
 // returns how many target nodes it changed.
 u32 ForgetDownedTargets(std::span<const u32> handles) {
