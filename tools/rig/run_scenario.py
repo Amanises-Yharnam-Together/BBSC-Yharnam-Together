@@ -454,9 +454,13 @@ def judge(spec: dict, texts: dict[str, str]) -> list[str]:
         forgot = re.search(r"party death: enemies forgot [1-9]\d* target\(s\) on downed players "
                            r"\(self down=true", after)
         first_after = ENEMY_TARGETS.search(after[forgot.end():]) if forgot else None
+        # The down's forget names its enemies (in the game that ran the enemy, either one).
+        named = any(handle in by.split() for log in texts.values() for by in re.findall(
+            r"enemies forgot \d+ target\(s\) on downed players \([^)]*\) on [^\n]* by ([^\n]*)",
+            log))
         if not down:
             problems.append(f"{role}: not downed by {handle} (never down)")
-        elif first_after and holds_self(first_after.group(0), handle):
+        elif named or (first_after and holds_self(first_after.group(0), handle)):
             pass
         elif not lists:
             problems.append(f"{role}: not downed by {handle} (no targets logged before it)")

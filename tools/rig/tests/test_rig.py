@@ -1000,6 +1000,28 @@ class RunnerTest(unittest.TestCase):
         self.assertTrue(problems(on_host, none, down, forgot,
                                  targets.format("[enemy 0x1001402e memory: 0x10044000]")),
                         "another enemy's memory")
+        # Rig down-by-enemy 2026-11-03: the host ran the enemy and the hit came within a second
+        # of its hand-over; the down's forget names the enemies (current-target build on).
+        named = ("[Debug] <Info> () x: Bloodborne party death: enemies forgot 1 target(s) on "
+                 "downed players (self down={}, others down={}) on {} by {}")
+
+        def problems_of(texts):
+            return [p for p in run_scenario.judge(spec, texts) if "downed by" in p]
+
+        self.assertFalse(problems_of({"guest": "\n".join([on_host, down]),
+                                      "host": named.format("false", 1, "0x10044001",
+                                                           "0x1001400b")}),
+                         "the host's forget names it")
+        self.assertFalse(problems_of({"guest": "\n".join([down, named.format(
+            "true", 0, "0x10044000", "0x1001402e 0x1001400b")])}), "its own forget names it")
+        self.assertTrue(problems_of({"guest": "\n".join([on_host, down]),
+                                     "host": named.format("false", 1, "0x10044001",
+                                                          "0x1001402e")}),
+                        "another enemy named")
+        self.assertTrue(problems_of({"guest": "\n".join([on_host]),
+                                     "host": named.format("false", 1, "0x10044001",
+                                                          "0x1001400b")}),
+                        "the guest never down")
 
     def test_the_enemy_lets_go_of_the_host_that_stepped_away(self):
         # Rig party-death 2026-11-03: the host steps away from the fight it had; within the
