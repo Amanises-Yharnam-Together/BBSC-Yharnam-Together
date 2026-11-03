@@ -1626,13 +1626,15 @@ TEST(BloodbornePartyDeath, OnlyALivePlayerHeldOrRememberedIsAFight) {
     EXPECT_FALSE(HoldsLiveTarget({}, live));
 }
 
-// Rig owner-crash-fight node probe 2026-11-03: a gone member's copy is forgotten with the enemy's
-// memory of it (slot 7, about 20 s), which went on drawing the enemy to the crashed host's spot.
-TEST(BloodbornePartyDeath, AGoneMembersCopyIsForgottenWithTheMemoryOfIt) {
+// Rig owner-crash-fight node probe 2026-11-03: a gone member's copy is forgotten as a target.
+TEST(BloodbornePartyDeath, AGoneMembersCopyIsForgottenAsATargetItsMemoryStays) {
     const std::vector<u32> gone{0x10044001};
     EXPECT_TRUE(ForgetsGoneTargetNode(0x81, 1, 0x10044001, gone)) << "its current target";
-    EXPECT_TRUE(ForgetsGoneTargetNode(0x87, 1, 0x10044001, gone)) << "its memory";
-    EXPECT_TRUE(ForgetsGoneTargetNode(0x07, 1, 0x10044001, gone));
+    // Rig down-by-enemy 2026-11-03: its memory stays (the guest's restarted game's new copy has
+    // the same handle); a memory of a gone copy is no fight (HoldsLiveTarget).
+    EXPECT_FALSE(ForgetsGoneTargetNode(0x87, 1, 0x10044001, gone)) << "its memory stays";
+    EXPECT_FALSE(ForgetsGoneTargetNode(0x07, 1, 0x10044001, gone));
+    EXPECT_TRUE(ForgetsGoneTargetNode(0x01, 1, 0x10044001, gone));
     EXPECT_FALSE(ForgetsGoneTargetNode(0x83, 1, 0x10044001, gone)) << "a last-known place";
     EXPECT_FALSE(ForgetsGoneTargetNode(0x87, 1, 0x10044000, gone)) << "the guest's memory";
     EXPECT_FALSE(ForgetsGoneTargetNode(0x87, 0, 0x10044001, gone)) << "not a character";

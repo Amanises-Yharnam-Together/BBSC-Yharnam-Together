@@ -4413,9 +4413,11 @@ private:
 // guest at 1 HP beside it (rig down-by-enemy 2/4 against 2/2 without it, 2026-11-03).
 bool ForgetsTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> downed);
 // A gone member's copy (crashed or left, see ReconcileMemberPresence): its current target node
-// and the enemy's memory of it (slot type 7, kind 1, +0x2C counting down from about 20 s) go,
-// or the enemy goes on for the crashed host's spot (rig owner-crash-fight node probe
-// 2026-11-03). A last-known place (slot type 3) stays.
+// goes; the enemy's memory of it (slot type 7) stays, as a downed player's. Dropped, a guest
+// whose game restarted (its new copy has the old one's handle) was no longer taken by the enemy
+// fighting the host (rig down-by-enemy 2/5 on #506 against 2/2 without, 2026-11-03); the
+// take-over fight is the vouched-only live rule's and TakeoverFights' (a memory of a gone copy
+// is no fight).
 bool ForgetsGoneTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> gone);
 constexpr u8 TargetSlotCurrent = 1;
 constexpr u8 TargetSlotMemory = 7;

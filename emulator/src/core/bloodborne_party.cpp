@@ -6907,9 +6907,7 @@ std::vector<u32> TakeoverFights::Due(s64 now_ms) {
 }
 
 bool ForgetsGoneTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> gone) {
-    const u8 type = slot & 0x7F;
-    return (type == TargetSlotCurrent || type == TargetSlotMemory) && kind == 1 &&
-           std::ranges::find(gone, handle) != gone.end();
+    return ForgetsTargetNode(slot, kind, handle, gone);
 }
 
 bool ForgetsTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> downed) {
