@@ -368,6 +368,7 @@ message EnemyPlace {
     uint32 handle = 1;
     Position at = 2;
     float heading = 3;
+    bool fighting = 4; // the owner's game has a character target for it
 }
 message EnemyPlaces {
     uint32 map = 1;

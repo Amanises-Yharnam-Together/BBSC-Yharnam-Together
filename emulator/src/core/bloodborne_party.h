@@ -3061,10 +3061,15 @@ std::optional<s32> EnemyHitState(EnemyRole role, s32 state);
 // back to its spawn (the host's game never took the owner's places, ch 4). The owner sends the
 // places of its enemies that moved (bbcoop::EnemyPlaces, about once a second); a member that
 // takes the map over puts them there first.
+// Rig owner-crash-fight (Kaniel picked the fix 2026-11-03): an enemy fighting in the owner's
+// game came to the new owner without a target (a follower's hits go to the owner: its own AI
+// never had the fight) and stood idle; `fighting` carries the fight, and the new owner gives it
+// the nearest standing player.
 struct EnemyPlace {
     u32 handle = 0;
     std::array<float, 3> at{};
     float heading = 0.0f;
+    bool fighting = false;
     bool operator==(const EnemyPlace&) const = default;
 };
 constexpr float EnemyPlaceMovedMeters = 1.0f;
@@ -3072,9 +3077,28 @@ constexpr size_t EnemyPlacesMost = 64;
 constexpr s64 EnemyPlacesEveryMs = 1000;
 constexpr s64 EnemyPlacesFreshMs = 10'000;
 // The enemies of `now` more than EnemyPlaceMovedMeters from where the owner first saw them
-// (`first_seen`, by handle), the farthest moved first, at most EnemyPlacesMost.
+// (`first_seen`, by handle), and those fighting though they did not move; the farthest moved
+// first, at most EnemyPlacesMost.
 std::vector<EnemyPlace> MovedEnemyPlaces(std::span<const EnemyPlace> now,
                                          const std::map<u32, std::array<float, 3>>& first_seen);
+// A player an enemy may take as its target: where it stands, and whether it stands (not down).
+struct PlayerSpot {
+    std::array<float, 3> at{};
+    bool standing = false;
+};
+constexpr float EnemyTargetRangeMeters = 30.0f;
+// The standing player nearest `enemy` within EnemyTargetRangeMeters, if any.
+std::optional<size_t> NearestStandingPlayer(const std::array<float, 3>& enemy,
+                                            std::span<const PlayerSpot> players);
+// The game's own way an enemy's senses take a character as a target (0x012B2960, called by the
+// sight and sound paths 0x012ABDB0, 0x012AEA2E): (targeting + 0x10, 0, character, 0,
+// [targeting + 8]) adds or refreshes a character target node (slot 0x81; its target built by
+// 0x012A7260: kind 1, the handle at +0x50). targeting = [[[enemy +0x3B8] +0xB0] +0x560].
+constexpr u64 AddEnemyTargetOffset = 0x012B2960;
+constexpr u64 CharacterTargetInitOffset = 0x012A7260;
+// The enemies' targeting systems (see ForgetsTargetNode): the enemy one's vtable and its base's.
+constexpr u64 EnemyTargetingVtableOffset = 0x0531B9F0;
+constexpr u64 BaseTargetingVtableOffset = 0x05366280;
 // The owners' latest places, by map; a map's are only taken while fresh (EnemyPlacesFreshMs).
 class EnemyPlacesBook {
 public:

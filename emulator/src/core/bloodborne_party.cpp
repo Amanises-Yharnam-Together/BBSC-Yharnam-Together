@@ -4515,7 +4515,7 @@ std::vector<EnemyPlace> MovedEnemyPlaces(std::span<const EnemyPlace> now,
         const float dy = place.at[1] - seen->second[1];
         const float dz = place.at[2] - seen->second[2];
         const float far = dx * dx + dy * dy + dz * dz;
-        if (far > EnemyPlaceMovedMeters * EnemyPlaceMovedMeters) {
+        if (far > EnemyPlaceMovedMeters * EnemyPlaceMovedMeters || place.fighting) {
             moved.emplace_back(far, place);
         }
     }
@@ -4528,6 +4528,23 @@ std::vector<EnemyPlace> MovedEnemyPlaces(std::span<const EnemyPlace> now,
         out.push_back(place);
     }
     return out;
+}
+
+std::optional<size_t> NearestStandingPlayer(const std::array<float, 3>& enemy,
+                                            std::span<const PlayerSpot> players) {
+    std::optional<size_t> nearest;
+    float best = EnemyTargetRangeMeters * EnemyTargetRangeMeters;
+    for (size_t index = 0; index < players.size(); ++index) {
+        const float dx = players[index].at[0] - enemy[0];
+        const float dy = players[index].at[1] - enemy[1];
+        const float dz = players[index].at[2] - enemy[2];
+        const float far = dx * dx + dy * dy + dz * dz;
+        if (players[index].standing && far < best) {
+            best = far;
+            nearest = index;
+        }
+    }
+    return nearest;
 }
 
 void EnemyPlacesBook::Heard(u32 map, std::vector<EnemyPlace> places, s64 now_ms) {

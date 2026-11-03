@@ -624,7 +624,8 @@ void StreamTick(s64 now_ms) {
                             if (places.size() < EnemyPlacesMost) {
                                 places.push_back({place.handle(),
                                                   {place.at().x(), place.at().y(), place.at().z()},
-                                                  place.heading()});
+                                                  place.heading(),
+                                                  place.fighting()});
                             }
                         }
                         std::scoped_lock places_lock{enemy_places_mutex};
@@ -977,6 +978,7 @@ void SendEnemyPlaces(u32 map, std::span<const EnemyPlace> places) {
         out.mutable_at()->set_y(place.at[1]);
         out.mutable_at()->set_z(place.at[2]);
         out.set_heading(place.heading);
+        out.set_fighting(place.fighting);
     }
     Queue(std::move(envelope));
 }

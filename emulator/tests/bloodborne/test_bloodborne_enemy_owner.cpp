@@ -100,6 +100,31 @@ TEST(EnemyOwner, OnlyTheEnemiesThatMovedAreSentTheFarthestFirst) {
     EXPECT_EQ(capped.front().handle, EnemyPlacesMost + 9) << "the farthest";
 }
 
+// Rig owner-crash-fight: the enemy fighting beside the guest had not moved; sent all the same.
+TEST(EnemyOwner, AnEnemyInAFightIsSentThoughItDidNotMove) {
+    const std::map<u32, std::array<float, 3>> first{{0x2031, {1.0f, 0.0f, 1.0f}},
+                                                    {0x2032, {2.0f, 0.0f, 2.0f}}};
+    std::vector<EnemyPlace> now{{0x2031, {1.2f, 0.0f, 1.0f}, 0.0f},
+                                {0x2032, {2.0f, 0.0f, 2.3f}, 0.0f}};
+    now[1].fighting = true;
+    const std::vector<EnemyPlace> sent = MovedEnemyPlaces(now, first);
+    ASSERT_EQ(sent.size(), 1u) << "the idle one that did not move stays out";
+    EXPECT_EQ(sent[0], now[1]);
+}
+
+TEST(EnemyOwner, ATakenOverFightGoesOnAtTheNearestStandingPlayer) {
+    const std::array<float, 3> enemy{0.0f, 0.0f, 0.0f};
+    const std::vector<PlayerSpot> players{
+        {{40.0f, 0.0f, 0.0f}, true}, // out of range
+        {{2.0f, 0.0f, 0.0f}, false}, // down
+        {{0.0f, 0.0f, 10.0f}, true},
+        {{5.0f, 0.0f, 0.0f}, true},
+    };
+    EXPECT_EQ(NearestStandingPlayer(enemy, players), std::optional<size_t>{3});
+    EXPECT_EQ(NearestStandingPlayer(enemy, std::span{players}.first(2)), std::nullopt);
+    EXPECT_EQ(NearestStandingPlayer(enemy, {}), std::nullopt);
+}
+
 TEST(EnemyOwner, ATakeOverUsesOnlyFreshPlacesOfItsMap) {
     EnemyPlacesBook book;
     book.Heard(0x18000000, {{0x2021, {8.2f, -11.0f, 126.4f}, 0.5f}}, 1000);
