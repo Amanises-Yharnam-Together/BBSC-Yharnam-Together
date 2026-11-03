@@ -2067,6 +2067,19 @@ void TickPlayersOnThisMap() {
         }
         plan = PlanRecreate(names, board, self, map, recreated_since_trip);
     }
+    static UnnamedRecreateHold unnamed_hold;
+    const auto act = unnamed_hold.Tick(
+        std::ranges::any_of(plan.now, [&](size_t index) { return !names[index]; }),
+        SteadyMilliseconds());
+    if (act == UnnamedRecreateHold::Act::Wait) {
+        return; // its name may come next tick
+    }
+    if (act == UnnamedRecreateHold::Act::GoUnnamed) {
+        LOG_WARNING(Debug,
+                    "Bloodborne party trip: a member still has no name {} ms after the "
+                    "trip's re-create was due: re-created as unknown",
+                    UnnamedRecreateWaitMs);
+    }
     if (!plan.now.empty()) {
         std::vector<u64> now;
         std::string who;
