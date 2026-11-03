@@ -249,14 +249,17 @@ def make_handler(directory, token):
             call = routes.get(urlparse(self.path).path)
             if call is None:
                 return self.answer(404, {'error': 'no such call'})
-            said = self.headers.get('Authorization', '')
-            if not token or not hmac.compare_digest(said.encode(), f'Bearer {token}'.encode()):
-                return self.answer(401, {'error': 'token'})
             size = int(self.headers.get('Content-Length') or 0)
             if size > BODY_MAX:
                 return self.answer(413, {'error': 'too large'})
+            # Read the body before any answer: closing with unread data sends a reset,
+            # and the caller then loses the answer (WinError 10053 on Windows).
+            data = self.rfile.read(size)
+            said = self.headers.get('Authorization', '')
+            if not token or not hmac.compare_digest(said.encode(), f'Bearer {token}'.encode()):
+                return self.answer(401, {'error': 'token'})
             try:
-                body = json.loads(self.rfile.read(size) or b'{}')
+                body = json.loads(data or b'{}')
             except ValueError:
                 return self.answer(400, {'error': 'not JSON'})
             if not isinstance(body, dict):
