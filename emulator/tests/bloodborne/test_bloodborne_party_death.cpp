@@ -1628,6 +1628,34 @@ TEST(BloodbornePartyDeath, OnlyALivePlayerHeldOrRememberedIsAFight) {
     EXPECT_FALSE(HoldsLiveTarget({}, live));
 }
 
+// Rig owner-crash-fight 2026-11-03: the crashed host's copy, still shown in its grace, counted as
+// a live player at the take-over, and the enemy holding it got no fight with the guest.
+TEST(BloodbornePartyDeath, AGoneMembersCopyIsNoLivePlayerEvenInItsGrace) {
+    const std::vector<PlayerCopyView> others{
+        {0x10044001, 573, false, false}, // the crashed host's: shown, no member by it
+        {0x10044002, 500, false, true},  // another guest
+        {0x10044003, 500, true, true},   // hidden
+        {0x10044004, 0, false, true},    // dead
+    };
+    EXPECT_EQ(LivePlayerHandlesOf(0x10044000, others), (std::vector<u32>{0x10044002, 0x10044000}));
+    EXPECT_EQ(LivePlayerHandlesOf(std::nullopt, {}), std::vector<u32>{});
+}
+
+// Then its nodes went and the enemy held nothing: the take-over's fights are looked at again.
+TEST(BloodbornePartyDeath, TheTakeoversFightsAreLookedAtAgainForAWhile) {
+    TakeoverFights fights;
+    EXPECT_TRUE(fights.Due(0).empty()) << "no take-over yet";
+    fights.Start({0x1001400b, 0x1001402e}, 1000);
+    EXPECT_EQ(fights.Due(1000), (std::vector<u32>{0x1001400b, 0x1001402e}));
+    EXPECT_TRUE(fights.Due(1500).empty()) << "once a second";
+    EXPECT_EQ(fights.Due(2000).size(), 2u);
+    EXPECT_EQ(fights.Due(1000 + TakeoverFights::WindowMs - 1).size(), 2u);
+    EXPECT_TRUE(fights.Due(1000 + TakeoverFights::WindowMs).empty()) << "the window is over";
+    EXPECT_TRUE(fights.Due(1000 + TakeoverFights::WindowMs + 2000).empty());
+    fights.Start({0x10014057}, 60'000);
+    EXPECT_EQ(fights.Due(60'000), std::vector<u32>{0x10014057}) << "a new take-over";
+}
+
 // Kaniel's play test 2026-10-19: the Blood-starved Beast never went for Lisara. Each other player
 // here is checked against the rules the enemies' AI uses to take a character as a target
 // (0x012A43B0's candidate list, 0x012ADC50's filter), and the first one it fails is named.

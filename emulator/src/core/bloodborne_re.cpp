@@ -736,6 +736,15 @@ std::vector<OtherPlayer> OtherPlayers() {
 // Kaniel 2026-10-15: the other players' characters show by the server's map board alone
 // (ShownOtherPlayers): one whose member is not on this map is hidden (the game's disable: no
 // model, no collision) and shown again once a member stands there.
+std::mutex vouched_mutex;
+bool vouched_known = false;
+std::unordered_set<u64> vouched_characters;
+
+bool CopyVouchedFor(u64 character) {
+    std::scoped_lock lock{vouched_mutex};
+    return !vouched_known || vouched_characters.contains(character);
+}
+
 void ReconcileMemberPresence() {
     static std::unordered_map<u64, s64> unmatched_since;
     static std::unordered_set<u64> hidden;
@@ -805,6 +814,10 @@ void ReconcileMemberPresence() {
     }
     const u32 map = CurrentPlace().map;
     if (!InPartySession() || !fresh || map == 0) {
+        {
+            std::scoped_lock lock{vouched_mutex};
+            vouched_known = false; // every shown copy counts (CopyVouchedFor)
+        }
         SetInvaderHandles({});
         unmatched_since.clear();
         // Out of a session the hidden copies stay hidden (see ShowsHiddenCopies): the one of a
@@ -846,6 +859,16 @@ void ReconcileMemberPresence() {
     SetInvaderHandles(std::move(invaders));
     const std::vector<std::optional<size_t>> vouching =
         VouchingMembers(positions, board, self, map);
+    {
+        std::scoped_lock lock{vouched_mutex};
+        vouched_known = true;
+        vouched_characters.clear();
+        for (size_t i = 0; i < others.size(); ++i) {
+            if (vouching[i]) {
+                vouched_characters.insert(others[i].character);
+            }
+        }
+    }
     for (size_t i = 0; i < others.size(); ++i) {
         const u64 character = others[i].character;
         if (stale_hidden.contains(character)) {

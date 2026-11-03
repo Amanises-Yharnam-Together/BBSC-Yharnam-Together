@@ -4424,6 +4424,35 @@ struct TargetNodeView {
 // Whether the enemy holds or remembers one of the `live` characters (their handles) as its target:
 // a target on a crashed member's leftover copy is no fight (see GiveFightOn).
 bool HoldsLiveTarget(std::span<const TargetNodeView> nodes, std::span<const u32> live);
+// Another player's copy here as a fight sees it: `vouched`, a member on this map stands by it
+// (ReconcileMemberPresence; out of a session or with no fresh board every shown copy is).
+struct PlayerCopyView {
+    u32 handle = 0;
+    s32 hp = 0;
+    bool disabled = false;
+    bool vouched = false;
+};
+// The players here a fight can be with: this game's own (`self`, while alive) and the copies
+// shown, alive and vouched for. Rig owner-crash-fight 2026-11-03: at the take-over the crashed
+// host's copy was still shown (its 3 s grace), so the enemy "had a target" and was given none.
+std::vector<u32> LivePlayerHandlesOf(std::optional<u32> self,
+                                     std::span<const PlayerCopyView> others);
+// The take-over's fights (the old owner's EnemyPlace.fighting), looked at again once a second
+// for WindowMs: one left with no live target (the old owner's copy hidden, its nodes forgotten)
+// gets this game's player then.
+class TakeoverFights {
+public:
+    static constexpr s64 WindowMs = 15'000;
+    static constexpr s64 EveryMs = 1'000;
+    void Start(std::vector<u32> handles, s64 now_ms);
+    // The fights to look at now (none between the seconds, nor past the window).
+    std::vector<u32> Due(s64 now_ms);
+
+private:
+    std::vector<u32> handles;
+    s64 started_ms = 0;
+    std::optional<s64> last_ms;
+};
 constexpr float ForgottenTargetTimer = 1.0e-4f;
 // Kaniel's play test 2026-10-19: the Blood-starved Beast never went for Lisara. What the enemies'
 // AI reads to take a character as a target: every ~5 s 0x012A43B0 lists WorldChrMan's players

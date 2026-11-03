@@ -6877,6 +6877,35 @@ bool HoldsLiveTarget(std::span<const TargetNodeView> nodes, std::span<const u32>
     });
 }
 
+std::vector<u32> LivePlayerHandlesOf(std::optional<u32> self,
+                                     std::span<const PlayerCopyView> others) {
+    std::vector<u32> handles;
+    for (const PlayerCopyView& other : others) {
+        if (other.hp > 0 && !other.disabled && other.vouched) {
+            handles.push_back(other.handle);
+        }
+    }
+    if (self) {
+        handles.push_back(*self);
+    }
+    return handles;
+}
+
+void TakeoverFights::Start(std::vector<u32> fights, s64 now_ms) {
+    handles = std::move(fights);
+    started_ms = now_ms;
+    last_ms.reset();
+}
+
+std::vector<u32> TakeoverFights::Due(s64 now_ms) {
+    if (handles.empty() || now_ms - started_ms >= WindowMs ||
+        (last_ms && now_ms - *last_ms < EveryMs)) {
+        return {};
+    }
+    last_ms = now_ms;
+    return handles;
+}
+
 bool ForgetsTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> downed) {
     const u8 type = slot & 0x7F;
     return (type == TargetSlotCurrent || type == TargetSlotMemory) && kind == 1 &&

@@ -1377,17 +1377,20 @@ std::vector<TargetNodeView> TargetNodesOf(u64 targeting) {
 
 // The players here a fight can be with: this one and the others shown, alive.
 std::vector<u32> LivePlayerHandles() {
-    std::vector<u32> handles;
-    if (const u64 local = GetLocalPlayer(); local >= 0x10000 && CharacterHp(local) > 0) {
-        handles.push_back(ReadValue<u32>(local, 0x08));
-    }
+    const u64 local = GetLocalPlayer();
+    std::vector<PlayerCopyView> others;
     for (const OtherPlayer& other : OtherPlayers()) {
-        if (other.hp > 0 && !IsCharacterDisabled(other.character)) {
-            handles.push_back(ReadValue<u32>(other.character, 0x08));
-        }
+        others.push_back({ReadValue<u32>(other.character, 0x08), other.hp,
+                          IsCharacterDisabled(other.character), CopyVouchedFor(other.character)});
     }
-    return handles;
+    return LivePlayerHandlesOf(local >= 0x10000 && CharacterHp(local) > 0
+                                   ? std::optional{ReadValue<u32>(local, 0x08)}
+                                   : std::nullopt,
+                               others);
 }
+
+// The take-over's fights, looked at again (see TakeoverFights).
+TakeoverFights takeover_fights;
 
 // Whether it holds or remembers a live player here (a crashed member's copy is none).
 bool HasCharacterTarget(u64 targeting) {
@@ -1528,6 +1531,7 @@ bool PutBackOwnersEnemyPlaces(u32 map) {
     size_t placed = 0;
     size_t fights = 0;
     size_t fights_on = 0;
+    std::vector<u32> fighting;
     for (const auto& [character, mine] : EnemyPlacesNow()) {
         const auto place = std::ranges::find(heard, mine.handle, &EnemyPlace::handle);
         if (place == heard.end()) {
@@ -1543,12 +1547,14 @@ bool PutBackOwnersEnemyPlaces(u32 map) {
         if (place->fighting) {
             ++fights;
             fights_on += GiveFightOn(character, place->at);
+            fighting.push_back(place->handle);
         }
     }
     LOG_INFO(Debug,
              "Bloodborne party: enemy owner: took the map over with {} of the last owner's {} "
              "moved enemies put back where it had them; {} of its {} fights go on here",
              placed, heard.size(), fights_on, fights);
+    takeover_fights.Start(std::move(fighting), SteadyMilliseconds());
     return true;
 }
 
@@ -1598,6 +1604,19 @@ void TickEnemyOwner(bool in_session, u32 map) {
     }
     if (in_session) {
         SendMovedEnemyPlaces(map, now_ms, role == EnemyRole::Owner);
+    }
+    // The take-over's fights left with no live target get this game's player (TakeoverFights).
+    if (const std::vector<u32> due =
+            role == EnemyRole::Owner ? takeover_fights.Due(now_ms) : std::vector<u32>{};
+        !due.empty()) {
+        for (const auto& [character, place] : EnemyPlacesNow()) {
+            if (std::ranges::contains(due, place.handle) && GiveFightOn(character, place.at)) {
+                LOG_INFO(Debug,
+                         "Bloodborne party: enemy {:x} of the take-over held no live target: it "
+                         "goes for this player (t={:.1f})",
+                         place.handle, now_ms / 1000.0);
+            }
+        }
     }
     if (role != before) {
         world_changed_ms.store(now_ms);

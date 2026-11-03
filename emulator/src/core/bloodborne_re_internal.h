@@ -564,6 +564,8 @@ void LogEnemyTargets();
 void ClearStaleDeathMarks();
 void LogJoinTasksOnChange();
 void ReconcileMemberPresence();
+// Whether a member on this map stands by another player's copy (see PlayerCopyView).
+bool CopyVouchedFor(u64 character);
 // The object a character's physics ([[+0x3B0]+0x68]) holds as the one it stands on (read at
 // 0x01524B0C; null: none).
 constexpr u64 PhysicsContactObjectOffset = 0xA8;
