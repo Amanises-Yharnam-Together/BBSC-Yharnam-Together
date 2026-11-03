@@ -3056,6 +3056,40 @@ EnemyRole EnemyRoleOn(std::span<const EnemyOwnerEntry> owners, std::string_view 
 std::optional<s32> EnemySyncState(EnemyRole role, s32 state);
 // The state the hit on an enemy (0x01A29E40) sees instead: a host that follows sends its hits.
 std::optional<s32> EnemyHitState(EnemyRole role, s32 state);
+// Rig host-arrives-hurt-enemy (failing since 1.3.1 at least): a host that followed a guest
+// owning the map took the map over with its own copies, and an enemy the guest had moved went
+// back to its spawn (the host's game never took the owner's places, ch 4). The owner sends the
+// places of its enemies that moved (bbcoop::EnemyPlaces, about once a second); a member that
+// takes the map over puts them there first.
+struct EnemyPlace {
+    u32 handle = 0;
+    std::array<float, 3> at{};
+    float heading = 0.0f;
+    bool operator==(const EnemyPlace&) const = default;
+};
+constexpr float EnemyPlaceMovedMeters = 1.0f;
+constexpr size_t EnemyPlacesMost = 64;
+constexpr s64 EnemyPlacesEveryMs = 1000;
+constexpr s64 EnemyPlacesFreshMs = 10'000;
+// The enemies of `now` more than EnemyPlaceMovedMeters from where the owner first saw them
+// (`first_seen`, by handle), the farthest moved first, at most EnemyPlacesMost.
+std::vector<EnemyPlace> MovedEnemyPlaces(std::span<const EnemyPlace> now,
+                                         const std::map<u32, std::array<float, 3>>& first_seen);
+// The owners' latest places, by map; a map's are only taken while fresh (EnemyPlacesFreshMs).
+class EnemyPlacesBook {
+public:
+    void Heard(u32 map, std::vector<EnemyPlace> places, s64 now_ms);
+    std::vector<EnemyPlace> Take(u32 map, s64 now_ms) const;
+    void Drop(u32 map); // put back: not again
+    void Clear();
+
+private:
+    struct Heard_ {
+        std::vector<EnemyPlace> places;
+        s64 at_ms = 0;
+    };
+    std::map<u32, Heard_> by_map;
+};
 std::optional<u16> EnemyOwnershipWord(EnemyRole role);
 // The Doll (m21_00 entity 2100700, 0x10000001 in the Dream) stays in each player's own game
 // whatever its role on the map (Kaniel 2026-10-18: the Doll only): handed over in the middle of a

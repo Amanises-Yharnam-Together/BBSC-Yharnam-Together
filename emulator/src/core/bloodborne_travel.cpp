@@ -1321,7 +1321,7 @@ void SnapCamera() {
 }
 
 bool PlaceCharacterAt(u64 character, const std::array<float, 4>& position,
-                      const std::array<float, 4>& rotation, const char* what) {
+                      const std::array<float, 4>& rotation, const char* what, bool snap_camera) {
     const u64 vtable = IsCharacter(character, what) ? ReadValue<u64>(character, 0) : 0;
     const u64 teleport = vtable >= 0x10000 ? ReadValue<u64>(vtable, 0x5F8) : 0;
     if (teleport < 0x10000) {
@@ -1335,7 +1335,7 @@ bool PlaceCharacterAt(u64 character, const std::array<float, 4>& position,
         .snap_position = reinterpret_cast<SnapPosition>(image_base + SnapCharacterPositionOffset),
         .set_rotation = SetCharacterRotation,
         .reset_follow = reinterpret_cast<ResetFollow>(image_base + ResetCharacterFollowOffset),
-        .snap_camera = SnapCamera,
+        .snap_camera = snap_camera ? SnapCamera : +[] {},
     };
     alignas(16) const std::array<float, 4> at = position;
     alignas(16) const std::array<float, 4> turn = rotation;

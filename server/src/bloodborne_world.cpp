@@ -786,6 +786,7 @@ void Service::StartLog(PartyWorld& world, bool after_wipe, qint64 now_ms, Result
     const u64 epoch = WorldLogEpoch(world.world, ++world.logs);
     const std::vector<WorldLogEntry> entries = world.host.Start(epoch, after_wipe);
     world.proposed.clear();
+    world.enemy_places.clear(); // every map starts over
     if (after_wipe) {
         world.last_wipe_ms = now_ms;
     }
@@ -803,6 +804,7 @@ void Service::ResetMap(PartyWorld& world, std::uint32_t map, qint64 now_ms) {
     const std::vector<WorldLogEntry> entries = world.host.ResetMap(map);
     for (const std::uint32_t on : MapsLoadedWith(map)) {
         world.map_reset_ms[on] = now_ms;
+        world.enemy_places.erase(on);
         for (auto& [name, kills] : world.proposed) {
             kills.erase(on);
         }
@@ -1131,6 +1133,19 @@ void Service::Take(Member& member, const bbcoop::Envelope& envelope, qint64 now_
         SendToOthers(world, member, relayed, now_ms);
         break;
     }
+    case bbcoop::Envelope::kEnemyPlaces: {
+        // Only the map's owner runs its enemies: its places go to the others now, and are kept
+        // for whoever takes the map over next (HandOverEnemyPlaces).
+        const std::uint32_t map = envelope.enemy_places().map();
+        if (!Decides(world, member, map)) {
+            break;
+        }
+        bbcoop::Envelope relayed = envelope;
+        relayed.mutable_enemy_places()->set_member(member.name);
+        world.enemy_places[map] = {relayed.enemy_places(), {}};
+        SendToOthers(world, member, relayed, now_ms);
+        break;
+    }
     case bbcoop::Envelope::kAltarRecord: {
         bbcoop::Envelope relayed = envelope;
         relayed.mutable_altar_record()->set_member(member.name);
@@ -1379,6 +1394,13 @@ void Service::TakeBoard(Member& member, PartyWorld& world, const bbcoop::Envelop
         return;
     }
     case bbcoop::Envelope::kRest:
+        // A rest at a lamp respawns the member's world: as an owner, its enemies are at their
+        // spawns again, and the places it sent are no more.
+        if (envelope.rest().lamp() != 0) {
+            std::erase_if(world.enemy_places, [&](const auto& held) {
+                return held.second.places.member() == member.name;
+            });
+        }
         answer(world.boards.Rest(member.name, envelope.rest(), now_ms), PartyBoards::Rests);
         return;
     case bbcoop::Envelope::kTrophies:
@@ -1488,7 +1510,25 @@ bbcoop::VitalsBoard Service::VitalsBoardOf(const PartyWorld& world) const {
     return board;
 }
 
+void Service::HandOverEnemyPlaces(PartyWorld& world, qint64 now_ms) {
+    for (auto& [map, held] : world.enemy_places) {
+        const std::string owner = world.owners.OwnerOf(map);
+        if (owner.empty() || owner == held.places.member() || owner == held.handed_to) {
+            continue;
+        }
+        for (auto& [key, member] : members) {
+            if (member.party == world.name && member.name == owner) {
+                bbcoop::Envelope envelope;
+                *envelope.mutable_enemy_places() = held.places;
+                SendTo(member, envelope, now_ms);
+                held.handed_to = owner;
+            }
+        }
+    }
+}
+
 void Service::SendOwners(PartyWorld& world, qint64 now_ms, Result& result, Member* only) {
+    HandOverEnemyPlaces(world, now_ms);
     bbcoop::Envelope envelope;
     *envelope.mutable_enemy_owners() = world.owners.Message();
     QStringList owners;

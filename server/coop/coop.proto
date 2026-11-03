@@ -361,6 +361,20 @@ message EnemyHit {
     string member = 5; // server -> game: whose
 }
 
+// Rig host-arrives-hurt-enemy: game -> server -> the others, from the map's owner about once a
+// second: its enemies that moved from where it first saw them. A member that takes the map over
+// puts them there before it runs them (its own copies stood where they started).
+message EnemyPlace {
+    uint32 handle = 1;
+    Position at = 2;
+    float heading = 3;
+}
+message EnemyPlaces {
+    uint32 map = 1;
+    repeated EnemyPlace places = 2;
+    string member = 3; // server -> game: whose
+}
+
 message HpEnemy {
     uint32 handle = 1;
     sint32 value = 2;
@@ -441,6 +455,7 @@ message Envelope {
         TeamTravel team_travel = 48;
         DuelRequest duel_request = 49;
         DuelState duel_state = 50;
+        EnemyPlaces enemy_places = 51;
     }
 }
 
