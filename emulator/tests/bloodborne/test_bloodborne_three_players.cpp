@@ -196,6 +196,22 @@ TEST(BloodborneThreePlayers, ASessionMemberIsFoundByItsOnlineId) {
     EXPECT_EQ(OnlineIdOfBoardMember("zz"), "");
 }
 
+// Rig yahargul-mummy-host / party-death down-alone 2026-11-03: re-created as "?" just after a
+// trip. A member with no name yet waits for it a few seconds, then goes as unknown once.
+TEST(BloodborneThreePlayers, AMemberWithNoNameYetWaitsForItAWhile) {
+    using Act = UnnamedRecreateHold::Act;
+    UnnamedRecreateHold hold;
+    EXPECT_EQ(hold.Tick(false, 0), Act::Go);
+    EXPECT_EQ(hold.Tick(true, 1000), Act::Wait);
+    EXPECT_EQ(hold.Tick(true, 1000 + UnnamedRecreateWaitMs - 1), Act::Wait);
+    EXPECT_EQ(hold.Tick(true, 1000 + UnnamedRecreateWaitMs), Act::GoUnnamed) << "past the bound";
+    EXPECT_EQ(hold.Tick(true, 1000 + UnnamedRecreateWaitMs + 50), Act::Go) << "once";
+    EXPECT_EQ(hold.Tick(false, 9000), Act::Go) << "named: at once";
+    EXPECT_EQ(hold.Tick(true, 9100), Act::Wait) << "a new miss waits again";
+    EXPECT_EQ(hold.Tick(false, 9200), Act::Go) << "its name came";
+    EXPECT_EQ(hold.Tick(true, 9300), Act::Wait) << "and the wait starts over";
+}
+
 // After a trip only the members on this map are re-created; creating one into a map it is not
 // on makes its game leave the session. The others follow when they arrive here.
 TEST(BloodborneThreePlayers, OnlyTheMembersOnThisMapAreReCreated) {

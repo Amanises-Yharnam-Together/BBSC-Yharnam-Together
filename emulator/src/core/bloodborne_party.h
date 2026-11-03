@@ -862,6 +862,21 @@ struct RecreatePlan {
 RecreatePlan PlanRecreate(std::span<const std::optional<std::string>> members,
                           std::span<const MemberMap> board, std::string_view self, u32 map,
                           const std::set<std::string>& handled);
+// Rig yahargul-mummy-host and party-death down-alone (2026-11-03): just after a trip a member was
+// still re-created as "?" (its board name not found yet, even past the second look). A re-create
+// with a member unknown waits for its name up to UnnamedRecreateWaitMs, the names looked for again
+// each tick; past it, once, the member goes as unknown (GoUnnamed, logged), and later ticks go on.
+constexpr s64 UnnamedRecreateWaitMs = 3'000;
+class UnnamedRecreateHold {
+public:
+    enum class Act { Go, Wait, GoUnnamed };
+    // `unnamed`: the plan would re-create a member with no name now.
+    Act Tick(bool unnamed, s64 now_ms);
+
+private:
+    std::optional<s64> since;
+    bool gone = false;
+};
 // Whether the host (its map from its map state post) is on `map` and still on the map board.
 bool HostIsHere(std::optional<u32> host_map, std::span<const MemberMap> board,
                 std::string_view self, u32 map);

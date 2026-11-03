@@ -601,6 +601,25 @@ void LoadedParamSlots::Found(std::string_view type, u64 slot) {
     slots.emplace_back(std::string{type}, slot);
 }
 
+UnnamedRecreateHold::Act UnnamedRecreateHold::Tick(bool unnamed, s64 now_ms) {
+    if (!unnamed) {
+        since.reset();
+        gone = false;
+        return Act::Go;
+    }
+    if (gone) {
+        return Act::Go;
+    }
+    if (!since) {
+        since = now_ms;
+    }
+    if (now_ms - *since < UnnamedRecreateWaitMs) {
+        return Act::Wait;
+    }
+    gone = true;
+    return Act::GoUnnamed;
+}
+
 RecreatePlan PlanRecreate(std::span<const std::optional<std::string>> found,
                           std::span<const MemberMap> board, std::string_view self, u32 map,
                           const std::set<std::string>& handled) {
