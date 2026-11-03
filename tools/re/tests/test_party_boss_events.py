@@ -965,3 +965,66 @@ class OnlyTheLevellingPlayerKneels(unittest.TestCase):
 
     def test_the_hunters_dream_is_patched(self):
         self.assertEqual(tool.OWN_ANIMATION_EVENTS, {'m21_00_00_00.emevd.dcx': {12100112: 6700}})
+
+
+def doll_blessing_event() -> list[tuple[int, int, bytes]]:
+    """m21_00's 12100112, cut down: it ends unless the local player (10000) is alive (4:3 type 0 in
+    group 15, then 1000:2 end if group 15 fails), and each kneel block waits on the player alive
+    and near the Doll (4:3 in group 1 with a 3:3 distance check)."""
+    return [
+        (2000, 2, struct.pack('<i', 0)),
+        (4, 3, struct.pack('<bxxxiBxxx', 15, 10000, 0)),
+        (1000, 2, struct.pack('<BBbx', 0, 0, 15)),
+        flag_condition(0, 72100100),
+        (4, 3, struct.pack('<bxxxiBxxx', 1, 10000, 0)),
+        (3, 3, struct.pack('<bxxxiif', 1, 10000, 2100700, 1.0)),
+        (4, 3, struct.pack('<bxxxiBxxx', 2, 2100700, 0)),  # the Doll's, not the player's
+        (2004, 14, struct.pack('<iiii', 10000, 2100700, 101290, 0)),
+        (2003, 2, struct.pack('<iBxxx', 72100101, 1)),
+    ]
+
+
+class GuestsGetTheirOwnBlessing(unittest.TestCase):
+    """Kaniel 2026-11-03: a guest who just joined can't level up at the Doll until they leave the
+    Dream and come back, and the host's level up still makes the guests kneel. Her blessing flags
+    (72100100-72100102) are each game's own now (bloodborne_flags.h), so a guest's talk waits on
+    its own game's 12100112 (kneel, 72100101) and 12100113 (her turn, 72100102); both ended unless
+    the local player is alive (4:3 player 10000 type 0, a white phantom is type 1). Before, only
+    the host's game ran them, for the guest's flag the game's sync sent over."""
+
+    DREAM = 'm21_00_00_00.emevd.dcx'
+
+    def setUp(self):
+        self.edits: list = []
+        self.original = build_emevd({12100112: doll_blessing_event(),
+                                     12100113: doll_blessing_event(),
+                                     12100114: doll_blessing_event()})
+        self.patched, self.count = tool.let_guests_run_events(
+            self.original, tool.GUEST_RUN_EVENTS[self.DREAM], self.edits)
+        self.events, self.before = read_events(self.patched), read_events(self.original)
+
+    def test_the_dolls_blessing_events_run_for_a_guest(self):
+        self.assertEqual(tool.GUEST_RUN_EVENTS[self.DREAM], {12100112, 12100113})
+        self.assertEqual(self.count, 4)
+        for event in (12100112, 12100113):
+            self.assertEqual(self.events[event][1][2][0], tool.UNUSED_GROUP)
+            self.assertEqual(self.events[event][4][2][0], tool.UNUSED_GROUP)
+            self.assertEqual(self.events[event][6], self.before[event][6], "the Doll's check")
+            for k in (0, 2, 3, 5, 7, 8):
+                self.assertEqual(self.events[event][k], self.before[event][k])
+        self.assertEqual(self.events[12100114], self.before[12100114], 'not her blessing')
+
+    def test_the_file_still_checks_out(self):
+        tool.validate(self.original, self.patched, self.edits, self.DREAM)
+
+    def test_patching_twice_changes_nothing(self):
+        self.assertEqual(tool.let_guests_run_events(self.patched,
+                                                    tool.GUEST_RUN_EVENTS[self.DREAM]),
+                         (self.patched, 0))
+
+    def test_the_dream_file_runs_it_with_the_kneel_guard(self):
+        edits: list = []
+        both, _ = tool.let_guests_run_events(self.original, {12100112}, edits)
+        both, count = tool.guard_own_animations(both, {12100112: 6700}, edits)
+        self.assertEqual(count, 1)
+        tool.validate(self.original, both, edits, self.DREAM)
