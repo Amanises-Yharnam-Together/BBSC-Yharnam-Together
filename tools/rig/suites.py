@@ -1064,13 +1064,15 @@ SUITES = {
             # The return point settles in 10 s (ReturnPointSettleMs): 12 s away before the crash.
             chapter("resume", "the guest's game dies away from the lamp in the host's world: it "
                               "comes back where it was and joins again",
-                    {"guest": [f"teleport {AWAY_FROM_LAMP}", "wait 12", RESTART, "godmode",
-                               "wait-session 2 420", "wait 5", "expect-session 2",
+                    # Its last spot is logged right before the kill (a census): it resumes within
+                    # 2 m of it (rig 2026-11-03: it stood 5.6 m off its teleport, unlogged).
+                    {"guest": [f"teleport {AWAY_FROM_LAMP}", "wait 12", "census 5", RESTART,
+                               "godmode", "wait-session 2 420", "wait 5", "expect-session 2",
                                f"expect-map {CENTRAL_YHARNAM}", "sync resume-back"],
                      "host": ["sync resume-back"]},
-                    expect={"guest": [r"guest resumed at \(-21\d(\.\d+)?, -5\d(\.\d+)?, "
-                                      r"17\d(\.\d+)?\) on map 0x18010000"]},
-                    allow=CRASH_CLEANUP),
+                    expect={"guest": [r"guest resumed at \(-?[\d.]+, -?[\d.]+, -?[\d.]+\) on map "
+                                      r"0x18010000"]},
+                    resumes_at_census={"guest": 2.0}, allow=CRASH_CLEANUP),
             chapter("after-resume", "after its resume the lamp the guest lit is still lit in both "
                                     "worlds, the host's hit reaches its copy, and both pick up "
                                     "items",
@@ -1697,7 +1699,7 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
                 stages[role][-1] += [mark, keep_going]
     checks = ("about", "expect", "expect_any", "forbid", "allow", "same_hp", "same_hp_census",
               "hp_sums_hits", "max_hp_lag", "max_hp_lag_each", "killed", "max_kill_lag", "max_join_s", "moves",
-              "closes", "alone_with",
+              "closes", "alone_with", "resumes_at_census",
               "grounded", "overlay_textures", "console_expect", "known_bug", "known_problems",
               "files_present",
               "files_absent")

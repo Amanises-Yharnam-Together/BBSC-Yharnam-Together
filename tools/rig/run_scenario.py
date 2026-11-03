@@ -402,6 +402,25 @@ def judge(spec: dict, texts: dict[str, str]) -> list[str]:
                                    distances[-1] > distances[-2] - EnemyClosesM)):
             problems.append(f"{role}: {handle} did not come for it "
                             f"({' -> '.join(f'{d:.1f} m' for d in distances[-2:]) or 'no census'})")
+    # "resumes_at_census": the role's resumed game comes back within [meters] of where its last
+    # census before the resume had it (rig resume 2026-11-03: a fixed box failed a guest that
+    # stood 5.6 m off its teleport, where nothing said where it was when its game died).
+    for role, meters in spec.get("resumes_at_census", {}).items():
+        text = texts.get(role, "")
+        resume = re.search(r"guest resumed at \((-?[\d.]+), (-?[\d.]+), (-?[\d.]+)\)", text)
+        before = text[:resume.start()] if resume else text
+        spots = re.findall(r"autoplay census: map \S+, \d+ characters within \d+ m of "
+                           r"\((-?[\d.]+), (-?[\d.]+), (-?[\d.]+)\)", before)
+        if not resume or not spots:
+            problems.append(f"{role}: not resumed after a census "
+                            f"({'no resume' if not resume else 'no census before it'})")
+            continue
+        last = tuple(float(v) for v in spots[-1])
+        at = tuple(float(v) for v in resume.groups())
+        if math.dist(last, at) > meters:
+            problems.append(f"{role}: resumed at ({at[0]:.1f}, {at[1]:.1f}, {at[2]:.1f}), "
+                            f"{math.dist(last, at):.1f} m from its last census spot "
+                            f"({last[0]:.1f}, {last[1]:.1f}, {last[2]:.1f}; at most {meters} m)")
     # "alone_with": at the role's last census no other live hostile enemy (team 23) is within
     # [meters] of its player, so its HP drop was [handle]'s doing (rig owner-crash-fight
     # 2026-11-03: `wait-hp self` passes on any hit). The nearest other one is named either way.

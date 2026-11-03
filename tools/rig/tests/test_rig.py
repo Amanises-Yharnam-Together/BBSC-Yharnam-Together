@@ -937,6 +937,29 @@ class RunnerTest(unittest.TestCase):
         self.assertTrue(found and "9.5 m" in found[0], found)
         self.assertTrue([p for p in run_scenario.judge(spec, {"guest": ""}) if "near" in p])
 
+    def test_a_resumed_guest_comes_back_where_its_last_census_had_it(self):
+        # Rig resume 2026-11-03: the guest resumed at (-209.4, 179.1), 5.6 m from where it had been
+        # put; where it stood when its game died was not known. A census right before the kill:
+        # the resume is within 2 m of it.
+        census = ("[Debug] <Info> () x: Bloodborne autoplay census: map 0x18010000, 2 characters "
+                  "within 5 m of ({}, -54.4, {})")
+        resumed = ("[Debug] <Info> () x: Bloodborne party: guest resumed at ({}, -54.427685, {}) "
+                   "on map 0x18010000")
+        spec = {"resumes_at_census": {"guest": 2.0}}
+
+        def problems(*lines):
+            return [p for p in run_scenario.judge(spec, {"guest": "\n".join(lines)})
+                    if "resumed" in p]
+
+        self.assertFalse(problems(census.format(-215.0, 178.0), census.format(-209.5, 179.0),
+                                  resumed.format(-209.37, 179.13)), "where it last stood")
+        self.assertTrue(problems(census.format(-215.0, 178.0), resumed.format(-209.37, 179.13)),
+                        "5.6 m off")
+        self.assertTrue(problems(census.format(-215.0, 178.0)), "never resumed")
+        self.assertTrue(problems(resumed.format(-209.37, 179.13)), "no census before")
+        self.assertTrue(problems(resumed.format(-209.37, 179.13), census.format(-209.5, 179.0)),
+                        "the census after the resume is not the last spot")
+
     def test_a_player_that_stands_still_stays_put(self):
         # Kaniel 2026-10-15: one guest's backstab dragged the other guest to the enemy.
         census = ("[Debug] <Info> () x: Bloodborne autoplay census: map 0x18010000, 1 characters "
