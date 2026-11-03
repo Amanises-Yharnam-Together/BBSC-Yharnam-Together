@@ -113,6 +113,8 @@ AT_THE_LAMP = "-199.7 -50.7 179.0"
 # owner-crash-fight's step back: the street by the first lamp, on the fight's level, 5-11 m from
 # where the fight leaves the enemy (seen at x -225..-206, z 168..188 on -54.5).
 OCF_FLAT_SPOT = "-216.0 -54.5 180.0"
+# The street above, about 34 m from 0x1001400b's ground: a host there is out of its fight.
+HOST_AWAY_FROM_ENEMY = "-200.0 -40.5 212.8"
 # A join from the guest's load's end to its session, at most this long. Phase 7's goal was 10 s;
 # since a join reloads the team's world into the guest's game (#212, ~7 s) and the team's load
 # screen waits until the others stand still for 5 s, a join takes 19-24 s (rig 2026-10-22, on
@@ -844,8 +846,14 @@ SUITES = {
                                      "on there is to be confirmed on the first run",
                     # Its end is a give-up, not a revive: a revive takes 50-70 s of swings (rig
                     # 2026-10-15), revives have chapters of their own.
-                    {"host": ["wait-member-vital down 150", "wait-member-vital up 150"],
-                     "guest": ["godmode off", "hurt self 1", f"approach {ENEMY}", "press r3 200",
+                    # The host steps out of the fight it had first (rig party-death 2026-11-03:
+                    # the enemy held the godmode host the whole chapter, the guest never went
+                    # down), and is back at the lamp after.
+                    {"host": [f"teleport {HOST_AWAY_FROM_ENEMY}", "wait 15",
+                              "wait-member-vital down 150", "wait-member-vital up 150",
+                              f"teleport {AT_THE_LAMP}"],
+                     "guest": ["wait 15", "godmode off", "hurt self 1", f"approach {ENEMY}",
+                               "press r3 200",
                                "wait-vital down 90", "wait 20", "expect-hp self == 1",
                                "press circle 3600", "wait-vital dead 15", "wait-vital up 90",
                                "godmode"]},
@@ -855,6 +863,7 @@ SUITES = {
                     expect_any=[r"party death: enemies forgot \d+ target\(s\) on downed "
                                 r"players \(self down=(false, others down=1|true, others down=0)"],
                     expect={"guest": [r"party death: giving up ends down"]},
+                    downed_by={"guest": ENEMY}, target_leaves={"host": [ENEMY, 15.0]},
                     # known_bug dropped: not seen in the rig run of 2026-11-02.
                     forbid={"host": SESSION_HOLDS,
                             "guest": SESSION_HOLDS + [r"party death: killed while down"]}),
@@ -1699,7 +1708,7 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
                 stages[role][-1] += [mark, keep_going]
     checks = ("about", "expect", "expect_any", "forbid", "allow", "same_hp", "same_hp_census",
               "hp_sums_hits", "max_hp_lag", "max_hp_lag_each", "killed", "max_kill_lag", "max_join_s", "moves",
-              "closes", "alone_with", "resumes_at_census",
+              "closes", "alone_with", "resumes_at_census", "downed_by", "target_leaves",
               "grounded", "overlay_textures", "console_expect", "known_bug", "known_problems",
               "files_present",
               "files_absent")

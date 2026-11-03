@@ -344,6 +344,18 @@ EnemyClosesM = 1.5
 GroundedDropM = 3.0
 
 
+# A game's enemy targets line (bloodborne_party_death.cpp LogEnemyTargets): its own player first.
+ENEMY_TARGETS = re.compile(r"Bloodborne enemy targets \([^)]*\): ([^\n]*)")
+
+
+def targets_self(line: str, handle: str) -> bool:
+    """Whether [handle]'s current target (not its memory) is the line's own player (listed
+    first)."""
+    own = re.search(r"\[player (0x[0-9a-f]+) ", line)
+    current = re.search(rf"\[enemy {re.escape(handle)}: ([^\]]*)\]", line)
+    return bool(own and current and own.group(1) in current.group(1).split())
+
+
 def judge(spec: dict, texts: dict[str, str]) -> list[str]:
     """What is wrong in the roles' logs by a scenario's (or a suite chapter's) checks: failed
     steps, expected lines missing, forbidden lines seen, the shared enemy's HP and hits, and the
@@ -421,6 +433,39 @@ def judge(spec: dict, texts: dict[str, str]) -> list[str]:
             problems.append(f"{role}: resumed at ({at[0]:.1f}, {at[1]:.1f}, {at[2]:.1f}), "
                             f"{math.dist(last, at):.1f} m from its last census spot "
                             f"({last[0]:.1f}, {last[1]:.1f}, {last[2]:.1f}; at most {meters} m)")
+    # "downed_by": at the role's down its log's last enemy targets before it have [handle]'s
+    # current target on the role's own player (the first listed) (rig party-death 2026-11-03: the
+    # enemy held the godmode host the whole chapter and the guest never went down).
+    for role, handle in spec.get("downed_by", {}).items():
+        text = texts.get(role, "")
+        down = re.search(r"party death: down \d+ on map", text)
+        lists = list(ENEMY_TARGETS.finditer(text[:down.start()] if down else ""))
+        if not down:
+            problems.append(f"{role}: not downed by {handle} (never down)")
+        elif not lists:
+            problems.append(f"{role}: not downed by {handle} (no targets logged before it)")
+        elif not targets_self(lists[-1].group(0), handle):
+            problems.append(f"{role}: not downed by {handle} (its targets then: "
+                            f"{lists[-1].group(1)})")
+    # "target_leaves": after the role's first teleport step [handle]'s current target leaves the
+    # role's player within [seconds] (rig party-death 2026-11-03: a host that steps away drops
+    # the fight it had, so the guest is the one by the enemy). The time is the next "(t=...)".
+    for role, (handle, seconds) in spec.get("target_leaves", {}).items():
+        text = texts.get(role, "")
+        step = re.search(r"autoplay: step \d+/\d+ teleport [^\n]* ok \(t=([\d.]+)\)", text)
+        rest = text[step.end():] if step else ""
+        left = None
+        for line in ENEMY_TARGETS.finditer(rest):
+            if not targets_self(line.group(0), handle):
+                after = re.search(r"\(t=([\d.]+)\)", rest[line.end():])
+                left = float(after.group(1)) - float(step.group(1)) if after else None
+                break
+        if not step:
+            problems.append(f"{role}: {handle} did not let go of this player (no step away)")
+        elif left is None or left > seconds:
+            when = "after it stepped away" if left is None else f"until {left:.1f} s after its step"
+            problems.append(f"{role}: {handle} did not let go of this player {when} "
+                            f"(within {seconds:.0f} s)")
     # "alone_with": at the role's last census no other live hostile enemy (team 23) is within
     # [meters] of its player, so its HP drop was [handle]'s doing (rig owner-crash-fight
     # 2026-11-03: `wait-hp self` passes on any hit). The nearest other one is named either way.

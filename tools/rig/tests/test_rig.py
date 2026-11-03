@@ -960,6 +960,62 @@ class RunnerTest(unittest.TestCase):
         self.assertTrue(problems(resumed.format(-209.37, 179.13), census.format(-209.5, 179.0)),
                         "the census after the resume is not the last spot")
 
+    def test_the_guest_is_downed_by_the_enemy_that_targets_it(self):
+        # Rig party-death 2026-11-03: the enemy held the godmode host the whole chapter and the
+        # guest never went down. At the down the enemy's current target is the guest itself.
+        targets = ("[Debug] <Info> () x: Bloodborne enemy targets (map 0x18010000, 10 in the AI "
+                   "list): [player 0x10044000 type 1 team 20 info18 0x0: a target] [player "
+                   "0x10044001 type 0 team 19 info18 0x0: a target] {}")
+        down = ("[Debug] <Info> () x: Bloodborne party death: down 423108253 on map 0x18010000, "
+                "594 damage to get up (max HP 594, pose 0)")
+        spec = {"downed_by": {"guest": "0x1001400b"}}
+
+        def problems(*lines):
+            return [p for p in run_scenario.judge(spec, {"guest": "\n".join(lines)})
+                    if "downed by" in p]
+
+        on_self = targets.format("[enemy 0x1001400b memory: 0x10044000] [enemy 0x1001400b: "
+                                 "0x10044000]")
+        on_host = targets.format("[enemy 0x1001400b memory: 0x10044001] [enemy 0x1001400b: "
+                                 "0x10044001]")
+        self.assertFalse(problems(on_host, on_self, down), "its current target at the down")
+        self.assertTrue(problems(on_self, on_host, down), "on the host at the down")
+        self.assertTrue(problems(targets.format("[enemy 0x1001400b memory: 0x10044000]"), down),
+                        "only its memory")
+        self.assertTrue(problems(on_self), "never down")
+        self.assertTrue(problems(down), "no targets logged before the down")
+        self.assertTrue(problems(down, on_self), "targets only after the down")
+
+    def test_the_enemy_lets_go_of_the_host_that_stepped_away(self):
+        # Rig party-death 2026-11-03: the host steps away from the fight it had; within the
+        # seconds given the enemy's current target is no longer the host.
+        step = ("[Debug] <Info> () x: Bloodborne autoplay: step 47/100 teleport -200.0 -40.5 212.8 "
+                "ok (t={})")
+        tick = "[Debug] <Info> () x: Bloodborne party: enemy owner on map 0x18010000 (t={})"
+        targets = ("[Debug] <Info> () x: Bloodborne enemy targets (map 0x18010000, 16 in the AI "
+                   "list): [player 0x10044000 type 0 team 19 info18 0x0: a target] [player "
+                   "0x10044001 type 1 team 20 info18 0x0: a target] {}")
+        spec = {"target_leaves": {"host": ["0x1001400b", 15.0]}}
+
+        def problems(*lines):
+            return [p for p in run_scenario.judge(spec, {"host": "\n".join(lines)})
+                    if "let go" in p]
+
+        held = targets.format("[enemy 0x1001400b memory: 0x10044000] [enemy 0x1001400b: "
+                              "0x10044000]")
+        to_guest = targets.format("[enemy 0x1001400b memory: 0x10044000] [enemy 0x1001400b: "
+                                  "0x10044001]")
+        no_one = targets.format("[enemy 0x1001400b memory: 0x10044000]")
+        self.assertFalse(problems(held, step.format(100.0), held, tick.format(104.0), to_guest,
+                                  tick.format(106.0)), "let go after 6 s")
+        self.assertFalse(problems(step.format(100.0), no_one, tick.format(101.0)),
+                         "no current target is let go too")
+        self.assertTrue(problems(step.format(100.0), held, tick.format(120.0), to_guest,
+                                 tick.format(121.0)), "21 s")
+        self.assertTrue(problems(to_guest, step.format(100.0), held, tick.format(130.0)),
+                        "never after the step")
+        self.assertTrue(problems(held, tick.format(130.0)), "no step away")
+
     def test_a_player_that_stands_still_stays_put(self):
         # Kaniel 2026-10-15: one guest's backstab dragged the other guest to the enemy.
         census = ("[Debug] <Info> () x: Bloodborne autoplay census: map 0x18010000, 1 characters "
