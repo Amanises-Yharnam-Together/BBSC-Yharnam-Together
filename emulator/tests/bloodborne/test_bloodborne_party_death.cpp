@@ -1626,6 +1626,27 @@ TEST(BloodbornePartyDeath, OnlyALivePlayerHeldOrRememberedIsAFight) {
     EXPECT_FALSE(HoldsLiveTarget({}, live));
 }
 
+// Rig owner-crash-fight 2026-11-03 (owner-gap build): after the re-host the enemy dropped its
+// current target and kept a memory of the guest, standing 6 m off: the take-over's rechecks
+// want a current target on a live player.
+TEST(BloodbornePartyDeath, TheTakeoversRecheckWantsACurrentTarget) {
+    const std::vector<u32> live{0x10044000};
+    const std::vector<TargetNodeView> memory{{0x87, 1, 0x10044000}};
+    EXPECT_FALSE(HoldsLiveTarget(memory, live, false)) << "only its memory";
+    const std::vector<TargetNodeView> current{{0x87, 1, 0x10044000}, {0x81, 1, 0x10044000}};
+    EXPECT_TRUE(HoldsLiveTarget(current, live, false));
+    const std::vector<TargetNodeView> on_the_gone{{0x81, 1, 0x10044001}};
+    EXPECT_FALSE(HoldsLiveTarget(on_the_gone, live, false)) << "a crashed copy";
+}
+
+// Rig down-by-enemy 2026-11-03: the down's forget names the enemies it took the target from.
+TEST(BloodbornePartyDeath, TheDownsForgetNamesItsEnemies) {
+    EXPECT_EQ(EnemyHandlesText(std::vector<u32>{0x1001400b}), "0x1001400b");
+    EXPECT_EQ(EnemyHandlesText(std::vector<u32>{0x1001400b, 0x1001402e}),
+              "0x1001400b 0x1001402e");
+    EXPECT_EQ(EnemyHandlesText({}), "none");
+}
+
 // Rig owner-crash-fight node probe 2026-11-03: a gone member's copy is forgotten as a target.
 TEST(BloodbornePartyDeath, AGoneMembersCopyIsForgottenAsATargetItsMemoryStays) {
     const std::vector<u32> gone{0x10044001};

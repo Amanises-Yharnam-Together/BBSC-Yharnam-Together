@@ -4428,8 +4428,11 @@ struct TargetNodeView {
     u32 handle = 0;
 };
 // Whether the enemy holds or remembers one of the `live` characters (their handles) as its target:
-// a target on a crashed member's leftover copy is no fight (see GiveFightOn).
-bool HoldsLiveTarget(std::span<const TargetNodeView> nodes, std::span<const u32> live);
+// a target on a crashed member's leftover copy is no fight (see GiveFightOn). Without
+// `memory_counts` only a current target is (the take-over's rechecks: rig owner-crash-fight
+// 2026-11-03, after the re-host the enemy kept only its memory of the guest and stood still).
+bool HoldsLiveTarget(std::span<const TargetNodeView> nodes, std::span<const u32> live,
+                     bool memory_counts = true);
 // Another player's copy here as a fight sees it: `vouched`, a member on this map stands by it
 // (ReconcileMemberPresence; out of a session or with no fresh board every shown copy is).
 struct PlayerCopyView {
@@ -4477,6 +4480,10 @@ private:
     s64 left_ms = 0;
 };
 constexpr float ForgottenTargetTimer = 1.0e-4f;
+// Enemy handles for a log line, "0x1001400b 0x1001402e" ("none" for none): which enemies a
+// down's forget took the target from (rig down-by-enemy 2026-11-03: the hit came within a
+// second of the enemy's hand-over and no targets line named it).
+std::string EnemyHandlesText(std::span<const u32> handles);
 // Kaniel's play test 2026-10-19: the Blood-starved Beast never went for Lisara. What the enemies'
 // AI reads to take a character as a target: every ~5 s 0x012A43B0 lists WorldChrMan's players
 // (and the current block's characters) whose vtable +0x78 says so (players 0x018F4D70:

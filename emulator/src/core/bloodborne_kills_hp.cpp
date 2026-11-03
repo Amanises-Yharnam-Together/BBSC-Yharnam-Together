@@ -1395,8 +1395,8 @@ TakeoverFights takeover_fights;
 OwnerGap owner_gap;
 
 // Whether it holds or remembers a live player here (a crashed member's copy is none).
-bool HasCharacterTarget(u64 targeting) {
-    return HoldsLiveTarget(TargetNodesOf(targeting), LivePlayerHandles());
+bool HasCharacterTarget(u64 targeting, bool memory_counts = true) {
+    return HoldsLiveTarget(TargetNodesOf(targeting), LivePlayerHandles(), memory_counts);
 }
 
 // The player an enemy this game runs may be given: this game's own. Another member's copy can be
@@ -1415,10 +1415,10 @@ std::pair<std::vector<PlayerSpot>, std::vector<u64>> PlayersToFight() {
 }
 
 // An enemy here with no target goes for the nearest standing player (AddEnemyTargetOffset): true
-// when it took one.
-bool GiveFightOn(u64 character, const std::array<float, 3>& at) {
+// when it took one. Without `memory_counts` one that only remembers a player gets one too.
+bool GiveFightOn(u64 character, const std::array<float, 3>& at, bool memory_counts = true) {
     const u64 targeting = EnemyTargeting(character);
-    if (targeting == 0 || HasCharacterTarget(targeting)) {
+    if (targeting == 0 || HasCharacterTarget(targeting, memory_counts)) {
         return false;
     }
     const auto [spots, characters] = PlayersToFight();
@@ -1629,16 +1629,26 @@ void TickEnemyOwner(bool in_session, u32 map) {
     if (role == EnemyRole::Owner) {
         owned_map = map;
     }
-    // The take-over's fights left with no live target get this game's player (TakeoverFights).
+    // The take-over's fights left with no live target get this game's player (TakeoverFights);
+    // within its window one that only remembers a live player gets it again too (rig
+    // owner-crash-fight 2026-11-03: after the re-host the enemy kept a memory and stood still).
     if (const std::vector<u32> due =
             role == EnemyRole::Owner ? takeover_fights.Due(now_ms) : std::vector<u32>{};
         !due.empty()) {
         for (const auto& [character, place] : EnemyPlacesNow()) {
-            if (std::ranges::contains(due, place.handle) && GiveFightOn(character, place.at)) {
+            if (!std::ranges::contains(due, place.handle)) {
+                continue;
+            }
+            const u64 targeting = EnemyTargeting(character);
+            const bool remembered = targeting != 0 && HasCharacterTarget(targeting);
+            if (GiveFightOn(character, place.at, false)) {
                 LOG_INFO(Debug,
-                         "Bloodborne party: enemy {:x} of the take-over held no live target: it "
-                         "goes for this player (t={:.1f})",
-                         place.handle, now_ms / 1000.0);
+                         "Bloodborne party: enemy {:x} of the take-over held {}: it goes for "
+                         "this player (t={:.1f})",
+                         place.handle,
+                         remembered ? "only its memory of a live player (re-given over a memory)"
+                                    : "no live target",
+                         now_ms / 1000.0);
             }
         }
     }

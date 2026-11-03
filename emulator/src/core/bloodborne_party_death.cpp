@@ -759,8 +759,10 @@ constexpr u64 PlayerHideFlagOffset = 0x0553E88E;
 constexpr u64 PlayerSilenceFlagOffset = 0x0553E88F;
 
 // Every enemy in this world forgets the characters with these handles (see ForgetsTargetNode,
-// or ForgetsGoneTargetNode for `gone` members' copies); returns how many target nodes it changed.
-u32 ForgetDownedTargets(std::span<const u32> handles, bool gone = false) {
+// or ForgetsGoneTargetNode for `gone` members' copies); returns how many target nodes it changed,
+// and puts the enemies it changed them on in `by` (if given).
+u32 ForgetDownedTargets(std::span<const u32> handles, bool gone = false,
+                        std::vector<u32>* by = nullptr) {
     const u64 world = ReadValue<u64>(image_base + CandidateLocalStatePointerOffset, 0);
     if (handles.empty() || world < 0x10000) {
         return 0;
@@ -794,6 +796,10 @@ u32 ForgetDownedTargets(std::span<const u32> handles, bool gone = false) {
                 ReadValue<float>(node, 0x2C) != ForgottenTargetTimer) {
                 WriteValue(node, 0x2C, ForgottenTargetTimer);
                 ++forgotten;
+                if (const u32 enemy = ReadValue<u32>(character, 0x08);
+                    by != nullptr && !std::ranges::contains(*by, enemy)) {
+                    by->push_back(enemy);
+                }
             }
         }
     });
@@ -1910,12 +1916,15 @@ void ForgetTargetsOnDowned(PartyDeathRun& run, const DeathTick& tick) {
     for (const u32 handle : HideSpectatorCopies(tick)) {
         downed_handles.push_back(handle);
     }
-    if (const u32 forgotten = ForgetDownedTargets(downed_handles); forgotten > 0) {
+    std::vector<u32> forgetting;
+    if (const u32 forgotten = ForgetDownedTargets(downed_handles, false, &forgetting);
+        forgotten > 0) {
         if (run.targets_forgotten == 0) {
             LOG_INFO(Debug,
                      "Bloodborne party death: enemies forgot {} target(s) on downed players "
-                     "(self down={}, others down={})",
-                     forgotten, run.downed.Current() == Vital::Down, others_down.size());
+                     "(self down={}, others down={}) on {} by {}",
+                     forgotten, run.downed.Current() == Vital::Down, others_down.size(),
+                     EnemyHandlesText(downed_handles), EnemyHandlesText(forgetting));
         }
         run.targets_forgotten += forgotten;
     } else if (downed_handles.empty()) {

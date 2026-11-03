@@ -6869,11 +6869,12 @@ DownEnd EndOfDown(bool wiped, bool gave_up, bool revived, s64 board_age_ms, bool
     return board_age_ms >= BoardLostMs ? DownEnd::BoardLost : DownEnd::None;
 }
 
-bool HoldsLiveTarget(std::span<const TargetNodeView> nodes, std::span<const u32> live) {
+bool HoldsLiveTarget(std::span<const TargetNodeView> nodes, std::span<const u32> live,
+                     bool memory_counts) {
     return std::ranges::any_of(nodes, [&](const TargetNodeView& node) {
         const u8 slot = node.slot & 0x7F;
-        return (slot == TargetSlotCurrent || slot == TargetSlotMemory) && node.kind == 1 &&
-               std::ranges::find(live, node.handle) != live.end();
+        return (slot == TargetSlotCurrent || (memory_counts && slot == TargetSlotMemory)) &&
+               node.kind == 1 && std::ranges::find(live, node.handle) != live.end();
     });
 }
 
@@ -6919,6 +6920,14 @@ std::vector<u32> OwnerGap::Back(u32 back_map, s64 now_ms) {
         return {};
     }
     return back;
+}
+
+std::string EnemyHandlesText(std::span<const u32> handles) {
+    std::string text;
+    for (const u32 handle : handles) {
+        text += fmt::format("{}{:#x}", text.empty() ? "" : " ", handle);
+    }
+    return text.empty() ? "none" : text;
 }
 
 bool ForgetsGoneTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> gone) {
