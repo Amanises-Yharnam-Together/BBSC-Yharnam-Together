@@ -1,0 +1,394 @@
+##### N:\SPRJ\data\INTERROOT_ps4\script\talk\m21_00_00_00\t210304.esd
+== group 0x1 states=3
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 1
+ state 1: entry=['c6_2147483635(1000, 1001, 1002, 1003)'] exit=[] while=[]
+    if f19() ; (<a6> == 1) -> 2
+ state 2: entry=['c6_2147483636()'] exit=[] while=[]
+    if f19() ; (<a6> == 0) -> 1
+== group 0x7ffffffb states=25
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 1
+ state 1: entry=['c1_0("話しかけられた")'] exit=[] while=[]
+    if f15(72100110) ; (<a7> == 0) -> 2
+    if f15(72100111) ; (<a6> == 1) -> 5
+    if f15(1002) ; (<a6> == 1) -> 4
+    if f15(13501800) ; (<a6> == 1) ; <b7> ; (f15(72100116) && (<a6> == 0)) -> 9
+    if f15(12100502) ; (<a6> == 1) ; <b7> ; (f15(72100118) && (<a6> == 0)) -> 11
+    if f15(13601800) ; (<a6> == 1) ; <b7> ; (f15(72100117) && (<a6> == 0)) -> 12
+    if f15(72100106) ; (<a6> == 1) -> 6
+    if (<af> == 1) -> 3
+ state 2: entry=['c1_0("挨拶_初回")'] exit=[] while=[]
+    if 1 -> 15
+ state 3: entry=['c1_0("挨拶_汎用")'] exit=[] while=[]
+    if 1 -> 16
+ state 4: entry=['c1_0("挨拶_ラスト")'] exit=[] while=[]
+    if 1 -> 18
+ state 5: entry=['c1_0("挨拶_ラスト")'] exit=[] while=[]
+    if 1 -> 19
+ state 6: entry=['c1_0("挨拶_自動会話後")'] exit=[] while=[]
+    if 1 -> 8
+ state 7: entry=['c1_11(72100106, 0)'] exit=[] while=[]
+    if 1 -> 14
+ state 8: entry=['c1_11(72100108, 1)'] exit=[] while=[]
+    if 1 -> 17
+ state 9: entry=['c1_0("時計塔の狩人撃破後会話")'] exit=[] while=[]
+    if 1 -> 20
+ state 10: entry=['c1_0("DLCラスボス撃破後会話")'] exit=[] while=[]
+    if 1 -> 21
+ state 11: entry=['c1_0("先代狩人への祈り会話")'] exit=[] while=[]
+    if 1 -> 22
+ state 12: entry=[] exit=[] while=[]
+    if f15(1026) ; (<a6> == 1) ; (f15(1027) || (<a6> == 1)) -> 10
+    if 1 -> 13
+ state 13: entry=['c1_0("挨拶_汎用")'] exit=[] while=[]
+    if 1 -> 23
+ state 14: entry=['c6_2147483641()'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 24
+ state 15: entry=['c6_2147483646(1400100, 1400150, 72100110)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 14
+ state 16: entry=['c6_2147483645(1400200, 1400250)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 14
+ state 17: entry=['c6_2147483645(1401900, 1401950)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 7
+ state 18: entry=['c6_2147483646(1401100, 1401150, 72100111)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 14
+ state 19: entry=['c6_2147483645(1401200, 1401250)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 14
+ state 20: entry=['c6_2147483646(1402200, 1402250, 72100116)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 14
+ state 21: entry=['c6_2147483646(1402300, 1402350, 72100117)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 14
+ state 22: entry=['c6_2147483646(1402400, 1402450, 72100118)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 14
+ state 23: entry=['c6_2147483645(1400200, 1400250)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 14
+ state 24: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffffa states=3
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 1
+ state 1: entry=['c6_2147483647(99999, 99999, 99999, 99999)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 2
+ state 2: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffff9 states=31
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 1
+ state 1: entry=['c1_20()'] exit=[] while=[]
+    if 1 -> 5
+ state 2: entry=['c1_10(0, 0, 0)'] exit=[] while=['c1_68(0.33)']
+    if f23() ; ((<a7> == 0) || (<af> == 50)) ; (f53() || (<a6> == 0)) -> 4
+    if (<af> == 1) -> 3
+    if (<af> == 2) -> 9
+    if (<af> == 3) -> 8
+ state 3: entry=['c1_0("レベルアップ")'] exit=[] while=[]
+    if f15(6700) ; (<a6> == 1) -> 22
+    if 1 -> 14
+ state 4: entry=['c1_0("立ち去る＆キャンセル")'] exit=[] while=[]
+    if 1 -> 24
+ state 5: entry=['c1_19(1, 15000100, -1)', 'c1_19(2, 15000007, -1)', 'c1_19(3, 15000008, 12100122)', 'c1_19(50, 15000005, -1)'] exit=[] while=[]
+    if 1 -> 2
+ state 6: entry=['c1_0("会話終了通知_話す")', 'c1_71()'] exit=[] while=[]
+    if 1 -> 11
+ state 7: entry=['c1_31()'] exit=[] while=[]
+    if f59(23, 0) ; (<a6> == 0) -> 6
+ state 8: entry=['c1_0("渡す")'] exit=[] while=[]
+    if 1 -> 16
+ state 9: entry=['c1_0("世間話")'] exit=[] while=[]
+    if f15(9802) ; (<a6> == 1) -> 19
+    if f15(9801) ; (<a6> == 1) -> 20
+    if f15(9800) ; (<a6> == 1) -> 21
+    if 1 -> 12
+ state 10: entry=['c1_11(72100100, 1)'] exit=[] while=[]
+    if f15(72100101) ; (<a6> == 1) ; <b7> ; (f15(72100102) && (<a6> == 1)) -> 7
+ state 11: entry=['c1_11(72100100, 0)'] exit=[] while=[]
+    if f15(72100101) ; (<a6> == 0) ; <b7> ; (f15(72100102) && (<a6> == 0)) -> 1
+ state 12: entry=['c1_0("15時")'] exit=[] while=[]
+    if f15(72100113) ; (<a6> == 0) -> 18
+    if 1 -> 17
+ state 13: entry=['c1_11(72100112, 1)'] exit=[] while=[]
+    if f25(63) ; (<a6> == 0) -> 30
+ state 14: entry=['c1_17(1, 10011000, 1, 0, 1)'] exit=[] while=[]
+    if 1 -> 15
+ state 15: entry=['c1_11(6700, 1)'] exit=[] while=['c1_68(0.33)']
+    if f21() ; (<a6> == 0) -> 22
+ state 16: entry=['c1_11(72100114, 1)'] exit=[] while=[]
+    if 1 -> 23
+ state 17: entry=['c1_0("ゲールマンと会話済み")'] exit=[] while=[]
+    if 1 -> 25
+ state 18: entry=['c1_0("ゲールマンと会話済みでない")'] exit=[] while=[]
+    if 1 -> 26
+ state 19: entry=['c1_0("異様な月")'] exit=[] while=[]
+    if 1 -> 29
+ state 20: entry=['c1_0("夜")'] exit=[] while=[]
+    if 1 -> 28
+ state 21: entry=['c1_0("夕")'] exit=[] while=[]
+    if 1 -> 27
+ state 22: entry=['c6_2147483645(1400300, 1400300)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if (f57(0) == 1) -> 10
+ state 23: entry=['c6_2147483645(1401000, 1401050)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 13
+ state 24: entry=['c6_2147483645(1400400, 1400450)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 30
+ state 25: entry=['c6_2147483645(1400600, 1400650)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 1
+ state 26: entry=['c6_2147483646(1400500, 1400550, 72100113)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 1
+ state 27: entry=['c6_2147483645(1400700, 1400750)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 1
+ state 28: entry=['c6_2147483645(1400800, 1400850)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 1
+ state 29: entry=['c6_2147483645(1400900, 1400950)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 1
+ state 30: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffff8 states=3
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 1
+ state 1: entry=['c6_2147483647(99999, 99999, 99999, 99999)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 2
+ state 2: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffff7 states=4
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 2
+ state 1: entry=['c1_0("PC死亡待機")'] exit=[] while=[]
+ state 2: entry=['c6_2147483647(99999, 99999, 99999, 99999)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 1
+ state 3: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffff6 states=4
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 2
+ state 1: entry=['c1_11(72100100, 0)'] exit=[] while=[]
+    if 1 -> 3
+ state 2: entry=['c6_2147483647(99999, 99999, 99999, 99999)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 1
+ state 3: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffff5 states=5
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 1
+ state 1: entry=['c1_0("待機_会話可能判定")'] exit=[] while=[]
+    if f14() ; (<a6> == 0) ; <a6> ; (f31() && (<a6> == 0)) ; <a6> ; (f19() && (<a6> == 0)) ; <a6> ; (f27() && (<a6> == 0)) ; <a6> ; ((f26() && (<a6> == 0)) == 1) -> 3
+ state 2: entry=['c1_0("アクションボタン判定待ち")'] exit=['c1_68(0.5)'] while=[]
+    if f56(6003) ; <a6> -> 4
+ state 3: entry=[] exit=[] while=[]
+    if f15(1003) ; (<a6> == 0) -> 2
+ state 4: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffff4 states=3
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 1
+ state 1: entry=['c1_0("クライアント待機")'] exit=[] while=[]
+ state 2: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffff3 states=12
+ state 0: entry=[] exit=[] while=[]
+    if f15(72100105) ; (<a6> == 1) ; <b7> ; (f15(72100107) && (<a6> == 0)) -> 9
+    if 1 -> 5
+ state 1: entry=['c1_0("サブステート：会話範囲外")', 'c6_2147483638()'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if (f1() < 4.9) -> 5
+    if f5() ; (<a6> == 1) -> 4
+ state 2: entry=['c1_0("サブステート：PC死亡")', 'c6_2147483639()'] exit=[] while=[]
+    if f5() ; (<a6> == 1) -> 4
+    if f1() ; (<a6> > 3) ; (f34() || (<a6> > 1)) -> 1
+ state 3: entry=['c1_0("サブステート：話者死亡")', 'c6_2147483640(72100102, 1401700)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 8
+ state 4: entry=['c1_0("サブステート：話者が攻撃された")', 'c6_2147483642(arg2, arg1, arg2, arg3)'] exit=['c1_5()'] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 5
+    if f3() ; (<a6> == 1) -> 3
+    if f1() ; (<a6> > 3) ; (f34() || (<a6> > 1)) -> 1
+    if f27() ; (<a6> == 1) -> 2
+ state 5: entry=['c1_5()', 'c6_2147483637(6003, arg0, arg1, arg2, arg3)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 6
+    if f3() ; (<a6> == 1) ; (f15(12105100) || (<a6> == 1)) -> 8
+    if f5() ; (<a6> == 1) ; (f15(1003) || (<a6> == 1)) -> 4
+    if f27() ; (<a6> == 1) -> 2
+    if f15(72100105) ; (<a6> == 1) ; <b7> ; (f15(72100107) && (<a6> == 0)) -> 9
+ state 6: entry=['c1_0("サブステート：通常会話")', 'c6_2147483643()'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 5
+    if f27() ; (<a6> == 1) -> 2
+    if f1() ; (<a6> > 3) ; (f34() || (<a6> > 1)) -> 1
+    if f5() ; (<a6> == 1) ; (f15(1003) || (<a6> == 1)) -> 4
+ state 7: entry=['c6_2147483634()'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 8
+    if f1() ; (<a6> > 3) ; (f34() || (<a6> > 1)) -> 10
+ state 8: entry=['c6_2147483633()'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 7
+ state 9: entry=['c6_2147483632()'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 0
+    if f5() ; (<a6> == 1) ; (f15(1003) || (<a6> == 1)) -> 4
+    if f1() ; (<a6> > 10) -> 1
+ state 10: entry=['c1_0("サブステート：会話範囲外")', 'c1_0("テスト")', 'c6_2147483638()'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 8
+ state 11: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffff2 states=16
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 1
+ state 1: entry=['c1_0("調べられた")'] exit=[] while=[]
+    if f15(12100105) ; (<a6> == 1) -> 2
+    if 1 -> 12
+ state 2: entry=['c1_20()'] exit=[] while=[]
+    if 1 -> 6
+ state 3: entry=['c1_10(0, 0, 0)'] exit=[] while=[]
+    if f23() ; (<a7> == 1) -> 4
+    if ((<af> == 0) || (<af> == 50)) ; (f53() || (<a6> == 0)) -> 5
+ state 4: entry=['c1_0("レベルアップ")'] exit=[] while=[]
+    if f15(6700) ; (<a6> == 1) -> 10
+    if 1 -> 13
+ state 5: entry=['c1_0("立ち去る＆キャンセル_初回")'] exit=[] while=[]
+    if 1 -> 8
+ state 6: entry=['c1_19(1, 15000100, -1)', 'c1_19(50, 15000005, -1)'] exit=[] while=[]
+    if 1 -> 3
+ state 7: entry=['c1_0("会話終了通知_レベルアップ")', 'c1_71()'] exit=[] while=[]
+    if f15(72100101) ; (<a6> == 0) -> 2
+ state 8: entry=['c1_0("会話終了通知_立ち去る")', 'c1_71()'] exit=[] while=[]
+    if 1 -> 15
+ state 9: entry=['c1_31()'] exit=[] while=[]
+    if f59(23, 0) ; (<a6> == 0) -> 11
+ state 10: entry=['c1_11(72100100, 1)'] exit=[] while=[]
+    if f15(72100101) ; (<a6> == 1) -> 9
+ state 11: entry=['c1_11(72100100, 0)'] exit=[] while=[]
+    if 1 -> 7
+ state 12: entry=['c1_17(7, 10011010, 1, 0, 1)'] exit=[] while=[]
+    if f21() ; (<a6> == 0) -> 15
+ state 13: entry=['c1_17(1, 10011000, 1, 0, 1)'] exit=[] while=[]
+    if 1 -> 14
+ state 14: entry=['c1_11(6700, 1)'] exit=[] while=[]
+    if f21() ; (<a6> == 0) -> 10
+ state 15: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffff1 states=6
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 1
+ state 1: entry=['c1_0("待機_会話可能判定")'] exit=[] while=[]
+    if f14() ; (<a6> == 0) ; <a6> ; (f31() && (<a6> == 0)) ; <a6> ; (f19() && (<a6> == 0)) ; <a6> ; (f27() && (<a6> == 0)) ; <a6> ; ((f26() && (<a6> == 0)) == 1) -> 3
+ state 2: entry=['c1_0("アクションボタン判定待ち")'] exit=[] while=[]
+    if f56(6004) ; <a6> -> 5
+ state 3: entry=['c1_0("待機_会話可能判定")'] exit=[] while=[]
+    if f15(12105100) ; (<a6> == 1) -> 2
+    if 1 -> 4
+ state 4: entry=['c1_0("アクションボタン判定待ち")'] exit=[] while=[]
+    if f56(6019) ; <a6> -> 5
+ state 5: entry=['c1_37(0.33)'] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffff0 states=9
+ state 0: entry=[] exit=[] while=[]
+    if f1() ; (<a6> < 5) -> 7
+ state 1: entry=[] exit=[] while=[]
+    if f15(12100511) ; (<a6> == 1) -> 3
+    if f15(12100510) ; (<a7> == 1) ; <a6> ; (f15(72100112) && (<a6> == 1)) -> 4
+    if (<af> == 1) -> 5
+    if 1 -> 6
+ state 2: entry=['c1_11(72100106, 1)', 'c1_11(72100107, 1)'] exit=[] while=[]
+    if 1 -> 1
+ state 3: entry=['c6_2147483645(1402000, 1402000)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 8
+ state 4: entry=['c6_2147483645(1401810, 1401860)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 8
+ state 5: entry=['c6_2147483645(1401800, 1401850)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 8
+ state 6: entry=['c6_2147483645(1402100, 1402100)'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 8
+ state 7: entry=['c6_2147483644()'] exit=[] while=[]
+    if (result != <ba>) -> None
+       if 1 -> 2
+ state 8: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7fffffff states=9
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 1
+ state 1: entry=['c1_0("会話判定")'] exit=[] while=[]
+    if f57(0) ; (<a6> == 0) -> 7
+    if 1 -> 2
+ state 2: entry=['c1_0("汎用ダイアログ判定")'] exit=[] while=[]
+    if f21() ; (<a6> == 1) -> 3
+    if 1 -> 4
+ state 3: entry=['c1_18()'] exit=[] while=[]
+    if 1 -> 4
+ state 4: entry=['c1_0("メニュー判定")'] exit=[] while=[]
+    if f59(arg0, 0) ; (<a6> == 1) ; (f59(arg1, 0) || (<a6> == 1)) ; (f59(arg2, 0) || (<a6> == 1)) ; (f59(arg3, 0) || (<a6> == 1)) -> 5
+    if 1 -> 8
+ state 5: entry=['c1_67()'] exit=[] while=[]
+    if 1 -> 8
+ state 6: entry=['c1_71()'] exit=[] while=[]
+    if 1 -> 2
+ state 7: entry=['c1_9()', 'c1_80(0)'] exit=[] while=[]
+    if 1 -> 6
+ state 8: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffffe states=7
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 5
+ state 1: entry=['c1_1(arg0, -1, -1)'] exit=[] while=[]
+    if f57(0) ; (<a6> == 1) -> 4
+ state 2: entry=['c1_71()'] exit=[] while=[]
+    if 1 -> 6
+ state 3: entry=['c1_1(arg1, -1, -1)'] exit=[] while=[]
+    if f57(0) ; (<a6> == 1) -> 4
+ state 4: entry=['c1_11(arg2, 1)'] exit=[] while=[]
+    if 1 -> 2
+ state 5: entry=['c1_0("性別判定")'] exit=[] while=[]
+    if f45(12, 0, 0) ; (<a6> == 1) -> 3
+    if f45(12, 0, 1) ; (<a6> == 1) -> 1
+ state 6: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffffd states=6
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 4
+ state 1: entry=['c1_1(arg0, -1, -1)'] exit=[] while=[]
+    if f57(0) ; (<a6> == 1) -> 2
+ state 2: entry=['c1_71()'] exit=[] while=[]
+    if 1 -> 5
+ state 3: entry=['c1_1(arg1, -1, -1)'] exit=[] while=[]
+    if f57(0) ; (<a6> == 1) -> 2
+ state 4: entry=['c1_0("性別判定")'] exit=[] while=[]
+    if f45(12, 0, 0) ; (<a6> == 1) -> 3
+    if f45(12, 0, 1) ; (<a6> == 1) -> 1
+ state 5: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
+== group 0x7ffffffc states=3
+ state 0: entry=[] exit=[] while=[]
+    if 1 -> 1
+ state 1: entry=['c1_9()', 'c1_80(0)', 'c1_18()', 'c1_67()', 'c1_71()'] exit=[] while=[]
+    if 1 -> 2
+ state 2: entry=[] exit=[] while=[]
+    if 1 -> None do ['c7_-1(0)']
