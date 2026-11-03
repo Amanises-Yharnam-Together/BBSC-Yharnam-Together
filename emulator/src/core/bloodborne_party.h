@@ -1114,6 +1114,13 @@ std::vector<s32> LightRequestsToClear(u32 packed_map, const std::function<bool(s
 // open while a map loads, so a 6700 on then is stuck: cleared as the map loads (in a party).
 constexpr s32 DollLevelUpFlag = 6700;
 bool ClearsDollLevelUpFlag(bool party_configured, bool flag_on);
+// Her blessing (72100100, each game's own): in a session a game's own kneel and turn (m21_00
+// 12100112's 72100101, 12100113's 72100102) come back as the other player's set message, which
+// keeps each game's own flags (KeepLocalFlagsFromOthers). Such a step goes through while this
+// game's own blessing is on, and an "off" always; another player's "on" with this game's blessing
+// off does not (it made every player kneel, Kaniel 2026-11-03).
+constexpr s32 DollBlessingFlag = 72100100;
+bool TakesDollBlessingStep(s32 flag, bool sent_on, bool own_blessing_on);
 // The other player's "set this event flag" (0x017C0570) and "event ended" (0x017C0901) messages
 // leave these flags and events alone in a party: what one player received is not given to the
 // other (the Hunter's Dream messengers' gift events and flags, 12101020-12101029, and the
