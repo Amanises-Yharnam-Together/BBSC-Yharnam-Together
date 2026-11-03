@@ -182,3 +182,27 @@ class LaneServerPidsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DownByEnemyForgetTest(unittest.TestCase):
+    """party-death/down-by-enemy: the game running the enemy logs the forget line, and with the
+    nearest-player runner that can be the guest's (rig 2026-11-02)."""
+
+    def chapter(self):
+        import suites
+        compiled = suites.compile_suite(suites.SUITES["party-death"])
+        return next(c for c in compiled["chapters"] if c["name"] == "down-by-enemy")
+
+    def test_the_forget_line_may_come_from_either_game(self):
+        import run_scenario
+        spec = self.chapter()
+        self.assertNotIn("host", spec.get("expect", {}))
+        line = ("Bloodborne party death: enemies forgot 1 target(s) on downed players "
+                "(self down=true, others down=0)")
+        texts = {"host": "", "guest": line + "\nBloodborne party death: giving up ends down"}
+        self.assertEqual([p for p in run_scenario.judge(spec, texts) if "forgot" in p], [])
+        host_line = line.replace("self down=true, others down=0", "self down=false, others down=1")
+        texts = {"host": host_line, "guest": "Bloodborne party death: giving up ends down"}
+        self.assertEqual([p for p in run_scenario.judge(spec, texts) if "forgot" in p], [])
+        texts = {"host": "", "guest": "Bloodborne party death: giving up ends down"}
+        self.assertTrue([p for p in run_scenario.judge(spec, texts) if "forgot" in p])

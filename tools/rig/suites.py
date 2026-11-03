@@ -827,10 +827,12 @@ SUITES = {
                                "wait-vital down 90", "wait 20", "expect-hp self == 1",
                                "press circle 3600", "wait-vital dead 15", "wait-vital up 90",
                                "godmode"]},
-                    # Phase 8: the map's owner runs the enemy, so its game forgets the target.
-                    expect={"host": [r"party death: enemies forgot \d+ target\(s\) on downed "
-                                     r"players \(self down=false, others down=1"],
-                            "guest": [r"party death: giving up ends down"]},
+                    # Phase 8: the game running the enemy forgets the target. With the
+                    # nearest-player runner that can be the downed guest's own game (rig
+                    # 2026-11-02: the line was in the guest's log).
+                    expect_any=[r"party death: enemies forgot \d+ target\(s\) on downed "
+                                r"players \(self down=(false, others down=1|true, others down=0)"],
+                    expect={"guest": [r"party death: giving up ends down"]},
                     # known_bug dropped: not seen in the rig run of 2026-11-02.
                     forbid={"host": SESSION_HOLDS,
                             "guest": SESSION_HOLDS + [r"party death: killed while down"]}),
@@ -1656,7 +1658,7 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
                     syncs[name]["roles"].append(role)
             if marks_due:
                 stages[role][-1] += [mark, keep_going]
-    checks = ("about", "expect", "forbid", "allow", "same_hp", "same_hp_census", "hp_sums_hits",
+    checks = ("about", "expect", "expect_any", "forbid", "allow", "same_hp", "same_hp_census", "hp_sums_hits",
               "max_hp_lag", "max_hp_lag_each", "killed", "max_kill_lag", "max_join_s", "moves",
               "grounded", "overlay_textures", "console_expect", "known_bug", "known_problems",
               "files_present",
