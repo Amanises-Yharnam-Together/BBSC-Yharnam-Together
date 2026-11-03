@@ -5565,6 +5565,35 @@ SCENARIOS["spectate-lamp"] = {
     "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS + SPECTATE_FORBID + [r"reset=true"]},
     "timeout": 300,
 }
+# Kaniel 2026-11-03 (Amanises's idea): the spectator's unseen body trails the teammate it watches
+# (SpectateFollow), so that its game keeps the map and the teammate drawn around the camera. The
+# host walks about 50 m off to Iosefka's door while the guest spectates; the guest's body follows
+# about 2 s behind and never onto the host; the host's lamp then wakes it as ever.
+SCENARIOS["spectate-follow"] = {
+    "about": "spectating, the guest's unseen body follows the host it watches 50 m off (about 2 s "
+             "behind, never on it); the host's lamp still wakes it at its own lamp",
+    "settings": PARTY_DEATH,
+    "roles": {
+        # Off to Iosefka's door (a teleport onto its landing), then a walk along the landing: a
+        # trail on the ground (a glide cuts through the stairs).
+        "host": [*SPECTATE_HOST, "wait 8", f"teleport {IOSEFKA_WAIT}", "wait 4",
+                 "glide -200.0 -40.5 214.0 -200.0 -40.5 210.0 -200.0 -40.5 214.0 -200.0 -40.5 218.0",
+                 "wait 15", "lamp-use", "wait-member-vital up 60", "wait 5", "snapshot",
+                 "expect-session 2"],
+        "guest": [*SPECTATE_GUEST, "wait-vital up 120", "wait 5", "snapshot", "expect-hp self > 1",
+                  "expect-session 2"],
+    },
+    "expect": {
+        "host": [SPECTATE_SEEN],
+        "guest": [SPECTATE_OUT, r"spectate: watching .+ \(1 of 1 teammates standing here\)",
+                  r"spectate: the body follows .+ \(move 1\): to \(.+\), ([3-9]|\d\d)\.\d m from it",
+                  r"spectate: a teammate's lamp wakes this player at its own lamp \d+ \(moved there\)"],
+    },
+    "forbid": {"host": SESSION_HOLDS,
+               "guest": SESSION_HOLDS + SPECTATE_FORBID + [r"reset=true", r"spectate: killed",
+                                                           r"the body follows .+, [0-2]\.\d m from it"]},
+    "timeout": 360,
+}
 SCENARIOS["spectate-give-up"] = {
     "about": "spectating, the guest holds Circle 3 s: it wakes at its own lamp at once (no death, no "
              "reload), the host still standing",
