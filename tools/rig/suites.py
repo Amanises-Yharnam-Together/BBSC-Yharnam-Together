@@ -1166,10 +1166,11 @@ SUITES = {
                                f"teleport {GUEST_ALONE_SPOT}", "wait 2", f"approach {ENEMY}",
                                f"hit {ENEMY} 30", "sync ocf-hit", "sync ocf-hurt",
                                "wait-solo 180", "wait 3", f"expect-hp {ENEMY} <= 200",
-                               # Steps 5 m from the enemy, wherever it stands, so a chasing
-                               # enemy walks the 1.5 m "moves" needs (rig 2026-11-02: the fixed
-                               # spot this used was often where it already stood).
-                               "census 40", f"approach {ENEMY} 0 5 0", "wait 10", "census 40",
+                               # Back to the lamp, known ground 14-25 m from where the fight
+                               # leaves the enemy, so a chasing enemy walks the 1.5 m "moves"
+                               # needs (rig 2026-11-02: a spot 4 m off was often where it stood
+                               # already, and 5 m from the enemy itself was over the drop).
+                               "census 40", f"teleport {AT_THE_LAMP}", "wait 10", "census 40",
                                f"expect-hp {ENEMY} <= 200", "sync ocf-back"]},
                     # The old owner-crash scenario's check: the guest's game runs the map now. Its
                     # game leads the team from here on (#403): the line comes in this chapter, not
