@@ -231,3 +231,33 @@ class OwnerCrashFightTargetsTest(unittest.TestCase):
 
     def test_targets_only_before_the_takeover_fail(self):
         self.assertTrue(self.problems(self.TARGETS.format("0x10044000") + self.TAKEOVER))
+
+
+class RestartAfterTest(unittest.TestCase):
+    """restart_after: a game stopped by a chapter starts again only once the other games reached
+    a sync (rig 2026-11-03: owner-crash-fight's host came back beside the enemy mid-check)."""
+
+    def test_a_suite_holds_the_restart_until_the_sync(self):
+        import suites
+        suite = {"about": "", "roles": {"host": {}, "guest": {}}, "chapters": [
+            suites.chapter("c", "", {"host": ["wait 1", suites.restart_after("moved"),
+                                              "sync moved"],
+                                     "guest": ["wait 1", "sync moved"]})]}
+        compiled = suites.compile_suite(suite)
+        self.assertEqual(compiled["stage_after"], {"host": {1: "moved"}})
+        self.assertEqual(len(compiled["roles"]["host"]), 2)
+
+    def test_the_gate_opens_once_every_other_game_reached_it(self):
+        scenario = {"stage_after": {"host": {1: "moved"}},
+                    "syncs": {"moved": {"chapter": "c", "roles": ["guest", "host"]}}}
+        self.assertFalse(run_scenario.stage_gate_open(scenario, "host", 1, {"guest": set()},
+                                                      set(), set()))
+        self.assertTrue(run_scenario.stage_gate_open(scenario, "host", 1, {"guest": {"moved"}},
+                                                     set(), set()))
+        # The chapter given up, or the other game done: nothing to wait for.
+        self.assertTrue(run_scenario.stage_gate_open(scenario, "host", 1, {"guest": set()},
+                                                     {"c"}, set()))
+        self.assertTrue(run_scenario.stage_gate_open(scenario, "host", 1, {"guest": set()},
+                                                     set(), {"guest"}))
+        # No gate on that stage.
+        self.assertTrue(run_scenario.stage_gate_open(scenario, "host", 2, {}, set(), set()))

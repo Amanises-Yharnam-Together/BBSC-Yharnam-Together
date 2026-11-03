@@ -295,6 +295,19 @@ def syncs_to_release(syncs: dict[str, dict], reached: dict[str, set[str]], given
                     for role in sync["roles"]))]
 
 
+def stage_gate_open(scenario: dict, role: str, stage: int, reached: dict[str, set[str]],
+                    given_up: set[str], finished: set[str]) -> bool:
+    """Whether a role's game may start its next stage now ("stage_after", a suite's
+    restart_after): every other game in that sync reached it, finished, or gave up its chapter."""
+    name = scenario.get("stage_after", {}).get(role, {}).get(stage)
+    if name is None:
+        return True
+    sync = scenario.get("syncs", {}).get(name, {"chapter": None, "roles": []})
+    return sync["chapter"] in given_up or all(
+        other in finished or name in reached.get(other, set())
+        for other in sync["roles"] if other != role)
+
+
 def sync_dir(role_dir: pathlib.Path) -> pathlib.Path:
     """Where the games look for their go files (AutoplaySyncPath: beside autoplay.txt)."""
     return role_dir / "sync"
@@ -1471,11 +1484,23 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
             time.sleep(2)
     done = {}
     crashed = {}
+    # Games stopped for their next stage that wait for the others at a sync (stage_after).
+    held: dict[str, float] = {}
     fatal_failure = False
     while (time.time() < deadline and len(done) + len(crashed) < len(roles)
            and not fatal_failure):
         for role in roles:
             if role in done or role in crashed:
+                continue
+            if role in held:
+                if (stage_gate_open(scenario, role, stage[role], reached, given_up,
+                                    set(done) | set(crashed))
+                        or time.time() > held[role]):
+                    del held[role]
+                    print(f"  {role} stage {stage[role]} starts after "
+                          f"{time.time() - started:.0f} s")
+                    processes[role] = launch(role, stages[role][stage[role]],
+                                             settings=scenario_settings(scenario, role))
                 continue
             text = read_log(role)
             reached[role] |= syncs_reached(text)
@@ -1503,6 +1528,12 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
                     restore_baseline(role, RIG / "saves" / saves / "savedata",
                                      keep_party_files=True)
                     print(f"  {role}: saves put back to {saves}")
+                if not stage_gate_open(scenario, role, stage[role], reached, given_up,
+                                       set(done) | set(crashed)):
+                    held[role] = time.time() + 300
+                    print(f"  {role} waits for the others at sync "
+                          f"{scenario['stage_after'][role][stage[role]]} before it starts again")
+                    continue
                 processes[role] = launch(role, stages[role][stage[role]],
                                          settings=scenario_settings(scenario, role))
             elif found:

@@ -21,6 +21,8 @@ turns it into one script per game:
   it means anything without it) runs with keep-going off and ends the suite when it fails.
 - RESTART in a game's steps stops that game there (as a crash would) and starts it again with
   the steps after it (a scenario's stages).
+- restart_after(sync) is RESTART that starts the game again only once the other games reached
+  that sync.
 
 run_scenario.py <suite> --chapter <name> runs only those chapters (and the "setup" ones they
 need, the join).
@@ -70,12 +72,20 @@ RESTART = "<restart>"
 # Steps a game runs on its title screen, before it is in the world (the lobby's, the title's).
 TITLE_STEPS = ("team-", "title-")
 RESTART_WITH = "<restart with "
+RESTART_AFTER = "<restart after "
 
 
 def restart_with(saves: str) -> str:
     """RESTART with other saves put in first (rig/saves/<saves>, as a scenario's "saves"): a
     brand-new character, as a player who starts one."""
     return f"{RESTART_WITH}{saves}>"
+
+
+def restart_after(sync: str) -> str:
+    """RESTART, but the game starts again only once the other games in that sync reached it
+    (owner-crash-fight, rig 2026-11-03: the host's game came back beside the enemy and took it
+    while the guest's check still ran). The new stage's steps should hold that sync too."""
+    return f"{RESTART_AFTER}{sync}>"
 
 # How players play (the robustness review, 2026-10-12): party death on. At 30 FPS: at the kit's
 # uncapped frame rate the third player is never summoned (rig 2026-10-12, 3 runs of 3; scenario
@@ -1158,7 +1168,11 @@ SUITES = {
                                          "hurt as it was, and it keeps coming for the guest",
                     {"host": ["wait-members 2 300", "sync ocf-go", f"teleport {GUEST_ALONE_SPOT}",
                               "wait 3", "sync ocf-hit",
-                              f"hurt {ENEMY} 200", "wait 3", "sync ocf-hurt", RESTART, START,
+                              f"hurt {ENEMY} 200", "wait 3", "sync ocf-hurt",
+                              # Back only once the guest's check is done (rig 2026-11-03: its
+                              # game came back beside the enemy 2 s after the guest's step back,
+                              # took it, and fought it where it stood).
+                              restart_after("ocf-moved"), "sync ocf-moved", START,
                               "godmode", "wait-session 2 420", "wait 5", "expect-session 2",
                               "sync ocf-back"],
                      # godmode: its game came back in leave without it (rig 2026-11-02: the
@@ -1177,7 +1191,7 @@ SUITES = {
                                # needs (rig 2026-11-02: a spot 4 m off was often where it stood
                                # already, and 5 m from the enemy itself was over the drop).
                                "census 40", f"teleport {AT_THE_LAMP}", "wait 10", "census 40",
-                               f"expect-hp {ENEMY} <= 200", "sync ocf-back"]},
+                               f"expect-hp {ENEMY} <= 200", "sync ocf-moved", "sync ocf-back"]},
                     # The old owner-crash scenario's check: the guest's game runs the map now. Its
                     # game leads the team from here on (#403): the line comes in this chapter, not
                     # in host-crash-apart (rig 2026-11-02).
@@ -1635,6 +1649,7 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
                 if only is None or c["name"] in only or c.get("setup")]
     stages: dict[str, list[list[str]]] = {role: [[START]] for role in roles}
     stage_saves: dict[str, dict[int, str]] = {}
+    stage_after: dict[str, dict[int, str]] = {}
     syncs: dict[str, dict] = {}
     outages: dict[str, float] = {}
     server_restarts: list[str] = []
@@ -1648,14 +1663,17 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
             stages[role][-1] += [mark, keep_going, f"sync {c['name']}"]
             marks_due = False  # a restarted game's chapter mark, after its title's steps
             for step in c["steps"].get(role, []):
-                if step == RESTART or step.startswith(RESTART_WITH):
+                if step == RESTART or step.startswith((RESTART_WITH, RESTART_AFTER)):
                     # Started again: the same chapter, from the title screen (with other saves
-                    # put in first for restart_with).
+                    # put in first for restart_with, once a sync is reached for restart_after).
                     stages[role].append([])
                     marks_due = True
-                    if step != RESTART:
+                    if step.startswith(RESTART_WITH):
                         saves = step[len(RESTART_WITH):-1]
                         stage_saves.setdefault(role, {})[len(stages[role]) - 1] = saves
+                    elif step.startswith(RESTART_AFTER):
+                        sync = step[len(RESTART_AFTER):-1]
+                        stage_after.setdefault(role, {})[len(stages[role]) - 1] = sync
                     continue
                 if marks_due and not step.startswith(TITLE_STEPS):
                     # The title runs only its own steps (team-*, title-*): they go first.
@@ -1687,6 +1705,7 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
         "outages": outages,
         "server_restarts": server_restarts,
         "stage_saves": stage_saves,
+        "stage_after": stage_after,
         **({"saves": suite["saves"]} if "saves" in suite else {}),
     }
 
