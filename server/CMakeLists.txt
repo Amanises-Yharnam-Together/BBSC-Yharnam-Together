@@ -329,6 +329,11 @@ if(BUILD_TESTING)
     target_link_libraries(test_watchdog PRIVATE Qt6::Core)
     add_test(NAME watchdog COMMAND test_watchdog)
 
+    add_executable(test_config EXCLUDE_FROM_ALL tests/test_config.cpp src/config.cpp)
+    target_include_directories(test_config PRIVATE src)
+    target_link_libraries(test_config PRIVATE Qt6::Core)
+    add_test(NAME config COMMAND test_config)
+
     add_executable(test_reports EXCLUDE_FROM_ALL tests/test_reports.cpp src/bloodborne_reports.cpp)
     target_include_directories(test_reports PRIVATE src)
     target_link_libraries(test_reports PRIVATE Qt6::Core)

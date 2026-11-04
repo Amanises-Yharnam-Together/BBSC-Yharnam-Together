@@ -118,6 +118,8 @@ jobs:
         run: |
           set -euo pipefail
           docker run -d --name smoke ${{ steps.names.outputs.shadnet }}:${{ steps.names.outputs.sha }}
+          # A failure still shows the server's own log (the --admin lines below are the client's).
+          trap 'echo "--- server log"; docker logs smoke 2>&1 | tail -40' ERR
           for i in $(seq 1 30); do
             docker exec smoke shadnet --admin stats >/dev/null 2>&1 && break
             sleep 2
