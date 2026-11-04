@@ -2843,7 +2843,8 @@ void KeepEnemyDeathsInStep(bool sharing) {
     for (size_t index = 0; index < pointers.size(); ++index) {
         const u32 handle = characters[index].handle;
         if (characters[index].hp <= 0 && IsRealDeath(ReadValue<u8>(pointers[index], 0x1E3))) {
-            dead_here.push_back({handle, dead_since.try_emplace(handle, now_ms).first->second});
+            dead_here.push_back({handle, dead_since.try_emplace(handle, now_ms).first->second,
+                                 IsBossSized(pointers[index])});
         } else {
             dead_since.erase(handle);
         }
