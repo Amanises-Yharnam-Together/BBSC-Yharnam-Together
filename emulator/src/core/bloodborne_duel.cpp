@@ -55,8 +55,8 @@ DuelNews DuelFollower::Take(const bbcoop::DuelState& next, std::string_view me, 
     // is finished: then a lower duel is the server counting again, a new party world or a
     // restarted server (Kaniel 2026-11-03: the host's game kept the old world's duel 8 and never
     // joined the new world's duel 1, so the others could kill him outside the duel).
-    const bool finished = state.stage() == bbcoop::DuelState::STAGE_NONE ||
-                          state.stage() == bbcoop::DuelState::OVER;
+    const bool finished =
+        state.stage() == bbcoop::DuelState::STAGE_NONE || state.stage() == bbcoop::DuelState::OVER;
     if (next.duel() < state.duel() && !finished) {
         return news;
     }

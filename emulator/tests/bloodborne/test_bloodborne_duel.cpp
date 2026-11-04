@@ -140,9 +140,9 @@ TEST(BloodborneDuel, RefusedAndStale) {
 // one is the server counting again (a new world, a restarted server).
 TEST(BloodborneDuel, FollowsANewCountAfterAFinishedDuel) {
     DuelFollower follower;
-    follower.Take(StateOf(8, bbcoop::DuelState::FIGHTING,
-                          {{"ada", 1, 1, false}, {"bob", 2, 1, false}}),
-                  "ada");
+    follower.Take(
+        StateOf(8, bbcoop::DuelState::FIGHTING, {{"ada", 1, 1, false}, {"bob", 2, 1, false}}),
+        "ada");
     auto over = StateOf(8, bbcoop::DuelState::OVER, {{"ada", 1, 1, true}, {"bob", 2, 1, false}});
     over.set_end(bbcoop::DuelState::WON);
     over.set_winner("bob");
