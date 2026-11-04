@@ -604,6 +604,26 @@ TEST(BloodborneFlagRules, TheDollsBlessingFlagsAreEachGamesOwn) {
     }
 }
 
+// Rig iosefka-gift (failing since 2026-10-20's live team story): the host talked to Iosefka first,
+// its talk's steps (first talk done 72410300, gift given this visit 72410301, gift talks
+// 72410302-72410304) reached the guest, and the guest's talk took her "already gave" branch: no
+// vial. Adella's and Arianna's talks gate their gifts the same way. Each talk's own steps are each
+// player's; the NPCs' states (Iosefka's 72410305 and hostility 72410309, Arianna's gift counts)
+// stay the party's.
+TEST(BloodborneFlagRules, AnNpcsGiftTalkStepsAreEachPlayersOwn) {
+    for (const s32 flag : {72410300, 72410301, 72410302, 72410303, 72410304, 72410306, 72410307,
+                           72410308, 72410311, 72400380, 72400383, 72400384, 72400390, 72400392,
+                           72400393, 72400480, 72400498, 72400499}) {
+        EXPECT_EQ(RuleFor(flag).owner, FlagOwner::PerPlayer) << flag;
+        EXPECT_FALSE(IsWorldFlag(flag)) << flag;
+        EXPECT_TRUE(KeepsLocalFlag(true, flag)) << flag;
+        EXPECT_FALSE(SharedWithParty(flag)) << flag;
+    }
+    for (const s32 flag : {72410305, 72410309, 72410310, 72400394, 72400398, 72400489, 72400950}) {
+        EXPECT_EQ(RuleFor(flag).owner, FlagOwner::Host) << flag;
+    }
+}
+
 // Rig 2026-11-03: in a session a game's own event's flag set comes back as the "other player's"
 // set message, so keeping 72100101/72100102 refused the leveller's own kneel and turn, and her
 // talk waited for them forever. Her steps are taken while this game's own blessing (72100100) is

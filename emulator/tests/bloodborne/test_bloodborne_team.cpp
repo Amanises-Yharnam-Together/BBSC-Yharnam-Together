@@ -442,6 +442,18 @@ TEST(TeamWorld, AGuestKeepsItsOwnDollBlessingFlags) {
               (std::vector<std::pair<s32, bool>>{{72100099, false}, {72100103, false}}));
 }
 
+// Rig iosefka-gift: the host's talk to Iosefka reached a guest away from it as a story step, and
+// the guest's own talk then gave it no vial. Her NPC state (1121) still follows.
+TEST(TeamWorld, AGuestKeepsItsOwnNpcGiftTalk) {
+    WorldFlags before;
+    before.blocks = {1, 72410};
+    before.on = {1121};
+    WorldFlags after = before;
+    after.on = {1121, 72410300, 72410301, 72410302, 72410309};
+    EXPECT_EQ(TeamStoryToFollow(before, after),
+              (std::vector<std::pair<s32, bool>>{{72410309, true}}));
+}
+
 // Kaniel's playtest 2026-10-22: a guest alone on a map saw NPCs the team's world has gone past (or
 // not reached). Each trip's load put its own game's story steps of the session over the team's
 // world while the map placed its characters; the arrival set the team's back only after. A kept
