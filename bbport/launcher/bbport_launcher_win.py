@@ -3985,14 +3985,18 @@ class Launcher:
         if bbport_coop.DISCORD_APP_ID:
             self.coop_rule_switch(self.cell(page, 3, 0, '', span=2), 'discord_status',
                                   _('Show my game on Discord', 'Показывать мою игру в Discord'))
-        row = self.cell(page, 2, 0, '', span=2)
+        cell = self.cell(page, 2, 0, '', span=2)
+        # Two lines: in the longer languages the four did not fit the card in one.
+        row = self.tk.Frame(cell, bg=CARD)
+        row.pack(anchor='w')
         # Players were lost at the VPN step (Kaniel 2026-10-21): the steps are one press away.
         self.button(row, _('How to connect', 'Как подключиться'), self.open_coop_help).pack(side='left')
         self.button(row, _('Bring saves from another folder…', 'Перенести сохранения из папки…'),
                     self.coop_import_saves).pack(side='left', padx=(px(8), 0))
+        row = self.tk.Frame(cell, bg=CARD)
+        row.pack(anchor='w', pady=(px(8), 0))
         # Kaniel 2026-10-25: one press makes the zip a bug report needs (bbport_support).
-        self.button(row, _('Support bundle', 'Пакет для поддержки'),
-                    self.make_support_bundle).pack(side='left', padx=(px(8), 0))
+        self.button(row, _('Support bundle', 'Пакет для поддержки'), self.make_support_bundle).pack(side='left')
         self.button(row, _('Restore saves…', 'Восстановить сохранения…'),
                     self.open_save_backups).pack(side='left', padx=(px(8), 0))
 
@@ -4093,19 +4097,20 @@ class Launcher:
                           'Авто, гниль и темп боссов — правила хоста: действуют ваши, когда вы лидер команды.'),
                   top=14)
 
-        # Step 3: how the team travels.
-        page = steps[2]
+        # Step 4: how the team travels (its own step: 1.3.2's Server step moved the others on).
+        page = steps[3]
         self.label(page, _('How does the team travel between lamps and headstones?',
                            'Как команда перемещается между лампами и надгробиями?'), 'small', MUTED).grid(
             row=0, column=0, columnspan=2, sticky='w', pady=(px(10), px(4)))
         travel = self.coop_rule_var('rule_travel')
         self.coop_travel_mode = self.coop_mode_var(travel, 'together', 'seamless')
-        self.coop_option(page, self.coop_travel_mode, 'seamless',
+        self.coop_travel_mode_frame = self.coop_option(page, self.coop_travel_mode, 'seamless',
                          _('Seamless: everyone travels on their own', 'Бесшовно: каждый путешествует сам'),
                          _('A lamp or headstone takes only you; your teammates stay where they are and you can '
                            'meet up anywhere.',
                            'Лампа или надгробие переносят только вас; союзники остаются на месте, и встретиться '
-                           'можно где угодно.')).grid(row=1, column=0, columnspan=2, sticky='we', pady=(px(6), 0))
+                           'можно где угодно.'))
+        self.coop_travel_mode_frame.grid(row=1, column=0, columnspan=2, sticky='we', pady=(px(6), 0))
         together = self.coop_option(page, self.coop_travel_mode, 'together',
                                     _('Travel together', 'Путь вместе'),
                                     _('A lamp or headstone asks to take the whole team with you.',
@@ -4685,7 +4690,11 @@ class Launcher:
         missing = []
         on_global = self.coop.get('server_type') == 'global'
         if on_global and not bbport_coop.is_signed_in_global(self.coop):
-            missing.append((0, _('Sign in to the public server', 'Вход на публичный сервер')))
+            # No public server yet: nothing to sign in to, Local is the way meanwhile.
+            missing.append((0, _('Sign in to the public server', 'Вход на публичный сервер')
+                            if bbport_coop.global_url(self.coop) else
+                            _('Local (the public server is not open yet)',
+                              'Локальный (публичный сервер ещё не открыт)')))
         if not self.coop_game_folder():
             missing.append((1, _('the game folder', 'папка игры')))
         if not on_global and not bbport_coop.valid_host(self.coop.get('host_ip', '')):

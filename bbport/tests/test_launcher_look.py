@@ -606,12 +606,32 @@ class CoopSettingsTests(unittest.TestCase):
         self.assertEqual(call.call_args[0][1:], ('Kaniel', 'a new and better password', 'the third password here'))
         self.assertEqual(app.coop_auth_view, 'signed_in')
 
+    def test_each_step_has_its_own_page(self):
+        """1.3.2 had the travel choice on the enemies' step (the Server step came first and the steps moved
+        on): step 3 ran past the window and step 4 was empty."""
+        app = self.app
+
+        def on(widget, page):
+            while widget is not None and widget is not page:
+                widget = widget.master
+            return widget is page
+        for page in app.coop_steps:
+            self.assertTrue(page.winfo_children(), 'no step is empty')
+        enemies, travel = app.coop_steps[2], app.coop_steps[3]
+        self.assertTrue(on(app.coop_tempo, enemies), 'the boss tempo is an enemies choice')
+        self.assertTrue(any(on(child, travel) for child in travel.winfo_children()))
+        self.assertTrue(on(app.coop_travel_mode_frame, travel), 'travelling is the last step')
+
     def test_the_public_server_not_open_yet(self):
         with mock.patch.object(bbport_coop, 'GLOBAL_SERVER', ''):
             self.app.coop_vars['server_type'].set('global')
             self.settle(0.5)
             self.app.coop_auth_show()
         self.assertIn('not open yet', self.app.coop_auth_text.cget('text'))
+        # Nothing asks for a sign-in nobody can make: Local is the way meanwhile.
+        with mock.patch.object(bbport_coop, 'GLOBAL_SERVER', ''):
+            missing = self.app.coop_missing_by_step()
+        self.assertEqual(missing[0], (0, 'Local (the public server is not open yet)'))
 
     def test_the_upnp_button_asks_the_router_and_shows_the_answer(self):
         """Kaniel 2026-10-21 asked for a UPnP button in the help; Stop server closes what it opened."""

@@ -3373,6 +3373,7 @@ WINDOWS_LANGUAGES = {0x19: 'ru', 0x01: 'ar', 0x0a: 'es', 0x16: 'pt', 0x0c: 'fr',
 
 from bbport_lang_more import MORE, MORE_KEYS  # noqa: E402 (texts added later, Russian included)
 from bbport_lang_auth import AUTH, AUTH_KEYS  # noqa: E402 (the Global server's accounts, Russian included)
+from bbport_lang_launcher import LAUNCHER, LAUNCHER_KEYS  # noqa: E402 (English-only until 1.3.2)
 
 _tables = {}
 
@@ -3389,7 +3390,11 @@ def table(language):
         auth = AUTH.get(language)
         if auth and len(auth) != len(AUTH_KEYS):
             raise ValueError(f'launcher translation {language}: {len(auth)} texts for {len(AUTH_KEYS)} account keys')
+        rest = LAUNCHER.get(language)
+        if rest and len(rest) != len(LAUNCHER_KEYS):
+            raise ValueError(f'launcher translation {language}: {len(rest)} texts for {len(LAUNCHER_KEYS)} later keys')
         _tables[language] = {**(dict(zip(KEYS, texts)) if texts else {}),
                              **(dict(zip(MORE_KEYS, more)) if more else {}),
-                             **(dict(zip(AUTH_KEYS, auth)) if auth else {})}
+                             **(dict(zip(AUTH_KEYS, auth)) if auth else {}),
+                             **(dict(zip(LAUNCHER_KEYS, rest)) if rest else {})}
     return _tables[language]
