@@ -232,8 +232,9 @@ def production_build(port_dir=PORT_DIR):
 PRODUCTION = production_build()
 DEV_TOOL_EXTRAS = ('debug_camera', 'debug_menu')
 COOP_INSTALL = os.environ.get('BB_COOP_INSTALL') == '1' or (PORT_DIR / 'event-reference.json').is_file()
-# The co-op release's name (Kaniel 2026-10-20), as the setup has it (tools\release\setup.iss).
-COOP_NAME, COOP_SHORT_NAME = 'Yharnam Together: Bloodborne Seamless Co-op', 'Yharnam Together'
+# The co-op release's name in the launcher: the repository's (Kaniel 2026-11-04,
+# Amanises-Yharnam-Together/BBSC-Yharnam-Together). The setup, its folder and shortcuts keep theirs.
+COOP_NAME, COOP_SHORT_NAME = 'BBSC: Yharnam Together', 'BBSC: Yharnam Together'
 HARDER_CHOICES = [('off', ('Off (the normal game)', 'Выключено (обычная игра)')),
                   (bbport_coop.HARDER_BIT, ('A bit harder: enemy HP ×1.5, damage ×1.25, poise ×1.5',
                                             'Чуть сложнее: HP врагов ×1.5, урон ×1.25, стойкость ×1.5')),
