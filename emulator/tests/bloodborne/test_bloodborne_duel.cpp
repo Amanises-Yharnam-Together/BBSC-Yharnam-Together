@@ -134,6 +134,38 @@ TEST(BloodborneDuel, RefusedAndStale) {
     EXPECT_EQ(follower.State().duel(), 3u);
 }
 
+// Kaniel 2026-11-03: after the server made the party a new world (its duels count from 1 again),
+// the host's game still followed the old world's duel 8 and took the new duel 1 for a stale
+// resend: the others fought him while his game was not in the duel. A lower duel after a finished
+// one is the server counting again (a new world, a restarted server).
+TEST(BloodborneDuel, FollowsANewCountAfterAFinishedDuel) {
+    DuelFollower follower;
+    follower.Take(
+        StateOf(8, bbcoop::DuelState::FIGHTING, {{"ada", 1, 1, false}, {"bob", 2, 1, false}}),
+        "ada");
+    auto over = StateOf(8, bbcoop::DuelState::OVER, {{"ada", 1, 1, true}, {"bob", 2, 1, false}});
+    over.set_end(bbcoop::DuelState::WON);
+    over.set_winner("bob");
+    EXPECT_TRUE(follower.Take(over, "ada").over);
+    EXPECT_TRUE(follower.MayPropose());
+
+    follower.Take(
+        StateOf(1, bbcoop::DuelState::ASKING, {{"ada", 0, 1, false}, {"bob", 0, 0, false}}), "ada");
+    EXPECT_EQ(follower.State().duel(), 1u);
+    EXPECT_EQ(follower.Part(), DuelPart::Answered);
+    EXPECT_TRUE(follower
+                    .Take(StateOf(1, bbcoop::DuelState::COUNTDOWN,
+                                  {{"ada", 1, 1, false}, {"bob", 2, 1, false}}),
+                          "ada")
+                    .joined);
+    EXPECT_TRUE(follower
+                    .Take(StateOf(1, bbcoop::DuelState::FIGHTING,
+                                  {{"ada", 1, 1, false}, {"bob", 2, 1, false}}),
+                          "ada")
+                    .fight);
+    EXPECT_EQ(follower.Foes(), std::vector<std::string>{"bob"});
+}
+
 // Free for all with three: everyone still standing on another side is a foe.
 TEST(BloodborneDuel, FreeForAllFoes) {
     DuelFollower follower;
