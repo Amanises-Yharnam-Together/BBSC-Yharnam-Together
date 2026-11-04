@@ -15,7 +15,7 @@ from pathlib import Path
 PRODUCT = 'Yharnam Together: Bloodborne Seamless Co-op'
 COMPANY = 'Yharnam Together'
 DESCRIPTION = 'Yharnam Together launcher'
-COPYRIGHT = 'GPL-2.0-or-later, https://github.com/lKaniel/bloodborne-server'
+COPYRIGHT = 'GPL-2.0-or-later, https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together'
 
 
 def numbers(version):

@@ -1,6 +1,6 @@
 // Everything the site says about itself in one place: names, links and the deployment's URL.
 
-export const REPO = "lKaniel/bloodborne-server";
+export const REPO = "Amanises-Yharnam-Together/BBSC-Yharnam-Together";
 export const REPO_URL = `https://github.com/${REPO}`;
 // The site's own address. seamlesscoop.dev is the project's domain; this game's site is its
 // bloodborne. subdomain (the old bloodborne-seamless-coop.vercel.app address redirects).

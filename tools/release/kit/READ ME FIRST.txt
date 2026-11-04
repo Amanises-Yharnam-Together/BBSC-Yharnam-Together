@@ -75,7 +75,7 @@ PROBLEMS
   - Black screen at start: delete user\shader in the install folder and start again.
   - Logs for a bug report: user\log\shad_log.txt and console.txt (and the .prev ones from the
     start before), the host's user\log\shadnet.txt and backend.txt.
-  - Report issues at https://github.com/lKaniel/bloodborne-server/issues
+  - Report issues at https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together/issues
 
 Made together by Yharnam Together, AMANISES and Supermedo.
 

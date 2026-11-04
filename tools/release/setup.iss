@@ -26,8 +26,8 @@ AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppName}
-AppPublisherURL=https://github.com/lKaniel/bloodborne-server
-AppSupportURL=https://github.com/lKaniel/bloodborne-server/issues
+AppPublisherURL=https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together
+AppSupportURL=https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together/issues
 ; D:\Games\Yharnam Together, or C:\Games\Yharnam Together without a fixed D: drive (Kaniel 2026-10-20). Not Program Files:
 ; writing there needs an administrator, and the launcher's own update runs the setup without one. An
 ; install that exists keeps its folder (UsePreviousAppDir), however old.
