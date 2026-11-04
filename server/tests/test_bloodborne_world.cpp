@@ -992,6 +992,57 @@ int AWipeOfOneMapStartsThatMapOverAlone() {
   return 0;
 }
 
+// Rig wipe-one-map 2026-11-04: the host (Central Yharnam's owner) and the guest
+// died there while guest2 stood in the Dream, so that map started over alone.
+// The host's HP report of a hurt enemy (482 of 484), sent before its game had
+// the map's Reset, came in after it: it stood in the fresh log, and the guest's
+// copy took it after its reload. Until the members of a map that started over
+// have had its Reset (their games hold their reports for WorldLogWipeGraceMs
+// from it), an HP report for that map is from before it.
+int AnHpReportFromBeforeAMapStartedOverDoesNotStand() {
+  Service service{{}};
+  Game host{1000, "host", 11};
+  Game guest{1001, "guest", 12};
+  Game other{1002, "other", 13};
+  const std::vector<Game *> games{&host, &guest, &other};
+  qint64 now = 1'000'000;
+  for (Game *game : games) {
+    game->Hello(now);
+  }
+  Pump(service, games, now);
+  constexpr u32 Up = 1;
+  constexpr u32 Down = 2;
+  constexpr u32 Yharnam = 0x18010000;
+  constexpr u32 Dream = 0x15000000;
+  constexpr u64 Source = 0x1111000000000001;
+  host.Map(Yharnam, now);
+  Pump(service, games, now);
+  guest.Map(Yharnam, now + 100);
+  other.Map(Dream, now + 100);
+  Pump(service, games, now + 100);
+  host.Hp(Source, {{0x1001400b, 482, 484}}, now + 200);
+  Pump(service, games, now + 200);
+  CHECK(guest.member.Hp().contains(Source));
+  host.Send(VitalsOf(Yharnam, Down, 5), now + 300);
+  guest.Send(VitalsOf(Yharnam, Down, 6), now + 300);
+  other.Send(VitalsOf(Dream, Up), now + 300);
+  Pump(service, games, now + 300);
+  guest.Lifecycle(bbcoop::Lifecycle::WIPE, false, now + 5000, Yharnam);
+  Pump(service, games, now + 5000);
+  CHECK(!guest.member.Hp().contains(Source));
+  // The host's report from before its game had the Reset.
+  host.Hp(Source, {{0x1001400b, 482, 484}}, now + 5100);
+  Pump(service, games, now + 5100);
+  CHECK(!guest.member.Hp().contains(Source));
+  CHECK(!other.member.Hp().contains(Source));
+  // After the hold, the owner's reports stand again.
+  now += 5000 + WorldLogWipeGraceMs;
+  host.Hp(Source, {{0x1001400b, 400, 484}}, now);
+  Pump(service, games, now);
+  CHECK(guest.member.Hp().contains(Source));
+  return 0;
+}
+
 // Kaniel's play test 2026-10-25 (Logarius): Lisara fell into the arena's pit
 // while the others stood, krolebord fell after her while Kaniel lay down, and
 // Kaniel's down ended in the wipe. By the time krolebord's and Kaniel's games
@@ -4540,6 +4591,8 @@ int main() {
        AWipeOfOneMapStartsThatMapOverAlone},
       {"AMemberUpAgainAfterDyingFirstDoesNotStopTheWipe",
        AMemberUpAgainAfterDyingFirstDoesNotStopTheWipe},
+      {"AnHpReportFromBeforeAMapStartedOverDoesNotStand",
+       AnHpReportFromBeforeAMapStartedOverDoesNotStand},
       {"APortraitGoesToTheOthersAndToLaterMembers",
        APortraitGoesToTheOthersAndToLaterMembers},
       {"WhateverAGameSendsTheServiceKeepsWorking",
