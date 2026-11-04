@@ -1656,8 +1656,7 @@ TEST(BloodbornePartyDeath, TheTakeoversRecheckWantsACurrentTarget) {
 // Rig down-by-enemy 2026-11-03: the down's forget names the enemies it took the target from.
 TEST(BloodbornePartyDeath, TheDownsForgetNamesItsEnemies) {
     EXPECT_EQ(EnemyHandlesText(std::vector<u32>{0x1001400b}), "0x1001400b");
-    EXPECT_EQ(EnemyHandlesText(std::vector<u32>{0x1001400b, 0x1001402e}),
-              "0x1001400b 0x1001402e");
+    EXPECT_EQ(EnemyHandlesText(std::vector<u32>{0x1001400b, 0x1001402e}), "0x1001400b 0x1001402e");
     EXPECT_EQ(EnemyHandlesText({}), "none");
 }
 
