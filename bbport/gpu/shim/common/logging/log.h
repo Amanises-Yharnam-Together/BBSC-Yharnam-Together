@@ -71,6 +71,13 @@ void Flush();
 #define LOG_WARNING(log_class, ...) LOG_GENERIC(Common::Log::Class::log_class, spdlog::level::warn, __VA_ARGS__)
 #define LOG_ERROR(log_class, ...) LOG_GENERIC(Common::Log::Class::log_class, spdlog::level::err, __VA_ARGS__)
 #define LOG_CRITICAL(log_class, ...) LOG_GENERIC(Common::Log::Class::log_class, spdlog::level::critical, __VA_ARGS__)
+// A few lines a game that a production log still needs (the build, the start's settings): info in
+// a dev build, as before, and a warning in a production one, whose file keeps warnings only.
+#if BB_PRODUCTION
+#define LOG_NOTICE(log_class, ...) LOG_WARNING(log_class, __VA_ARGS__)
+#else
+#define LOG_NOTICE(log_class, ...) LOG_INFO(log_class, __VA_ARGS__)
+#endif
 // Whether info lines go anywhere: work done only to write one (a string built before LOG_INFO, a
 // position trail kept for a line) skips itself when it is false (a production game's default).
 #define LOG_INFO_ON() Common::Log::ShouldLog(spdlog::level::info)

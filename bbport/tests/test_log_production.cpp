@@ -72,6 +72,7 @@ static int Game(const char* path, const char* coop_trace) {
     LOG_WARNING(Debug, "warning line");
     LOG_ERROR(Debug, "error line");
     LOG_CRITICAL(Debug, "critical line");
+    LOG_NOTICE(Loader, "notice line");
     const bool info_on = Common::Log::ShouldLog(Common::Log::Level::info);
     const std::string trace{coop_trace};
     if (info_on != (trace == "1" || trace == "on")) return 4;
@@ -102,7 +103,8 @@ int main(int argc, char** argv) {
 
     // A player's game: warnings and worse only.
     const auto plain = RunGame(argv[0], folder / "plain" / "shad_log.txt", "");
-    CHECK(plain.size() == 3);
+    CHECK(plain.size() == 4);
+    CHECK(Has(plain, "[Loader] <Warning>") && Has(plain, "notice line"));
     CHECK(Has(plain, "Game: warning line"));
     CHECK(Has(plain, "error line"));
     CHECK(Has(plain, "critical line"));
@@ -114,7 +116,7 @@ int main(int argc, char** argv) {
     for (const char* on : {"1", "on"}) {
         const auto detailed =
             RunGame(argv[0], folder / (std::string{"detailed-"} + on) / "shad_log.txt", on);
-        CHECK(detailed.size() == 4);
+        CHECK(detailed.size() == 5);
         CHECK(Has(detailed, "info line"));
         CHECK(Has(detailed, "warning line"));
         CHECK(!Has(detailed, "debug line"));
@@ -123,7 +125,7 @@ int main(int argc, char** argv) {
 
     // Anything else is off.
     const auto other = RunGame(argv[0], folder / "zero" / "shad_log.txt", "0");
-    CHECK(other.size() == 3);
+    CHECK(other.size() == 4);
     CHECK(!Has(other, "info line"));
 
     std::filesystem::remove_all(folder, ignored);

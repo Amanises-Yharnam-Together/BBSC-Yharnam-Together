@@ -100,7 +100,7 @@ extern "C" void bbcoop_install(unsigned char* image, uint64_t eboot_size, void* 
     MemoryPatcher::g_eboot_address = reinterpret_cast<uintptr_t>(image);
     MemoryPatcher::g_eboot_image_size = eboot_size;
     // The build, as the emulator logs it: the rig checks that every game runs the same one.
-    LOG_INFO(Loader, "Run: Revision {}", BB_SCM_REV);
+    LOG_NOTICE(Loader, "Run: Revision {}", BB_SCM_REV); // kept in a production log too
     // What a log needs to compare two players' games, in one line: the build, the launcher's frame
     // rate preset and extra patches (patches.py's names; the patches themselves are compiled
     // into patches.bin), and the map event files the game reads (the kit's co-op ones over the
@@ -122,7 +122,7 @@ extern "C" void bbcoop_install(unsigned char* image, uint64_t eboot_size, void* 
     if (const std::tm* utc = std::gmtime(&now)) {
         std::strftime(started, sizeof(started), "%Y-%m-%d %H:%M:%S", utc);
     }
-    LOG_INFO(
+    LOG_NOTICE(
         Loader, "Co-op: started {} UTC, build {}, FPS preset {}, extra patches {}, event files {}",
         started, BB_SCM_REV, environment("BB_FPS_PRESET", "?"), environment("BB_PATCHES", "none"),
         event_files != 0 ? fmt::format("{:016x}", event_files) : std::string{"unread"});

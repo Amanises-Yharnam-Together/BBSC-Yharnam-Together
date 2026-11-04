@@ -37,7 +37,8 @@ same shadNet server and backend.
   `Run: Revision <hash>`.
 - Production builds (`BB_PRODUCTION=1`, what `tools/make-release.ps1` builds) log much less, for
   frame time: `LOG_TRACE` and `LOG_DEBUG` are compiled out, and `shad_log.txt` keeps warnings and
-  errors only, whatever `BB_LOG_LEVEL` says. Crash and freeze reports, `console.txt` and the
+  errors only, whatever `BB_LOG_LEVEL` says (plus `LOG_NOTICE` lines: the build revision and the
+  co-op start line). Crash and freeze reports, `console.txt` and the
   co-op time and spike warnings stay. For a bug report the player sets `coop_trace=1` in
   bbport.ini (`BB_COOP_TRACE=1`): the co-op trace and the info lines come back. Work done only
   for an info line (a position trail, a hand-out list, talk answers, HTTP request dumps) checks
