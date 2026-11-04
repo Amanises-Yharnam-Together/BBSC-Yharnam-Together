@@ -53,7 +53,9 @@ static bool Has(const std::vector<std::string>& lines, const std::string& text) 
 }
 
 static int evaluated = 0;
-static int Count() {
+// Not static: its only calls are in compiled-out lines (clang: -Wunneeded-internal-declaration).
+int Count();
+int Count() {
     return ++evaluated;
 }
 
