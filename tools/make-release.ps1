@@ -121,7 +121,14 @@ if ($DlssSdk) {
     $env:DLSS_SDK_ROOT = $DlssSdk
     Invoke-Clang64 "bash packaging/windows/build_dlss.sh"
 }
-if (-not $SkipPortBuild) { Invoke-Clang64 "bash build.sh" }
+# Kaniel 2026-11-04 ("remove cheats in production mode"): a release is a production build (build.sh
+# BB_PRODUCTION=1): no cheats, save editor, debug menu or camera, or autoplay. A port built by the rig
+# scripts (-SkipPortBuild) is a dev build and is refused.
+if (-not $SkipPortBuild) { Invoke-Clang64 "BB_PRODUCTION=1 bash build.sh" }
+$buildMode = Join-Path $bbport "out\build-mode.txt"
+if (-not (Test-Path $buildMode) -or (Get-Content $buildMode -Raw).Trim() -ne "production") {
+    throw "bbport\out holds a dev build (cheats and debug tools in it): build the release without -SkipPortBuild, or run BB_PRODUCTION=1 bash build.sh first"
+}
 foreach ($exe in "bb-probe.exe", "bb-gpu-capabilities.exe", "bb-play.exe") {
     if (-not (Test-Path (Join-Path $bbport "out\$exe"))) { throw "No bbport\out\${exe}: build the port first (drop -SkipPortBuild)" }
 }
@@ -174,7 +181,7 @@ if (-not $env:WINPYTHON) {
 }
 # Only the staged package: the release needs neither dist\bbport-windows.zip nor the playable copy.
 # BB_RELEASE_VERSION: BLauncher.exe's version resource (packaging\windows\version_info.py).
-Invoke-Clang64 "BB_PACKAGE_STAGE_ONLY=1 BB_RELEASE_VERSION=$Version bash packaging/windows/package.sh"
+Invoke-Clang64 "BB_PRODUCTION=1 BB_PACKAGE_STAGE_ONLY=1 BB_RELEASE_VERSION=$Version bash packaging/windows/package.sh"
 $package = Join-Path $bbport "out\stage\bbport-windows"
 
 # --- 2. the server -----------------------------------------------------------------------------

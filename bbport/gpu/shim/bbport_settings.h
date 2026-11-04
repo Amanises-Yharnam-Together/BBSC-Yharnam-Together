@@ -14,7 +14,26 @@
 
 #include "bbport_output_sizes.h"
 
+// Kaniel 2026-11-04 ("remove cheats in production mode"): a release build (make-release.ps1 runs
+// build.sh with BB_PRODUCTION=1: CMake BB_PRODUCTION=ON, the define BB_PRODUCTION=1) has no cheats,
+// no save editor page and no debug menu or camera; dev and rig builds keep them.
+#ifndef BB_PRODUCTION
+#define BB_PRODUCTION 0
+#endif
+
 namespace BbSettings {
+
+/// Whether this build has the cheats, the save editor and the debug tools.
+inline constexpr bool DevTools = BB_PRODUCTION == 0;
+
+/// The settings only a dev build has: the cheat patches and the game's debug menu and camera.
+inline bool IsDevToolKey(std::string_view key) {
+    return key.starts_with("cheat_") || key == "debug_camera" || key == "debug_menu";
+}
+/// Whether the menus offer this setting in this build.
+inline bool Offered(std::string_view key) {
+    return DevTools || !IsDevToolKey(key);
+}
 
 enum Upscaler : int { UpscalerOff = 0, UpscalerFsr3 = 1, UpscalerFsr4 = 2, UpscalerFsr411 = 3,
                       UpscalerTaa = 4, UpscalerDlss = 5, UpscalerXess = 6, UpscalerCount };

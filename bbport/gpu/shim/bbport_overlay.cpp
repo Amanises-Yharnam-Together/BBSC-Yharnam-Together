@@ -2045,7 +2045,9 @@ void EffectsTab() {
                     "shadows from dynamic lights cost the most GPU time.",
                     "Патч игры, применяется при запуске: после перезапуска. Размытие в движении и тени "
                     "от динамических источников нагружают видеочип сильнее всего.");
-        Toggle(effect.key, T(effect.label, effect.label_ru), s.effects[e], hint);
+        if (BbSettings::Offered(effect.key)) {
+            Toggle(effect.key, T(effect.label, effect.label_ru), s.effects[e], hint);
+        }
     }
 }
 
@@ -2424,7 +2426,8 @@ void Menu() {
     static const char* tab_en[] = {"Display", "Upscaler", "Game effects", "Controls", "Advanced", "Save"};
     static const char* tab_ru[] = {"Изображение", "Апскейлер", "Эффекты игры", "Управление",
                                    "Дополнительно", "Сохранение"};
-    constexpr int tabs = 6;
+    // A release build has no save editor (BbSettings::DevTools): its tab is the last one.
+    constexpr int tabs = BbSettings::DevTools ? 6 : 5;
     if (focus_request) {
         focus_request = false;
         state.focus_first = true;
@@ -2580,7 +2583,11 @@ void Menu() {
     case 2: EffectsTab(); break;
     case 3: ControlsTab(); break;
     case 4: AdvancedTab(); break;
-    default: SaveTab(); break;
+    default:
+        if constexpr (BbSettings::DevTools) {
+            SaveTab();
+        }
+        break;
     }
     if (RestartNeeded()) {
         ImGui::Spacing();

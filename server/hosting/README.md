@@ -29,6 +29,7 @@ bloodborne_worlds/
   <world>/world.pb       snapshot; world.pb.1-3 older snapshots
   <world>/journal.pb     append-only, fsynced records since the snapshot
   <world>/trades.pb  team_world.pb  backups/world-YYYYMMDD.pb (7 days)
+  suspects.jsonl         cheat watch: every finding, one JSON line each (admin.sh suspects)
   forgotten/             worlds taken off the list (never deleted): forgotten or retired;
                          each keeps its line in kept_world.pb (admin.sh restore)
 admin.sock               the operator's commands (HostedAdminSocket; owner-only)
@@ -72,6 +73,7 @@ underneath; `SHADNET_BIN`/`SHADNET_HOME` for a systemd install).
 | `restore <folder>` | A folder from `forgotten/` back on the list, to its players, as played now. Worlds put aside before this build come back with a new id and no players (hosted: nobody sees them) |
 | `retire` | Retirement (below) now |
 | `stats` | Players, worlds listed and in memory, the link thread's busy share (last 10 s), hellos refused, datagrams dropped, accounts refused, strike bans |
+| `suspects [id\|name]` | Cheat watch (docs/CHEAT_WATCH.md): the players seen with cheats, the save editor or an edited save since the server started, the surest first, each finding with its level (`certain`, `likely`, `info`), text, character and how many runs. Reports only: nobody is banned for it. `suspects.jsonl` in the worlds' folder keeps every finding across restarts |
 
 ```bash
 ./admin.sh players

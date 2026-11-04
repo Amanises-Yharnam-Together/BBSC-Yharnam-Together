@@ -160,6 +160,16 @@ ldd "$dest"/bin/*.exe "$dest"/bin/*.dll 2>/dev/null |
         fi
     done
 cp -r scripts patches "$dest/"
+# Kaniel 2026-11-04: the build's mode for patches.py and the launcher (scripts/build_info.json; none:
+# a dev build). A release (BB_PRODUCTION=1) offers no cheats or debug tools.
+rm -f "$dest/scripts/build_info.json"
+if [[ ${BB_PRODUCTION:-0} == 1 ]]; then
+    if [[ $(cat out/build-mode.txt 2>/dev/null) != production ]]; then
+        echo "BB_PRODUCTION=1, but out/ holds a $(cat out/build-mode.txt 2>/dev/null || echo unknown) build: run build.sh with BB_PRODUCTION=1" >&2
+        exit 1
+    fi
+    echo '{"production": true}' > "$dest/scripts/build_info.json"
+fi
 # Legacy CPU (Intel 3rd generation and older): the translation plan scripts/cpu_compat.py applies.
 mkdir -p "$dest/tools" && cp tools/legacy-cpu-plan.json "$dest/tools/"
 cp run.py LICENSE README.md packaging/windows/README-Windows.txt "$dest/"

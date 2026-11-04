@@ -457,7 +457,8 @@ void DefineTexts() {
         for (const Short& s : shorts) {
             if (std::strcmp(s.key, effect.key) == 0) name = &s;
         }
-        if ((name && !name->graphics) || pages.back().rows.size() == RowsPerPage) {
+        if ((name && !name->graphics) || !BbSettings::Offered(effect.key) ||
+            pages.back().rows.size() == RowsPerPage) {
             continue; // the overlay menu and the launcher have it
         }
         // A new effect without a short name: its full label.

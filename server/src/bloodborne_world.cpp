@@ -21,6 +21,8 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QRandomGenerator>
 #include <QRegularExpression>
 #include <QSaveFile>
@@ -876,6 +878,9 @@ void Service::OnHello(Member& member, const bbcoop::Hello& hello, qint64 now_ms,
     const bool team = party.startsWith("world:");
     member.name = hello.member();
     member.run = hello.run();
+    if (!same_run) {
+        member.cheat_watch.StartOver(); // a new run of its game: judged anew
+    }
     member.host = hello.host();
     member.enemy_owner = hello.enemy_owner();
     PartyWorld& world = WorldFor(member.party, now_ms, result);
@@ -1010,6 +1015,9 @@ void Service::OnLifecycle(Member& member, const bbcoop::Lifecycle& lifecycle, qi
     case bbcoop::Lifecycle::JOIN:
     case bbcoop::Lifecycle::LEAVE:
     case bbcoop::Lifecycle::NEW_CHARACTER: {
+        if (lifecycle.event() == bbcoop::Lifecycle::NEW_CHARACTER) {
+            member.cheat_watch.StartOver();
+        }
         const QString event =
             QString::fromStdString(bbcoop::Lifecycle::Event_Name(lifecycle.event()));
         if (lifecycle.host()) {
@@ -1058,6 +1066,10 @@ void Service::Take(Member& member, const bbcoop::Envelope& envelope, qint64 now_
     }
     if (envelope.has_invade_request()) {
         OnInvadeRequest(member, envelope.invade_request(), now_ms, result);
+        return;
+    }
+    if (envelope.has_character_sheet()) {
+        OnCharacterSheet(member, envelope.character_sheet(), now_ms, result);
         return;
     }
     // An invader in a world, or one on its way with no world of its own: in no world here.
@@ -1417,6 +1429,11 @@ void Service::TakeBoard(Member& member, PartyWorld& world, const bbcoop::Envelop
     case bbcoop::Envelope::kVitals: {
         member.level = envelope.vitals().level();
         member.boss = envelope.vitals().boss();
+        NoteSuspicion(member,
+                      member.cheat_watch.Vitals(envelope.vitals().vials(),
+                                                envelope.vitals().bullets(),
+                                                envelope.vitals().max(), envelope.vitals().level()),
+                      now_ms, result);
         std::uint32_t wipe_before = 0;
         if (invasions.contains(world.name)) {
             const bbcoop::VitalsBoard board = world.boards.VitalsMessage();
@@ -1577,10 +1594,91 @@ bool Service::Decides(const PartyWorld& world, const Member& member, u32 map) co
     return owner.empty() || owner == member.name;
 }
 
+void Service::OnCharacterSheet(Member& member, const bbcoop::CharacterSheet& sheet, qint64 now_ms,
+                               Result& result) {
+    BloodborneCoop::CharacterSheet now;
+    now.character = sheet.character();
+    now.level = static_cast<s32>(std::min<u32>(sheet.level(), 1'000'000));
+    for (int i = 0; i < sheet.attributes_size() && i < 6; ++i) {
+        now.attributes[static_cast<std::size_t>(i)] = sheet.attributes(i);
+    }
+    now.echoes = sheet.echoes();
+    now.insight = sheet.insight();
+    now.hp = sheet.hp();
+    now.hp_max = sheet.hp_max();
+    now.production = sheet.production();
+    now.cheats = sheet.cheats();
+    now.dev_tools = sheet.dev_tools();
+    now.save_edits = sheet.save_edits();
+    now.autoplay = sheet.autoplay();
+    NoteSuspicion(member, member.cheat_watch.Sheet(now), now_ms, result);
+}
+
+void Service::NoteSuspicion(const Member& member, std::vector<BloodborneCoop::CheatFinding> found,
+                            qint64 now_ms, Result& result) {
+    if (found.empty()) {
+        return;
+    }
+    const QByteArray id =
+        member.online_id.isEmpty() ? QByteArray::fromStdString(member.name) : member.online_id;
+    Suspect& suspect = suspects[id];
+    suspect.online_id = id;
+    suspect.member = member.name;
+    suspect.display = member.display;
+    const auto& last = member.cheat_watch.Last();
+    const std::string character = last ? last->character : std::string{};
+    const QString when = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
+    QByteArray lines;
+    for (BloodborneCoop::CheatFinding& finding : found) {
+        SuspectFinding& kept = suspect.findings[finding.kind];
+        if (kept.times++ == 0) {
+            kept.first_ms = now_ms;
+        }
+        kept.kind = finding.kind;
+        kept.level = finding.level;
+        kept.text = finding.text;
+        kept.character = character;
+        kept.last_ms = now_ms;
+        result.log.append(
+            QStringLiteral("cheat watch: %1 (%2%3) %4: %5")
+                .arg(QString::fromUtf8(id), QString::fromStdString(member.display),
+                     character.empty() ? QString{}
+                                       : QStringLiteral(", ") + QString::fromStdString(character),
+                     QString::fromUtf8(BloodborneCoop::SuspicionName(finding.level).data()),
+                     QString::fromStdString(finding.text)));
+        const QJsonObject line{
+            {"when", when},
+            {"id", QString::fromUtf8(id)},
+            {"member", QString::fromStdString(member.name)},
+            {"name", QString::fromStdString(member.display)},
+            {"character", QString::fromStdString(character)},
+            {"world", member.party},
+            {"kind", QString::fromStdString(finding.kind)},
+            {"level", QString::fromUtf8(BloodborneCoop::SuspicionName(finding.level).data())},
+            {"text", QString::fromStdString(finding.text)},
+        };
+        lines += QJsonDocument{line}.toJson(QJsonDocument::Compact) + '\n';
+    }
+    if (!folder.isEmpty()) {
+        // Rare (each kind once per run): appended here, on the link's thread.
+        QFile file{QDir{folder}.filePath(QString::fromUtf8(SuspectsFile))};
+        if (file.open(QIODevice::WriteOnly | QIODevice::Append)) {
+            file.write(lines);
+        }
+    }
+}
+
 void Service::TakeTrade(Member& member, PartyWorld& world, const bbcoop::Envelope& envelope,
                         qint64 now_ms, Result& result) {
     switch (envelope.body_case()) {
     case bbcoop::Envelope::kTradeOffer: {
+        // Cheat watch: what it offers (its game took it out of the inventory first).
+        for (const bbcoop::TradeItem& item : envelope.trade_offer().give()) {
+            NoteSuspicion(member,
+                          item.kind() == 1 ? member.cheat_watch.EchoesOffered(item.count())
+                                           : member.cheat_watch.ItemsOffered(item.count()),
+                          now_ms, result);
+        }
         // Hosted: only between members of one started team (a stranger in the party by some other
         // way is nobody to trade with).
         const bbcoop::Team* team = hosted.enabled ? lobby.TeamOf(member.name) : nullptr;
@@ -1618,6 +1716,14 @@ void Service::Deliver(PartyWorld& world, TradeDesk::Result trades, qint64 now_ms
     for (const TradeDesk::Send& send : trades.sends) {
         for (auto& [key, member] : members) {
             if (member.party == world.name && member.name == send.to) {
+                // Cheat watch: the echoes a grant adds are no jump.
+                if (send.envelope.has_trade_grant()) {
+                    for (const bbcoop::TradeItem& item : send.envelope.trade_grant().items()) {
+                        if (item.kind() == 1) {
+                            member.cheat_watch.EchoesGranted(item.count());
+                        }
+                    }
+                }
                 SendTo(member, send.envelope, now_ms);
             }
         }
@@ -1847,6 +1953,15 @@ std::optional<QString> Service::Oversized(const bbcoop::Envelope& envelope) {
             return QStringLiteral("a team world too large");
         }
         break;
+    case bbcoop::Envelope::kCharacterSheet: {
+        const bbcoop::CharacterSheet& sheet = envelope.character_sheet();
+        if (text(sheet.character(), MaxCharacterBytes) || sheet.attributes_size() > 6 ||
+            text(sheet.cheats(), MaxCharacterBytes * 2) ||
+            text(sheet.dev_tools(), MaxCharacterBytes)) {
+            return QStringLiteral("a character sheet too large");
+        }
+        break;
+    }
     case bbcoop::Envelope::kTradeOffer: {
         const bbcoop::TradeOffer& offer = envelope.trade_offer();
         if (text(offer.to(), MaxNameBytes) || text(offer.from_name(), MaxCharacterBytes) ||

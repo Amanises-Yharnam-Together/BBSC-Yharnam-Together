@@ -35,6 +35,9 @@ REQUIRED = (
     "backend/ss_info_template.xml",
     "licenses/GPL-2.0-or-later.txt",
     "CREDITS.txt",
+    # Kaniel 2026-11-04: a production build (no cheats, save editor or debug tools), as
+    # package.sh marks it for patches.py and the launcher.
+    "scripts/build_info.json",
 )
 
 # Game data, by file name or suffix (lower case).
@@ -66,6 +69,9 @@ def check(root: pathlib.Path) -> list[str]:
     """The problems in the release folder ROOT (empty when it may be published)."""
     root = pathlib.Path(root)
     problems = [f"missing {relative}" for relative in REQUIRED if not (root / relative).is_file()]
+    build_info = root / "scripts/build_info.json"
+    if build_info.is_file() and '"production": true' not in build_info.read_text(encoding="utf-8"):
+        problems.append("scripts/build_info.json does not say production: a dev build (BB_PRODUCTION=1)")
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue

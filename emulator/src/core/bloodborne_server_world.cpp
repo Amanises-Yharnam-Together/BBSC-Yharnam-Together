@@ -17,6 +17,9 @@
 #include "core/bloodborne_re_internal.h"
 #include "core/bloodborne_trade.h"
 
+#include <atomic>
+#include <chrono>
+#include <cstdlib>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -935,6 +938,15 @@ void SendFlags(s64 now_ms) {
 
 } // namespace
 
+namespace {
+// Cheat watch: the save editor's changes this run (NoteSaveEdit, the port's dev builds).
+std::atomic<u32> save_edits{0};
+} // namespace
+
+void NoteSaveEdit() {
+    save_edits.fetch_add(1, std::memory_order_relaxed);
+}
+
 namespace Coop {
 
 bool ServerWorldOn() {
@@ -1293,6 +1305,74 @@ void SendServerEchoes(std::span<const KillEchoes> echoes) {
         bbcoop::EchoKill* out = envelope.mutable_echoes()->add_kills();
         out->set_echoes(kill.amount);
         out->set_map(kill.map);
+    }
+    Queue(std::move(envelope));
+}
+
+namespace {
+
+// Cheat watch: the last sheet sent.
+std::mutex sheet_mutex;
+std::string sheet_sent;
+std::chrono::steady_clock::time_point sheet_sent_at{};
+
+// The game's settings as run.py hands them on (the build fingerprint's too).
+std::string SheetSetting(const char* name, std::string_view absent) {
+    const char* value = std::getenv(name);
+    return value != nullptr && *value != '\0' ? std::string{value} : std::string{absent};
+}
+
+} // namespace
+
+// Cheat watch (server/coop/cheat_watch.h, Kaniel 2026-11-04): what this game's character is
+// (PlayerGameData: the save editor's offsets, bbport_save_editor.h) and how the game was built and
+// started, to the server when it changes and every 30 seconds (the server judges a run's changes
+// against its last sheet). The server only reports what it finds.
+void SendServerCharacterSheet() {
+    bbcoop::Envelope envelope;
+    bbcoop::CharacterSheet& sheet = *envelope.mutable_character_sheet();
+#if defined(BB_PRODUCTION) && BB_PRODUCTION
+    constexpr bool production = true;
+#else
+    constexpr bool production = false;
+#endif
+    sheet.set_production(production);
+    sheet.set_cheats(SheetSetting("BB_PATCH_GAMEPLAY", "none"));
+    const std::string other = SheetSetting("BB_PATCH_OTHER", "");
+    std::string dev_tools;
+    for (const auto& [patch, name] : {std::pair{"Restore Debug Menu", "debug menu"},
+                                      std::pair{"Restore Debug Camera", "debug camera"}}) {
+        if (other.find(patch) != std::string::npos) {
+            dev_tools += (dev_tools.empty() ? "" : ", ") + std::string{name};
+        }
+    }
+    sheet.set_dev_tools(dev_tools);
+    sheet.set_save_edits(save_edits.load(std::memory_order_relaxed));
+    sheet.set_autoplay(!production && !SheetSetting("SHADPS4_BLOODBORNE_AUTOPLAY", "").empty());
+    const u64 data = Coop::OwnGameData();
+    if (data >= 0x10000 && HasMemoryAccess(data, 0x98, MemoryProt::CpuRead)) {
+        const s32 level = ReadValue<s32>(data, 0x90);
+        if (level > 0) {
+            sheet.set_character(OwnCharacterName());
+            sheet.set_level(static_cast<u32>(level));
+            for (const u64 at : {0x40, 0x48, 0x58, 0x60, 0x68, 0x70}) {
+                sheet.add_attributes(ReadValue<s32>(data, at));
+            }
+            sheet.set_echoes(ReadValue<s32>(data, 0x94));
+            sheet.set_insight(ReadValue<s32>(data, 0x84));
+            sheet.set_hp(ReadValue<s32>(data, 0x14));
+            sheet.set_hp_max(ReadValue<s32>(data, 0x18));
+        }
+    }
+    std::string text = sheet.SerializeAsString();
+    const auto now = std::chrono::steady_clock::now();
+    {
+        std::scoped_lock lock{sheet_mutex};
+        if (text == sheet_sent && now - sheet_sent_at < std::chrono::seconds{30}) {
+            return;
+        }
+        sheet_sent = std::move(text);
+        sheet_sent_at = now;
     }
     Queue(std::move(envelope));
 }

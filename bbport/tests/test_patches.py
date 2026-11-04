@@ -499,6 +499,38 @@ class DebugPatchTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, f'{kept} conflicts with {dropped}'):
                     validate_patch_requirements([dropped, kept], Path('.'))
 
+    def test_a_release_build_applies_no_cheats_or_debug_tools(self):
+        # Kaniel 2026-11-04: a release (scripts/build_info.json says production) leaves out every
+        # cheat and the debug menu and camera, whatever bbport.ini says; the tweaks stay.
+        # (No Rally would drop No Rally Decay on its own.)
+        everything = {key: '1' for key in patches.EFFECTS if key != 'tweak_no_rally'}
+        dev = effect_patches(everything, production=False)
+        release = effect_patches(everything, production=True)
+        for key in ('cheat_no_death', 'cheat_stealth', 'cheat_silent', 'cheat_rally_no_decay',
+                    'debug_camera', 'debug_menu'):
+            self.assertIn(key, patches.DEV_TOOL_KEYS)
+            self.assertIn(patches.EFFECTS[key][1], dev)
+            self.assertNotIn(patches.EFFECTS[key][1], release)
+        self.assertNotIn('Enemy Control', release)
+        for key in ('tweak_camera_distance', 'tweak_ragdoll', 'skip_intro'):
+            self.assertIn(patches.EFFECTS[key][1], release)
+        self.assertFalse(any(n in patches.GAMEPLAY_PATCHES for n in release))
+        self.assertIn('Disable Rally (HP Regain)',
+                      effect_patches({'tweak_no_rally': '1'}, production=True))
+
+    def test_the_build_mode_comes_from_build_info(self):
+        with tempfile.TemporaryDirectory() as folder:
+            info = Path(folder) / 'build_info.json'
+            self.assertFalse(patches.is_production(info))  # none: a dev build
+            info.write_text('{"production": true}\n', encoding='utf-8')
+            self.assertTrue(patches.is_production(info))
+            info.write_text('{"production": false}', encoding='utf-8')
+            self.assertFalse(patches.is_production(info))
+            info.write_text('not json', encoding='utf-8')
+            self.assertFalse(patches.is_production(info))
+        # This checkout is no release.
+        self.assertFalse(patches.is_production())
+
     def test_conflicting_enemy_control_patch_is_rejected(self):
         with self.assertRaisesRegex(ValueError, 'conflicts with Enemy Control'):
             validate_patch_requirements(['Enemy Control', 'Restore Debug Camera'], Path('.'))

@@ -129,6 +129,12 @@ void LoadAutoplay() {
     if (path == nullptr || *path == '\0') {
         return;
     }
+#if defined(BB_PRODUCTION) && BB_PRODUCTION
+    // Kaniel 2026-11-04 ("remove cheats in production mode"): the rig's scripts (godmode, teleport,
+    // poke, raise-stat, ...) run in dev builds only.
+    LOG_WARNING(Debug, "Bloodborne autoplay: {} not run (a release build has no autoplay)", path);
+    return;
+#endif
     std::ifstream file(path);
     const std::string text{std::istreambuf_iterator<char>{file}, {}};
     std::scoped_lock lock{autoplay_mutex};

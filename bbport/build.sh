@@ -2,6 +2,10 @@
 set -euo pipefail
 cd -- "$(dirname -- "$0")"
 mkdir -p out
+# Kaniel 2026-11-04: BB_PRODUCTION=1 (make-release.ps1) builds a release: no cheats, save editor,
+# debug menu or camera, or autoplay (CMake BB_PRODUCTION). Always passed, so a dev build after a
+# release build is a dev build again. out/build-mode.txt says which this is (make-release checks it).
+if [[ ${BB_PRODUCTION:-0} == 1 ]]; then production=ON; build_mode=production; else production=OFF; build_mode=dev; fi
 # Windows: MSYS2 CLANG64 (packages in packaging/windows/README.md). The GPU library is static
 # there and CMake links bb-probe.exe as well; no PGO (GCC-only flags), LTO off by default.
 case $(uname -s) in
@@ -21,14 +25,16 @@ MINGW*|MSYS*)
         fi
     done
     cmake -S gpu -B out/gpu -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBB_PGO=off \
-        -DBB_LTO="${BB_LTO:-OFF}" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ >/dev/null
+        -DBB_LTO="${BB_LTO:-OFF}" -DBB_PRODUCTION="$production" -DCMAKE_C_COMPILER=clang \
+        -DCMAKE_CXX_COMPILER=clang++ >/dev/null
     echo "GPU library and loader: LTO ${BB_LTO:-OFF}"
     if ! ninja -C out/gpu bb-probe bb-gpu-capabilities bb-play > out/gpu-build.log 2>&1; then
         grep -v '^\[' out/gpu-build.log | tail -40 >&2
         echo 'Build failed (full log: out/gpu-build.log)' >&2; exit 1
     fi
     cp out/gpu/bb-probe.exe out/gpu/bb-gpu-capabilities.exe out/gpu/bb-play.exe out/
-    echo "Built $PWD/out/bb-probe.exe"
+    echo "$build_mode" > out/build-mode.txt
+    echo "Built $PWD/out/bb-probe.exe ($build_mode build)"
     exit 0
     ;;
 esac
@@ -70,7 +76,7 @@ for patch in gpu/patches/fsr-vulkan/*.patch; do
     fi
 done
 cmake -S gpu -B out/gpu -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBB_PGO="$pgo" \
-    -DBB_LTO="${BB_LTO:-ON}" -DBB_PGO_DIR="$PWD/pgo" >/dev/null
+    -DBB_LTO="${BB_LTO:-ON}" -DBB_PGO_DIR="$PWD/pgo" -DBB_PRODUCTION="$production" >/dev/null
 echo "GPU library: PGO $pgo, LTO ${BB_LTO:-ON}"
 # A failed GPU build must stop here: an older libbbgpu.so would otherwise be used silently.
 if ! ninja -C out/gpu bbgpu > out/gpu-build.log 2>&1; then
@@ -100,7 +106,8 @@ if [[ ! -f out/libatrac9.a || -n $(find third_party/LibAtrac9/C/src -newer out/l
     ar rcs out/libatrac9.a out/atrac9/*.o
 fi
 "$CC" -std=c11 -O2 -g -Wall -Wextra -Werror -pthread -no-pie "${includes[@]}" -I. -Isrc src/probe.c "${runtime[@]}" src/vulkan_smoke.c out/libatrac9.a -lm "${gpu[@]}" "${libraries[@]}" -o out/bb-probe
-echo "Built $PWD/out/bb-probe"
+echo "$build_mode" > out/build-mode.txt
+echo "Built $PWD/out/bb-probe ($build_mode build)"
 # GPU check for run.sh (live_resolution=auto) and the launcher's gamepad list (--gamepads).
 "$CC" -std=c11 -O2 -Wall -Wextra -Werror "${includes[@]}" tools/gpu_capabilities.c "${libraries[@]}" -o out/bb-gpu-capabilities
 if [[ ${1:-} == --test ]]; then

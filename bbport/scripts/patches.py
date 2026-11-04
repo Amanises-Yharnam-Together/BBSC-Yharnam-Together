@@ -69,6 +69,19 @@ GAMEPLAY_PATCHES={
 }
 
 
+# Kaniel 2026-11-04 ("remove cheats in production mode"): a release (package.sh writes
+# scripts/build_info.json {"production": true}) applies no cheat and no debug menu or camera patch,
+# whatever bbport.ini says; dev and rig builds (no such file) keep them.
+DEV_TOOL_KEYS=tuple(k for k in EFFECTS if k.startswith('cheat_') or k in ('debug_camera','debug_menu'))
+
+
+def is_production(build_info=Path(__file__).resolve().parent/'build_info.json'):
+    try:
+        return json.loads(build_info.read_text(encoding='utf-8')).get('production') is True
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
 def build_check_names(names):
     """(the gameplay patches' short names, the other patches' names), each in the order given."""
     gameplay=[GAMEPLAY_PATCHES[n] for n in names if n in GAMEPLAY_PATCHES]
@@ -214,10 +227,15 @@ def validate_patch_requirements(names, game):
     return names
 
 
-def effect_patches(settings):
+def effect_patches(settings, production=None):
+    if production is None:
+        production=is_production()
     names=[]
     for key,(off,on) in EFFECTS.items():
         if key not in settings: continue
+        if production and key in DEV_TOOL_KEYS:
+            if settings[key]=='1': print(f'Patches: {on} left out (a release build has no cheats or debug tools)')
+            continue
         name=on if settings[key]=='1' else off
         if name: names.append(name)
     for kept,dropped,why in EXCLUSIVE_PATCHES:

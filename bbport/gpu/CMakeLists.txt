@@ -16,6 +16,15 @@ add_compile_options(-fno-omit-frame-pointer)
 # profile). Covers bbgpu and the static libraries linked into it. No -march: the same build
 # runs on the Steam Deck.
 option(BB_LTO "Link-time optimization of bbgpu" ON)
+# Kaniel 2026-11-04 ("remove cheats in production mode"): a release build (make-release.ps1, through
+# build.sh with BB_PRODUCTION=1) leaves out the cheats, the save editor, the debug menu and camera and
+# the rig's autoplay scripts; every target sees BB_PRODUCTION=1 or 0. Dev and rig builds keep them.
+option(BB_PRODUCTION "Release build: no cheats, save editor, debug tools or autoplay" OFF)
+if (BB_PRODUCTION)
+    add_compile_definitions(BB_PRODUCTION=1)
+else()
+    add_compile_definitions(BB_PRODUCTION=0)
+endif()
 set(BB_PGO "off" CACHE STRING "Profile-guided optimization: off, generate, use")
 set(BB_PGO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../pgo" CACHE PATH "Profile directory")
 if (BB_LTO)

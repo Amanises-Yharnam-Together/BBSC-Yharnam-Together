@@ -316,6 +316,10 @@ if(BUILD_TESTING)
     target_include_directories(test_build_fingerprint PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     add_test(NAME build_fingerprint COMMAND test_build_fingerprint)
 
+    add_executable(test_cheat_watch EXCLUDE_FROM_ALL tests/test_cheat_watch.cpp)
+    target_include_directories(test_cheat_watch PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME cheat_watch COMMAND test_cheat_watch)
+
     add_executable(test_rpc_tunnel EXCLUDE_FROM_ALL tests/test_rpc_tunnel.cpp)
     target_include_directories(test_rpc_tunnel PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     add_test(NAME rpc_tunnel COMMAND test_rpc_tunnel)

@@ -4526,6 +4526,68 @@ int WhatCollectedWorldsKeepIsBounded() {
   return 0;
 }
 
+// Cheat watch (coop/cheat_watch.h, Kaniel 2026-11-04): a member's character
+// sheet with cheats on and a level its attributes do not make is noted (once a
+// run, again in the next run) and kept in suspects.jsonl; a clean one is not.
+bbcoop::Envelope SheetOf(u32 level, std::string cheats) {
+  bbcoop::Envelope envelope;
+  bbcoop::CharacterSheet &sheet = *envelope.mutable_character_sheet();
+  sheet.set_character("Hunter");
+  sheet.set_level(level);
+  for (const s32 value : {11, 10, 12, 10, 9, 8}) { // level 10
+    sheet.add_attributes(value);
+  }
+  sheet.set_echoes(1000);
+  sheet.set_insight(1);
+  sheet.set_hp(500);
+  sheet.set_hp_max(500);
+  sheet.set_production(true);
+  sheet.set_cheats(std::move(cheats));
+  return envelope;
+}
+
+int CheatsAndEditedSavesAreNoted() {
+  QTemporaryDir dir;
+  CHECK(dir.isValid());
+  Service service{dir.path()};
+  Game host{1000, "host", 11};
+  Game guest{1001, "guest", 12};
+  qint64 now = 1'000'000;
+  host.Hello(now);
+  guest.Hello(now);
+  Pump(service, {&host, &guest}, now);
+  host.Send(SheetOf(99, "no death"), now);
+  guest.Send(SheetOf(10, "none"), now);
+  Pump(service, {&host, &guest}, now);
+  CHECK(service.Suspects().size() == 1);
+  const auto &suspect = service.Suspects().begin()->second;
+  CHECK(suspect.member == "host");
+  CHECK(suspect.findings.contains("cheats"));
+  CHECK(suspect.findings.contains("level-mismatch"));
+  CHECK(suspect.findings.at("level-mismatch").level ==
+        BloodborneCoop::Suspicion::Certain);
+  CHECK(suspect.findings.at("cheats").character == "Hunter");
+  // Once a run.
+  now += 1000;
+  host.Send(SheetOf(99, "no death"), now);
+  Pump(service, {&host, &guest}, now);
+  CHECK(service.Suspects().begin()->second.findings.at("cheats").times == 1);
+  // The next run says it again.
+  host.run += 1;
+  host.Hello(now);
+  host.Send(SheetOf(99, "no death"), now);
+  Pump(service, {&host, &guest}, now);
+  CHECK(service.Suspects().begin()->second.findings.at("cheats").times == 2);
+  QFile file{dir.filePath(Service::SuspectsFile)};
+  CHECK(file.open(QIODevice::ReadOnly));
+  const QByteArray lines = file.readAll();
+  CHECK(lines.count('\n') == 4);
+  CHECK(lines.contains("\"kind\":\"level-mismatch\""));
+  CHECK(lines.contains("\"id\":\"host\""));
+  CHECK(!lines.contains("guest"));
+  return 0;
+}
+
 int main() {
   const std::vector<std::pair<const char *, std::function<int()>>> tests{
       {"AWipesReloadKeepsTheEnemyOwner", AWipesReloadKeepsTheEnemyOwner},
@@ -4552,6 +4614,7 @@ int main() {
        TheWorldsOfTheOldTeamsAreOnTheList},
       {"AForgottenWorldsFolderIsPutAside", AForgottenWorldsFolderIsPutAside},
       {"AWorldsLampsAreReset", AWorldsLampsAreReset},
+      {"CheatsAndEditedSavesAreNoted", CheatsAndEditedSavesAreNoted},
       {"EachLinksPartyIsKnownAfterItsHello",
        EachLinksPartyIsKnownAfterItsHello},
       {"AMembersNextRunResumesWhereItWas", AMembersNextRunResumesWhereItWas},
