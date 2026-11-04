@@ -4891,8 +4891,8 @@ std::vector<u32> BroughtBackByTheHost(std::span<const CharacterShown> host,
     }
     std::vector<u32> back;
     for (const DeadCopy& copy : dead_here) {
-        if (alive_at_host.contains(copy.handle) && !party_kills.contains(copy.handle) &&
-            now_ms - copy.dead_since_ms >= BringBackAfterMs) {
+        if (!copy.boss && alive_at_host.contains(copy.handle) &&
+            !party_kills.contains(copy.handle) && now_ms - copy.dead_since_ms >= BringBackAfterMs) {
             back.push_back(copy.handle);
         }
     }

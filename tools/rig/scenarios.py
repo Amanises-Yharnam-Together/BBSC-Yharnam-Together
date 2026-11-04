@@ -5763,12 +5763,29 @@ SHADOWS_DEFEATED = 12701800
 SHADOWS = ("0x1002405f", "0x10024060", "0x10024061")  # their handles in Kaniel's 10-25 log
 
 
+def _stays_dead(handles, seconds: int) -> list[str]:
+    """A check a second for `seconds`: each of `handles` still at 0 HP."""
+    return [step for _ in range(seconds)
+            for step in ["wait 1", *(f"expect-hp {handle} <= 0" for handle in handles)]]
+
+
+# A dead Shadow brought back in a guest's game (its bring-back of what the host's generator brought
+# back, bloodborne_travel.cpp): a boss killed on both games stays dead.
+SHADOW_BROUGHT_BACK = (r"enemies the host's map generator brought back are dead here[^\n]*"
+                       r"bringing them back:[^\n]*(?:" + "|".join(SHADOWS) + ")")
+
+
 def _shadows(role: str, *, look: bool = False, leave: bool = False) -> list[str]:
     steps = [START, f"set-flag {SHADOWS_DEFEATED} 0", f"travel {FORBIDDEN_GRAVE_LAMP}", "godmode",
              "wait-session 2 300", f"watch-effects {SHADOWS[2]} 240", "wait 10", "census 80"]
     # Both games kill them: the map's enemy owner's HP would bring a kill in the other back.
-    steps += ["sync shadows-kill", f"kill {SHADOWS[0]}", "wait 15", f"kill {SHADOWS[1]}", "wait 5",
-              f"expect-hp {SHADOWS[1]} <= 0", "sync shadows-last"]
+    # Each dead one stays dead, checked every second (2026-11-04: a guest's bring-back revived one
+    # for about 3 s after the kill, so a single check 5 s on caught it only sometimes).
+    steps += ["sync shadows-kill", f"kill {SHADOWS[0]}"]
+    steps += _stays_dead(SHADOWS[:1], 15)
+    steps += [f"kill {SHADOWS[1]}"]
+    steps += _stays_dead(SHADOWS[:2], 10)
+    steps += ["sync shadows-last"]
     if look:
         steps += [f"approach {SHADOWS[2]} {0 if role == 'host' else 3} 10 3.1416"]
         for index in range(12):
@@ -5806,7 +5823,9 @@ for _name, _steps, _syncs, _about in (
         "about": _about,
         "roles": {role: _steps(role) for role in ("host", "guest")},
         "syncs": {sync: {"chapter": _name, "roles": ["host", "guest"]} for sync in _syncs + (("shadows-kill",) if _name.startswith("shadows") else ())},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + ([SHADOW_BROUGHT_BACK]
+                                             if _name.startswith("shadows") else [])},
         "timeout": 600,
     }
 

@@ -1347,6 +1347,20 @@ TEST(BloodbornePartyDeath, AGuestBringsBackWhatTheHostsGeneratorBroughtBack) {
     EXPECT_TRUE(BroughtBackByTheHost({}, dead_here, {}, Now).empty());
 }
 
+// Rig shadows-look 2026-11-04: both games killed the 2nd Shadow (0x10024060) at once. The host
+// never posts a boss-sized character dead (its shown bits leave bosses out), so 3 s later the
+// guest took the host's "alive" for a bring-back and its dead boss stood again at full HP. No map
+// generator brings a boss back: a boss-sized copy dead here stays dead.
+TEST(BloodbornePartyDeath, ABossDeadHereIsNeverBroughtBack) {
+    constexpr s64 Now = 100'000;
+    const std::vector<CharacterShown> host{{.handle = 0x10024060}, {.handle = 0x1002c03d}};
+    const std::vector<DeadCopy> dead_here{
+        {0x10024060, Now - 60'000, true},
+        {0x1002c03d, Now - 60'000},
+    };
+    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {}, Now), std::vector<u32>{0x1002c03d});
+}
+
 // Kaniel's DLC playtest 2026-10-28 (1.3.1): the host left, the session went to Lisara, whose copy
 // had krolebord's dead enemies alive. His game brought 0x10038029 back every 2 s and it died again
 // at once by the game's own kill (16 respawns, ~109,500 echoes). One that dies again within

@@ -523,9 +523,13 @@ bool RespawnsInWorldRespawn(WorldRespawnKind kind, const RespawnCandidate& chara
 // playtest 2026-10-25, v1.2.2). Of this guest's copies dead here (`dead_here`: since when), the
 // ones the host's board has alive near the host, no member's kill standing (`party_kills`), dead
 // here for BringBackAfterMs at least (a kill made here reaches the host first). Sorted.
+// A boss-sized copy (`boss`) is never brought back: no generator brings a boss back, and the host
+// never posts a boss dead (rig shadows-look 2026-11-04: a Shadow killed in both games at once
+// stood again on the guest at full HP).
 struct DeadCopy {
     u32 handle = 0;
     s64 dead_since_ms = 0;
+    bool boss = false;
 };
 constexpr s64 BringBackAfterMs = 3'000;
 std::vector<u32> BroughtBackByTheHost(std::span<const CharacterShown> host,
