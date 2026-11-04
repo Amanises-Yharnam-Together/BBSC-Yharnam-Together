@@ -1661,6 +1661,7 @@ void Service::NoteSuspicion(const Member& member, std::vector<BloodborneCoop::Ch
     }
     if (!folder.isEmpty()) {
         // Rare (each kind once per run): appended here, on the link's thread.
+        QDir{}.mkpath(folder);
         QFile file{QDir{folder}.filePath(QString::fromUtf8(SuspectsFile))};
         if (file.open(QIODevice::WriteOnly | QIODevice::Append)) {
             file.write(lines);
