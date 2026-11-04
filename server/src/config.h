@@ -97,6 +97,9 @@ struct InvasionConfig {
 class ConfigManager {
 public:
     bool Load(const QString& path = "shadnet.cfg");
+    // The file as it is, for a command beside a running server (`shadnet --admin`): never
+    // writes it, not even a missing one (Load writes every missing key's default).
+    bool LoadReadOnly(const QString& path = "shadnet.cfg");
     void Reload(const QString& path = "shadnet.cfg");
 
     QString GetHost() const {
@@ -238,7 +241,8 @@ public:
     void LoadBannedDomains();
 
 private:
-    void Parse(const QString& path);
+    // write: missing keys get their defaults in the file (the server's own load only).
+    void Parse(const QString& path, bool write = true);
 
     mutable QReadWriteLock m_lock;
     QString m_path;

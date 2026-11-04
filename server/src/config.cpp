@@ -22,7 +22,7 @@ void ConfigManager::LoadBannedDomains() {
     qInfo() << "Loaded" << m_bannedDomains.size() << "banned domains";
 }
 
-void ConfigManager::Parse(const QString& path) {
+void ConfigManager::Parse(const QString& path, bool write) {
     QWriteLocker lk(&m_lock);
 
     m_path = path;
@@ -30,17 +30,17 @@ void ConfigManager::Parse(const QString& path) {
     QSettings s(path, QSettings::IniFormat);
 
     auto str = [&](const QString& key, const QString& def) -> QString {
-        if (!s.contains(key))
+        if (write && !s.contains(key))
             s.setValue(key, def);
         return s.value(key, def).toString();
     };
     auto boolean = [&](const QString& key, bool def) -> bool {
-        if (!s.contains(key))
+        if (write && !s.contains(key))
             s.setValue(key, def);
         return s.value(key, def).toBool();
     };
     auto strList = [&](const QString& key) -> QStringList {
-        if (!s.contains(key))
+        if (write && !s.contains(key))
             s.setValue(key, QString());
         QString raw = s.value(key).toString();
         return raw.isEmpty() ? QStringList{} : raw.split(',', Qt::SkipEmptyParts);
@@ -133,6 +133,9 @@ void ConfigManager::Parse(const QString& path) {
     m_adminsList = strList("AdminsList");
     m_registrationSecretKey = str("RegistrationSecretKey", "");
 
+    if (!write)
+        return; // a command beside the server: its file untouched, its stderr quiet
+
     s.sync();
 
     if (s.status() != QSettings::NoError)
@@ -150,6 +153,11 @@ void ConfigManager::Parse(const QString& path) {
 
 bool ConfigManager::Load(const QString& path) {
     Parse(path);
+    return true;
+}
+
+bool ConfigManager::LoadReadOnly(const QString& path) {
+    Parse(path, false);
     return true;
 }
 
