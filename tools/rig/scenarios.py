@@ -5996,3 +5996,106 @@ SCENARIOS["boss-tempo-party"] = {
     "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
     "timeout": 600,
 }
+
+
+# Kaniel's play test 2026-11-03: a guest who had just joined could not level up at the Doll again
+# until it left the Dream (6700, her level-up flag, stayed on after her talk), and the host's level
+# up made the guests kneel (72100100-72100102, her blessing steps, followed as the host's story
+# steps). Her talk (m21_00 t210304): "Level Up" opens the menu and sets 6700 only while 6700 is
+# off; the menu closed, her words, 72100100 on, her blessing events (12100112/12100113) set
+# 72100101/72100102, the kneel, her talk's end, 72100100 off. 6700 going on is the proof her menu
+# opened; on a guest, so is "c17" in its talk answers.
+DOLL_LEVEL_UP = 6700
+DOLL_BLESSING = 72100100
+DOLL_FLAGS = f"flags {DOLL_LEVEL_UP} {DOLL_BLESSING} 72100101 72100102"
+# Her first words: X starts them, a late X ends them and her first choices come 5 s after it, then
+# X takes Level Up.
+OPEN_DOLL_MENU = [f"approach {DOLL} 1.0 0 1.5708", "wait 2", "press cross 200", "wait 24",
+                  "press cross 200", "wait 8", "press cross 200", "wait 3", DOLL_FLAGS]
+LEAVE_THE_DOLL = ["press circle 200", "wait 2", "press circle 200", "wait 2", "press circle 200",
+                  "wait 4", "expect-walks 2 10"]
+# The menu closed (X), her words and blessing over, her talk ended by walking 6 m away; back at
+# her, Level Up again, its menu closed and her talk ended the same way.
+WALK_AWAY_AND_BACK = ["wait 3", "press cross 200", "wait 15", DOLL_FLAGS, *LEAVE_THE_DOLL,
+                      f"approach {DOLL} 6.0 0 1.5708", "wait 5", DOLL_FLAGS, *OPEN_DOLL_MENU,
+                      "wait 3", "press cross 200", "wait 15", DOLL_FLAGS, *LEAVE_THE_DOLL]
+TEAM_HOST = ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START, "godmode",
+             "wait-session 2 300"]
+TEAM_GUEST = ["team-accept", "team-ready", START, "godmode", "wait-session 2 300"]
+# Another player's blessing steps never in this game, nor the kneel they bring.
+NO_BLESSING_HERE = [r"the host's story steps followed here[^\n]* -?7210010[0-2]\b",
+                    r"autoplay flags \(map 0x15000000\):[^\n]* 7210010[0-2]=1"]
+
+SCENARIOS["doll-walk-guest"] = {
+    "about": "a guest levels up at the Doll with the host in the Dream, walks 6 m away, comes "
+             "back and levels up again: her menu opens both times",
+    "roles": {
+        "host": [*TEAM_HOST, f"travel {HUNTERS_DREAM}", "wait-members 2 120", "wait 3",
+                 "sync dw-here", "sync dw-done", "expect-session 2"],
+        "guest": [*TEAM_GUEST, "wait 5", f"travel {HUNTERS_DREAM}", "wait 8", "sync dw-here",
+                  "wait 3", *OPEN_DOLL_MENU, *WALK_AWAY_AND_BACK, "sync dw-done",
+                  "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-walk-guest", "roles": ["host", "guest"]}
+              for sync in ("dw-here", "dw-done")},
+    "expect": {"guest": [r"c17x[\s\S]*c17x", r"autoplay: walked[\s\S]*autoplay: walked"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 420,
+}
+SCENARIOS["doll-walk-alone"] = {
+    "about": "a guest alone in the Dream (the host in Central Yharnam) levels up, walks 6 m away, "
+             "comes back and levels up again: her menu opens both times",
+    "roles": {
+        "host": [*TEAM_HOST, "wait 5", "sync da-here", "sync da-done", "expect-session 2"],
+        "guest": [*TEAM_GUEST, "wait 5", f"travel {HUNTERS_DREAM}", "wait 8", "sync da-here",
+                  "wait 3", *OPEN_DOLL_MENU, *WALK_AWAY_AND_BACK, "sync da-done",
+                  "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-walk-alone", "roles": ["host", "guest"]}
+              for sync in ("da-here", "da-done")},
+    "expect": {"guest": [r"c17x[\s\S]*c17x", r"autoplay: walked[\s\S]*autoplay: walked"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 420,
+}
+SCENARIOS["doll-walk-host"] = {
+    "about": "the host levels up with a team guest in the Dream, walks 6 m away, comes back and "
+             "levels up again; the guest takes none of her blessing steps and does not kneel",
+    "roles": {
+        "host": [*TEAM_HOST, f"travel {HUNTERS_DREAM}", "wait-members 2 120", "wait 3",
+                 "sync dh2-here", *OPEN_DOLL_MENU, *WALK_AWAY_AND_BACK, "sync dh2-done",
+                 "expect-session 2"],
+        "guest": [*TEAM_GUEST, "wait 5", f"travel {HUNTERS_DREAM}", "wait 8", "sync dh2-here",
+                  *[step for _ in range(40) for step in ("wait 3", DOLL_FLAGS)],
+                  "expect-walks 2 10", "sync dh2-done", "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-walk-host", "roles": ["host", "guest"]}
+              for sync in ("dh2-here", "dh2-done")},
+    # Her menu opened again: 6700 off once her talk was over, on with the second Level Up.
+    "expect": {"host": [r"6700=1[\s\S]*6700=0[\s\S]*6700=1",
+                        r"autoplay: walked[\s\S]*autoplay: walked"],
+               "guest": [r"autoplay: walked"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": [*SESSION_HOLDS, *NO_BLESSING_HERE]},
+    "timeout": 480,
+}
+SCENARIOS["doll-level-up-host"] = {
+    "about": "the host levels up at the Doll with a team guest in the Dream: the guest takes none "
+             "of her blessing steps, does not kneel and walks away",
+    "roles": {
+        "host": [*TEAM_HOST, f"travel {HUNTERS_DREAM}", "wait-members 2 120", "wait 3",
+                 "sync dh-here", *OPEN_DOLL_MENU, f"expect-flag {DOLL_LEVEL_UP} 1",
+                 "sync dh-closing", "press cross 200", f"wait-flag {DOLL_BLESSING} 1 20",
+                 DOLL_FLAGS, "wait 3", DOLL_FLAGS, "wait 12", DOLL_FLAGS, *LEAVE_THE_DOLL,
+                 "sync dh-checked", "expect-session 2"],
+        "guest": [*TEAM_GUEST, "wait 5", f"travel {HUNTERS_DREAM}", "wait 8", "sync dh-here",
+                  "sync dh-closing", *[step for _ in range(8) for step in ("wait 2", DOLL_FLAGS)],
+                  f"expect-flag {DOLL_BLESSING} 0", "expect-flag 72100101 0",
+                  "expect-flag 72100102 0", "expect-walks 2 10", "sync dh-checked",
+                  "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-level-up-host", "roles": ["host", "guest"]}
+              for sync in ("dh-here", "dh-closing", "dh-checked")},
+    "expect": {"host": [r"autoplay flags \(map 0x15000000\):[^\n]* 72100100=1"],
+               "guest": [r"autoplay: walked"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": [*SESSION_HOLDS, *NO_BLESSING_HERE]},
+    "timeout": 300,
+}
