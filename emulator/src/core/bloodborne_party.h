@@ -169,6 +169,9 @@ public:
         : cap{cap}, threshold_ns{threshold_ns} {}
     std::optional<std::string> Note(std::string_view part, s64 ns, s64 now_ms,
                                     std::string_view role, u64 memory_checks);
+    s64 ThresholdNs() const {
+        return threshold_ns;
+    }
 
 private:
     std::mutex mutex;

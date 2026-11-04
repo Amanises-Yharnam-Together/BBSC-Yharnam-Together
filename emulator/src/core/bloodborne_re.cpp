@@ -684,6 +684,9 @@ std::optional<float> CameraHeadingNow() {
 // forth, teleports, cutscenes). Each map change is logged with where the player was and the
 // path it came by (PositionTrail): the rig replays such a path with glide to cross it itself.
 void LogMapChanges() {
+    if (!LOG_INFO_ON()) {
+        return; // only for its line: no trail kept every frame for nothing
+    }
     static u32 last_map = 0;
     static PositionTrail trail;
     const u32 map = GetCurrentPackedMap();
@@ -1112,6 +1115,9 @@ s64 NanosecondsSince(std::chrono::steady_clock::time_point started) {
 } // namespace
 
 void NoteTickSpike(std::string_view name, s64 ns, u64 memory_checks) {
+    if (ns <= TickSpikes().ThresholdNs()) {
+        return; // every part of every tick comes here: no clock, role or lock for a fast one
+    }
     if (const auto line = TickSpikes().Note(name, ns, SteadyMilliseconds(),
                                             RoleName(CurrentEnemyRole()), memory_checks)) {
         LOG_WARNING(Debug, "{}", *line);

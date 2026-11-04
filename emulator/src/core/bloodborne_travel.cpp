@@ -554,7 +554,8 @@ void PS4_SYSV_ABI NoteEsdDialogAnswer(u64, GuestRegisterSnapshot* registers) {
 
 void LogEsdAnswers(bool party_guest) {
     static std::chrono::steady_clock::time_point last{};
-    esd_answers_wanted.store(party_guest, std::memory_order_relaxed);
+    // Only for their line: the talk hooks keep no answers when it goes nowhere.
+    esd_answers_wanted.store(party_guest && LOG_INFO_ON(), std::memory_order_relaxed);
     const auto now = std::chrono::steady_clock::now();
     if (!party_guest || now - last < std::chrono::seconds{5}) {
         return;
