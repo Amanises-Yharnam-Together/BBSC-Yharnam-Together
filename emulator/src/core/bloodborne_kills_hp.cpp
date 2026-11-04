@@ -658,6 +658,9 @@ void PS4_SYSV_ABI CountPositionTaken(u64, const GuestRegisterSnapshot* registers
 
 // A hand-out's ids on a change (which enemies, by the packets' ids).
 void LogHandOut(const std::string& who, const std::vector<u32>& ids) {
+    if (!LOG_INFO_ON()) {
+        return; // a production game's default: the line would go nowhere
+    }
     static std::map<std::string, std::vector<u32>> last;
     static u32 logged = 0;
     std::string text;

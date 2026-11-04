@@ -515,6 +515,17 @@ endif()
 add_executable(log-file-test EXCLUDE_FROM_ALL ../tests/test_log_file.cpp)
 target_compile_options(log-file-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_link_libraries(log-file-test PRIVATE test-log)
+# The same log as a production build has it (BB_PRODUCTION=1, make-release): no trace or debug
+# lines, and the file keeps warnings and worse unless coop_trace=1. Built with BB_PRODUCTION=1
+# whatever this build's mode is (-U first: no redefinition).
+add_library(test-log-production OBJECT EXCLUDE_FROM_ALL shim/common/logging/log.cpp
+    shadps4/common/thread.cpp shadps4/common/error.cpp shadps4/common/string_util.cpp)
+target_include_directories(test-log-production PUBLIC shim shadps4)
+target_link_libraries(test-log-production PUBLIC fmt::fmt)
+target_compile_options(test-log-production PUBLIC -UBB_PRODUCTION -DBB_PRODUCTION=1)
+add_executable(log-production-test EXCLUDE_FROM_ALL ../tests/test_log_production.cpp)
+target_compile_options(log-production-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_link_libraries(log-production-test PRIVATE test-log-production)
 # Buffer formats the renderer must take without stopping the game (a co-op player's crash).
 add_executable(pixel-format-test EXCLUDE_FROM_ALL ../tests/test_pixel_format.cpp)
 target_compile_options(pixel-format-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
