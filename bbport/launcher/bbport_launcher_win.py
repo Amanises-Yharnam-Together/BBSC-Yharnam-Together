@@ -209,7 +209,7 @@ import bbport_lang  # noqa: E402
 import bbport_controls  # noqa: E402
 import bbport_steam  # noqa: E402
 import bbport_coop  # noqa: E402
-import bbport_discord  # noqa: E402
+import bbport_auth  # noqa: E402
 import bbport_upnp  # noqa: E402
 import bbport_support  # noqa: E402
 
@@ -4146,9 +4146,9 @@ class Launcher:
             self.coop_search(None, quiet=True)
 
     def build_coop_server(self, page, var):
-        """The first step: Local (a host's own server, as ever) or Global (the public server: Sign in with
-        Discord, never a login or a password)."""
-        tk, px = self.tk, self.px
+        """The first step: Local (a host's own server, as ever) or Global (the public server: its own accounts,
+        a name and a password, Kaniel 2026-11-03; password only, 2026-11-04)."""
+        px = self.px
         self.coop_server_type = var('server_type', 'global' if self.coop.get('server_type') == 'global' else 'local')
         self.coop_option(page, self.coop_server_type, 'local',
                          _('Local: your own or a friend\'s server', 'Локальный: свой сервер или сервер друга'),
@@ -4160,64 +4160,239 @@ class Launcher:
                                   _('Hunters from everywhere, quick match, your account on any PC.',
                                     'Охотники со всего мира, быстрый подбор, ваш аккаунт на любом ПК.'))
         chosen.grid(row=1, column=0, columnspan=2, sticky='we', pady=(px(8), 0))
-        panel = tk.Frame(chosen.extra, bg=CARD)
-        panel.pack(fill='x', pady=(px(8), 0))
-        self.coop_discord_text = self.label(panel, '', 'body', TEXT, justify='left', anchor='w')
-        self.coop_discord_text.pack(side='left', fill='x', expand=True)
-        self.coop_discord_button = self.button(panel, _('Sign in with Discord', 'Войти через Discord'),
-                                               self.coop_discord_pressed, 'primary')
-        self.coop_discord_button.pack(side='right')
-        self.coop_discord_error = self.label(chosen.extra, '', 'small', CAUTION, justify='left', anchor='w')
-        self.coop_discord_error.pack(fill='x', pady=(px(4), 0))
-        self.coop_discord_stop = None
-        self.coop_discord_refresh()
+        self.build_coop_accounts(chosen.extra)
+        # The server's address may come later (a test server): the view follows the choice.
+        self.coop_server_type.trace_add('write', lambda *_a: self.coop_auth_follows())
 
-    def coop_discord_refresh(self):
-        name = self.coop.get('discord_name', '')
-        if not bbport_coop.global_url(self.coop):
-            self.coop_discord_text.configure(text=_(bbport_coop.GLOBAL_CLOSED_TEXT))
-            self.coop_discord_button.configure(state='disabled')
-        elif self.coop_discord_stop:
-            self.coop_discord_text.configure(text=_('Waiting for your browser…', 'Ждём браузер…'))
-            self.coop_discord_button.configure(text=_('Cancel', 'Отмена'), state='normal')
-        elif bbport_coop.is_signed_in_global(self.coop):
-            self.coop_discord_text.configure(text=_('Signed in as {}', 'Вход выполнен: {}').format(name or 'Discord'))
-            self.coop_discord_button.configure(text=_('Sign out', 'Выйти'), state='normal')
-        else:
-            self.coop_discord_text.configure(text=_('Your Discord account is your hunter\'s account here.',
-                                                    'Ваш аккаунт Discord здесь и есть аккаунт охотника.'))
-            self.coop_discord_button.configure(text=_('Sign in with Discord', 'Войти через Discord'), state='normal')
+    # --- Global: the server's own accounts (bbport_auth.py) ----------------------------------------
+    # Views: 'sign_in' and 'create' (two tabs), 'forgot', 'code' (the recovery code, once), 'signed_in',
+    # 'change'. The passwords live in this window's fields only: sent once, then the fields are emptied;
+    # nothing but the signed secret is kept (bbport_coop.signed_in_global).
 
-    def coop_discord_pressed(self):
-        self.coop_discord_error.configure(text='')
-        if self.coop_discord_stop:
-            self.coop_discord_stop.set()
-        elif bbport_coop.is_signed_in_global(self.coop):
-            url = bbport_coop.global_url(self.coop)
+    def build_coop_accounts(self, parent):
+        tk = self.tk
+        self.coop_auth_host = tk.Frame(parent, bg=CARD)
+        self.coop_auth_host.pack(fill='x', pady=(self.px(8), 0))
+        self.coop_auth_fields = {key: tk.StringVar() for key in ('name', 'password', 'new_password', 'code')}
+        self.coop_auth_fields['new_password'].trace_add('write', lambda *_a: self.coop_auth_strength_shown())
+        self.coop_auth_fields['password'].trace_add('write', lambda *_a: self.coop_auth_strength_shown())
+        self.coop_auth_saved = tk.BooleanVar(value=False)
+        self.coop_auth_saved.trace_add('write', lambda *_a: self.coop_auth_code_follows())
+        self.coop_auth_busy = False
+        self.coop_auth_code = ''
+        self.coop_auth_view = 'signed_in' if bbport_coop.is_signed_in_global(self.coop) else 'sign_in'
+        self.coop_auth_show()
+
+    def coop_auth_follows(self):
+        """Built again when it was built without a server and has one now (or the other way)."""
+        closed = not bbport_coop.global_url(self.coop)
+        if not self.coop_auth_busy and closed != self.coop_auth_closed:
+            self.coop_auth_view = 'signed_in' if bbport_coop.is_signed_in_global(self.coop) else 'sign_in'
+            self.coop_auth_show()
+
+    def coop_auth_clear(self, *keys):
+        for key in keys or ('password', 'new_password', 'code'):
+            self.coop_auth_fields[key].set('')
+
+    def coop_auth_go(self, view):
+        if self.coop_auth_busy:
+            return
+        self.coop_auth_clear()
+        self.coop_auth_view = view
+        self.coop_auth_show()
+
+    def coop_auth_field(self, parent, title, key, secret=False):
+        """A titled field; a secret one hides what is typed until its eye is pressed."""
+        tk, px = self.tk, self.px
+        self.label(parent, title, 'small', MUTED, anchor='w').pack(fill='x', pady=(px(6), px(2)))
+        row = tk.Frame(parent, bg=CARD)
+        row.pack(fill='x')
+        entry = self.ttk.Entry(row, textvariable=self.coop_auth_fields[key], width=34, show='•' if secret else '')
+        entry.pack(side='left', fill='x', expand=True)
+        if secret:
+            def toggle():
+                hidden = entry.cget('show') != ''
+                entry.configure(show='' if hidden else '•')
+                eye.configure(text=_('Hide', 'Скрыть') if hidden else _('Show', 'Показать'))
+            eye = self.button(row, _('Show', 'Показать'), toggle, width=px(110))
+            eye.pack(side='left', padx=(px(8), 0))
+            entry.eye = eye
+        entry.bind('<Return>', lambda _e: self.coop_auth_pressed())
+        return entry
+
+    def coop_auth_show(self):
+        """The view's widgets, built again each time it changes."""
+        tk, px = self.tk, self.px
+        self.coop_auth_action = None
+        for child in self.coop_auth_host.winfo_children():
+            child.destroy()
+        host, view = self.coop_auth_host, self.coop_auth_view
+        self.coop_auth_entries = {}
+        self.coop_auth_strength = None
+        self.coop_auth_other = None
+        self.coop_auth_closed = not bbport_coop.global_url(self.coop)
+        if self.coop_auth_closed:
+            self.coop_auth_text = self.label(host, _(bbport_coop.GLOBAL_CLOSED_TEXT), 'body', TEXT, anchor='w')
+            self.coop_auth_text.pack(fill='x')
+            self.coop_auth_error = self.label(host, '', 'small', CAUTION, anchor='w')
+            return
+        if view in ('sign_in', 'create'):
+            tabs = tk.Frame(host, bg=CARD)
+            tabs.pack(fill='x')
+            self.coop_auth_tab_sign_in = self.button(tabs, _('Sign in', 'Вход'), lambda: self.coop_auth_go('sign_in'),
+                                                     'primary' if view == 'sign_in' else 'ghost', width=px(150))
+            self.coop_auth_tab_sign_in.pack(side='left')
+            self.coop_auth_tab_create = self.button(tabs, _('Create account', 'Создать аккаунт'),
+                                                    lambda: self.coop_auth_go('create'),
+                                                    'primary' if view == 'create' else 'ghost', width=px(210))
+            self.coop_auth_tab_create.pack(side='left', padx=(px(8), 0))
+        texts = {
+            'sign_in': _('Your hunter\'s account on the public server, on any PC.',
+                         'Аккаунт охотника на публичном сервере, на любом ПК.'),
+            'create': _('Pick a name and a password of at least 10 characters. A long phrase is best.',
+                        'Выберите имя и пароль не короче 10 символов. Лучше всего длинная фраза.'),
+            'forgot': _('Your name and the recovery code you saved when you made the account.',
+                        'Ваше имя и код восстановления, сохранённый при создании аккаунта.'),
+            'code': _('Your recovery code. It is the only way back in if you forget your password, and it is shown '
+                      'only now: write it down or keep it somewhere safe.',
+                      'Ваш код восстановления. Только с ним можно вернуться, если забудете пароль, и он показан '
+                      'только сейчас: запишите его или сохраните в надёжном месте.'),
+            'signed_in': _('Signed in as {}', 'Вход выполнен: {}').format(self.coop.get('global_name', '')),
+            'change': _('Your password now, then the new one. Your other PCs are signed out.',
+                        'Текущий пароль, затем новый. На других ПК потребуется войти заново.'),
+        }
+        self.coop_auth_text = self.label(host, texts[view], 'body', TEXT, justify='left', anchor='w',
+                                         wraplength=px(600))
+        self.coop_auth_text.pack(fill='x', pady=(px(8), 0))
+        fields = {
+            'sign_in': [('name', _('Name', 'Имя'), False), ('password', _('Password', 'Пароль'), True)],
+            'create': [('name', _('Name', 'Имя'), False), ('password', _('Password', 'Пароль'), True)],
+            'forgot': [('name', _('Name', 'Имя'), False), ('code', _('Recovery code', 'Код восстановления'), False),
+                       ('new_password', _('New password', 'Новый пароль'), True)],
+            'change': [('password', _('Password now', 'Текущий пароль'), True),
+                       ('new_password', _('New password', 'Новый пароль'), True)],
+        }.get(view, [])
+        for key, title, secret in fields:
+            self.coop_auth_entries[key] = self.coop_auth_field(host, title, key, secret)
+        if view in ('create', 'forgot', 'change'):
+            self.coop_auth_strength = self.label(host, '', 'small', MUTED, anchor='w')
+            self.coop_auth_strength.pack(fill='x', pady=(px(2), 0))
+            self.coop_auth_strength_shown()
+        if view == 'code':
+            self.coop_auth_code_text = self.label(host, self.coop_auth_code, 'body_bold', ACCENT_HI, anchor='w')
+            self.coop_auth_code_text.pack(fill='x', pady=(px(8), 0))
+            self.coop_auth_saved.set(False)
+            saved = self.switch(host, self.coop_auth_saved, _('I saved it', 'Я сохранил(а) его'))
+            saved.pack(anchor='w', pady=(px(8), 0))
+        buttons = tk.Frame(host, bg=CARD)
+        buttons.pack(fill='x', pady=(px(10), 0))
+        actions = {
+            'sign_in': _('Sign in', 'Войти'), 'create': _('Create account', 'Создать аккаунт'),
+            'forgot': _('Set the new password', 'Задать новый пароль'), 'code': _('Continue', 'Продолжить'),
+            'signed_in': _('Sign out', 'Выйти'), 'change': _('Change password', 'Сменить пароль'),
+        }
+        self.coop_auth_action = self.button(buttons, actions[view], self.coop_auth_pressed,
+                                            'ghost' if view == 'signed_in' else 'primary', width=px(230))
+        self.coop_auth_action.pack(side='left')
+        if view == 'code':
+            self.coop_auth_other = self.button(buttons, _('Copy', 'Копировать'), self.coop_auth_copy, width=px(130))
+        elif view == 'sign_in':
+            self.coop_auth_other = self.button(buttons, _('Forgot password?', 'Забыли пароль?'),
+                                               lambda: self.coop_auth_go('forgot'), width=px(210))
+        elif view == 'signed_in':
+            self.coop_auth_other = self.button(buttons, _('Change password', 'Сменить пароль'),
+                                               lambda: self.coop_auth_go('change'), width=px(230))
+        elif view in ('forgot', 'change'):
+            self.coop_auth_other = self.button(buttons, _('Back', 'Назад'), lambda: self.coop_auth_go(
+                'signed_in' if view == 'change' else 'sign_in'), width=px(120))
+        if self.coop_auth_other:
+            self.coop_auth_other.pack(side='left', padx=(px(8), 0))
+        self.coop_auth_error = self.label(host, '', 'small', CAUTION, justify='left', anchor='w', wraplength=px(600))
+        self.coop_auth_error.pack(fill='x', pady=(px(4), 0))
+        self.coop_auth_code_follows()
+
+    def coop_auth_strength_shown(self):
+        label = getattr(self, 'coop_auth_strength', None)
+        if label is None or not label.winfo_exists():
+            return
+        key = 'password' if self.coop_auth_view == 'create' else 'new_password'
+        typed = self.coop_auth_fields[key].get()
+        words = [_('At least 10 characters', 'Не короче 10 символов'), _('Strength: weak', 'Надёжность: слабый'),
+                 _('Strength: fair', 'Надёжность: средний'), _('Strength: strong', 'Надёжность: высокая')]
+        score = bbport_auth.strength(typed)
+        label.configure(text=words[score] if typed else words[0],
+                        fg=(CAUTION if score <= 1 else MUTED) if typed else MUTED)
+
+    def coop_auth_code_follows(self):
+        if getattr(self, 'coop_auth_view', '') == 'code' and getattr(self, 'coop_auth_action', None) is not None:
+            self.coop_auth_action.configure(state='normal' if self.coop_auth_saved.get() else 'disabled')
+
+    def coop_auth_copy(self):
+        self.root.clipboard_clear()
+        self.root.clipboard_append(self.coop_auth_code)
+
+    def coop_auth_pressed(self):
+        """The view's main button."""
+        if self.coop_auth_busy or self.coop_auth_action is None or not bbport_coop.global_url(self.coop):
+            return
+        view, url = self.coop_auth_view, bbport_coop.global_url(self.coop)
+        self.coop_auth_error.configure(text='')
+        if view == 'code':
+            if self.coop_auth_saved.get():
+                self.coop_auth_code = ''
+                self.coop_auth_go('signed_in')
+            return
+        if view == 'signed_in':
             account, secret = bbport_coop.player_id_for(bbport_coop.played_settings(self.coop), url)
-            threading.Thread(target=bbport_discord.sign_out, args=(url, account, secret), daemon=True).start()
+            threading.Thread(target=bbport_auth.sign_out, args=(url, account, secret), daemon=True).start()
             self.coop.update(bbport_coop.signed_out_global(self.coop))
-            self.coop_discord_done()
-        else:
-            self.coop_discord_stop = bbport_discord.sign_in_thread(
-                bbport_coop.global_url(self.coop),
-                lambda account, failed: self.ui_calls.put(lambda: self.coop_discord_answered(account, failed)))
-            self.coop_discord_refresh()
+            self.coop_auth_fields['name'].set('')
+            self.coop_auth_saved_settings()
+            self.coop_auth_go('sign_in')
+            return
+        field = {key: var.get() for key, var in self.coop_auth_fields.items()}
+        name = field['name'].strip() or self.coop.get('global_name', '')
+        calls = {
+            'sign_in': (bbport_auth.sign_in, (url, name, field['password'])),
+            'create': (bbport_auth.sign_up, (url, name, field['password'])),
+            'forgot': (bbport_auth.recover, (url, name, field['code'], field['new_password'])),
+            'change': (bbport_auth.change_password, (url, name, field['password'], field['new_password'])),
+        }
+        call, args = calls[view]
+        del field, calls
+        self.coop_auth_busy = True
+        self.coop_auth_action.configure(text=_('Working…', 'Подождите…'), state='disabled')
+        bbport_auth.run_thread(call, lambda account, failed: self.ui_calls.put(
+            lambda: self.coop_auth_answered(view, account, failed)), *args)
+        del args
 
-    def coop_discord_answered(self, account, failed):
-        self.coop_discord_stop = None
-        if account:
-            self.coop.update(bbport_coop.signed_in_global(self.coop, account))
-        else:
-            self.coop_discord_error.configure(text=_(failed))
-        self.coop_discord_done()
+    def coop_auth_answered(self, view, account, failed):
+        self.coop_auth_busy = False
+        if failed is not None:
+            text = _(failed.text())
+            if len(failed.args) > 1:
+                text = text.format(failed.args[1])
+            self.coop_auth_show_again(text)
+            return
+        self.coop_auth_clear()
+        code = account.pop('recovery_code', '')
+        self.coop.update(bbport_coop.signed_in_global(self.coop, account))
+        self.coop_auth_saved_settings()
+        self.coop_auth_code = code
+        self.coop_auth_view = 'code' if code else 'signed_in'
+        self.coop_auth_show()
 
-    def coop_discord_done(self):
+    def coop_auth_show_again(self, error):
+        """The same view after a refusal, its fields kept (but the passwords), the reason under it."""
+        self.coop_auth_clear('password', 'new_password')
+        self.coop_auth_show()
+        self.coop_auth_error.configure(text=error)
+
+    def coop_auth_saved_settings(self):
         try:
             bbport_coop.save_settings(PORT_DIR, self.coop)
         except OSError:
             pass
-        self.coop_discord_refresh()
         self.coop_changed_soon()
 
     def coop_rule_var(self, key):
@@ -4510,7 +4685,7 @@ class Launcher:
         missing = []
         on_global = self.coop.get('server_type') == 'global'
         if on_global and not bbport_coop.is_signed_in_global(self.coop):
-            missing.append((0, _('Sign in with Discord', 'Войти через Discord')))
+            missing.append((0, _('Sign in to the public server', 'Вход на публичный сервер')))
         if not self.coop_game_folder():
             missing.append((1, _('the game folder', 'папка игры')))
         if not on_global and not bbport_coop.valid_host(self.coop.get('host_ip', '')):
@@ -5011,12 +5186,15 @@ class Launcher:
             self.status.configure(text=_(bbport_coop.OTHER_KEY_TEXT), fg=BAD)
             return
         # Global: no new id without a sign-in, and no other id to try.
-        if bbport_coop.needs_discord(line):
+        if bbport_coop.needs_sign_in(line):
             # An old or signed-out secret: forgotten, so the first step asks for the sign-in again.
             self.coop.update(bbport_coop.signed_out_global(self.coop))
-            self.coop_discord_done()
-            self.status.configure(text=_('Sign in with Discord again (Co-op settings, the first step).',
-                                         'Войдите через Discord снова (настройки кооператива, первый шаг).'), fg=BAD)
+            if getattr(self, 'coop_auth_host', None) is not None and self.coop_auth_host.winfo_exists():
+                self.coop_auth_view = 'sign_in'
+                self.coop_auth_show()
+            self.coop_auth_saved_settings()
+            self.status.configure(text=_('Sign in again (Co-op settings, the first step).',
+                                         'Войдите снова (настройки кооператива, первый шаг).'), fg=BAD)
             self.coop_new_id = 'give_up_account'
             if self.job:
                 self.job.terminate()

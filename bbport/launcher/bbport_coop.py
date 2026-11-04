@@ -56,9 +56,10 @@ DEFAULTS = {'game': '', 'update': '', 'role': 'guest', 'host_ip': '', 'account':
             # Kaniel 2026-11-01: '1' shows the game on Discord (off by default).
             'discord_status': '',
             # Kaniel 2026-11-01: 'local' (a host's own server, by its address: as ever) or 'global' (the
-            # public server, Sign in with Discord: bbport_discord.py); the name Discord gave, while signed in;
-            # another Global server's address than GLOBAL_SERVER (a test server).
-            'server_type': 'local', 'discord_name': '', 'global_server': '',
+            # public server: its own accounts, bbport_auth.py, Kaniel 2026-11-03); the account's name while
+            # signed in (never its password); another Global server's address than GLOBAL_SERVER (a test
+            # server).
+            'server_type': 'local', 'global_name': '', 'global_server': '',
             # Kaniel 2026-10-28: the boss tempo host rule, '' (Vanilla), 'aggressive' or 'relentless'.
             'rule_tempo': ''}
 BOSS_TEMPOS = ('', 'aggressive', 'relentless')
@@ -308,21 +309,24 @@ def missing(settings):
     """The answers still to give (or wrong), in the window's order."""
     if settings.get('server_type') == 'global':
         needed = [] if settings.get('game') else ['game']
-        return needed + ([] if is_signed_in_global(settings) else ['discord'])
+        return needed + ([] if is_signed_in_global(settings) else ['sign_in'])
     checks = (('game', lambda v: bool(v)), ('host_ip', valid_host))
     return [key for key, ok in checks if not ok(str(settings.get(key, '')))]
 
 
 # --- a Global server (docs/HOSTED_SERVER.md) ------------------------------------------------------
 # The launcher's first Co-op step: Local (a host's own server by its address, exactly as it was) or Global (the
-# public server). There the account comes from Sign in with Discord: the server's own id, kept like any
+# public server). There the account comes from the launcher's sign-in: the server's own id, kept like any
 # server's in `server_ids`; the player's id for home servers stays as it was.
+
+# Kaniel 2026-11-04: password only (the server's own accounts, a name and a password: bbport_auth.py).
 
 # The public server's address, once it runs: https only, its directory or the server itself.
 GLOBAL_SERVER = ''
 GLOBAL_CLOSED_TEXT = 'The public server is not open yet.'
-# A new id on a Global server without a sign-in (the server's link_server.cpp DiscordFirst).
-DISCORD_FIRST = 'discord:'
+# A new id on a Global server without a sign-in, or an old or signed-out secret (the server's
+# link_server.cpp AccountFirst).
+SIGN_IN_FIRST = ('account:',)
 
 
 def global_url(settings):
@@ -332,7 +336,7 @@ def global_url(settings):
 
 # A sign-in's secret starts with when it was issued (unix seconds, hex) and holds 30 days: a day before
 # that the launcher asks for a new sign-in, so a game is not refused half way.
-DISCORD_SECRET_DAYS = 29
+SECRET_DAYS = 29
 
 
 def is_signed_in_global(settings, now=None):
@@ -344,15 +348,16 @@ def is_signed_in_global(settings, now=None):
         issued = int(held[1][:8], 16)
     except ValueError:
         return False
-    return (time.time() if now is None else now) - issued < DISCORD_SECRET_DAYS * 24 * 3600
+    return (time.time() if now is None else now) - issued < SECRET_DAYS * 24 * 3600
 
 
 def signed_in_global(settings, account):
-    """A copy of the settings signed in with what Sign in with Discord gave."""
+    """A copy of the settings signed in with what the sign-in gave: its id and signed secret, and the
+    account's name. Never a password or a recovery code."""
     settings = dict(settings)
     settings['server_ids'] = dict(settings.get('server_ids') or {})
     settings['server_ids'][server_key(global_url(settings))] = [account['id'], account['secret']]
-    settings['discord_name'] = account.get('name', '')
+    settings['global_name'] = account.get('name', '')
     return settings
 
 
@@ -361,7 +366,7 @@ def signed_out_global(settings):
     settings = dict(settings)
     settings['server_ids'] = {host: pair for host, pair in (settings.get('server_ids') or {}).items()
                               if host != server_key(global_url(settings))}
-    settings['discord_name'] = ''
+    settings['global_name'] = ''
     return settings
 
 
@@ -390,11 +395,11 @@ def global_game_settings(settings, fetch=fetch_json, lookup=socket.gethostbyname
                 link_key=link_key_for(settings, url))
 
 
-def needs_discord(text):
-    """Whether the game's log has the server asking for a Sign in with Discord."""
+def needs_sign_in(text):
+    """Whether the game's log has the server asking for a sign-in in the launcher."""
     for line in text.splitlines():
         _before, found, reason = line.partition(REFUSED_LINE)
-        if found and reason.lstrip().startswith(DISCORD_FIRST):
+        if found and reason.lstrip().startswith(SIGN_IN_FIRST):
             return True
     return False
 
@@ -651,6 +656,8 @@ def read_settings(install):
         settings = {key: str(saved.get(key, default)) for key, default in DEFAULTS.items()}
         settings['server_ids'] = server_ids_of(saved)
         settings['server_keys'] = server_keys_of(saved)
+        if not settings['global_name'] and isinstance(saved.get('discord_name'), str):
+            settings['global_name'] = saved['discord_name']  # 1.3.2's first builds
         return settings
     except (OSError, ValueError, AttributeError):
         pass

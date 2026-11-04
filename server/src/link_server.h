@@ -140,7 +140,9 @@ private:
     double m_linkLoad = 0;
     QString m_dbPath;
     QString m_keyError; // the link's key did not read (LinkKeyFile): the link does not start
-    bool m_discordSignIn = false; // Global: Hosted with Discord set up (discord_accounts.h)
+    // Global: Hosted with the launcher's sign-in (signed_accounts.h, password_accounts.h).
+    bool m_signedSignIn = false;
+    qint64 m_revokedHeard = 0; // the directory's last revocation heard (its "seq")
     std::map<QByteArray, std::unique_ptr<RpcEnd>> m_rpc; // by player id
 
     ShardConfig m_shardConfig;

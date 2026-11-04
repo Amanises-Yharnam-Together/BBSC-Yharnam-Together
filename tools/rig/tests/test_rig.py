@@ -702,6 +702,21 @@ class RunnerTest(unittest.TestCase):
                          "the online kit's 31313 and a client's connection are not the rig's")
         self.assertEqual(run_scenario.listening_pids("", 32313), set())
 
+    def test_a_hosted_servers_link_is_found_by_its_udp_port(self):
+        # A hosted shadnet (the Global scenarios) has no plain TCP port: it was left running and
+        # held the lane's link port for the next run (2026-11-04).
+        udp = "\n".join([
+            "  Proto  Local Address          Foreign Address        State           PID",
+            "  UDP    0.0.0.0:33714          *:*                                    81240",
+            "  UDP    127.0.0.1:33714        *:*                                    81240",
+            "  UDP    0.0.0.0:133714         *:*                                    12",
+            "  UDP    [::]:5050              *:*                                    3",
+        ])
+        self.assertEqual(run_scenario.udp_pids(udp, 33714), {81240})
+        self.assertEqual(run_scenario.udp_pids(udp, 5050), {3})
+        self.assertEqual(run_scenario.udp_pids(udp, 3714), set())
+        self.assertEqual(run_scenario.udp_pids("", 33714), set())
+
     def test_only_the_rigs_games_are_stopped(self):
         exe = pathlib.Path(r"C:\bb\out\emulator\build\shadPS4.exe")
         listing = "\n".join([

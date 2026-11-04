@@ -220,10 +220,20 @@ bool Database::Migrate() {
         Exec(ins3);
     }
 
-    // Migration 4: when a Discord account signed out (discord_accounts.h).
-    Exec("CREATE TABLE IF NOT EXISTS discord_sign_out("
+    // Migration 4: when a signed account signed out (signed_accounts.h). 1.3.2's first builds
+    // named it discord_sign_out.
+    Exec("ALTER TABLE discord_sign_out RENAME TO sign_in_not_before");
+    Exec("CREATE TABLE IF NOT EXISTS sign_in_not_before("
          "  username TEXT PRIMARY KEY,"
          "  not_before INTEGER NOT NULL)");
+    // Migration 5: Global servers' own accounts, a name and a password (password_accounts.h).
+    Exec("CREATE TABLE IF NOT EXISTS password_account("
+         "  name_key  TEXT PRIMARY KEY,"
+         "  name      TEXT NOT NULL,"
+         "  online_id TEXT NOT NULL UNIQUE,"
+         "  hash      TEXT NOT NULL,"
+         "  recovery  TEXT NOT NULL,"
+         "  created   INTEGER NOT NULL)");
     qInfo() << "Database migrations complete";
 
     RunMaintenance();
@@ -489,19 +499,67 @@ std::optional<DbError> Database::CreateAccount(const QString& npid, const QStrin
     return std::nullopt; // success
 }
 
-qint64 Database::DiscordNotBefore(const QString& npid) {
+qint64 Database::SignInNotBefore(const QString& npid) {
     QSqlQuery q(m_db);
-    q.prepare("SELECT not_before FROM discord_sign_out WHERE username=?");
+    q.prepare("SELECT not_before FROM sign_in_not_before WHERE username=?");
     q.addBindValue(npid);
     return Exec(q) && q.next() ? q.value(0).toLongLong() : 0;
 }
 
-void Database::SetDiscordNotBefore(const QString& npid, qint64 seconds) {
+void Database::SetSignInNotBefore(const QString& npid, qint64 seconds) {
     QSqlQuery q(m_db);
-    q.prepare("INSERT OR REPLACE INTO discord_sign_out(username, not_before) VALUES(?, ?)");
+    q.prepare(
+        "INSERT INTO sign_in_not_before(username, not_before) VALUES(?, ?) "
+        "ON CONFLICT(username) DO UPDATE SET not_before=MAX(not_before, excluded.not_before)");
     q.addBindValue(npid);
     q.addBindValue(seconds);
     Exec(q);
+}
+
+std::optional<Database::PasswordAccount> Database::FindPasswordAccount(const QString& name_key) {
+    QSqlQuery q(m_db);
+    q.prepare("SELECT name, online_id, hash, recovery FROM password_account WHERE name_key=?");
+    q.addBindValue(name_key);
+    if (!Exec(q) || !q.next())
+        return std::nullopt;
+    return PasswordAccount{name_key, q.value(0).toString(), q.value(1).toString(),
+                           q.value(2).toString(), q.value(3).toString()};
+}
+
+bool Database::PasswordIdTaken(const QString& online_id) {
+    QSqlQuery q(m_db);
+    q.prepare("SELECT 1 FROM password_account WHERE online_id=?");
+    q.addBindValue(online_id);
+    return Exec(q) && q.next();
+}
+
+bool Database::AddPasswordAccount(const PasswordAccount& account) {
+    QSqlQuery q(m_db);
+    q.prepare("INSERT INTO password_account(name_key, name, online_id, hash, recovery, created) "
+              "VALUES(?, ?, ?, ?, ?, ?)");
+    q.addBindValue(account.nameKey);
+    q.addBindValue(account.name);
+    q.addBindValue(account.onlineId);
+    q.addBindValue(account.hash);
+    q.addBindValue(account.recovery);
+    q.addBindValue(QDateTime::currentSecsSinceEpoch());
+    return Exec(q);
+}
+
+bool Database::SetPasswordHash(const QString& name_key, const QString& hash) {
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE password_account SET hash=? WHERE name_key=?");
+    q.addBindValue(hash);
+    q.addBindValue(name_key);
+    return Exec(q) && q.numRowsAffected() == 1;
+}
+
+bool Database::SetPasswordRecovery(const QString& name_key, const QString& recovery) {
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE password_account SET recovery=? WHERE name_key=?");
+    q.addBindValue(recovery);
+    q.addBindValue(name_key);
+    return Exec(q) && q.numRowsAffected() == 1;
 }
 
 bool Database::SetPassword(const QString& npid, const QString& password) {

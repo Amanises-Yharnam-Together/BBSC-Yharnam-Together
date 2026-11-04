@@ -209,9 +209,9 @@ def with_matching_udp_port(config: str, port: int) -> str:
 
 # shadnet.cfg's keys a scenario may set for its run ("server"), and what every other run has, so
 # one run's never stays for the next (Invasions: the server's kill switch, docs/INVASIONS.md).
-SERVER_DEFAULTS = {"Invasions": "false", "Hosted": "false", "DiscordClientId": "",
-                   "DiscordClientSecret": "", "DiscordApiBase": "https://discord.com/api",
-                   "DiscordProxied": "false"}
+SERVER_DEFAULTS = {"Invasions": "false", "Hosted": "false", "SignIn": "password", "SignInProxied": "false",
+                   "HostedSignupWorkBits": "20", "HostedNewAccountsPerHour": "5",
+                   "PasswordTriesPerMinute": "30"}
 # The running scenario's own ("server"), set by run() before its servers start.
 SERVER_SETTINGS: dict[str, str] = {}
 
@@ -592,11 +592,25 @@ def listening_pids(netstat: str, port: int) -> set[int]:
     return pids
 
 
+def udp_pids(netstat: str, port: int) -> set[int]:
+    """The processes `netstat -ano -p UDP` shows bound to `port`."""
+    pids = set()
+    for line in netstat.splitlines():
+        parts = line.split()
+        if (len(parts) >= 4 and parts[0] == "UDP" and parts[1].endswith(f":{port}")
+                and parts[-1].isdigit()):
+            pids.add(int(parts[-1]))
+    return pids
+
+
 def stop_servers():
-    """Stops whatever serves the rig's ports (only the rig's: the online kit's are others)."""
-    netstat = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True,
-                             text=True).stdout
-    for pid in listening_pids(netstat, SHADNET_PORT) | listening_pids(netstat, BACKEND_PORT):
+    """Stops whatever serves the rig's ports (only the rig's: the online kit's are others). A hosted
+    shadnet (the Global scenarios) has no plain TCP port: its WebAPI and its link tell it."""
+    tcp = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True, text=True).stdout
+    udp = subprocess.run(["netstat", "-ano", "-p", "UDP"], capture_output=True, text=True).stdout
+    pids = (listening_pids(tcp, SHADNET_PORT) | listening_pids(tcp, BACKEND_PORT)
+            | listening_pids(tcp, WEBAPI_PORT) | udp_pids(udp, matching_udp_port()))
+    for pid in pids:
         subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True)
     deadline = time.time() + 15
     while time.time() < deadline and (port_open(SHADNET_PORT) or port_open(BACKEND_PORT)):
@@ -1336,8 +1350,8 @@ def run(name: str, batch: pathlib.Path, attempt: int = 1, scenario: dict | None 
     stop_servers()
     global SERVER_SETTINGS
     SERVER_SETTINGS = server_settings(scenario)
-    # Kaniel 2026-11-01: "global": a hosted server behind TLS with a fake Discord; each game signs
-    # in as the launcher does (global_server.py).
+    # Kaniel 2026-11-01: "global": a hosted server behind TLS; each game's account is made and signed
+    # in as the launcher does (global_server.py: a name and a password).
     engines.ACCOUNT_OVERRIDES.clear()
     world_server = None
     if scenario.get("global"):
