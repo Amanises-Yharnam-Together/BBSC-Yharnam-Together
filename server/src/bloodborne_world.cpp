@@ -1348,6 +1348,14 @@ void Service::TakeWorld(Member& member, PartyWorld& world, const bbcoop::Envelop
         if (!Decides(world, member, hp.map())) {
             return;
         }
+        // Rig wipe-one-map 2026-11-04: a map that started over alone (ResetMap). Its members'
+        // games hold their HP reports for WorldLogWipeGraceMs from its Reset, so one in that time
+        // left before its game had the Reset: its HP is from before (the host's 482 of 484
+        // stood in the fresh log and the guest's copy took it after its reload).
+        if (const auto reset = world.map_reset_ms.find(hp.map());
+            reset != world.map_reset_ms.end() && now_ms - reset->second < WorldLogWipeGraceMs) {
+            return;
+        }
         const WorldLogHost::Taken taken = world.host.ProposeHp(HpOf(hp, member.name));
         if (taken.stale) {
             return;
