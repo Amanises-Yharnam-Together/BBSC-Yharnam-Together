@@ -106,7 +106,7 @@ The illustrated version of this is the
 
 1. Download the setup `.exe` from the
    [download page](https://bloodborne.seamlesscoop.dev/download) (or the
-   [releases page](https://github.com/lKaniel/bloodborne-server/releases)) and run it. Everyone in a
+   [releases page](https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together/releases)) and run it. Everyone in a
    team, the host included, uses the same release.
 2. Open **Bloodborne Seamless Co-op** (the launcher) and go to its **Co-op** page: your Bloodborne
    folder (**Find it for me**, **Browse…** or **Install from PKG…**), the host's IP address (the
@@ -201,7 +201,7 @@ Windows only for now. Prerequisites:
   for the local CI script.
 
 ```powershell
-git clone https://github.com/lKaniel/bloodborne-server.git C:\bb\bloodborne-server
+git clone https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together.git C:\bb\bloodborne-server
 cd C:\bb\bloodborne-server
 git config submodule.emulator/externals/mesa-kosmickrisp.update none   # macOS-only
 git submodule update --init --recursive
@@ -268,7 +268,7 @@ launcher updates itself from them and the website's download page offers the new
 
 ## Credits and forks
 
-**Made together by** [Yharnam Together](https://github.com/lKaniel/bloodborne-server) (Kaniel),
+**Made together by** [Yharnam Together](https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together) (Kaniel),
 [AMANISES](https://github.com/CLSAMG22/BBSC) (CLS_AMG) and
 [Supermedo](https://github.com/Supermedo/bloodborne_pc).
 

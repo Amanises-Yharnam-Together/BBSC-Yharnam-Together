@@ -1,13 +1,13 @@
 CREDITS AND LICENSES
 ====================
 
-Bloodborne Seamless Co-op (https://github.com/lKaniel/bloodborne-server) is free software under
+Bloodborne Seamless Co-op (https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together) is free software under
 the GNU General Public License, version 2 or later (licenses\GPL-2.0-or-later.txt). It is built
 on the work of the projects below; each keeps its own license. No game files are included, and
 this project is not affiliated with Sony Interactive Entertainment or FromSoftware.
 
 MADE TOGETHER BY
-  Yharnam Together (Kaniel)    https://github.com/lKaniel/bloodborne-server
+  Yharnam Together (Kaniel)    https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together
   AMANISES (CLS_AMG)           https://github.com/CLSAMG22/BBSC
   Supermedo                    https://github.com/Supermedo/bloodborne_pc
 
@@ -71,4 +71,4 @@ BUNDLED COMPONENTS (licenses in the licenses folder)
                                       with Pillow
 
 The source code of everything here, and of the exact build in this release (VERSION.txt names
-the commit), is at https://github.com/lKaniel/bloodborne-server.
+the commit), is at https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together.

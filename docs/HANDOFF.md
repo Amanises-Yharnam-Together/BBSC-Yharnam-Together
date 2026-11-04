@@ -3,7 +3,7 @@
 Start here when picking the work up in a new session.
 
 ## Where things are
-- Repo: https://github.com/lKaniel/bloodborne-server, a jj checkout at `C:\bb\bloodborne-server`.
+- Repo: https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together, a jj checkout at `C:\bb\bloodborne-server`.
   `emulator/` = Wozzardman/shadp2p and `server/` = Wozzardman/shadnet-p2p (subtree imports, full history).
   `backend/` = local ss.info/content server (Python). `tools/` = build, CI and rig scripts.
 - Builds go to `C:\bb\out\{emulator\build, emulator\tests, server}`. LLVM 20.1.8, VS 2022 BT, Qt 6.8.3 at `C:\Qt`.

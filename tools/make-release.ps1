@@ -48,7 +48,7 @@ param(
     [switch]$AllowDirty,
     [switch]$Publish,
     [switch]$Prerelease,
-    [string]$Repo = "lKaniel/bloodborne-server"
+    [string]$Repo = "Amanises-Yharnam-Together/BBSC-Yharnam-Together"
 )
 . "$PSScriptRoot\build-lock.ps1"
 Invoke-UnderBuildLock $PSCommandPath $PSBoundParameters "make-release"

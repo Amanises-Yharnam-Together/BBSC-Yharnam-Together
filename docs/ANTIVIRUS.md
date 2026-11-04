@@ -30,7 +30,7 @@ options); until then, submit every release.
 5. "What do you believe this file is?": **Incorrectly detected as malware/malicious**.
 6. Detection name: `Trojan:Win32/Bearfoos.A!ml`. Definition version: Windows Security, Settings,
    About (or `Get-MpComputerStatus | Select AntivirusSignatureVersion` in PowerShell).
-7. Notes: "Open-source game launcher (GPL-2.0, https://github.com/lKaniel/bloodborne-server), frozen
+7. Notes: "Open-source game launcher (GPL-2.0, https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together), frozen
    with PyInstaller. Release <version>, SHA-256 <hash from the .sha256 file>."
 8. The submission page shows its status; a "not malware" verdict usually lands within a few days and
    ships in the next definition update.
