@@ -5,6 +5,7 @@
     python3 -m unittest -v test_directory     (pip install redis 'fakeredis[lua]')
 """
 import json
+import socket
 import threading
 import unittest
 import urllib.error
@@ -181,6 +182,23 @@ class HttpTests(unittest.TestCase):
         status, answer = self.call('/v1/heartbeat', beat('eu-1', 1, players=['Ada']))
         self.assertEqual(status, 200)
         self.assertEqual(answer['shards'][0]['name'], 'eu-1')
+
+    def test_a_refused_call_is_answered_once_its_body_is_read(self):
+        # A socket closed with unread data sends a reset, and on Windows the caller's read
+        # then aborts (WinError 10053) instead of getting the 401.
+        body = json.dumps(beat('eu-1', 1)).encode()
+        with socket.create_connection(self.server.server_address, timeout=5) as caller:
+            caller.sendall(b'POST /v1/heartbeat HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer wrong\r\n'
+                           b'Content-Length: %d\r\n\r\n' % len(body))
+            caller.settimeout(0.3)
+            with self.assertRaises(socket.timeout, msg='answered before the body was read'):
+                caller.recv(1)
+            caller.settimeout(5)
+            caller.sendall(body)
+            answer = b''
+            while chunk := caller.recv(65536):
+                answer += chunk
+        self.assertTrue(answer.startswith(b'HTTP/1.0 401'), answer[:40])
 
     def test_a_launcher_reads_the_shards_and_where_its_player_is(self):
         self.call('/v1/heartbeat', beat('eu-1', 1, players=['Ada']))
