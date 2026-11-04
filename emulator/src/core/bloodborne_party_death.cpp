@@ -758,9 +758,11 @@ constexpr u8 DownedNoDamageFlags = 0x2 | 0x8;
 constexpr u64 PlayerHideFlagOffset = 0x0553E88E;
 constexpr u64 PlayerSilenceFlagOffset = 0x0553E88F;
 
-// Every enemy in this world forgets the characters with these handles (see ForgetsTargetNode);
-// returns how many target nodes it changed.
-u32 ForgetDownedTargets(std::span<const u32> handles) {
+// Every enemy in this world forgets the characters with these handles (see ForgetsTargetNode,
+// or ForgetsGoneTargetNode for `gone` members' copies); returns how many target nodes it changed,
+// and puts the enemies it changed them on in `by` (if given).
+u32 ForgetDownedTargets(std::span<const u32> handles, bool gone = false,
+                        std::vector<u32>* by = nullptr) {
     const u64 world = ReadValue<u64>(image_base + CandidateLocalStatePointerOffset, 0);
     if (handles.empty() || world < 0x10000) {
         return 0;
@@ -786,11 +788,18 @@ u32 ForgetDownedTargets(std::span<const u32> handles) {
         for (int count = 0;
              count < 64 && node >= 0x10000 && HasMemoryAccess(node, 0x54, MemoryProt::CpuWrite);
              ++count, node = ReadValue<u64>(node, 0x08)) {
-            if (ForgetsTargetNode(ReadValue<u8>(node, 0x02), ReadValue<s32>(node, 0x28),
-                                  ReadValue<u32>(node, 0x50), handles) &&
+            const u8 slot = ReadValue<u8>(node, 0x02);
+            const s32 kind = ReadValue<s32>(node, 0x28);
+            const u32 handle = ReadValue<u32>(node, 0x50);
+            if ((gone ? ForgetsGoneTargetNode(slot, kind, handle, handles)
+                      : ForgetsTargetNode(slot, kind, handle, handles)) &&
                 ReadValue<float>(node, 0x2C) != ForgottenTargetTimer) {
                 WriteValue(node, 0x2C, ForgottenTargetTimer);
                 ++forgotten;
+                if (const u32 enemy = ReadValue<u32>(character, 0x08);
+                    by != nullptr && !std::ranges::contains(*by, enemy)) {
+                    by->push_back(enemy);
+                }
             }
         }
     });
@@ -1121,6 +1130,10 @@ const s32 downed_animation = DownedAnimation(std::getenv("SHADPS4_BLOODBORNE_DOW
 } // namespace
 
 namespace Coop {
+
+u32 ForgetCharacterTargets(std::span<const u32> handles) {
+    return ForgetDownedTargets(handles, true);
+}
 
 bool KillCharacterCallable() {
     return kill_hook_installed ||
@@ -1961,12 +1974,15 @@ void ForgetTargetsOnDowned(PartyDeathRun& run, const DeathTick& tick) {
     for (const u32 handle : HideSpectatorCopies(tick)) {
         downed_handles.push_back(handle);
     }
-    if (const u32 forgotten = ForgetDownedTargets(downed_handles); forgotten > 0) {
+    std::vector<u32> forgetting;
+    if (const u32 forgotten = ForgetDownedTargets(downed_handles, false, &forgetting);
+        forgotten > 0) {
         if (run.targets_forgotten == 0) {
             LOG_INFO(Debug,
                      "Bloodborne party death: enemies forgot {} target(s) on downed players "
-                     "(self down={}, others down={})",
-                     forgotten, run.downed.Current() == Vital::Down, others_down.size());
+                     "(self down={}, others down={}) on {} by {}",
+                     forgotten, run.downed.Current() == Vital::Down, others_down.size(),
+                     EnemyHandlesText(downed_handles), EnemyHandlesText(forgetting));
         }
         run.targets_forgotten += forgotten;
     } else if (downed_handles.empty()) {
@@ -2987,13 +3003,27 @@ void LogEnemyTargets() {
             return;
         }
         std::vector<u32> targets;
+        std::string memories;
         u64 node = ReadValue<u64>(targeting, 0x18);
         for (int count = 0;
              count < 64 && node >= 0x10000 && HasMemoryAccess(node, 0x54, MemoryProt::CpuRead);
              ++count, node = ReadValue<u64>(node, 0x08)) {
-            if ((ReadValue<u8>(node, 0x02) & 0x7F) == 1 && ReadValue<s32>(node, 0x28) == 1) {
-                targets.push_back(ReadValue<u32>(node, 0x50));
+            const u8 slot = ReadValue<u8>(node, 0x02) & 0x7F;
+            if (ReadValue<s32>(node, 0x28) != 1) {
+                continue;
             }
+            if (slot == TargetSlotCurrent) {
+                targets.push_back(ReadValue<u32>(node, 0x50));
+            } else if (slot == TargetSlotMemory) {
+                // No timer here: it counts down every frame, and the line is logged on a change.
+                memories += fmt::format(" {:#x}", ReadValue<u32>(node, 0x50));
+            }
+        }
+        // Its memories of characters in a bracket of their own ("[enemy X memory: ...]"): the
+        // current targets' line stays as the rig reads it.
+        if (!memories.empty()) {
+            enemies.emplace_back(distance, fmt::format(" [enemy {:#x} memory:{}]",
+                                                       ReadValue<u32>(character, 0x08), memories));
         }
         if (targets.empty()) {
             return;

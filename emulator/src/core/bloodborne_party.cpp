@@ -6919,8 +6919,74 @@ DownEnd EndOfDown(bool wiped, bool gave_up, bool revived, s64 board_age_ms, bool
     return board_age_ms >= BoardLostMs ? DownEnd::BoardLost : DownEnd::None;
 }
 
+bool HoldsLiveTarget(std::span<const TargetNodeView> nodes, std::span<const u32> live,
+                     bool memory_counts) {
+    return std::ranges::any_of(nodes, [&](const TargetNodeView& node) {
+        const u8 slot = node.slot & 0x7F;
+        return (slot == TargetSlotCurrent || (memory_counts && slot == TargetSlotMemory)) &&
+               node.kind == 1 && std::ranges::find(live, node.handle) != live.end();
+    });
+}
+
+std::vector<u32> LivePlayerHandlesOf(std::optional<u32> self,
+                                     std::span<const PlayerCopyView> others) {
+    std::vector<u32> handles;
+    for (const PlayerCopyView& other : others) {
+        if (other.hp > 0 && !other.disabled && other.vouched) {
+            handles.push_back(other.handle);
+        }
+    }
+    if (self) {
+        handles.push_back(*self);
+    }
+    return handles;
+}
+
+void TakeoverFights::Start(std::vector<u32> fights, s64 now_ms) {
+    handles = std::move(fights);
+    started_ms = now_ms;
+    last_ms.reset();
+}
+
+std::vector<u32> TakeoverFights::Due(s64 now_ms) {
+    if (handles.empty() || now_ms - started_ms >= WindowMs ||
+        (last_ms && now_ms - *last_ms < EveryMs)) {
+        return {};
+    }
+    last_ms = now_ms;
+    return handles;
+}
+
+void OwnerGap::Leave(u32 left_map, std::vector<u32> left_fights, s64 now_ms) {
+    fights = std::move(left_fights);
+    map = left_map;
+    left_ms = now_ms;
+}
+
+std::vector<u32> OwnerGap::Back(u32 back_map, s64 now_ms) {
+    std::vector<u32> back = std::move(fights);
+    fights.clear();
+    if (back_map != map || now_ms - left_ms >= GapMs) {
+        return {};
+    }
+    return back;
+}
+
+std::string EnemyHandlesText(std::span<const u32> handles) {
+    std::string text;
+    for (const u32 handle : handles) {
+        text += fmt::format("{}{:#x}", text.empty() ? "" : " ", handle);
+    }
+    return text.empty() ? "none" : text;
+}
+
+bool ForgetsGoneTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> gone) {
+    return ForgetsTargetNode(slot, kind, handle, gone);
+}
+
 bool ForgetsTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> downed) {
-    return (slot & 0x7F) == 1 && kind == 1 && std::ranges::find(downed, handle) != downed.end();
+    return (slot & 0x7F) == TargetSlotCurrent && kind == 1 &&
+           std::ranges::find(downed, handle) != downed.end();
 }
 
 std::string TargetCandidateBlock(const TargetCandidate& candidate) {
@@ -7037,6 +7103,10 @@ PartyPanel BuildPartyPanel(std::span<const MemberVitals> board, std::string_view
         });
     }
     return panel;
+}
+
+bool ShowsHiddenCopies(bool in_session, bool board_fresh, bool on_map) {
+    return in_session && (!board_fresh || !on_map);
 }
 
 bool PresenceHides(s64 now_ms, s64 first_seen_ms, s64 unmatched_since_ms) {

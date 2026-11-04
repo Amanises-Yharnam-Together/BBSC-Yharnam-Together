@@ -564,10 +564,15 @@ void LogEnemyTargets();
 void ClearStaleDeathMarks();
 void LogJoinTasksOnChange();
 void ReconcileMemberPresence();
+// Whether a member on this map stands by another player's copy (see PlayerCopyView).
+bool CopyVouchedFor(u64 character);
 // The object a character's physics ([[+0x3B0]+0x68]) holds as the one it stands on (read at
 // 0x01524B0C; null: none).
 constexpr u64 PhysicsContactObjectOffset = 0xA8;
 void ForgetGroundOfHidden(u64 character);
+// Every enemy here forgets these gone members' copies as targets, its memories of them too (see
+// ForgetsGoneTargetNode); how many target nodes it changed.
+u32 ForgetCharacterTargets(std::span<const u32> handles);
 u64 MemberIdentityOf(u64 character);
 
 void TickPartyTrip();

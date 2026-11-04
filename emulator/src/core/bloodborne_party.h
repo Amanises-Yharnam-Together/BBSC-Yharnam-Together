@@ -3988,6 +3988,12 @@ constexpr s64 PresenceNewCharacterMs = 15'000;
 // Whether a character by no member (since `unmatched_since_ms`), first seen at `first_seen_ms`,
 // is hidden now.
 bool PresenceHides(s64 now_ms, s64 first_seen_ms, s64 unmatched_since_ms);
+// Rig owner-crash-fight 2026-11-03: the crashed host's leftover copy, hidden for no member by
+// it, was shown again when this game left its session alone and opened its own, and the enemy
+// fighting the guest went for it. The hidden copies are shown again (as the game has them) only
+// in a session whose board is not to be trusted (stale) or while loading (no map), never on a
+// session's end.
+bool ShowsHiddenCopies(bool in_session, bool board_fresh, bool on_map);
 std::vector<bool> ShownOtherPlayers(std::span<const std::optional<LampPosition>> characters,
                                     std::span<const MemberVitals> board, std::string_view self,
                                     u32 map);
@@ -4448,8 +4454,81 @@ private:
 // of swings at the downed player. A node of a live character target (+0x02: slot type 1, bit 7
 // alive; +0x28 kind 1) on a downed player's handle (+0x50) gets ForgottenTargetTimer, and the
 // game's own update drops it the next frame (0x012A6AD0). Enemies after anyone else are left be.
+// The enemy's memory of a downed player (slot type 7) stays: dropped, the enemy no longer took a
+// guest at 1 HP beside it (rig down-by-enemy 2/4 against 2/2 without it, 2026-11-03).
 bool ForgetsTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> downed);
+// A gone member's copy (crashed or left, see ReconcileMemberPresence): its current target node
+// goes; the enemy's memory of it (slot type 7) stays, as a downed player's. Dropped, a guest
+// whose game restarted (its new copy has the old one's handle) was no longer taken by the enemy
+// fighting the host (rig down-by-enemy 2/5 on #506 against 2/2 without, 2026-11-03); the
+// take-over fight is the vouched-only live rule's and TakeoverFights' (a memory of a gone copy
+// is no fight).
+bool ForgetsGoneTargetNode(u8 slot, s32 kind, u32 handle, std::span<const u32> gone);
+constexpr u8 TargetSlotCurrent = 1;
+constexpr u8 TargetSlotMemory = 7;
+// A node of an enemy's targeting system as read (see ForgetsTargetNode).
+struct TargetNodeView {
+    u8 slot = 0;
+    s32 kind = 0;
+    u32 handle = 0;
+};
+// Whether the enemy holds or remembers one of the `live` characters (their handles) as its target:
+// a target on a crashed member's leftover copy is no fight (see GiveFightOn). Without
+// `memory_counts` only a current target is (the take-over's rechecks: rig owner-crash-fight
+// 2026-11-03, after the re-host the enemy kept only its memory of the guest and stood still).
+bool HoldsLiveTarget(std::span<const TargetNodeView> nodes, std::span<const u32> live,
+                     bool memory_counts = true);
+// Another player's copy here as a fight sees it: `vouched`, a member on this map stands by it
+// (ReconcileMemberPresence; out of a session or with no fresh board every shown copy is).
+struct PlayerCopyView {
+    u32 handle = 0;
+    s32 hp = 0;
+    bool disabled = false;
+    bool vouched = false;
+};
+// The players here a fight can be with: this game's own (`self`, while alive) and the copies
+// shown, alive and vouched for. Rig owner-crash-fight 2026-11-03: at the take-over the crashed
+// host's copy was still shown (its 3 s grace), so the enemy "had a target" and was given none.
+std::vector<u32> LivePlayerHandlesOf(std::optional<u32> self,
+                                     std::span<const PlayerCopyView> others);
+// The take-over's fights (the old owner's EnemyPlace.fighting), looked at again once a second
+// for WindowMs: one left with no live target (the old owner's copy hidden, its nodes forgotten)
+// gets this game's player then.
+class TakeoverFights {
+public:
+    static constexpr s64 WindowMs = 15'000;
+    static constexpr s64 EveryMs = 1'000;
+    void Start(std::vector<u32> handles, s64 now_ms);
+    // The fights to look at now (none between the seconds, nor past the window).
+    std::vector<u32> Due(s64 now_ms);
+
+private:
+    std::vector<u32> handles;
+    s64 started_ms = 0;
+    std::optional<s64> last_ms;
+};
+// This game's run of a map that stops and comes back within GapMs on the same map (rig
+// owner-crash-fight 2026-11-03: alone in the session, the guest re-hosts the team's, its
+// character goes from type 1 team 20 to type 0 team 19 and the enemy dropped it as a target, past
+// the take-over's window): the fights it had then are the take-over's again (TakeoverFights).
+class OwnerGap {
+public:
+    static constexpr s64 GapMs = 5'000;
+    // This game stops running `map`, its enemies with these fights.
+    void Leave(u32 map, std::vector<u32> fights, s64 now_ms);
+    // This game runs `map` again: the fights it left with, if it is back in time (once).
+    std::vector<u32> Back(u32 map, s64 now_ms);
+
+private:
+    std::vector<u32> fights;
+    u32 map = 0;
+    s64 left_ms = 0;
+};
 constexpr float ForgottenTargetTimer = 1.0e-4f;
+// Enemy handles for a log line, "0x1001400b 0x1001402e" ("none" for none): which enemies a
+// down's forget took the target from (rig down-by-enemy 2026-11-03: the hit came within a
+// second of the enemy's hand-over and no targets line named it).
+std::string EnemyHandlesText(std::span<const u32> handles);
 // Kaniel's play test 2026-10-19: the Blood-starved Beast never went for Lisara. What the enemies'
 // AI reads to take a character as a target: every ~5 s 0x012A43B0 lists WorldChrMan's players
 // (and the current block's characters) whose vtable +0x78 says so (players 0x018F4D70:
