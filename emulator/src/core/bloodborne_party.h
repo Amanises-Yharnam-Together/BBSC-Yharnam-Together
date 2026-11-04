@@ -1993,7 +1993,9 @@ private:
 // game's own handler saw this tick; the members back to as many as before it within
 // RejoinWindowMs is a rejoin, re-created once the count held RejoinSettleMs. A real join takes
 // longer than that window, and a re-create in the middle of one kept the joining game from ever
-// syncing (rig party3 leader-returns3, 2026-11-04).
+// syncing (rig party3 leader-returns3, 2026-11-04). "Before" is the most members seen within
+// RejoinWindowMs of the leave: a crashed game's count can drop ahead of the game's own leave
+// (rig party3 crash3, 2026-11-04), and that lower count back is no rejoin.
 class RecreateAfterRejoin {
 public:
     static constexpr s64 RejoinWindowMs = 3'000;
@@ -2002,6 +2004,8 @@ public:
 
 private:
     size_t known = 0;
+    size_t peak = 0;
+    s64 peak_ms = 0;
     std::optional<s64> left_ms;
     size_t before = 0;
     std::optional<s64> back_since;

@@ -3741,6 +3741,26 @@ TEST(BloodbornePartyController, NoReCreateForALeaveThatStays) {
     EXPECT_FALSE(rejoin.Tick(true, 2, false, 30000 + RecreateAfterRejoin::RejoinSettleMs));
 }
 
+// Rig party3 crash3, 2026-11-04: guest2's game died, the count dropped first and the game's own
+// leave came after it, so the count just before that leave was already the lower one.
+TEST(BloodbornePartyController, NoReCreateForACrashTheCountShowedFirst) {
+    RecreateAfterRejoin rejoin;
+    rejoin.Tick(true, 2, false, 0);
+    rejoin.Tick(true, 1, false, 500);
+    for (s64 at = 900; at < 900 + RecreateAfterRejoin::RejoinWindowMs + 5000; at += 100) {
+        EXPECT_FALSE(rejoin.Tick(true, 1, at == 900, at));
+    }
+}
+
+TEST(BloodbornePartyController, ReCreatesAQuickRejoinTheCountShowedFirst) {
+    RecreateAfterRejoin rejoin;
+    rejoin.Tick(true, 2, false, 0);
+    rejoin.Tick(true, 1, false, 500);
+    EXPECT_FALSE(rejoin.Tick(true, 1, true, 900));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 1300));
+    EXPECT_TRUE(rejoin.Tick(true, 2, false, 1300 + RecreateAfterRejoin::RejoinSettleMs));
+}
+
 TEST(BloodbornePartyController, NoReCreateOutOfTheSession) {
     RecreateAfterRejoin rejoin;
     rejoin.Tick(true, 2, false, 0);

@@ -2028,14 +2028,20 @@ size_t MemberDepartures::Tick(bool in_session, bool steady, size_t others, s64 n
 bool RecreateAfterRejoin::Tick(bool in_session, size_t others, bool left, s64 now_ms) {
     if (!in_session) {
         known = 0;
+        peak = 0;
         left_ms.reset();
         back_since.reset();
         return false;
     }
     if (left && !left_ms) {
         left_ms = now_ms;
-        before = std::max(known, others);
+        const size_t recent = now_ms - peak_ms <= RejoinWindowMs ? peak : 0;
+        before = std::max({known, others, recent});
         back_since.reset();
+    }
+    if (others >= peak || now_ms - peak_ms > RejoinWindowMs) {
+        peak = others;
+        peak_ms = now_ms;
     }
     if (!left_ms) {
         known = others;
