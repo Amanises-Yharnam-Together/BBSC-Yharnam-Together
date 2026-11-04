@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "bbport_save_editor.h"
 
+#ifndef BB_PRODUCTION
+#define BB_PRODUCTION 0
+#endif
+
 #include "../bbcoop.h"
 #include "bbport_game_art.h"
 
@@ -60,8 +64,17 @@ bool InWorld() {
 }
 
 void Queue(std::function<void()> job) {
+#if BB_PRODUCTION
+    // Kaniel 2026-11-04: a release build has no save editor (its page is gone too): nothing
+    // changes the character.
+    (void)job;
+#else
+    // A dev build: the co-op server hears that the save editor changed the character this run
+    // (cheat watch, server/coop/cheat_watch.h).
+    bbcoop_note_save_edit();
     std::scoped_lock lock{pending_mutex};
     pending.push_back(std::move(job));
+#endif
 }
 
 std::string ReadFile(const std::filesystem::path& path) {

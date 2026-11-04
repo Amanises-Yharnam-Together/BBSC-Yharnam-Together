@@ -176,6 +176,10 @@ static_assert(BBCOOP_VITAL_OFF == static_cast<int>(Core::Bloodborne::Vital::Off)
               BBCOOP_VITAL_DEAD == static_cast<int>(Core::Bloodborne::Vital::Dead) &&
               BBCOOP_VITAL_SPECTATE == static_cast<int>(Core::Bloodborne::Vital::Spectate));
 
+extern "C" void bbcoop_note_save_edit(void) {
+    Core::Bloodborne::NoteSaveEdit();
+}
+
 extern "C" void bbcoop_set_free_camera(int allowed) {
     Core::Bloodborne::SetFreeCameraAllowed(allowed != 0);
 }

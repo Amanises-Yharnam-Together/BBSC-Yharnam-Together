@@ -19,7 +19,12 @@ def make_release(root: pathlib.Path, extra: tuple[str, ...] = (), leave_out: tup
             continue
         path = root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(LAUNCHER if relative == "BLauncher.exe" else b"x")
+        path.write_bytes(LAUNCHER if relative == "BLauncher.exe"
+                         else PRODUCTION if relative == "scripts/build_info.json" else b"x")
+
+
+# package.sh's mark of a production build (BB_PRODUCTION=1).
+PRODUCTION = b'{"production": true}\n'
 
 
 # A launcher as PyInstaller writes it with package.sh's version file: a version resource naming the product.
@@ -43,6 +48,16 @@ class CheckReleaseTest(unittest.TestCase):
         problems = tool.check(self.root)
         self.assertEqual(len(problems), 1)
         self.assertIn("server/shadnet.exe", problems[0])
+
+    def test_a_dev_build_is_reported(self):
+        # Kaniel 2026-11-04: a release has no cheats: package.sh marks a production build only.
+        make_release(self.root, leave_out=("scripts/build_info.json",))
+        self.assertIn("missing scripts/build_info.json", tool.check(self.root))
+        (self.root / "scripts").mkdir(exist_ok=True)
+        (self.root / "scripts/build_info.json").write_text('{"production": false}\n')
+        problems = tool.check(self.root)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("dev build", problems[0])
 
     def test_a_release_without_dlss_is_reported(self):
         # Releases built without the DLSS bridge had the launcher's DLSS option disabled on RTX GPUs

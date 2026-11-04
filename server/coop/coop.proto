@@ -457,7 +457,27 @@ message Envelope {
         DuelRequest duel_request = 49;
         DuelState duel_state = 50;
         EnemyPlaces enemy_places = 51;
+        CharacterSheet character_sheet = 52;
     }
+}
+
+// Cheat watch (coop/cheat_watch.h, Kaniel 2026-11-04): game -> server only, never sent on. What
+// the player's character is (PlayerGameData) and how the game was built and started, when it
+// changes (at most every few seconds) and after each hello. The server notes what no unmodified
+// game shows; it refuses nothing for it.
+message CharacterSheet {
+    string character = 1;            // its name
+    uint32 level = 2;                // 0: no character in the world
+    repeated sint32 attributes = 3;  // Vitality, Endurance, Strength, Skill, Bloodtinge, Arcane
+    sint64 echoes = 4;
+    sint32 insight = 5;
+    sint32 hp = 6;
+    sint32 hp_max = 7;
+    bool production = 8;   // a release build: no cheats, save editor or debug tools in it
+    string cheats = 9;     // the cheat patches it started with ("none")
+    string dev_tools = 10; // the debug menu or camera it started with, "" when none
+    uint32 save_edits = 11; // the save editor's changes this run
+    bool autoplay = 12;    // a rig script drives it
 }
 
 // Invasions (docs/INVASIONS.md): a solo player invades a team's world as a hostile phantom. The

@@ -190,7 +190,8 @@ void Set(Values& v, const std::string& key, const std::string& value) {
     } else {
         for (int e = 0; e < EffectCount; ++e) {
             if (key == Effects[e].key) {
-                v.effects[e] = i != 0;
+                // A release build never turns a cheat or debug tool on (bbport.ini edited by hand).
+                v.effects[e] = i != 0 && Offered(key);
             }
         }
     }

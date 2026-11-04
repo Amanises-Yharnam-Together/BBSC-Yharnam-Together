@@ -218,6 +218,19 @@ LANG = 'en'
 # The seamless co-op release (BLauncher.exe with the co-op files beside it, or BB_COOP_INSTALL=1): the
 # Play page sets co-op up and PLAY plays it, always at the game's fixed 60 FPS (bbport_coop; it took
 # over the release's bat files, Kaniel 2026-10-13).
+# Kaniel 2026-11-04 ("remove cheats in production mode"): a release (package.sh writes
+# scripts/build_info.json {"production": true}) offers no cheats and no debug menu or camera; the
+# game and patches.py leave them out too. A dev build (no such file) keeps them.
+def production_build(port_dir=PORT_DIR):
+    try:
+        info = json.loads((Path(port_dir) / 'scripts' / 'build_info.json').read_text(encoding='utf-8'))
+        return isinstance(info, dict) and info.get('production') is True
+    except (OSError, ValueError):
+        return False
+
+
+PRODUCTION = production_build()
+DEV_TOOL_EXTRAS = ('debug_camera', 'debug_menu')
 COOP_INSTALL = os.environ.get('BB_COOP_INSTALL') == '1' or (PORT_DIR / 'event-reference.json').is_file()
 # The co-op release's name (Kaniel 2026-10-20), as the setup has it (tools\release\setup.iss).
 COOP_NAME, COOP_SHORT_NAME = 'Yharnam Together: Bloodborne Seamless Co-op', 'Yharnam Together'
@@ -3325,7 +3338,8 @@ class Launcher:
         self.settings_tabs = (('general', _('General', 'Основное')), ('graphics', _('Graphics', 'Графика')),
                               ('display', _('Display & FPS', 'Экран и FPS')),
                               ('controls', _('Controls', 'Управление')),
-                              ('game', _('Game & effects', 'Игра и эффекты')), ('cheats', _('Cheats', 'Читы')),
+                              ('game', _('Game & effects', 'Игра и эффекты')),
+                              ('cheats', _('Gameplay tweaks', 'Игровой процесс') if PRODUCTION else _('Cheats', 'Читы')),
                               ('mods', _('Mods & patches', 'Моды и патчи')),
                               ('advanced', _('Advanced', 'Дополнительно')), ('log', _('Log', 'Журнал')))
         self.last_settings = 'general'
@@ -5806,11 +5820,23 @@ class Launcher:
             self.check(f, key, 'ini', _(*title))
         f = self.card(page, _('Extras', 'Дополнительно'))
         for key, title, _on in EXTRAS:
+            if PRODUCTION and key in DEV_TOOL_EXTRAS:
+                continue  # a release has no debug tools
             self.check(f, key, 'ini', _(*title))
         self.note(f, _('Effects and extras are game patches for version 1.09, applied at start.',
                        'Эффекты и дополнения — патчи игры для версии 1.09, применяются при запуске.'))
 
     def build_cheats(self):
+        if PRODUCTION:
+            # A release: the gameplay tweaks alone (no cheats in it).
+            page = self.scrolled_page('cheats', _('Gameplay tweaks', 'Игровой процесс'),
+                                      _('Game patches for version 1.09, applied at start.',
+                                        'Патчи игры для версии 1.09, применяются при запуске.'))
+            f = self.card(page, _('Gameplay tweaks', 'Изменения игрового процесса'))
+            self.version_warning(f)
+            for key, title, _on in TWEAKS:
+                self.check(f, key, 'ini', _(*title))
+            return
         page = self.scrolled_page('cheats', _('Cheats', 'Читы'),
                                   _('Game patches for version 1.09, applied at start. Leave them off for a normal '
                                     'play-through.', 'Патчи игры для версии 1.09, применяются при запуске. Для обычного '

@@ -584,6 +584,9 @@ int bbcoop_trade_notice(char *text, size_t size);
 int bbcoop_give_own_item(uint32_t item_id, uint32_t count);
 /* The menus' tick: the co-op code runs it on the game's thread with its trades. */
 void bbcoop_trade_set_ui_tick(void (*tick)(void));
+/* Kaniel 2026-11-04 (cheat watch): the save editor changed the character (a dev build's); the
+ * co-op server hears how many times this run in the character sheet. */
+void bbcoop_note_save_edit(void);
 /* Items' names for the boxes (the save editor's, from the game's text): by full item id (goods
  * 0x40000000 | id), 1 when it knows the item. */
 void bbcoop_trade_set_namer(int (*namer)(uint32_t item_id, char *text, size_t size));

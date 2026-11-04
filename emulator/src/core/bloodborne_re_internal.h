@@ -1091,6 +1091,8 @@ void SendServerRest(s32 lamp, const std::optional<LampPosition>& at);
 void SendServerTrophies(std::span<const s32> trophies);
 void SendServerEchoes(std::span<const KillEchoes> echoes);
 void SendServerVitals(const MemberVitals& mine, std::span<const ReviveHitTotal> hits);
+// Cheat watch: this game's character sheet, when it changed or every 30 seconds.
+void SendServerCharacterSheet();
 // The portrait's pixels as its parts carry them (SplitPortrait), or none.
 void SendServerPortrait(u32 id, std::span<const u8> pixels);
 // The boards as the server sends them, taken on the stream's thread (bloodborne_boards.cpp).
