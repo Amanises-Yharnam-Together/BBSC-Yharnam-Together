@@ -1269,6 +1269,8 @@ bool PS4_SYSV_ABI KeepSessionAfterTrip(u64, const GuestRegisterSnapshot* registe
 // After this member's trip the other players are re-created as they come to this map (creating a
 // player into a map it is not on makes its game leave the session), each once (see PlanRecreate).
 bool recreate_players_pending{};
+// Another member's leave the game's own handler saw (LogMemberLeave), for RecreateAfterRejoin.
+std::atomic<u32> member_leaves_seen{0};
 // Pending for RecreateAfterJoin, not a trip: members with no task are left to the game's join.
 bool recreate_pending_after_join{};
 std::set<std::string> recreated_since_trip;
@@ -2034,6 +2036,14 @@ void TickPlayersOnThisMap() {
         recreate_players_pending = true;
         recreated_since_trip.clear();
     }
+    static RecreateAfterRejoin recreate_after_rejoin;
+    if (recreate_after_rejoin.Tick(in_session, in_session ? OtherSessionMembers().size() : 0,
+                                   member_leaves_seen.exchange(0) > 0, SteadyMilliseconds())) {
+        LOG_INFO(Debug, "Bloodborne party: a member left and joined again; re-creating the others");
+        recreate_players_pending = true;
+        recreate_pending_after_join = false;
+        recreated_since_trip.clear();
+    }
     if (!in_session) {
         recreate_players_pending = false;
         recreate_pending_after_join = false;
@@ -2198,6 +2208,9 @@ bool PS4_SYSV_ABI LogMemberLeave(u64, const GuestRegisterSnapshot* registers) {
     LOG_INFO(Debug, "Bloodborne member leave from {:#x} self={} trip={} map={:#x}",
              caller >= image_base ? caller - image_base : caller, self, PartyTripActive(),
              CurrentPlace().map);
+    if (!self && !PartyTripActive()) {
+        member_leaves_seen.fetch_add(1);
+    }
     return false;
 }
 

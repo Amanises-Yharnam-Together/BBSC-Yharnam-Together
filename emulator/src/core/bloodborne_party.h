@@ -2009,6 +2009,29 @@ private:
     std::optional<s64> joined_ms;
     bool done = false;
 };
+// Kaniel 2026-11-03: Lisara's game dropped out of the room and joined again within a second. The
+// member count never stayed down for MemberDepartures, so nothing re-created her and the host saw
+// her old body hidden until a trip. Tick says when to re-create: `left` is a member's leave the
+// game's own handler saw this tick; the members back to as many as before it within
+// RejoinWindowMs is a rejoin, re-created once the count held RejoinSettleMs. A real join takes
+// longer than that window, and a re-create in the middle of one kept the joining game from ever
+// syncing (rig party3 leader-returns3, 2026-11-04). "Before" is the most members seen within
+// RejoinWindowMs of the leave: a crashed game's count can drop ahead of the game's own leave
+// (rig party3 crash3, 2026-11-04), and that lower count back is no rejoin.
+class RecreateAfterRejoin {
+public:
+    static constexpr s64 RejoinWindowMs = 3'000;
+    static constexpr s64 RejoinSettleMs = 2'000;
+    bool Tick(bool in_session, size_t others, bool left, s64 now_ms);
+
+private:
+    size_t known = 0;
+    size_t peak = 0;
+    s64 peak_ms = 0;
+    std::optional<s64> left_ms;
+    size_t before = 0;
+    std::optional<s64> back_since;
+};
 // What the host's world had for each character the last time it was near the host (Kaniel
 // 2026-10-11: a character by a window in Central Yharnam is removed in the host's world even with
 // the host beside it, its story; once the host was far, a guest went by its own world and showed

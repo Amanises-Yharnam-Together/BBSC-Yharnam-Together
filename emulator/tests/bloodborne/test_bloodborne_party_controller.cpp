@@ -3704,3 +3704,83 @@ TEST(BloodbornePartyDeathBanner, ShowsFromGoingDownForTheBannersLength) {
     EXPECT_LE(DownedBannerShowMs, 125 * 1000 / 30);
     EXPECT_GE(DownedBannerShowMs, 120 * 1000 / 30);
 }
+
+// Kaniel 2026-11-03: Lisara's game dropped out of the room and joined again within a second. The
+// member count never stayed down for MemberDepartures, nothing re-created her, and the host saw
+// her old body hidden until both went to another place. A member's leave (the game's own
+// handler) and the members back to as many within RejoinWindowMs is a rejoin: re-create once the
+// count held RejoinSettleMs.
+TEST(BloodbornePartyController, ReCreatesAfterAQuickRejoin) {
+    RecreateAfterRejoin rejoin;
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 0));
+    EXPECT_FALSE(rejoin.Tick(true, 2, true, 1000)) << "the leave, the count not down yet";
+    EXPECT_FALSE(rejoin.Tick(true, 1, false, 1100));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 1400)) << "back: waits for the join to settle";
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 1400 + RecreateAfterRejoin::RejoinSettleMs - 1));
+    EXPECT_TRUE(rejoin.Tick(true, 2, false, 1400 + RecreateAfterRejoin::RejoinSettleMs));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 9000)) << "once";
+}
+
+TEST(BloodbornePartyController, ReCreatesAfterARejoinTheCountNeverShowed) {
+    RecreateAfterRejoin rejoin;
+    rejoin.Tick(true, 2, false, 0);
+    EXPECT_FALSE(rejoin.Tick(true, 2, true, 1000));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 1000 + RecreateAfterRejoin::RejoinSettleMs - 1));
+    EXPECT_TRUE(rejoin.Tick(true, 2, false, 1000 + RecreateAfterRejoin::RejoinSettleMs));
+}
+
+TEST(BloodbornePartyController, NoReCreateForALeaveThatStays) {
+    RecreateAfterRejoin rejoin;
+    rejoin.Tick(true, 2, false, 0);
+    rejoin.Tick(true, 2, true, 1000);
+    for (s64 at = 1100; at < 1000 + RecreateAfterRejoin::RejoinWindowMs + 5000; at += 500) {
+        EXPECT_FALSE(rejoin.Tick(true, 1, false, at));
+    }
+    // Someone joining much later is the game's own join.
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 30000));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 30000 + RecreateAfterRejoin::RejoinSettleMs));
+}
+
+// Rig party3 crash3, 2026-11-04: guest2's game died, the count dropped first and the game's own
+// leave came after it, so the count just before that leave was already the lower one.
+TEST(BloodbornePartyController, NoReCreateForACrashTheCountShowedFirst) {
+    RecreateAfterRejoin rejoin;
+    rejoin.Tick(true, 2, false, 0);
+    rejoin.Tick(true, 1, false, 500);
+    for (s64 at = 900; at < 900 + RecreateAfterRejoin::RejoinWindowMs + 5000; at += 100) {
+        EXPECT_FALSE(rejoin.Tick(true, 1, at == 900, at));
+    }
+}
+
+TEST(BloodbornePartyController, ReCreatesAQuickRejoinTheCountShowedFirst) {
+    RecreateAfterRejoin rejoin;
+    rejoin.Tick(true, 2, false, 0);
+    rejoin.Tick(true, 1, false, 500);
+    EXPECT_FALSE(rejoin.Tick(true, 1, true, 900));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 1300));
+    EXPECT_TRUE(rejoin.Tick(true, 2, false, 1300 + RecreateAfterRejoin::RejoinSettleMs));
+}
+
+TEST(BloodbornePartyController, NoReCreateOutOfTheSession) {
+    RecreateAfterRejoin rejoin;
+    rejoin.Tick(true, 2, false, 0);
+    rejoin.Tick(true, 2, true, 1000);
+    EXPECT_FALSE(rejoin.Tick(false, 0, false, 1100));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 1200));
+    EXPECT_FALSE(rejoin.Tick(true, 2, false, 1200 + RecreateAfterRejoin::RejoinSettleMs));
+}
+
+// Rig party3 leader-returns3 (2026-11-04): an old host that left came back through a real join
+// (title, load) about 15 s later, and a re-create in the middle of that join kept it from ever
+// syncing. A real join takes longer than RejoinWindowMs; only a drop that is back at once (the
+// game's room rejoin, 0.4 s for Lisara) is re-created.
+TEST(BloodbornePartyController, NoReCreateForARealJoinAfterALeave) {
+    EXPECT_LE(RecreateAfterRejoin::RejoinWindowMs, 3'000);
+    RecreateAfterRejoin rejoin;
+    rejoin.Tick(true, 2, false, 0);
+    rejoin.Tick(true, 2, true, 1000);
+    rejoin.Tick(true, 1, false, 1100);
+    for (s64 at = 1200; at < 30000; at += 100) {
+        EXPECT_FALSE(rejoin.Tick(true, at < 15000 ? 1 : 2, false, at)) << at;
+    }
+}
