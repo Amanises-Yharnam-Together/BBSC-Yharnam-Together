@@ -509,6 +509,47 @@ class NoFogWallsInChaliceDungeons(unittest.TestCase):
         self.assertEqual(tool.patch_chalice_walls(original), (original, 0))
 
 
+class LudwigsArenaWallGoesAfterHim(unittest.TestCase):
+    """Kaniel 2026-11-04: after Ludwig's fight a fog stood in his arena for everyone, even after
+    a rejoin. m34's 13400010 shows wall 3401801 (fog 3403801) while the multiplayer state is 3 or
+    2 or Ludwig (9471) lives, and hides it only once the game is out of multiplayer (group -2)
+    and 9471 is on. A party is always in multiplayer, so it never went. Both multiplayer sides
+    never match now: the wall stands while Ludwig lives and goes once he is dead."""
+
+    WALL = [(2000, 2, struct.pack('<i', 0)),
+            (2005, 3, struct.pack('<ii', 3401801, 0)),
+            (2006, 1, struct.pack('<ii', 3403801, 1)),
+            (3, 6, struct.pack('<bBxx', -1, 3)),
+            (3, 6, struct.pack('<bBxx', -1, 2)),
+            (3, 0, struct.pack('<bBBxi', -1, 0, 0, 9471)),
+            (0, 0, struct.pack('<bBBx', 0, 1, 0xFF)),
+            (2005, 3, struct.pack('<ii', 3401801, 1)),
+            (2006, 2, struct.pack('<i', 3403801)),
+            (3, 6, struct.pack('<bBxx', -2, 3)),
+            (3, 6, struct.pack('<bBxx', -2, 2)),
+            (0, 0, struct.pack('<bBBx', 0, 0, 0xFE)),
+            (3, 0, struct.pack('<bBBxi', 1, 1, 0, 9471)),
+            (0, 0, struct.pack('<bBBx', 0, 1, 1)),
+            (1000, 4, struct.pack('<i', 1))]
+
+    def patched(self, event=13400010):
+        original = tool.save_dcx(DCX_HEADER, build_emevd({event: self.WALL}))
+        output, edits, counts = tool.patch_file('m34_00_00_00.emevd.dcx', original)
+        return output and read_events(tool.load_dcx(output))[event]
+
+    def test_no_multiplayer_check_matches_on_either_side(self):
+        events = self.patched()
+        self.assertEqual([events[k][2][1] for k in (3, 4, 9, 10)], [tool.NEVER] * 4)
+
+    def test_the_wall_still_waits_for_ludwig(self):
+        events = self.patched()
+        self.assertEqual(events[5], self.WALL[5])
+        self.assertEqual(events[12], self.WALL[12])
+
+    def test_other_events_keep_their_checks(self):
+        self.assertIsNone(self.patched(13400011))
+
+
 class GuestsOpenChaliceBossDoors(unittest.TestCase):
     """Kaniel 2026-10-19: a chalice dungeon's boss door said "Only the beckoner can open this door"
     to guests. The door (ObjActParam 2901900-2901920) asks for SpEffect 9920, which m29's event 0
