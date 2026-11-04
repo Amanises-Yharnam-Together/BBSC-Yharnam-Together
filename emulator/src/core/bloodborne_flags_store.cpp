@@ -1678,6 +1678,11 @@ void PS4_SYSV_ABI KeepLocalFlagsFromOthers(u64, GuestRegisterSnapshot* registers
         registers->r15 = (registers->r15 & ~u64{0xFF}) | (*lit ? 1 : 0);
         return;
     }
+    // The Doll's blessing steps: this game's own come back through this message too.
+    if (party_controller && !Invading() &&
+        TakesDollBlessingStep(flag, (registers->r15 & 0xFF) != 0, EventFlagOn(DollBlessingFlag))) {
+        return;
+    }
     // Invasions: the invaded world's flags never go into the invader's (every one stays its own).
     if (!KeepsLocalFlag(party_controller.has_value(), flag) && !Invading()) {
         return;
@@ -1801,7 +1806,7 @@ void ActOnFlagChanges(std::vector<s32> set, std::vector<s32> cleared, const Flag
                  "shared",
                  set.size() + cleared.size());
     } else {
-        const FlagChanges changes{std::move(set), std::move(cleared)};
+        const FlagChanges changes = LeaveOutRelitLamps({std::move(set), std::move(cleared)});
         if (IsPartyGuestRole()) {
             KeepWorldChanges(changes);
         }
@@ -1841,6 +1846,7 @@ void LogFlagChangesInSession(bool sharing) {
     }
     last = now;
     if (!sharing) {
+        ForgetRelitLamps();
         std::scoped_lock lock{flags_compared_mutex};
         flags_compared.reset();
         return;

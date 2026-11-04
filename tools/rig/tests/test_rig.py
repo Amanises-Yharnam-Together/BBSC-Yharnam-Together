@@ -55,6 +55,9 @@ VERBS = {
     "use-lamp", "travel-answer", "expect-rot",  # Kaniel 2026-10-25: the host rules
     "death-mode", "wait-death-mode", "free-camera", "lamp-use",  # Kaniel 2026-10-25: spectating
     "watch-effects", "wait-bullets",  # 2026-10-25: a boss's spells in every game
+    # 1.3.2 (BBSC): open teams, codes and quick match from the title; duels between teams.
+    "team-open", "team-join-open", "team-wait-open", "team-code-share", "team-join-code",
+    "team-quick", "duel-propose-teams",
 }
 VITALS = {"up", "down", "dead", "spectate"}
 BUTTONS = {"cross", "circle", "square", "triangle", "options", "up", "right", "down", "left",
@@ -505,6 +508,47 @@ class LaneTest(unittest.TestCase):
         self.assertIn("BloodborneBackend=true\n", again)
         self.assertIn("BloodborneBackend=false\n", run_scenario.with_backend(config, False))
 
+    def test_a_scenario_sets_its_servers_settings_and_the_next_run_gets_the_defaults(self):
+        # Kaniel 2026-10-31 (invade-solo): invasions are off on a server unless its shadnet.cfg
+        # says Invasions=true; one run's must never stay on for the runs after it.
+        # Every run gets every default; a scenario's own settings go over them.
+        defaults = run_scenario.SERVER_DEFAULTS
+        self.assertEqual((defaults["Invasions"], defaults["Hosted"]), ("false", "false"))
+        self.assertEqual(run_scenario.server_settings({}), defaults)
+        self.assertEqual(run_scenario.server_settings(scenarios.SCENARIOS["invade-solo"]),
+                         dict(defaults, Invasions="true"))
+        with self.assertRaises(ValueError):
+            run_scenario.server_settings({"server": {"Invasion": "true"}})
+        with tempfile.TemporaryDirectory() as folder:
+            server = pathlib.Path(folder) / "server"
+            server.mkdir()
+            config = server / "shadnet.cfg"
+            config.write_text("[General]\nUnsecuredPort=32313\nWebApiPort=32315\n"
+                              "MatchingUdpPort=33214\n", encoding="utf-8")
+            with unittest.mock.patch.object(run_scenario, "lane_dir", lambda: pathlib.Path(folder)):
+                for wanted in ("true", "false"):
+                    run_scenario.SERVER_SETTINGS = run_scenario.server_settings(
+                        {"server": {"Invasions": wanted}})
+                    run_scenario.configure_shadnet()
+                    text = config.read_text(encoding="utf-8")
+                    self.assertEqual(text.count("Invasions="), 1)
+                    self.assertIn(f"Invasions={wanted}\n", text)
+            run_scenario.SERVER_SETTINGS = {}
+
+    def test_teams_apart_keeps_every_teams_flags_its_own(self):
+        # Kaniel 2026-10-31: no team's progress reaches another; each flag is one team's alone.
+        flags = [flag for pair in scenarios.TEAM_FLAGS.values() for flag in pair]
+        self.assertEqual(len(flags), len(set(flags)))
+        for name in ("teams-apart", "teams-apart3"):
+            roles = scenarios.SCENARIOS[name]["roles"]
+            sets = {role: {int(command.split()[1]) for command in script
+                           if command.startswith("set-flag ")} for role, script in roles.items()}
+            with self.subTest(scenario=name):
+                setters = [role for role, flags_set in sets.items() if flags_set]
+                self.assertEqual(len(setters), 3)  # one game of each team sets its flags
+                self.assertEqual(sorted(sorted(sets[role]) for role in setters),
+                                 sorted(sorted(pair) for pair in scenarios.TEAM_FLAGS.values()))
+
     def test_a_role_can_have_settings_of_its_own(self):
         # Build check on join: two games on different settings (one with harder enemies).
         scenario = {"settings": {"A": "1", "B": "2"},
@@ -663,6 +707,21 @@ class RunnerTest(unittest.TestCase):
         self.assertEqual(run_scenario.listening_pids(self.NETSTAT, 32314), set(),
                          "the online kit's 31313 and a client's connection are not the rig's")
         self.assertEqual(run_scenario.listening_pids("", 32313), set())
+
+    def test_a_hosted_servers_link_is_found_by_its_udp_port(self):
+        # A hosted shadnet (the Global scenarios) has no plain TCP port: it was left running and
+        # held the lane's link port for the next run (2026-11-04).
+        udp = "\n".join([
+            "  Proto  Local Address          Foreign Address        State           PID",
+            "  UDP    0.0.0.0:33714          *:*                                    81240",
+            "  UDP    127.0.0.1:33714        *:*                                    81240",
+            "  UDP    0.0.0.0:133714         *:*                                    12",
+            "  UDP    [::]:5050              *:*                                    3",
+        ])
+        self.assertEqual(run_scenario.udp_pids(udp, 33714), {81240})
+        self.assertEqual(run_scenario.udp_pids(udp, 5050), {3})
+        self.assertEqual(run_scenario.udp_pids(udp, 3714), set())
+        self.assertEqual(run_scenario.udp_pids("", 33714), set())
 
     def test_only_the_rigs_games_are_stopped(self):
         exe = pathlib.Path(r"C:\bb\out\emulator\build\shadPS4.exe")

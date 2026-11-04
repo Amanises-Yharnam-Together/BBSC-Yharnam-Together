@@ -117,9 +117,8 @@ def strings_of(emevd: bytes) -> bytes:
 
 
 class GuestsEnterBossFogFirst(unittest.TestCase):
-    def test_the_unlocked_banner_gives_way_to_the_downed_banner(self):
-        """Slot 15 (TextEffect_YouWin) is party death's YOU ARE DOWN in the HUD patch: m29 12900192, the
-        only event that queues it, shows none (id 0 is out of SetTextEffect's range)."""
+    def test_a_dropped_banner_shows_none(self):
+        """A banner event drop_banners is given shows none (id 0 is out of SetTextEffect's range)."""
         banner = (2007, 2, struct.pack('<i', tool.DOWNED_BANNER_ID))
         other = (2007, 2, struct.pack('<i', 16))
         edits: list = []
@@ -130,7 +129,11 @@ class GuestsEnterBossFogFirst(unittest.TestCase):
         self.assertEqual(events[12900192], [(2007, 2, struct.pack('<i', 0))])
         self.assertEqual(events[12900193], [banner, other])
         self.assertEqual(edits[0]['event'], 12900192)
-        self.assertEqual(tool.DROPPED_BANNER_EVENTS, {'m29.emevd.dcx': {12900192}})
+
+    def test_the_chalice_unlocked_banner_shows_again(self):
+        """Kaniel 2026-11-01: the chalice dungeons' UNLOCKED (m29 12900192, slot 15) was gone; YOU ARE DOWN is
+        the HUD patch's own banner now (CoopDownedBanner), so no event loses its banner."""
+        self.assertEqual(tool.DROPPED_BANNER_EVENTS, {})
 
     """A white phantom's boss fog event waits for the host's "entered" flag, so a guest could
     never enter first and was stuck behind the fog after a world reset."""
@@ -428,6 +431,29 @@ class GuestsUseTheYahargulMummy(unittest.TestCase):
         self.assertEqual(read_events(patched)[12800430][0], (2000, 2, bytes(4)))
         self.assertEqual(count, 1)
 
+    def test_the_button_needs_no_point_on_the_object(self):
+        """Row 2800020 sits on the object's dummy poly 200 with a 60 degree sector; on a guest's
+        game the press never counts, as on the host's without the poly (rig 2026-10-30). Row 6031
+        (Inspect, 2 m, any side) has neither; the rest of the event stays."""
+        original = build_emevd({12800430: self.MUMMY})
+        edits = []
+        patched, count = tool.use_plain_action_buttons(
+            original, tool.PLAIN_ACTION_BUTTONS.get(self.YAHARGUL, {}), edits)
+        events, before = read_events(patched)[12800430], read_events(original)[12800430]
+        self.assertEqual(events[1], (3, 24, struct.pack('<bxxxii', 0, 6031, 2801500)))
+        self.assertEqual(events[0], before[0])
+        self.assertEqual(events[2:], before[2:])
+        self.assertEqual(count, 1)
+        self.assertEqual([(edit['event'], edit['instruction']) for edit in edits],
+                         [(12800430, 1)])
+
+    def test_another_row_stops_the_patch(self):
+        mummy = list(self.MUMMY)
+        mummy[1] = (3, 24, struct.pack('<bxxxii', 0, 2800021, 2801500))
+        with self.assertRaises(tool.EventPatchError):
+            tool.use_plain_action_buttons(build_emevd({12800430: mummy}),
+                                          tool.PLAIN_ACTION_BUTTONS[self.YAHARGUL])
+
 
 class ChaliceBossesUnlockEachPlayersShop(unittest.TestCase):
     """seixas 2026-10-27: a team beat the Keeper of the Old Lords in the Central Pthumeru Chalice
@@ -481,6 +507,47 @@ class NoFogWallsInChaliceDungeons(unittest.TestCase):
     def test_other_events_keep_their_checks(self):
         original = build_emevd({12907601: self.WALL})
         self.assertEqual(tool.patch_chalice_walls(original), (original, 0))
+
+
+class LudwigsArenaWallGoesAfterHim(unittest.TestCase):
+    """Kaniel 2026-11-04: after Ludwig's fight a fog stood in his arena for everyone, even after
+    a rejoin. m34's 13400010 shows wall 3401801 (fog 3403801) while the multiplayer state is 3 or
+    2 or Ludwig (9471) lives, and hides it only once the game is out of multiplayer (group -2)
+    and 9471 is on. A party is always in multiplayer, so it never went. Both multiplayer sides
+    never match now: the wall stands while Ludwig lives and goes once he is dead."""
+
+    WALL = [(2000, 2, struct.pack('<i', 0)),
+            (2005, 3, struct.pack('<ii', 3401801, 0)),
+            (2006, 1, struct.pack('<ii', 3403801, 1)),
+            (3, 6, struct.pack('<bBxx', -1, 3)),
+            (3, 6, struct.pack('<bBxx', -1, 2)),
+            (3, 0, struct.pack('<bBBxi', -1, 0, 0, 9471)),
+            (0, 0, struct.pack('<bBBx', 0, 1, 0xFF)),
+            (2005, 3, struct.pack('<ii', 3401801, 1)),
+            (2006, 2, struct.pack('<i', 3403801)),
+            (3, 6, struct.pack('<bBxx', -2, 3)),
+            (3, 6, struct.pack('<bBxx', -2, 2)),
+            (0, 0, struct.pack('<bBBx', 0, 0, 0xFE)),
+            (3, 0, struct.pack('<bBBxi', 1, 1, 0, 9471)),
+            (0, 0, struct.pack('<bBBx', 0, 1, 1)),
+            (1000, 4, struct.pack('<i', 1))]
+
+    def patched(self, event=13400010):
+        original = tool.save_dcx(DCX_HEADER, build_emevd({event: self.WALL}))
+        output, edits, counts = tool.patch_file('m34_00_00_00.emevd.dcx', original)
+        return output and read_events(tool.load_dcx(output))[event]
+
+    def test_no_multiplayer_check_matches_on_either_side(self):
+        events = self.patched()
+        self.assertEqual([events[k][2][1] for k in (3, 4, 9, 10)], [tool.NEVER] * 4)
+
+    def test_the_wall_still_waits_for_ludwig(self):
+        events = self.patched()
+        self.assertEqual(events[5], self.WALL[5])
+        self.assertEqual(events[12], self.WALL[12])
+
+    def test_other_events_keep_their_checks(self):
+        self.assertIsNone(self.patched(13400011))
 
 
 class GuestsOpenChaliceBossDoors(unittest.TestCase):
@@ -886,3 +953,56 @@ def parameters_of(emevd: bytes, wanted: int) -> list[tuple[int, int, int, int]]:
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def doll_kneel_event() -> list[tuple[int, int, bytes]]:
+    """m21_00's 12100112, cut down: once 72100100 is on, the local player (10000) turns to the Doll
+    (2004:14) and kneels (2003:18), then 72100101 is set for her talk."""
+    return [
+        (2000, 2, struct.pack('<i', 0)),
+        flag_condition(0, 72100100),
+        (2004, 14, struct.pack('<iiii', 10000, 2100700, 101290, 0)),
+        (2004, 14, struct.pack('<iiii', 10000, 2100700, 101270, 0)),
+        (1001, 1, struct.pack('<i', 0)),
+        (2003, 2, struct.pack('<iBxxx', 72100101, 1)),
+        (2003, 18, struct.pack('<iii', 10000, 101272, 0)),
+        (2004, 14, struct.pack('<iiii', 2100700, 10000, 7021, 0)),  # the Doll's, not the player's
+        (2003, 2, struct.pack('<iBxxx', 72100101, 0)),
+    ]
+
+
+class OnlyTheLevellingPlayerKneels(unittest.TestCase):
+    """Kaniel 2026-11-01: when the host levels up in the Hunter's Dream, the guests take the same
+    pose. 72100100 (the Doll's blessing) reaches every player, and each game's 12100112 then plays
+    the kneel on its own player. The kneel's animations now run only while this player's own
+    level-up flag 6700 is on (her talk sets it as her level-up menu opens); the blessing's flags
+    still go on as before, so the levelling player's talk finishes."""
+
+    def setUp(self):
+        self.edits: list = []
+        self.original = build_emevd({12100112: doll_kneel_event(), 12100113: doll_kneel_event()})
+        self.patched, self.count = tool.guard_own_animations(self.original, {12100112: 6700},
+                                                             self.edits)
+        self.events = read_events(self.patched)
+
+    def test_each_of_the_players_animations_is_skipped_without_its_own_level_up(self):
+        skip = (1003, 1, struct.pack('<BBBxi', 1, 0, 0, 6700))
+        original = doll_kneel_event()
+        self.assertEqual(self.count, 3)
+        self.assertEqual(self.events[12100112], [
+            original[0], original[1], skip, original[2], skip, original[3], original[4],
+            original[5], skip, original[6], original[7], original[8]])
+
+    def test_other_events_stay(self):
+        self.assertEqual(self.events[12100113], doll_kneel_event())
+
+    def test_the_file_still_checks_out(self):
+        tool.validate(self.original, self.patched, self.edits, 'm21_00_00_00.emevd.dcx')
+
+    def test_patching_twice_changes_nothing(self):
+        again, count = tool.guard_own_animations(self.patched, {12100112: 6700})
+        self.assertEqual(count, 0)
+        self.assertEqual(again, self.patched)
+
+    def test_the_hunters_dream_is_patched(self):
+        self.assertEqual(tool.OWN_ANIMATION_EVENTS, {'m21_00_00_00.emevd.dcx': {12100112: 6700}})

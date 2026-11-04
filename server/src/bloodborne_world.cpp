@@ -786,6 +786,7 @@ void Service::StartLog(PartyWorld& world, bool after_wipe, qint64 now_ms, Result
     const u64 epoch = WorldLogEpoch(world.world, ++world.logs);
     const std::vector<WorldLogEntry> entries = world.host.Start(epoch, after_wipe);
     world.proposed.clear();
+    world.enemy_places.clear(); // every map starts over
     if (after_wipe) {
         world.last_wipe_ms = now_ms;
     }
@@ -803,6 +804,7 @@ void Service::ResetMap(PartyWorld& world, std::uint32_t map, qint64 now_ms) {
     const std::vector<WorldLogEntry> entries = world.host.ResetMap(map);
     for (const std::uint32_t on : MapsLoadedWith(map)) {
         world.map_reset_ms[on] = now_ms;
+        world.enemy_places.erase(on);
         for (auto& [name, kills] : world.proposed) {
             kills.erase(on);
         }
@@ -963,6 +965,7 @@ void Service::OnLifecycle(Member& member, const bbcoop::Lifecycle& lifecycle, qi
     const QString who = QString::fromStdString(member.name);
     switch (lifecycle.event()) {
     case bbcoop::Lifecycle::WIPE:
+        world.owners.Wipe(now_ms); // its reloads keep the enemy owners (EnemyOwners::Wipe)
         // Invasions: the team wiped with an invader in its world: the invader wins.
         if (const auto invasion = invasions.find(world.name);
             invasion != invasions.end() && invasion->second.joined) {
@@ -1127,6 +1130,19 @@ void Service::Take(Member& member, const bbcoop::Envelope& envelope, qint64 now_
     case bbcoop::Envelope::kEnemyHit: {
         bbcoop::Envelope relayed = envelope;
         relayed.mutable_enemy_hit()->set_member(member.name);
+        SendToOthers(world, member, relayed, now_ms);
+        break;
+    }
+    case bbcoop::Envelope::kEnemyPlaces: {
+        // Only the map's owner runs its enemies: its places go to the others now, and are kept
+        // for whoever takes the map over next (HandOverEnemyPlaces).
+        const std::uint32_t map = envelope.enemy_places().map();
+        if (!Decides(world, member, map)) {
+            break;
+        }
+        bbcoop::Envelope relayed = envelope;
+        relayed.mutable_enemy_places()->set_member(member.name);
+        world.enemy_places[map] = {relayed.enemy_places(), {}};
         SendToOthers(world, member, relayed, now_ms);
         break;
     }
@@ -1332,6 +1348,14 @@ void Service::TakeWorld(Member& member, PartyWorld& world, const bbcoop::Envelop
         if (!Decides(world, member, hp.map())) {
             return;
         }
+        // Rig wipe-one-map 2026-11-04: a map that started over alone (ResetMap). Its members'
+        // games hold their HP reports for WorldLogWipeGraceMs from its Reset, so one in that time
+        // left before its game had the Reset: its HP is from before (the host's 482 of 484
+        // stood in the fresh log and the guest's copy took it after its reload).
+        if (const auto reset = world.map_reset_ms.find(hp.map());
+            reset != world.map_reset_ms.end() && now_ms - reset->second < WorldLogWipeGraceMs) {
+            return;
+        }
         const WorldLogHost::Taken taken = world.host.ProposeHp(HpOf(hp, member.name));
         if (taken.stale) {
             return;
@@ -1378,6 +1402,13 @@ void Service::TakeBoard(Member& member, PartyWorld& world, const bbcoop::Envelop
         return;
     }
     case bbcoop::Envelope::kRest:
+        // A rest at a lamp respawns the member's world: as an owner, its enemies are at their
+        // spawns again, and the places it sent are no more.
+        if (envelope.rest().lamp() != 0) {
+            std::erase_if(world.enemy_places, [&](const auto& held) {
+                return held.second.places.member() == member.name;
+            });
+        }
         answer(world.boards.Rest(member.name, envelope.rest(), now_ms), PartyBoards::Rests);
         return;
     case bbcoop::Envelope::kTrophies:
@@ -1487,7 +1518,25 @@ bbcoop::VitalsBoard Service::VitalsBoardOf(const PartyWorld& world) const {
     return board;
 }
 
+void Service::HandOverEnemyPlaces(PartyWorld& world, qint64 now_ms) {
+    for (auto& [map, held] : world.enemy_places) {
+        const std::string owner = world.owners.OwnerOf(map);
+        if (owner.empty() || owner == held.places.member() || owner == held.handed_to) {
+            continue;
+        }
+        for (auto& [key, member] : members) {
+            if (member.party == world.name && member.name == owner) {
+                bbcoop::Envelope envelope;
+                *envelope.mutable_enemy_places() = held.places;
+                SendTo(member, envelope, now_ms);
+                held.handed_to = owner;
+            }
+        }
+    }
+}
+
 void Service::SendOwners(PartyWorld& world, qint64 now_ms, Result& result, Member* only) {
+    HandOverEnemyPlaces(world, now_ms);
     bbcoop::Envelope envelope;
     *envelope.mutable_enemy_owners() = world.owners.Message();
     QStringList owners;
@@ -1887,9 +1936,11 @@ Service::Result Service::Tick(qint64 now_ms) {
         for (const TeamLobby::Departure& out : expired.departed) {
             gone.append(QString::fromStdString(out.member));
         }
-        result.log.append(QStringLiteral("team lobby: %1 gone (its game quiet %2 ms while its "
-                                         "team plays, or offline %3 min): out of its team")
+        result.log.append(QStringLiteral("team lobby: %1 gone (its game quiet %2 ms or signed "
+                                         "out %3 ms while its team plays, or offline %4 min): "
+                                         "out of its team")
                               .arg(gone.join(QStringLiteral(", ")))
+                              .arg(QuietGraceMs)
                               .arg(LeftGraceMs)
                               .arg(OfflineGraceMs / 60000));
         TakeOutOfTeams(expired, now_ms, result);
@@ -1968,7 +2019,9 @@ Service::Result Service::Forget(const ServerLink::Endpoint& link) {
         const bool elsewhere = std::any_of(members.begin(), members.end(), [&](const auto& m) {
             return m.first != link.Key() && m.second.lobby == name;
         });
-        if (!elsewhere) {
+        if (elsewhere) {
+            lobby.Restarted(name); // its game came back from another link
+        } else {
             lobby.Leave(name);
             lobby_sent.erase(name);
             lobby_changed = true;
@@ -2566,6 +2619,14 @@ bbcoop::LobbyState Service::LobbyStateFor(const Member& member) const {
             }
         }
         AddFriendsToLobby(state, member.lobby, relations, member.search_query, member.search);
+        // Amanises 2026-10-26: a friend (request, search result) the lobby does not list (a hosted
+        // server lists few) still shows its state and team.
+        for (auto* list : {state.mutable_friends(), state.mutable_friend_requests(),
+                           state.mutable_friend_requests_sent(), state.mutable_search()}) {
+            for (bbcoop::LobbyPlayer& entry : *list) {
+                lobby.Describe(entry.member(), entry);
+            }
+        }
     }
     return state;
 }
@@ -3338,7 +3399,7 @@ void Service::JoinInvasion(PartyWorld& world, Invasion& invasion, qint64 now_ms,
     invader.hostile = true;
     invasion.joined = true;
     invasion.joined_ms = now_ms;
-    // Its slot byte: the configured one, or the first free below the guests' 7/6/5.
+    // Its slot byte: the configured one, or the first free below the guests' 7/6/5/4.
     std::set<std::uint32_t> taken;
     if (const bbcoop::Team* team = lobby.TeamOf(world.session->host())) {
         for (const bbcoop::TeamMember& m : team->members()) {

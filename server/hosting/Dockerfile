@@ -125,7 +125,7 @@ RUN groupadd --system --gid "${SHADNET_UID}" shadnet \
     && mkdir -p /data && chown shadnet:shadnet /data && chmod 0750 /data
 COPY --from=build /usr/bin/tini /usr/bin/tini
 COPY --from=build /out/ /opt/shadnet/
-COPY server/worlds.cfg server/scoreboards.cfg /opt/shadnet/defaults/
+COPY server/worlds.cfg server/scoreboards.cfg server/data/common-passwords.txt /opt/shadnet/defaults/
 COPY server/hosting/entrypoint.sh server/hosting/healthcheck.sh /opt/shadnet/
 ENV LD_LIBRARY_PATH=/opt/shadnet/lib QT_PLUGIN_PATH=/opt/shadnet/plugins SHADNET_HOME=/data \
     LANG=C.UTF-8 \

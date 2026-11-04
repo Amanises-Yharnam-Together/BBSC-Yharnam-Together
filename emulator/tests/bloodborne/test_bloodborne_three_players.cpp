@@ -196,6 +196,22 @@ TEST(BloodborneThreePlayers, ASessionMemberIsFoundByItsOnlineId) {
     EXPECT_EQ(OnlineIdOfBoardMember("zz"), "");
 }
 
+// Rig yahargul-mummy-host / party-death down-alone 2026-11-03: re-created as "?" just after a
+// trip. A member with no name yet waits for it a few seconds, then goes as unknown once.
+TEST(BloodborneThreePlayers, AMemberWithNoNameYetWaitsForItAWhile) {
+    using Act = UnnamedRecreateHold::Act;
+    UnnamedRecreateHold hold;
+    EXPECT_EQ(hold.Tick(false, 0), Act::Go);
+    EXPECT_EQ(hold.Tick(true, 1000), Act::Wait);
+    EXPECT_EQ(hold.Tick(true, 1000 + UnnamedRecreateWaitMs - 1), Act::Wait);
+    EXPECT_EQ(hold.Tick(true, 1000 + UnnamedRecreateWaitMs), Act::GoUnnamed) << "past the bound";
+    EXPECT_EQ(hold.Tick(true, 1000 + UnnamedRecreateWaitMs + 50), Act::Go) << "once";
+    EXPECT_EQ(hold.Tick(false, 9000), Act::Go) << "named: at once";
+    EXPECT_EQ(hold.Tick(true, 9100), Act::Wait) << "a new miss waits again";
+    EXPECT_EQ(hold.Tick(false, 9200), Act::Go) << "its name came";
+    EXPECT_EQ(hold.Tick(true, 9300), Act::Wait) << "and the wait starts over";
+}
+
 // After a trip only the members on this map are re-created; creating one into a map it is not
 // on makes its game leave the session. The others follow when they arrive here.
 TEST(BloodborneThreePlayers, OnlyTheMembersOnThisMapAreReCreated) {
@@ -559,6 +575,13 @@ TEST(BloodborneThreePlayers, AGuestStillJoiningAtATripIsRebuiltAsAFreshJoin) {
     // data marked synced: a guest with no data behind it, a "Beckoner" name plate and no body.
     const SavedJoinTask joined{RemoteGuestTask, 0xB0, 1, 0xC, InSessionStep};
     const SavedJoinTask joining{RemoteGuestTask, 0xB0, 0, 0x4, 3};
+    EXPECT_FALSE(RebuiltTaskWaits(nullptr, RemoteHostTask));
+    EXPECT_FALSE(RebuiltTaskWaits(&joined, RemoteHostTask));
+    EXPECT_TRUE(RebuiltTaskWaits(&joining, RemoteHostTask)) << "a member's data has not come";
+    EXPECT_TRUE(RebuiltTaskWaits(&joining, RemoteGuestTask));
+    // Rig party-death 2026-11-02: this game's own task saved mid-join waited for itself.
+    EXPECT_FALSE(RebuiltTaskWaits(&joining, LocalTaskKind(false)));
+    EXPECT_FALSE(RebuiltTaskWaits(&joining, LocalTaskKind(true)));
     EXPECT_TRUE(RebuildsFromSave(joined)) << "its data is there: straight to its character";
     EXPECT_FALSE(RebuildsFromSave(joining)) << "the game's own join, from the start";
     EXPECT_TRUE(RebuildsFromSave(SavedJoinTask{RemoteGuestTask, 0xB0, 1, 0x5, 5}))

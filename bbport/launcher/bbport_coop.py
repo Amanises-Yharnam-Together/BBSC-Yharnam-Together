@@ -53,6 +53,13 @@ DEFAULTS = {'game': '', 'update': '', 'role': 'guest', 'host_ip': '', 'account':
             'machine': '',
             # Kaniel 2026-10-25: the host rules ('1' on, all off by default): the leader's are its team's.
             'rule_rot': '', 'rule_travel': '', 'rule_vote': '', 'rule_scale': '',
+            # Kaniel 2026-11-01: '1' shows the game on Discord (off by default).
+            'discord_status': '',
+            # Kaniel 2026-11-01: 'local' (a host's own server, by its address: as ever) or 'global' (the
+            # public server: its own accounts, bbport_auth.py, Kaniel 2026-11-03); the account's name while
+            # signed in (never its password); another Global server's address than GLOBAL_SERVER (a test
+            # server).
+            'server_type': 'local', 'global_name': '', 'global_server': '',
             # Kaniel 2026-10-28: the boss tempo host rule, '' (Vanilla), 'aggressive' or 'relentless'.
             'rule_tempo': ''}
 BOSS_TEMPOS = ('', 'aggressive', 'relentless')
@@ -163,7 +170,12 @@ def use_system_certificates():
         import truststore
     except ImportError:
         return False
-    context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    # Amanises 2026-10-29: a frozen launcher where the SSL context cannot be made (FileNotFoundError from
+    # ssl.SSLContext) did not start at all, not even --script: it keeps the default.
+    try:
+        context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    except (OSError, ssl.SSLError):
+        return False
     urllib.request.install_opener(urllib.request.build_opener(urllib.request.HTTPSHandler(context=context)))
     return True
 
@@ -295,8 +307,101 @@ def harder_value(hp, damage, poise):
 
 def missing(settings):
     """The answers still to give (or wrong), in the window's order."""
+    if settings.get('server_type') == 'global':
+        needed = [] if settings.get('game') else ['game']
+        return needed + ([] if is_signed_in_global(settings) else ['sign_in'])
     checks = (('game', lambda v: bool(v)), ('host_ip', valid_host))
     return [key for key, ok in checks if not ok(str(settings.get(key, '')))]
+
+
+# --- a Global server (docs/HOSTED_SERVER.md) ------------------------------------------------------
+# The launcher's first Co-op step: Local (a host's own server by its address, exactly as it was) or Global (the
+# public server). There the account comes from the launcher's sign-in: the server's own id, kept like any
+# server's in `server_ids`; the player's id for home servers stays as it was.
+
+# Kaniel 2026-11-04: password only (the server's own accounts, a name and a password: bbport_auth.py).
+
+# The public server's address, once it runs: https only, its directory or the server itself.
+GLOBAL_SERVER = ''
+GLOBAL_CLOSED_TEXT = 'The public server is not open yet.'
+# A new id on a Global server without a sign-in, or an old or signed-out secret (the server's
+# link_server.cpp AccountFirst).
+SIGN_IN_FIRST = ('account:',)
+
+
+def global_url(settings):
+    """The Global server's address, without the slash at its end; '' when there is none yet."""
+    return (settings.get('global_server') or GLOBAL_SERVER).strip().rstrip('/')
+
+
+# A sign-in's secret starts with when it was issued (unix seconds, hex) and holds 30 days: a day before
+# that the launcher asks for a new sign-in, so a game is not refused half way.
+SECRET_DAYS = 29
+
+
+def is_signed_in_global(settings, now=None):
+    url = global_url(settings)
+    held = (settings.get('server_ids') or {}).get(server_key(url)) if url else None
+    if not held:
+        return False
+    try:
+        issued = int(held[1][:8], 16)
+    except ValueError:
+        return False
+    return (time.time() if now is None else now) - issued < SECRET_DAYS * 24 * 3600
+
+
+def signed_in_global(settings, account):
+    """A copy of the settings signed in with what the sign-in gave: its id and signed secret, and the
+    account's name. Never a password or a recovery code."""
+    settings = dict(settings)
+    settings['server_ids'] = dict(settings.get('server_ids') or {})
+    settings['server_ids'][server_key(global_url(settings))] = [account['id'], account['secret']]
+    settings['global_name'] = account.get('name', '')
+    return settings
+
+
+def signed_out_global(settings):
+    """A copy of the settings without the Global account."""
+    settings = dict(settings)
+    settings['server_ids'] = {host: pair for host, pair in (settings.get('server_ids') or {}).items()
+                              if host != server_key(global_url(settings))}
+    settings['global_name'] = ''
+    return settings
+
+
+def played_settings(settings):
+    """The settings PLAY goes by: on Global the server's address; nobody hosts it on their PC."""
+    if settings.get('server_type') != 'global':
+        return settings
+    return dict(settings, host_ip=global_url(settings), role='guest')
+
+
+def global_game_settings(settings, fetch=fetch_json, lookup=socket.gethostbyname):
+    """The settings the game starts with on Global (played_settings): the shard a region's directory
+    names, or a lone server's own address."""
+    url = settings['host_ip']
+    try:
+        listed = fetch(f'{url}/v1/shards')
+    except (OSError, ValueError) as error:
+        raise RuntimeError(REGION_DOWN_TEXT.format(url)) from error
+    if listed is not None:
+        return region_settings(settings, fetch=fetch)
+    account, secret = player_id_for(settings, url)
+    address = resolve_host(urllib.parse.urlsplit(url).hostname or '', lookup=lookup)
+    if not address:
+        raise RuntimeError(UNKNOWN_SERVER_TEXT.format(url))
+    return dict(settings, host_ip=address, server=url, account=account, password=secret,
+                link_key=link_key_for(settings, url))
+
+
+def needs_sign_in(text):
+    """Whether the game's log has the server asking for a sign-in in the launcher."""
+    for line in text.splitlines():
+        _before, found, reason = line.partition(REFUSED_LINE)
+        if found and reason.lstrip().startswith(SIGN_IN_FIRST):
+            return True
+    return False
 
 
 def with_player_id(settings):
@@ -551,6 +656,8 @@ def read_settings(install):
         settings = {key: str(saved.get(key, default)) for key, default in DEFAULTS.items()}
         settings['server_ids'] = server_ids_of(saved)
         settings['server_keys'] = server_keys_of(saved)
+        if not settings['global_name'] and isinstance(saved.get('discord_name'), str):
+            settings['global_name'] = saved['discord_name']  # 1.3.2's first builds
         return settings
     except (OSError, ValueError, AttributeError):
         pass
@@ -1183,6 +1290,23 @@ def unlocked_fps(fps_mode):
     return fps_mode in ('uncap', '90')
 
 
+# The Discord application the status shows as: ours, once made (empty: the option is not offered).
+DISCORD_APP_ID = ''
+
+
+def discord_environment(env, settings):
+    """The Discord status's entries in the game's environment, off unless the player turned it on. A
+    friend joins from Discord only on a public server: a home server's code means nothing to a stranger."""
+    for key in ('BB_DISCORD_STATUS', 'BB_DISCORD_APP_ID', 'BB_DISCORD_JOIN'):
+        env.pop(key, None)
+    if settings.get('discord_status') == '1' and DISCORD_APP_ID:
+        env['BB_DISCORD_STATUS'] = '1'
+        env['BB_DISCORD_APP_ID'] = DISCORD_APP_ID
+        if settings.get('server_type') == 'global':
+            env['BB_DISCORD_JOIN'] = '1'
+    return env
+
+
 def game_environment(env, settings, install, root):
     """The game's environment for co-op, as 2 - PLAY set it, over the launcher's own."""
     install, root = Path(install), Path(root)
@@ -1229,7 +1353,7 @@ def game_environment(env, settings, install, root):
     harder = str(settings.get('harder', 'off'))
     if harder != 'off' and valid_harder(harder):
         env['SHADPS4_BLOODBORNE_HARDER_ENEMIES'] = harder
-    return env
+    return discord_environment(env, settings)
 
 
 REPORTS_SENT = 'reports-sent.json'

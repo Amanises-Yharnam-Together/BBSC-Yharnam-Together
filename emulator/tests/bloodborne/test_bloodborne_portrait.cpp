@@ -327,6 +327,7 @@ TEST(BloodbornePortrait, TheListSlotsShowTheMembersThatHaveAPortrait) {
     EXPECT_FALSE(portraits.Show(0, "rig_guest2"));
     EXPECT_FALSE(portraits.Pixels(0).has_value());
     EXPECT_FALSE(portraits.Show(1, ""));
+    EXPECT_EQ(PortraitSlotCount, PartyListSize) << "a portrait for each teammate on the list";
     EXPECT_FALSE(portraits.Show(PortraitSlotCount, "rig_guest"));
     EXPECT_FALSE(portraits.Pixels(-1).has_value());
     // A member gone: its picture goes.

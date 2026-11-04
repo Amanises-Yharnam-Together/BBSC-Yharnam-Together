@@ -514,6 +514,11 @@ struct EnemyHitNews {
     std::string member;
 };
 void SendEnemyHit(u32 map, u32 handle, s32 hp, s32 max);
+// The owner's moved enemies (see EnemyPlace), and the places heard for `map` (fresh ones only).
+void SendEnemyPlaces(u32 map, std::span<const EnemyPlace> places);
+std::vector<EnemyPlace> HeardEnemyPlaces(u32 map);
+void DropEnemyPlaces(u32 map);
+void ForgetEnemyPlaces();
 std::vector<EnemyHitNews> TakeEnemyHits();
 // Team altars: a ritual's record to the others through the server (relayed as it is), and the
 // others' as they came (taken once).
@@ -530,7 +535,9 @@ void SendTeamPing(const BloodborneCoop::TeamPing& ping);
 std::vector<BloodborneCoop::TeamPing> TakeTeamPings();
 // Kaniel 2026-10-25: this player's duel requests to the server, and the duel's states as they
 // came (bloodborne_duel_game.cpp).
-void SendDuelRequest(bbcoop::DuelRequest::Action action, u32 duel, u32 map);
+// Amanises 2026-10-29: `teams` for a teams' duel (member, team 1-3); none: free for all.
+void SendDuelRequest(bbcoop::DuelRequest::Action action, u32 duel, u32 map,
+                     const std::vector<std::pair<std::string, u32>>& teams = {});
 std::vector<bbcoop::DuelState> TakeDuelStates();
 // Phase 8: the owner's activation pass wakes the groups around the other players too (its entry
 // adds their groups to its block's record, its end puts the record back; see WithOthersGroups).
@@ -557,10 +564,15 @@ void LogEnemyTargets();
 void ClearStaleDeathMarks();
 void LogJoinTasksOnChange();
 void ReconcileMemberPresence();
+// Whether a member on this map stands by another player's copy (see PlayerCopyView).
+bool CopyVouchedFor(u64 character);
 // The object a character's physics ([[+0x3B0]+0x68]) holds as the one it stands on (read at
 // 0x01524B0C; null: none).
 constexpr u64 PhysicsContactObjectOffset = 0xA8;
 void ForgetGroundOfHidden(u64 character);
+// Every enemy here forgets these gone members' copies as targets, its memories of them too (see
+// ForgetsGoneTargetNode); how many target nodes it changed.
+u32 ForgetCharacterTargets(std::span<const u32> handles);
 u64 MemberIdentityOf(u64 character);
 
 void TickPartyTrip();
@@ -656,8 +668,10 @@ void RecreateRemotePlayers(std::span<const u64> only, bool build_missing);
 std::optional<u32> HostMapFromItsPost();
 std::vector<u64> OtherSessionMembers();
 
+// `fresh`: past a miss's wait (SessionNameCache::Lookup), for a re-create about to run.
 std::optional<std::string> SessionMemberBoardName(u64 member,
-                                                  const std::vector<std::string>& online_ids);
+                                                  const std::vector<std::string>& online_ids,
+                                                  bool fresh = false);
 extern bool restore_search_pending;
 void RestoreSearchAfterTrip(bool in_session);
 void PlayGuestAsHost(bool in_session);
@@ -953,6 +967,7 @@ bool TeamLobbySaysPlaying();
 // Kaniel 2026-10-25: this game took its team's host role in play (the host left: the room came
 // here, or the lobby made it the leader); until it leaves the team or the world.
 bool TeamHostTookOver();
+s64 LastPartyWipeMs(); // SteadyMilliseconds of this game's last party wipe, 0 before any
 // Kaniel 2026-10-16: a save loads from the title: what the last one's story removed is forgotten
 // (HoldStoryRemovals).
 void ForgetStoryRemovals();
@@ -1013,6 +1028,9 @@ std::vector<s32> TeamWorldFlagsOnForGuest();
 std::vector<u32> TeamWorldBlocksForGuest();
 // Puts lamps (entities, LampOfActiveFlag) on this character's lamp list, so they stay lit for it.
 void ListLamps(std::span<const s32> lamps);
+// The lamps KeepGuestLampsLit lit again are no world changes (WithoutRelitLamps).
+FlagChanges LeaveOutRelitLamps(FlagChanges changes);
+void ForgetRelitLamps();
 void TickTeamWorld(s64 now_ms);
 // A team guest takes the team world's time of day (TimeOfDayToFollow) when it is not loading.
 void FollowTeamTimeOfDay(s64 now_ms);
@@ -1133,8 +1151,10 @@ void TeleportLocalPlayer(const LampPosition& at, float heading = 0.0f);
 // Has every camera jump to where it should be on its next update (see PlacementCalls).
 void SnapCamera();
 // Any character put there as the player's teleport does (vtable +0x5F8, see PlaceCharacter).
+// `snap_camera` false for a character not the player's (an enemy put back, see EnemyPlace).
 bool PlaceCharacterAt(u64 character, const std::array<float, 4>& position,
-                      const std::array<float, 4>& rotation, const char* what);
+                      const std::array<float, 4>& rotation, const char* what,
+                      bool snap_camera = true);
 // Moves the local player the way the game places it at a lamp (see PlaceCharacter); `what` names
 // the caller in the character check's log.
 bool PlaceLocalPlayer(const std::array<float, 4>& position, const std::array<float, 4>& rotation,
@@ -1210,6 +1230,12 @@ struct PartyDeathRun {
     s64 boss_read_at = 0;
     std::optional<s64> alone_since;
     float fade_before = 1.0f;
+    // Kaniel 2026-11-03 (Amanises's idea): the unseen body trails the watched teammate
+    // (SpectateFollow); a spectator out of a boss fight never follows into its arena.
+    SpectateFollow follow;
+    bool spectating_boss_fight = false;
+    bool follow_held_by_boss = false;
+    u32 follow_moves = 0;
 };
 extern PartyDeathRun party_death_run;
 // Co-op work on the game's threads, logged next to the port's Perf lines (see CoopTimeMeter).

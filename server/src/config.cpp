@@ -63,6 +63,7 @@ void ConfigManager::Parse(const QString& path) {
     m_backend.ghostTtlMinutes = str("BackendGhostTtlMinutes", "30").toInt();
     m_backend.lanternTtlMinutes = str("BackendLanternTtlMinutes", "10").toInt();
     m_backend.tombCap = str("BackendTombCap", "100").toInt();
+    m_backend.replyBytes = str("BackendReplyBytes", "65536").toInt();
     m_backend.summonPoll = str("BackendSummonPoll", "5").toInt();
     m_hosted.enabled = boolean("Hosted", false);
     m_hosted.build = str("HostedBuild", "").trimmed();
@@ -72,7 +73,7 @@ void ConfigManager::Parse(const QString& path) {
     m_hosted.newAccountsPerHour = str("HostedNewAccountsPerHour", "5").toInt();
     m_hosted.signupWorkBits = str("HostedSignupWorkBits", "20").toInt();
     m_hosted.signupWorkMaxBits = str("HostedSignupWorkMaxBits", "20").toInt();
-    m_hosted.signupsPerMinute = str("HostedSignupsPerMinute", "60").toInt();
+    m_hosted.signupsPerMinute = str("HostedSignupsPerMinute", "300").toInt();
     m_hosted.datagramsPerSecond = str("HostedDatagramsPerSecond", "1500").toDouble();
     m_hosted.bytesPerSecond = str("HostedBytesPerSecond", "400000").toDouble();
     m_hosted.lobbyPlayers = str("HostedLobbyPlayers", "32").toInt();
@@ -81,7 +82,7 @@ void ConfigManager::Parse(const QString& path) {
     m_hosted.partyWorlds = str("HostedPartyWorlds", "2048").toInt();
     m_invasions.enabled = boolean("Invasions", false);
     m_invasions.kind = str("InvasionKind", "0xFFFFFFFF").toUInt(nullptr, 0);
-    m_invasions.sign = str("InvasionSign", "4").toUInt(nullptr, 0);
+    m_invasions.sign = str("InvasionSign", "3").toUInt(nullptr, 0);
     m_hosted.stats = boolean("HostedStats", false);
     m_hosted.reports = boolean("HostedReports", false);
     m_hosted.adminSocket = str("HostedAdminSocket", "admin.sock").trimmed();
@@ -91,6 +92,22 @@ void ConfigManager::Parse(const QString& path) {
         const QString value = str(key, def).trimmed();
         return qEnvironmentVariableIsSet(env) ? qEnvironmentVariable(env).trimmed() : value;
     };
+    {
+        const QString mode = shardSetting("SignIn", "SIGN_IN", "password").toLower();
+        m_signIn.passwords = mode != "open";
+        if (mode != "open" && mode != "password")
+            qWarning().noquote() << "Config: SignIn=" + mode +
+                                        " is not password or open; password it is";
+    }
+    m_signIn.home = shardSetting("PasswordHome", "PASSWORD_HOME", "true").toLower() != "false";
+    m_signIn.hashMemoryKib =
+        std::clamp(str("PasswordHashMemoryKiB", "65536").toUInt(), 8u * 1024u, 1024u * 1024u);
+    m_signIn.hashPasses = std::clamp(str("PasswordHashPasses", "2").toUInt(), 1u, 16u);
+    m_signIn.hashThreads = std::clamp(str("PasswordHashThreads", "2").toInt(), 1, 64);
+    m_signIn.hashQueue = std::clamp(str("PasswordHashQueue", "32").toInt(), 1, 10'000);
+    m_signIn.triesPerMinute = std::max(1, str("PasswordTriesPerMinute", "30").toInt());
+    m_signIn.commonPasswords = str("CommonPasswordsFile", "common-passwords.txt").trimmed();
+    m_signIn.proxied = boolean("SignInProxied", false);
     m_shard.directoryUrl = shardSetting("DirectoryUrl", "DIRECTORY_URL", "");
     while (m_shard.directoryUrl.endsWith('/'))
         m_shard.directoryUrl.chop(1);
@@ -98,7 +115,7 @@ void ConfigManager::Parse(const QString& path) {
     m_shard.publicAddress = shardSetting("ShardPublicAddress", "SHARD_PUBLIC_ADDRESS", "");
     m_shard.token = shardSetting("DirectoryToken", "DIRECTORY_TOKEN", "").toUtf8();
     m_shard.regionSecret = shardSetting("RegionSecret", "REGION_SECRET", "").toUtf8();
-    m_shard.capacity = shardSetting("ShardCapacity", "SHARD_CAPACITY", "800").toInt();
+    m_shard.capacity = shardSetting("ShardCapacity", "SHARD_CAPACITY", "350").toInt();
     const QString draining = shardSetting("ShardDraining", "SHARD_DRAINING", "false").toLower();
     m_shard.draining = draining == "true" || draining == "1";
     m_shard.heartbeatMs = std::max(500, str("ShardHeartbeatMs", "2000").toInt());
