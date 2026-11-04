@@ -190,6 +190,17 @@ int main() {
     CHECK(watch.Sheet(other).empty());
   }
   {
+    // Its name read late (none in the first sheets): the same character, said
+    // once.
+    CheatWatch watch;
+    CharacterSheet sheet = Hunter();
+    sheet.production = false;
+    sheet.character = "";
+    CHECK(Has(watch.Sheet(sheet), "dev-build"));
+    sheet.character = "Hunter";
+    CHECK(watch.Sheet(sheet).empty());
+  }
+  {
     // How the game was built: cheats, the save editor, debug tools, a dev
     // build, the rig.
     CharacterSheet sheet = Hunter();

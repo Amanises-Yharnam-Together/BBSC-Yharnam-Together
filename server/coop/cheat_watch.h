@@ -118,8 +118,10 @@ public:
 
     std::vector<CheatFinding> Sheet(const CharacterSheet& now) {
         std::vector<CheatFinding> found;
-        if (last && last->character != now.character) {
-            StartOver(); // another character (or save) in the same run
+        // Another character (or save) in the same run. A name read late (none in the first
+        // sheets) is the same character.
+        if (last && !last->character.empty() && last->character != now.character) {
+            StartOver();
         }
         Build(now, found);
         if (now.level == 0) {
