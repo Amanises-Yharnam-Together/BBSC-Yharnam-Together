@@ -55,6 +55,9 @@ VERBS = {
     "use-lamp", "travel-answer", "expect-rot",  # Kaniel 2026-10-25: the host rules
     "death-mode", "wait-death-mode", "free-camera", "lamp-use",  # Kaniel 2026-10-25: spectating
     "watch-effects", "wait-bullets",  # 2026-10-25: a boss's spells in every game
+    # 1.3.2 (BBSC): open teams, codes and quick match from the title; duels between teams.
+    "team-open", "team-join-open", "team-wait-open", "team-code-share", "team-join-code",
+    "team-quick", "duel-propose-teams",
 }
 VITALS = {"up", "down", "dead", "spectate"}
 BUTTONS = {"cross", "circle", "square", "triangle", "options", "up", "right", "down", "left",
@@ -508,9 +511,12 @@ class LaneTest(unittest.TestCase):
     def test_a_scenario_sets_its_servers_settings_and_the_next_run_gets_the_defaults(self):
         # Kaniel 2026-10-31 (invade-solo): invasions are off on a server unless its shadnet.cfg
         # says Invasions=true; one run's must never stay on for the runs after it.
-        self.assertEqual(run_scenario.server_settings({}), {"Invasions": "false"})
+        # Every run gets every default; a scenario's own settings go over them.
+        defaults = run_scenario.SERVER_DEFAULTS
+        self.assertEqual((defaults["Invasions"], defaults["Hosted"]), ("false", "false"))
+        self.assertEqual(run_scenario.server_settings({}), defaults)
         self.assertEqual(run_scenario.server_settings(scenarios.SCENARIOS["invade-solo"]),
-                         {"Invasions": "true"})
+                         dict(defaults, Invasions="true"))
         with self.assertRaises(ValueError):
             run_scenario.server_settings({"server": {"Invasion": "true"}})
         with tempfile.TemporaryDirectory() as folder:

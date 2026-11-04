@@ -939,7 +939,11 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "bb-dummy/2.0"
 
     def log_message(self, fmt, *args):
-        sys.stdout.write("[{}] {}\n".format(datetime.datetime.now().strftime("%H:%M:%S"), fmt % args))
+        # A player's name may hold any character: never one the console's code page cannot write
+        # (Windows' cp1252 refused an emoji, and the request died with its connection).
+        line = "[{}] {}\n".format(datetime.datetime.now().strftime("%H:%M:%S"), fmt % args)
+        encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+        sys.stdout.write(line.encode(encoding, "backslashreplace").decode(encoding))
         sys.stdout.flush()
 
     def _send(self, body, content_type, extra_headers=()):

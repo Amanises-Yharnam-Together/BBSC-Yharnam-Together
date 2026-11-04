@@ -2602,7 +2602,7 @@ SCENARIOS = {
         "syncs": {name: {"chapter": "join-by-code", "roles": ["host", "guest"]}
                   for name in ("joined",)},
         "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
-        "timeout": 420,
+        "timeout": 300,
     },
     "join-open-team": {
         "about": "a guest joins an open team from the list at once, no invite",
@@ -2616,7 +2616,7 @@ SCENARIOS = {
         "syncs": {name: {"chapter": "join-open-team", "roles": ["host", "guest"]}
                   for name in ("joined",)},
         "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
-        "timeout": 420,
+        "timeout": 300,
     },
     # Kaniel 2026-11-01, the public server: games signed in through a TLS proxy on a hosted server
     # (Kaniel 2026-11-03: its own accounts, a name and a password; the first role also meets a second
@@ -2635,7 +2635,7 @@ SCENARIOS = {
         "syncs": {name: {"chapter": "global-quick-match", "roles": ["host", "guest"]}
                   for name in ("played",)},
         "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
-        "timeout": 420,
+        "timeout": 300,
     },
     # Amanises 2026-10-29, teams of five: the fourth guest takes player slot 4. All five in one
     # session, each one's portrait and vitals on the others' boards; a trip to the Dream and back
@@ -5359,7 +5359,7 @@ SCENARIOS["duel-teams"] = {
                    r"Co-op duel: team 2 won duel 1"],
     },
     "forbid": {role: SESSION_HOLDS + DUEL_NO_DEATH for role in ("host", "guest", "guest2")},
-    "timeout": 420,
+    "timeout": 300,
 }
 
 
@@ -5594,7 +5594,7 @@ SCENARIOS["spectate-follow"] = {
     "forbid": {"host": SESSION_HOLDS,
                "guest": SESSION_HOLDS + SPECTATE_FORBID + [r"reset=true", r"spectate: killed",
                                                            r"the body follows .+, [0-2]\.\d m from it"]},
-    "timeout": 360,
+    "timeout": 300,
 }
 SCENARIOS["spectate-give-up"] = {
     "about": "spectating, the guest holds Circle 3 s: it wakes at its own lamp at once (no death, no "
