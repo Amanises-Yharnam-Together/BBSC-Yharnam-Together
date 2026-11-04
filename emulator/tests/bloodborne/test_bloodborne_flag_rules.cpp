@@ -621,6 +621,34 @@ TEST(BloodborneFlagRules, TheLevellersOwnBlessingStepsGoThrough) {
     }
 }
 
+// Kaniel 2026-11-03: a second "Level Up" in the same Dream visit opened no menu. Her talk sets
+// 6700 as her level-up menu opens and skips the menu while it is on; nothing in the game cleared
+// it before the next map load (rig on Kaniel's PC, a lone player too). It goes off once her
+// blessing is over: this game's own 72100100 back off after it was on, 6700 still on.
+TEST(BloodborneFlagRules, TheDollsLevelUpFlagGoesOffOnceHerBlessingIsOver) {
+    DollLevelUpClear clear;
+    EXPECT_FALSE(clear.Tick(true, true, false)) << "her menu open";
+    EXPECT_FALSE(clear.Tick(true, true, true)) << "her blessing";
+    EXPECT_FALSE(clear.Tick(true, true, true));
+    EXPECT_TRUE(clear.Tick(true, true, false)) << "her blessing over";
+    EXPECT_FALSE(clear.Tick(true, false, false)) << "once";
+    // The menu again: the same once more.
+    EXPECT_FALSE(clear.Tick(true, true, false));
+    EXPECT_FALSE(clear.Tick(true, true, true));
+    EXPECT_TRUE(clear.Tick(true, true, false));
+}
+
+TEST(BloodborneFlagRules, TheDollsLevelUpFlagStaysWithoutABlessingOrOutOfCoop) {
+    DollLevelUpClear clear;
+    EXPECT_FALSE(clear.Tick(true, true, false));
+    EXPECT_FALSE(clear.Tick(true, true, false)) << "no blessing yet";
+    EXPECT_FALSE(clear.Tick(true, false, true));
+    EXPECT_FALSE(clear.Tick(true, false, false)) << "6700 already off";
+    DollLevelUpClear solo;
+    EXPECT_FALSE(solo.Tick(false, true, true));
+    EXPECT_FALSE(solo.Tick(false, true, false)) << "the co-op mode only";
+}
+
 // m21_00 12105020-12105024 (01.09): on while any of the headstone's lamps is lit.
 TEST(BloodborneFlagRules, AHeadstoneIsLitByThisPlayersOwnLamps) {
     const std::set<s32> lit{12407830, 13207810};

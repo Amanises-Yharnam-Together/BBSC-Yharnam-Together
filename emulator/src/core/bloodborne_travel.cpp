@@ -1755,6 +1755,21 @@ void KeepHeadstoneFlagsOwn() {
     }
 }
 
+// See DollLevelUpClear: each frame in the co-op mode, the Doll's level-up flag off once her
+// blessing is over, so her next "Level Up" opens the menu again.
+void ClearDollLevelUpFlagAfterHerBlessing() {
+    static DollLevelUpClear clear;
+    const bool playing = party_controller && GetLocalPlayer() >= 0x10000;
+    if (!clear.Tick(playing, playing && EventFlagOn(DollLevelUpFlag),
+                    playing && EventFlagOn(DollBlessingFlag))) {
+        return;
+    }
+    reinterpret_cast<bool PS4_SYSV_ABI (*)(u64, s32, bool)>(
+        image_base + PartyGhostSetEventFlagOffset)(0, DollLevelUpFlag, false);
+    LOG_INFO(Debug, "Bloodborne party: the Doll's level-up flag {} cleared, her blessing over",
+             DollLevelUpFlag);
+}
+
 // See ImpurityBonusChange: every second, the Impurity rune's HP bonus put on (through the
 // player's own add-effect virtual, as event 9035's 2004:8) or taken off.
 void KeepImpurityBonus(bool in_session) {
@@ -2008,6 +2023,7 @@ void TickPlayersOnThisMap() {
     KeepGiftTalkFlagsOwn();
     KeepOwnedWeaponFlagsOwn();
     KeepHeadstoneFlagsOwn();
+    ClearDollLevelUpFlagAfterHerBlessing();
     static RecreateAfterJoin recreate_after_join;
     if (recreate_after_join.Tick(IsPartyGuestRole(), in_session,
                                  in_session ? OtherSessionMembers().size() : 0,

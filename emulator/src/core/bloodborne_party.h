@@ -1121,6 +1121,21 @@ bool ClearsDollLevelUpFlag(bool party_configured, bool flag_on);
 // off does not (it made every player kneel, Kaniel 2026-11-03).
 constexpr s32 DollBlessingFlag = 72100100;
 bool TakesDollBlessingStep(s32 flag, bool sent_on, bool own_blessing_on);
+// Kaniel 2026-11-03: a second "Level Up" in the same Dream visit opened no menu: her talk sets
+// 6700 as her level-up menu opens and skips the menu while it is on, and in the co-op mode nothing
+// cleared it before the next map load (rig: a lone player too). Tick (each frame) says when to
+// clear it: her blessing over, this game's own 72100100 off again after it was on, 6700 still on.
+class DollLevelUpClear {
+public:
+    bool Tick(bool coop_mode, bool level_up_on, bool blessing_on) {
+        const bool was_on = blessing_was_on;
+        blessing_was_on = coop_mode && blessing_on;
+        return coop_mode && level_up_on && was_on && !blessing_on;
+    }
+
+private:
+    bool blessing_was_on = false;
+};
 // The other player's "set this event flag" (0x017C0570) and "event ended" (0x017C0901) messages
 // leave these flags and events alone in a party: what one player received is not given to the
 // other (the Hunter's Dream messengers' gift events and flags, 12101020-12101029, and the
