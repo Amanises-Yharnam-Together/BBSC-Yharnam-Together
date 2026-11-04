@@ -213,10 +213,18 @@ def let_guests_earn_insight(emevd: bytes, edits: list | None = None) -> tuple[by
 # blocks (2000:0 per block with object and fog), so the "show" checks never match instead.
 CHALICE_WALL_EVENTS = {'m29.emevd.dcx': 12907600}
 IF_MULTIPLAYER_STATE = (3, 6)
+OR_GROUP_1, OR_GROUP_2 = 0xFF, 0xFE
+# Ludwig's arena wall (Kaniel 2026-11-04: a fog stood in his arena after the fight, even after a
+# rejoin): m34's 13400010 shows wall 3401801 (fog 3403801) while the multiplayer state is 3 or 2
+# or Ludwig (9471) lives, in group -1, and hides it once the state is neither (group -2) and 9471
+# is on. A party is always in multiplayer, so it never went. Both sides' multiplayer checks never
+# match: the wall stands while he lives, as in a lone game, and goes once he is dead.
+ARENA_WALL_EVENTS = {'m34_00_00_00.emevd.dcx': 13400010}
 
 
-def patch_chalice_walls(emevd: bytes, edits: list | None = None,
-                        event_id: int = 12907600) -> tuple[bytes, int]:
+def patch_chalice_walls(emevd: bytes, edits: list | None = None, event_id: int = 12907600,
+                        groups: tuple[int, ...] = (OR_GROUP_1, ),
+                        why: str = 'chalice multiplayer wall never shows') -> tuple[bytes, int]:
     data = bytearray(emevd)
     fields = struct.unpack_from('<16q', data, 16)
     event_count, event_offset, instruction_offset, args_offset = (fields[0], fields[1], fields[3],
@@ -231,9 +239,9 @@ def patch_chalice_walls(emevd: bytes, edits: list | None = None,
             bank, ident, length, offset, _ = struct.unpack_from(
                 '<iiqqq', data, instruction_offset + first + k * 32)
             at = args_offset + offset
-            if (bank, ident) == IF_MULTIPLAYER_STATE and length >= 2 and data[at] == 0xFF:
+            if (bank, ident) == IF_MULTIPLAYER_STATE and length >= 2 and data[at] in groups:
                 data[at + 1] = NEVER
-                note(edits, event, k, bank, ident, 'chalice multiplayer wall never shows')
+                note(edits, event, k, bank, ident, why)
                 patched += 1
     return bytes(data), patched
 
@@ -1194,7 +1202,7 @@ def patch_file(name: str, original: bytes) -> tuple[bytes | None, list, dict]:
               'item pickup checks': 0, 'host door effects': 0, 'ambush checks': 0,
               'chalice reward checks': 0, 'one-time enemy checks': 0, 'lake dive checks': 0,
               'ending checks': 0, 'dropped banners': 0, 'own animation checks': 0,
-              'plain action buttons': 0}
+              'plain action buttons': 0, 'arena wall checks': 0}
     try:
         if name.startswith('m'):
             emevd, counts['boss event checks'] = patch_events(emevd, edits)
@@ -1219,6 +1227,10 @@ def patch_file(name: str, original: bytes) -> tuple[bytes | None, list, dict]:
         if name in CHALICE_WALL_EVENTS:
             emevd, counts['chalice wall checks'] = patch_chalice_walls(
                 emevd, edits, CHALICE_WALL_EVENTS[name])
+        if name in ARENA_WALL_EVENTS:
+            emevd, counts['arena wall checks'] = patch_chalice_walls(
+                emevd, edits, ARENA_WALL_EVENTS[name], (OR_GROUP_1, OR_GROUP_2),
+                'arena wall goes with its boss in a party')
         if name in HOST_DOOR_EFFECT:
             emevd, counts['host door effects'] = patch_host_door_effect(
                 emevd, edits, HOST_DOOR_EFFECT[name])
