@@ -586,6 +586,69 @@ TEST(BloodborneFlagRules, TheDollsLevelUpFlagIsEachGamesOwnAndOffAsAMapLoads) {
     }
 }
 
+// Kaniel 2026-10-30: the host's level up played the kneel on guests. The Doll's blessing flags
+// (72100100 her talk's, 72100101 m21_00 12100112's kneel on the local player, 72100102 12100113's
+// turn of the Doll) are each game's own: not the team's world, not a story step, and the other
+// player's flag message leaves them alone.
+TEST(BloodborneFlagRules, TheDollsBlessingFlagsAreEachGamesOwn) {
+    for (const s32 flag : {72100100, 72100101, 72100102}) {
+        EXPECT_EQ(RuleFor(flag).owner, FlagOwner::PerPlayer) << flag;
+        EXPECT_FALSE(IsWorldFlag(flag)) << flag;
+        EXPECT_TRUE(KeepsLocalFlag(true, flag)) << flag;
+        EXPECT_FALSE(CarriesToGuestWorld(flag)) << flag;
+        EXPECT_FALSE(TakesHostMapFlag(flag)) << flag;
+        EXPECT_FALSE(SharedWithParty(flag)) << flag;
+    }
+    for (const s32 flag : {72100099, 72100103, 72100110}) {
+        EXPECT_EQ(RuleFor(flag).owner, FlagOwner::Host) << flag;
+    }
+}
+
+// Rig 2026-11-03: in a session a game's own event's flag set comes back as the "other player's"
+// set message, so keeping 72100101/72100102 refused the leveller's own kneel and turn, and her
+// talk waited for them forever. Her steps are taken while this game's own blessing (72100100) is
+// on, and a step's end (off) always; another player's step while this game's blessing is off is
+// not.
+TEST(BloodborneFlagRules, TheLevellersOwnBlessingStepsGoThrough) {
+    for (const s32 flag : {72100101, 72100102}) {
+        EXPECT_TRUE(TakesDollBlessingStep(flag, true, true)) << flag;
+        EXPECT_TRUE(TakesDollBlessingStep(flag, false, true)) << flag;
+        EXPECT_TRUE(TakesDollBlessingStep(flag, false, false)) << flag;
+        EXPECT_FALSE(TakesDollBlessingStep(flag, true, false)) << flag;
+    }
+    for (const s32 flag : {72100100, 72100103, 6700}) {
+        EXPECT_FALSE(TakesDollBlessingStep(flag, true, true)) << flag;
+    }
+}
+
+// Kaniel 2026-11-03: a second "Level Up" in the same Dream visit opened no menu. Her talk sets
+// 6700 as her level-up menu opens and skips the menu while it is on; nothing in the game cleared
+// it before the next map load (rig on Kaniel's PC, a lone player too). It goes off once her
+// blessing is over: this game's own 72100100 back off after it was on, 6700 still on.
+TEST(BloodborneFlagRules, TheDollsLevelUpFlagGoesOffOnceHerBlessingIsOver) {
+    DollLevelUpClear clear;
+    EXPECT_FALSE(clear.Tick(true, true, false)) << "her menu open";
+    EXPECT_FALSE(clear.Tick(true, true, true)) << "her blessing";
+    EXPECT_FALSE(clear.Tick(true, true, true));
+    EXPECT_TRUE(clear.Tick(true, true, false)) << "her blessing over";
+    EXPECT_FALSE(clear.Tick(true, false, false)) << "once";
+    // The menu again: the same once more.
+    EXPECT_FALSE(clear.Tick(true, true, false));
+    EXPECT_FALSE(clear.Tick(true, true, true));
+    EXPECT_TRUE(clear.Tick(true, true, false));
+}
+
+TEST(BloodborneFlagRules, TheDollsLevelUpFlagStaysWithoutABlessingOrOutOfCoop) {
+    DollLevelUpClear clear;
+    EXPECT_FALSE(clear.Tick(true, true, false));
+    EXPECT_FALSE(clear.Tick(true, true, false)) << "no blessing yet";
+    EXPECT_FALSE(clear.Tick(true, false, true));
+    EXPECT_FALSE(clear.Tick(true, false, false)) << "6700 already off";
+    DollLevelUpClear solo;
+    EXPECT_FALSE(solo.Tick(false, true, true));
+    EXPECT_FALSE(solo.Tick(false, true, false)) << "the co-op mode only";
+}
+
 // m21_00 12105020-12105024 (01.09): on while any of the headstone's lamps is lit.
 TEST(BloodborneFlagRules, AHeadstoneIsLitByThisPlayersOwnLamps) {
     const std::set<s32> lit{12407830, 13207810};

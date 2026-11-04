@@ -1554,6 +1554,13 @@ bool RefusesLampLight(s32 flag, std::optional<bool> lamp_character_off) {
     return LampOfLightRequest(flag).has_value() && lamp_character_off.value_or(false);
 }
 
+bool TakesDollBlessingStep(s32 flag, bool sent_on, bool own_blessing_on) {
+    if (flag != DollBlessingFlag + 1 && flag != DollBlessingFlag + 2) {
+        return false;
+    }
+    return !sent_on || own_blessing_on;
+}
+
 bool ClearsDollLevelUpFlag(bool party_configured, bool flag_on) {
     return party_configured && flag_on;
 }
