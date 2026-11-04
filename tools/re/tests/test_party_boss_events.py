@@ -965,3 +965,57 @@ class OnlyTheLevellingPlayerKneels(unittest.TestCase):
 
     def test_the_hunters_dream_is_patched(self):
         self.assertEqual(tool.OWN_ANIMATION_EVENTS, {'m21_00_00_00.emevd.dcx': {12100112: 6700}})
+
+
+class AnEmptiedGroupEndsNoEvent(unittest.TestCase):
+    """2026-11-04: thirteen events end unless the local player is alive, with the alive check
+    alone in the condition group the end tests (m23 12300130, m34 13401000, m36 13601803 and
+    more). The patches move that check to a group nothing tests, which left the end testing an
+    empty group, and on the rig an empty group fails such an end (m21 12100112, 2026-11-03): the
+    event ended at once in every game, the host's too. Such an end is now a skip of no lines."""
+
+    @staticmethod
+    def patched(events):
+        original = tool.save_dcx(DCX_HEADER, build_emevd(events))
+        output, edits, counts = tool.patch_file('m34_00_00_00.emevd.dcx', original)
+        return read_events(tool.load_dcx(output)), edits
+
+    def test_the_end_on_the_emptied_group_skips_nothing(self):
+        # m34 13401000: arriving in the Hunter's Nightmare, 2 insight.
+        events, edits = self.patched({13401000: [
+            (4, 3, struct.pack('<bxxxiBxxx', 15, 10000, 0)),
+            (1000, 2, struct.pack('<BBbx', 0, 0, 15)),
+            flag_condition(0, 12401000),
+            init_insight(2)]})
+        self.assertEqual(events[13401000][0][2][0], tool.UNUSED_GROUP)
+        self.assertEqual(events[13401000][1][:2], (1000, 1))
+        self.assertEqual(events[13401000][1][2], struct.pack('<BBbx', 0, 0, 15),
+                         'a skip of no lines: the event goes on in every game')
+        self.assertIn({'event': 13401000, 'action': 'change', 'instruction': 1, 'bank': 1000,
+                       'id': 1, 'why': 'no end on an emptied group'}, edits)
+
+    def test_an_end_on_a_group_with_other_checks_stays(self):
+        events, _ = self.patched({13401001: [
+            (4, 3, struct.pack('<bxxxiBxxx', 15, 10000, 0)),
+            flag_condition(15, 12401000),
+            (1000, 2, struct.pack('<BBbx', 0, 0, 15)),
+            init_insight(2)]})
+        self.assertEqual(events[13401001][2], (1000, 2, struct.pack('<BBbx', 0, 0, 15)))
+
+    def test_an_end_on_a_group_the_game_left_empty_stays(self):
+        events, _ = self.patched({13401002: [
+            (1000, 2, struct.pack('<BBbx', 0, 0, 14)),
+            (4, 3, struct.pack('<bxxxiBxxx', 15, 10000, 0)),
+            (1000, 2, struct.pack('<BBbx', 0, 0, 15)),
+            init_insight(2)]})
+        self.assertEqual(events[13401002][0], (1000, 2, struct.pack('<BBbx', 0, 0, 14)))
+        self.assertEqual(events[13401002][2][:2], (1000, 1))
+
+    def test_patching_twice_changes_nothing(self):
+        original = tool.save_dcx(DCX_HEADER, build_emevd({13401000: [
+            (4, 3, struct.pack('<bxxxiBxxx', 15, 10000, 0)),
+            (1000, 2, struct.pack('<BBbx', 0, 0, 15)),
+            init_insight(2)]}))
+        once, _, _ = tool.patch_file('m34_00_00_00.emevd.dcx', original)
+        twice, _, _ = tool.patch_file('m34_00_00_00.emevd.dcx', once)
+        self.assertIsNone(twice)

@@ -177,7 +177,8 @@ def let_guests_earn_insight(emevd: bytes, edits: list | None = None) -> tuple[by
     or unless the local player is alive (4:3 player 10000 type 0, in a group an END tests or in
     the main group), so a party guest, a white phantom, never got the insight (Kaniel
     2026-10-11). In those events the client end never matches and the alive check moves to a
-    condition group nothing tests (an empty group passes)."""
+    condition group nothing tests; an end left on an emptied group skips nothing
+    (skip_ends_on_emptied_groups)."""
     data = bytearray(emevd)
     fields = struct.unpack_from('<16q', data, 16)
     event_count, event_offset, instruction_offset = fields[0], fields[1], fields[3]
@@ -1184,17 +1185,64 @@ def validate(original: bytes, patched: bytes, intended_edits: list, name: str = 
             fail(f'{where}: ' + '; '.join(wrong))
 
 
+# 1000:2 "end if condition group N is in state S" (end type, state, group), and 1000:1 "skip
+# lines if N is in state S" with the same bytes (lines, state, group).
+END_IF_GROUP = (1000, 2)
+SKIP_IF_GROUP = (1000, 1)
+CONDITION_BANKS = range(0, 1000)  # every "if" instruction: its first byte is its group
+
+
+def condition_groups(instructions: list) -> set[int]:
+    """The condition groups (by their signed byte; 0 is the main group) the event adds checks to."""
+    return {struct.unpack_from('b', args)[0] for bank, ident, length, layer, args in instructions
+            if bank in CONDITION_BANKS and length >= 1}
+
+
+def skip_ends_on_emptied_groups(original: bytes, emevd: bytes,
+                                edits: list | None = None) -> tuple[bytes, int]:
+    """Moving an alive check to UNUSED_GROUP can leave the group an end tests with no check at
+    all (m34 13401000, m36 13601803 and eleven more: "end unless the local player is alive"). On
+    the game an empty group fails that end (rig 2026-11-03, m21 12100112), so the event ended at
+    once in every game, the host's too. Each end on a group the patches emptied becomes a skip of
+    no lines (1000:1 with the same bytes, lines 0): the event goes on, as it did for an alive host
+    before. An end on a group the game itself leaves empty stays."""
+    data = bytearray(emevd)
+    fields = struct.unpack_from('<16q', data, 16)
+    event_count, event_offset, instruction_offset = fields[0], fields[1], fields[3]
+    args_offset = fields[13]
+    before = {event['id']: condition_groups(event['instructions'])
+              for event in parse(original)['events']}
+    after = {event['id']: event for event in parse(emevd)['events']}
+    patched = 0
+    for index in range(event_count):
+        event, count, first, *_ = struct.unpack_from('<qqqqqii', data, event_offset + index * 48)
+        emptied = before.get(event, set()) - condition_groups(after[event]['instructions'])
+        if not emptied:
+            continue
+        for k in range(count):
+            at = instruction_offset + first + k * 32
+            bank, ident, length, offset, _ = struct.unpack_from('<iiqqq', data, at)
+            if ((bank, ident) == END_IF_GROUP and length >= 3 and
+                    struct.unpack_from('b', data, args_offset + offset + 2)[0] in emptied):
+                struct.pack_into('<i', data, at + 4, SKIP_IF_GROUP[1])
+                data[args_offset + offset] = 0  # no lines
+                note(edits, event, k, *SKIP_IF_GROUP, 'no end on an emptied group')
+                patched += 1
+    return bytes(data), patched
+
+
 def patch_file(name: str, original: bytes) -> tuple[bytes | None, list, dict]:
     """Patches one event file (DCX): the output (None if nothing changed), the edits and the
     counts per patch. The output is checked with validate."""
     emevd = load_dcx(original)
+    game = emevd
     edits: list = []
     counts = {'boss event checks': 0, 'boss fog checks': 0, 'insight event checks': 0,
               'client event ends': 0, 'local events': 0, 'chalice wall checks': 0,
               'item pickup checks': 0, 'host door effects': 0, 'ambush checks': 0,
               'chalice reward checks': 0, 'one-time enemy checks': 0, 'lake dive checks': 0,
               'ending checks': 0, 'dropped banners': 0, 'own animation checks': 0,
-              'plain action buttons': 0}
+              'plain action buttons': 0, 'emptied group ends': 0}
     try:
         if name.startswith('m'):
             emevd, counts['boss event checks'] = patch_events(emevd, edits)
@@ -1234,6 +1282,8 @@ def patch_file(name: str, original: bytes) -> tuple[bytes | None, list, dict]:
         if name in DROPPED_BANNER_EVENTS:
             emevd, counts['dropped banners'] = drop_banners(emevd, DROPPED_BANNER_EVENTS[name],
                                                             edits)
+        # After every patch that moves a check, before any insert.
+        emevd, counts['emptied group ends'] = skip_ends_on_emptied_groups(game, emevd, edits)
         # Last: validate names changed instructions by their number in the game's event, which
         # only inserts move.
         if name in LOCAL_EVENTS:
