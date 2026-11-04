@@ -163,7 +163,7 @@ public:
 
     // A packet of this game for the member, sent at the next Flush.
     void Send(PacketClass packet_class, std::span<const u8> packet, s64 now_ms) {
-        Outgoing out{packet_class, 0, {packet.begin(), packet.end()}, now_ms};
+        Outgoing out{packet_class, 0, {packet.begin(), packet.end()}, now_ms, 0, now_ms};
         if (packet_class == PacketClass::Reliable) {
             out.seq = next_reliable++;
             reliable_bytes += packet.size();
@@ -237,10 +237,11 @@ public:
         if (was_quiet) {
             heard_since_quiet = true;
         }
+        const std::optional<s64> heard_before = last_heard_ms;
         last_heard_ms = now_ms;
         if (!peer_instance || *peer_instance != frame.instance) {
             if (peer_instance) {
-                RestartStreams();
+                RestartStreams(heard_before);
             }
             peer_instance = frame.instance;
         }
@@ -305,7 +306,10 @@ private:
         std::vector<u8> packet;
         s64 sent_ms;
         s64 wait_ms = 0; // until its next resend (backs off)
+        s64 queued_ms = 0;
     };
+    // The game's join hello: the first it sends a member's game in a session.
+    static constexpr u32 JoinHelloChannel = 0x42;
 
     static u32 ChannelOf(const std::vector<u8>& packet) {
         u32 channel = 0;
@@ -322,8 +326,25 @@ private:
                          .ack = expected};
     }
 
-    // The member's game restarted: what it had not taken is dropped, both ways start again.
-    void RestartStreams() {
+    // The member's game restarted: what it had not taken is dropped, both ways start again. But
+    // what this game sent to greet the member's new game (its join hello and all after it, sent
+    // after the old game was last heard) goes to the new one, from its new stream's start (rig
+    // party3 2026-11-02: dropped, the new game never got the world's head, ch 0x29, and its join
+    // timed out).
+    void RestartStreams(std::optional<s64> old_heard_ms) {
+        std::vector<Outgoing> pending;
+        for (auto& [seq, out] : unacked) {
+            pending.push_back(std::move(out));
+        }
+        for (Outgoing& out : fresh) {
+            if (out.packet_class == PacketClass::Reliable) {
+                pending.push_back(std::move(out));
+            }
+        }
+        const auto hello = std::find_if(pending.rbegin(), pending.rend(), [&](const Outgoing& out) {
+            return ChannelOf(out.packet) == JoinHelloChannel &&
+                   (!old_heard_ms || out.queued_ms > *old_heard_ms);
+        });
         ++restarts;
         expected = 0;
         held.clear();
@@ -335,6 +356,13 @@ private:
         reliable_bytes = 0;
         std::erase_if(
             fresh, [](const Outgoing& out) { return out.packet_class == PacketClass::Reliable; });
+        if (hello != pending.rend()) {
+            for (auto out = std::prev(hello.base()); out != pending.end(); ++out) {
+                out->seq = next_reliable++;
+                reliable_bytes += out->packet.size();
+                fresh.push_back(std::move(*out));
+            }
+        }
     }
 
     void TakeUnreliable(const GameFrameEntry& entry, std::vector<std::vector<u8>>& delivered) {

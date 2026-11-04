@@ -164,6 +164,32 @@ TEST(GameLink, ARestartedMemberTakesNothingOfTheOldStreams) {
     EXPECT_EQ(restarted.DroppedOld(), 0u);
 }
 
+// Rig party3 2026-11-02: the old host's game crashed and came back as a guest. The new host's
+// game greeted its new game (its join hello, ch 0x42, then the world, ch 0x29) before the link
+// had heard from it; the restart dropped them with the old streams, the new game never got the
+// world's head and its join timed out (NetSync stood at 1).
+TEST(GameLink, WhatGreetedTheMembersNewGameGoesToItAfterTheRestart) {
+    GameLinkPeer host{"rig_guest2", 1};
+    GameLinkPeer guest{"rig_host", 2};
+    host.Send(PacketClass::Reliable, Packet(0x31, 1), 0);
+    Carry(host, guest, 0);
+    Carry(guest, host, 10);
+    host.Send(PacketClass::Reliable, Packet(0x31, 2), 50); // for the old game: it crashed
+    host.Flush(50);
+
+    // A minute later the member's new game joins; this game greets it at once.
+    host.Send(PacketClass::Reliable, Packet(0x42, 3), 60'000);
+    host.Send(PacketClass::Reliable, Packet(0x29, 4), 60'010);
+    GameLinkPeer restarted{"rig_host", 3};
+    EXPECT_TRUE(Carry(host, restarted, 60'010).empty()) << "meant for the old game";
+    restarted.Send(PacketClass::Reliable, Packet(0x42, 5), 60'020);
+    EXPECT_EQ(Marks(Carry(restarted, host, 60'020)), (std::vector<u8>{5}));
+    host.Send(PacketClass::Reliable, Packet(0x29, 6), 60'030);
+    EXPECT_EQ(Marks(Carry(host, restarted, 60'030)), (std::vector<u8>{3, 4, 6}))
+        << "the greeting and all after it, from the new stream's start; not the old game's";
+    EXPECT_EQ(host.Unacked(), 3u);
+}
+
 // An idle member still hears from this game once a second: its silence means a dead link, and a
 // restarted game learns of the other's instance without waiting for a packet.
 TEST(GameLink, AnIdleLinkSaysItIsThereOnceASecond) {
