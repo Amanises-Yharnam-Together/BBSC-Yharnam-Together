@@ -19,6 +19,8 @@
 #endif
 #include "bbcoop.h"
 #include "bbcoop/bbcoop_internal.h"
+#include "bbcoop/lobby_rows.h"
+#include "bbcoop/discord_status.h"
 #include "bbcoop_revision.h"
 #include "common/logging/log.h"
 #include "common/memory_patcher.h"
@@ -138,6 +140,7 @@ extern "C" void bbcoop_install(unsigned char* image, uint64_t eboot_size, void* 
 #endif
     Core::Bloodborne::InstallSeamlessCoopPatches();
     Core::Bloodborne::InstallReverseEngineeringTrace();
+    CoopDiscord::StartDiscordStatus();
 }
 
 extern "C" void bbcoop_crash_report(void* exception_pointers) {
@@ -516,6 +519,18 @@ static_assert(BBCOOP_FRIEND_NONE == bbcoop::LobbyPlayer::NONE &&
               BBCOOP_FRIEND_RECEIVED == bbcoop::LobbyPlayer::REQUEST_RECEIVED &&
               BBCOOP_FRIEND_SELF == bbcoop::LobbyPlayer::SELF);
 
+// Amanises 2026-10-26: a listed player's team as the lists show it.
+void CopyTeam(bbcoop_lobby_entry& entry, const bbcoop::LobbyPlayer& player, const std::string& own_team) {
+    entry.in_my_team = !own_team.empty() && player.team() == own_team;
+    if (player.team().empty()) {
+        return;
+    }
+    CopyName(entry.team_leader, sizeof(entry.team_leader), player.team_leader());
+    entry.team_members = static_cast<int>(player.team_members());
+    entry.team_open = player.team_join() == bbcoop::Team::OPEN ? 1 : 0;
+    entry.team_started = player.team_started() ? 1 : 0;
+}
+
 // Amanises 2026-10-25: a list of players (friends, requests, search results) into `out`.
 template <size_t N, typename List>
 void CopyPlayers(bbcoop_lobby_entry (&out)[N], int& count, const List& list,
@@ -529,7 +544,7 @@ void CopyPlayers(bbcoop_lobby_entry (&out)[N], int& count, const List& list,
         CopyName(entry.id, sizeof(entry.id), player.member());
         entry.state = LobbyStateOf(player.state());
         entry.relation = static_cast<int>(player.relation());
-        entry.in_my_team = !own_team.empty() && player.team() == own_team;
+        CopyTeam(entry, player, own_team);
     }
 }
 
@@ -580,8 +595,10 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
         // The code its leader hands out (the server sends it to the leader only).
         CopyName(lobby->code, sizeof(lobby->code), BloodborneCoop::FormatTeamCode(team.code()));
         lobby->allow_invaders = team.allow_invaders() ? 1 : 0;
+        CopyName(lobby->team, sizeof(lobby->team), team.id());
         lobby->death_mode = static_cast<int>(Core::Bloodborne::TeamDeathMode(*state));
         lobby->join = static_cast<int>(team.join());
+        lobby->quick_waiting = team.quick() && team.members_size() == 1 ? 1 : 0;
         // The leader first.
         std::vector<const bbcoop::TeamMember*> members;
         for (const bbcoop::TeamMember& m : team.members()) {
@@ -640,9 +657,11 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
         CopyName(out.characters, sizeof(out.characters), hunters);
         out.busy = !w.played_by().empty() && w.played_by() != own_team;
     }
+    // Amanises 2026-10-26: every hunter online with its team, but this player's teammates (they
+    // are on the cards).
     for (const bbcoop::LobbyPlayer& player : state->players()) {
-        const bool mine = state->has_team() && player.team() == state->team().id();
-        if (mine || lobby->player_count == BBCOOP_LOBBY_PLAYERS) {
+        if (!LobbyRows::ListedOnline(player.team(), own_team) ||
+            lobby->player_count == BBCOOP_LOBBY_PLAYERS) {
             continue;
         }
         bbcoop_lobby_entry& out = lobby->players[lobby->player_count++];
@@ -650,6 +669,7 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
         CopyName(out.id, sizeof(out.id), player.member());
         out.state = LobbyStateOf(player.state());
         out.relation = static_cast<int>(player.relation());
+        CopyTeam(out, player, own_team);
     }
     CopyPlayers(lobby->friends, lobby->friend_count, state->friends(), own_team);
     CopyPlayers(lobby->requests, lobby->request_count, state->friend_requests(), own_team);
@@ -657,6 +677,7 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
     CopyPlayers(lobby->search, lobby->search_count, state->search(), own_team);
     CopyName(lobby->search_query, sizeof(lobby->search_query), state->search_query());
     // Amanises 2026-10-25, open teams (an older server says no size: the game's four).
+    lobby->quick_match = state->quick_match() ? 1 : 0;
     lobby->team_size = state->team_size() > 0 ? static_cast<int>(state->team_size()) : BBCOOP_LOBBY_TEAM;
     for (const bbcoop::OpenTeam& open : state->open_teams()) {
         if (lobby->open_count == BBCOOP_LOBBY_OPEN) {
@@ -703,7 +724,7 @@ extern "C" int bbcoop_team_load_view(bbcoop_team_load* view) {
     }
     *view = {};
     for (const auto& row : load.rows) {
-        if (view->count >= 4) {
+        if (view->count >= BBCOOP_LOBBY_TEAM) {
             break;
         }
         bbcoop_team_load_row& out = view->rows[view->count++];
@@ -853,13 +874,32 @@ static_assert(BBCOOP_TEAM_WORLD == bbcoop::TeamRequest::WORLD &&
               BBCOOP_TEAM_ASK_CANCEL == bbcoop::TeamRequest::ASK_CANCEL &&
               BBCOOP_TEAM_ASK_ACCEPT == bbcoop::TeamRequest::ASK_ACCEPT &&
               BBCOOP_TEAM_ASK_DECLINE == bbcoop::TeamRequest::ASK_DECLINE &&
-              BBCOOP_TEAM_RESET_LAMPS == bbcoop::TeamRequest::RESET_LAMPS);
+              BBCOOP_TEAM_RESET_LAMPS == bbcoop::TeamRequest::RESET_LAMPS &&
+              BBCOOP_TEAM_QUICK_MATCH == bbcoop::TeamRequest::QUICK_MATCH);
 static_assert(BBCOOP_JOIN_INVITE_ONLY == bbcoop::Team::INVITE_ONLY &&
               BBCOOP_JOIN_ASK == bbcoop::Team::ASK && BBCOOP_JOIN_OPEN == bbcoop::Team::OPEN);
 
 extern "C" void bbcoop_lobby_request(int action, const char* id) {
     Core::Bloodborne::Coop::TeamLobbyRequest(static_cast<bbcoop::TeamRequest::Action>(action),
                                              id ? id : "");
+}
+
+extern "C" int bbcoop_discord_asks(bbcoop_lobby_entry* out, int most) {
+    int count = 0;
+    for (const CoopDiscord::DiscordAsk& ask : CoopDiscord::DiscordJoinRequests()) {
+        if (count == most) {
+            break;
+        }
+        out[count] = {};
+        CopyName(out[count].name, sizeof(out[count].name), ask.name);
+        CopyName(out[count].id, sizeof(out[count].id), ask.user_id);
+        ++count;
+    }
+    return count;
+}
+
+extern "C" void bbcoop_discord_answer(const char* id, int accept) {
+    CoopDiscord::AnswerDiscordJoinRequest(id ? id : "", accept != 0);
 }
 
 extern "C" void bbcoop_file_opened(const char* guest_path) {

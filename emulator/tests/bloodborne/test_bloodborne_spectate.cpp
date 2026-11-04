@@ -309,3 +309,86 @@ TEST(BloodborneBossFightDeath, InTheFightIsNearTheBoss) {
     EXPECT_FALSE(BossFightCatchesDeath(true, std::vector{Member("me", Vital::Up), teammate}, "me",
                                        Map, me, boss));
 }
+
+// Kaniel 2026-11-03 (an idea of Amanises's): the spectator's body trails the teammate it watches.
+TEST(BloodborneSpectate, TheBodyFollowsTheWatchedTeammateTwoSecondsBehind) {
+    SpectateFollow follow;
+    const LampPosition me{0.0f, 0.0f, 0.0f};
+    // Near: never moves.
+    for (s64 t = 0; t <= 3'000; t += 100) {
+        EXPECT_EQ(follow.Tick(t, {8.0f, 0.0f, 0.0f}, me), std::nullopt) << t;
+    }
+    // The teammate runs off at 5 m/s: once 12 m away, the body goes where it was 2 s before.
+    follow.Reset();
+    std::optional<LampPosition> moved;
+    s64 at = 0;
+    for (s64 t = 0; t <= 6'000 && !moved; t += 50) {
+        moved = follow.Tick(t, {5.0f * t / 1000.0f, 0.0f, 0.0f}, me);
+        at = t;
+    }
+    ASSERT_TRUE(moved);
+    EXPECT_GE(at, 2'400) << "12 m away first";
+    EXPECT_NEAR((*moved)[0], 5.0f * (at - 2'000) / 1000.0f, 1.3f) << "about 2 s behind";
+    // At most once a second.
+    EXPECT_EQ(follow.Tick(at + 500, {40.0f, 0.0f, 0.0f}, me), std::nullopt);
+    EXPECT_TRUE(follow.Tick(at + 1'000, {40.0f, 0.0f, 0.0f}, me));
+}
+
+TEST(BloodborneSpectate, TheBodyNeverLandsOnTheTeammate) {
+    SpectateFollow follow;
+    const LampPosition me{0.0f, 0.0f, 0.0f};
+    // It ran 20 m and has stood still for 3 s: the trail's last 3 s are all where it stands.
+    for (s64 t = 0; t <= 4'000; t += 250) {
+        follow.Tick(t, {5.0f * t / 1000.0f, 0.0f, 0.0f}, {-100.0f, 0.0f, 0.0f});
+    }
+    std::optional<LampPosition> moved;
+    for (s64 t = 4'250; t <= 7'000 && !moved; t += 250) {
+        moved = follow.Tick(t, {20.0f, 0.0f, 0.0f}, me);
+    }
+    ASSERT_TRUE(moved);
+    EXPECT_LE((*moved)[0], 20.0f - SpectateFollowGapMetres);
+    // A trail all on the teammate: no move.
+    SpectateFollow still;
+    for (s64 t = 0; t <= 5'000; t += 250) {
+        EXPECT_EQ(still.Tick(t, {30.0f, 0.0f, 0.0f}, me), std::nullopt);
+    }
+}
+
+TEST(BloodborneSpectate, TheBodyStepsOutOfTheTeammatesWay) {
+    SpectateFollow follow;
+    // The teammate came 20 m with the body 5 m beside it, and walks back into the body.
+    for (s64 t = 0; t <= 4'000; t += 250) {
+        const float x = 20.0f - 5.0f * t / 1000.0f;
+        EXPECT_EQ(follow.Tick(t, {x, 0.0f, 0.0f}, {x, 5.0f, 0.0f}), std::nullopt);
+    }
+    const auto moved = follow.Tick(4'250, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f});
+    ASSERT_TRUE(moved);
+    EXPECT_GE(std::abs((*moved)[0] - 1.0f), SpectateFollowDodgeToMetres);
+    // Not again at once.
+    EXPECT_EQ(follow.Tick(4'500, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}), std::nullopt);
+    EXPECT_TRUE(follow.Tick(4'750, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}));
+    // A new teammate watched: the trail starts again.
+    follow.Reset();
+    EXPECT_EQ(follow.Samples(), 0u);
+}
+
+// A spot in the air (a jump, a ladder, a fall) is never where the body goes.
+TEST(BloodborneSpectate, TheBodyOnlyGoesWhereTheTeammateStoodOnTheGround) {
+    SpectateFollow follow;
+    const LampPosition me{0.0f, 0.0f, 0.0f};
+    // On the ground to 10 m, then 3 s in the air on to 25 m.
+    s64 t = 0;
+    for (; t <= 2'000; t += 250) {
+        follow.Tick(t, {5.0f * t / 1000.0f, 0.0f, 0.0f}, me, true);
+    }
+    std::optional<LampPosition> moved;
+    for (; t <= 5'000; t += 250) {
+        if (const auto to = follow.Tick(t, {5.0f * t / 1000.0f, -8.0f, 0.0f}, me, false)) {
+            moved = to;
+        }
+    }
+    ASSERT_TRUE(moved);
+    EXPECT_LE((*moved)[0], 10.0f) << "the last spot on the ground";
+    EXPECT_EQ((*moved)[1], 0.0f);
+    EXPECT_EQ(follow.Samples(), 9u) << "none in the air";
+}

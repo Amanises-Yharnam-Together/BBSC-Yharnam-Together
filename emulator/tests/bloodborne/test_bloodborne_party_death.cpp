@@ -1347,6 +1347,20 @@ TEST(BloodbornePartyDeath, AGuestBringsBackWhatTheHostsGeneratorBroughtBack) {
     EXPECT_TRUE(BroughtBackByTheHost({}, dead_here, {}, Now).empty());
 }
 
+// Rig shadows-look 2026-11-04: both games killed the 2nd Shadow (0x10024060) at once. The host
+// never posts a boss-sized character dead (its shown bits leave bosses out), so 3 s later the
+// guest took the host's "alive" for a bring-back and its dead boss stood again at full HP. No map
+// generator brings a boss back: a boss-sized copy dead here stays dead.
+TEST(BloodbornePartyDeath, ABossDeadHereIsNeverBroughtBack) {
+    constexpr s64 Now = 100'000;
+    const std::vector<CharacterShown> host{{.handle = 0x10024060}, {.handle = 0x1002c03d}};
+    const std::vector<DeadCopy> dead_here{
+        {0x10024060, Now - 60'000, true},
+        {0x1002c03d, Now - 60'000},
+    };
+    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {}, Now), std::vector<u32>{0x1002c03d});
+}
+
 // Kaniel's DLC playtest 2026-10-28 (1.3.1): the host left, the session went to Lisara, whose copy
 // had krolebord's dead enemies alive. His game brought 0x10038029 back every 2 s and it died again
 // at once by the game's own kill (16 respawns, ~109,500 echoes). One that dies again within
@@ -1603,8 +1617,105 @@ TEST(BloodbornePartyDeath, EnemiesForgetADownedPlayersTargetNode) {
     EXPECT_TRUE(ForgetsTargetNode(0x01, 1, 0x10068001, downed));
     EXPECT_FALSE(ForgetsTargetNode(0x81, 1, 0x10068002, downed)) << "another target";
     EXPECT_FALSE(ForgetsTargetNode(0x83, 1, 0x10068000, downed)) << "a last-known place";
+    // Rig down-by-enemy 2026-11-03: its memory of a downed player stays (dropped, the enemy no
+    // longer took the guest at 1 HP beside it).
+    EXPECT_FALSE(ForgetsTargetNode(0x87, 1, 0x10068000, downed)) << "a downed player's memory";
+    EXPECT_FALSE(ForgetsTargetNode(0x07, 1, 0x10068001, downed));
     EXPECT_FALSE(ForgetsTargetNode(0x81, 0, 0x10068000, downed)) << "not a character";
     EXPECT_FALSE(ForgetsTargetNode(0x81, 1, 0x10068000, {}));
+}
+
+// Rig owner-crash-fight node probe 2026-11-03: the enemy held only a memory of the crashed host's
+// copy (slot 7 on 0x10044001) and no current target: no fight with a live player.
+TEST(BloodbornePartyDeath, OnlyALivePlayerHeldOrRememberedIsAFight) {
+    const std::vector<u32> live{0x10044000};
+    const std::vector<TargetNodeView> on_the_gone{{0x87, 1, 0x10044001}, {0x8b, 2, 0xffffffff}};
+    EXPECT_FALSE(HoldsLiveTarget(on_the_gone, live)) << "a crashed copy's memory";
+    const std::vector<TargetNodeView> current{{0x81, 1, 0x10044000}};
+    EXPECT_TRUE(HoldsLiveTarget(current, live));
+    const std::vector<TargetNodeView> memory{{0x87, 1, 0x10044000}};
+    EXPECT_TRUE(HoldsLiveTarget(memory, live)) << "it remembers the player";
+    const std::vector<TargetNodeView> place{{0x83, 1, 0x10044000}, {0x81, 0, 0x10044000}};
+    EXPECT_FALSE(HoldsLiveTarget(place, live)) << "a place, not a character";
+    EXPECT_FALSE(HoldsLiveTarget({}, live));
+}
+
+// Rig owner-crash-fight 2026-11-03 (owner-gap build): after the re-host the enemy dropped its
+// current target and kept a memory of the guest, standing 6 m off: the take-over's rechecks
+// want a current target on a live player.
+TEST(BloodbornePartyDeath, TheTakeoversRecheckWantsACurrentTarget) {
+    const std::vector<u32> live{0x10044000};
+    const std::vector<TargetNodeView> memory{{0x87, 1, 0x10044000}};
+    EXPECT_FALSE(HoldsLiveTarget(memory, live, false)) << "only its memory";
+    const std::vector<TargetNodeView> current{{0x87, 1, 0x10044000}, {0x81, 1, 0x10044000}};
+    EXPECT_TRUE(HoldsLiveTarget(current, live, false));
+    const std::vector<TargetNodeView> on_the_gone{{0x81, 1, 0x10044001}};
+    EXPECT_FALSE(HoldsLiveTarget(on_the_gone, live, false)) << "a crashed copy";
+}
+
+// Rig down-by-enemy 2026-11-03: the down's forget names the enemies it took the target from.
+TEST(BloodbornePartyDeath, TheDownsForgetNamesItsEnemies) {
+    EXPECT_EQ(EnemyHandlesText(std::vector<u32>{0x1001400b}), "0x1001400b");
+    EXPECT_EQ(EnemyHandlesText(std::vector<u32>{0x1001400b, 0x1001402e}), "0x1001400b 0x1001402e");
+    EXPECT_EQ(EnemyHandlesText({}), "none");
+}
+
+// Rig owner-crash-fight node probe 2026-11-03: a gone member's copy is forgotten as a target.
+TEST(BloodbornePartyDeath, AGoneMembersCopyIsForgottenAsATargetItsMemoryStays) {
+    const std::vector<u32> gone{0x10044001};
+    EXPECT_TRUE(ForgetsGoneTargetNode(0x81, 1, 0x10044001, gone)) << "its current target";
+    // Rig down-by-enemy 2026-11-03: its memory stays (the guest's restarted game's new copy has
+    // the same handle); a memory of a gone copy is no fight (HoldsLiveTarget).
+    EXPECT_FALSE(ForgetsGoneTargetNode(0x87, 1, 0x10044001, gone)) << "its memory stays";
+    EXPECT_FALSE(ForgetsGoneTargetNode(0x07, 1, 0x10044001, gone));
+    EXPECT_TRUE(ForgetsGoneTargetNode(0x01, 1, 0x10044001, gone));
+    EXPECT_FALSE(ForgetsGoneTargetNode(0x83, 1, 0x10044001, gone)) << "a last-known place";
+    EXPECT_FALSE(ForgetsGoneTargetNode(0x87, 1, 0x10044000, gone)) << "the guest's memory";
+    EXPECT_FALSE(ForgetsGoneTargetNode(0x87, 0, 0x10044001, gone)) << "not a character";
+}
+
+// Rig owner-crash-fight 2026-11-03: the crashed host's copy, still shown in its grace, counted as
+// a live player at the take-over, and the enemy holding it got no fight with the guest.
+TEST(BloodbornePartyDeath, AGoneMembersCopyIsNoLivePlayerEvenInItsGrace) {
+    const std::vector<PlayerCopyView> others{
+        {0x10044001, 573, false, false}, // the crashed host's: shown, no member by it
+        {0x10044002, 500, false, true},  // another guest
+        {0x10044003, 500, true, true},   // hidden
+        {0x10044004, 0, false, true},    // dead
+    };
+    EXPECT_EQ(LivePlayerHandlesOf(0x10044000, others), (std::vector<u32>{0x10044002, 0x10044000}));
+    EXPECT_EQ(LivePlayerHandlesOf(std::nullopt, {}), std::vector<u32>{});
+}
+
+// Then its nodes went and the enemy held nothing: the take-over's fights are looked at again.
+TEST(BloodbornePartyDeath, TheTakeoversFightsAreLookedAtAgainForAWhile) {
+    TakeoverFights fights;
+    EXPECT_TRUE(fights.Due(0).empty()) << "no take-over yet";
+    fights.Start({0x1001400b, 0x1001402e}, 1000);
+    EXPECT_EQ(fights.Due(1000), (std::vector<u32>{0x1001400b, 0x1001402e}));
+    EXPECT_TRUE(fights.Due(1500).empty()) << "once a second";
+    EXPECT_EQ(fights.Due(2000).size(), 2u);
+    EXPECT_EQ(fights.Due(1000 + TakeoverFights::WindowMs - 1).size(), 2u);
+    EXPECT_TRUE(fights.Due(1000 + TakeoverFights::WindowMs).empty()) << "the window is over";
+    EXPECT_TRUE(fights.Due(1000 + TakeoverFights::WindowMs + 2000).empty());
+    fights.Start({0x10014057}, 60'000);
+    EXPECT_EQ(fights.Due(60'000), std::vector<u32>{0x10014057}) << "a new take-over";
+}
+
+// Alone in the session the guest re-hosts the team's and its enemy dropped it: its fights go on.
+TEST(BloodbornePartyDeath, AFightGoesOnOverThisGamesOwnReHost) {
+    OwnerGap gap;
+    EXPECT_TRUE(gap.Back(0x18010000, 0).empty()) << "never left";
+    gap.Leave(0x18010000, {0x1001400b}, 68'424'200);
+    EXPECT_EQ(gap.Back(0x18010000, 68'425'200), std::vector<u32>{0x1001400b});
+    EXPECT_TRUE(gap.Back(0x18010000, 68'425'300).empty()) << "once";
+    gap.Leave(0x18010000, {0x1001400b}, 1000);
+    EXPECT_TRUE(gap.Back(0x18010000, 1000 + OwnerGap::GapMs).empty()) << "back too late";
+    gap.Leave(0x18010000, {0x1001400b}, 1000);
+    EXPECT_TRUE(gap.Back(0x18000000, 2000).empty()) << "another map";
+    EXPECT_TRUE(gap.Back(0x18010000, 2500).empty()) << "the other map's return spent it";
+    gap.Leave(0x18010000, {}, 1000);
+    EXPECT_TRUE(gap.Back(0x18010000, 2000).empty()) << "no fights";
 }
 
 // Kaniel's play test 2026-10-19: the Blood-starved Beast never went for Lisara. Each other player
@@ -1942,6 +2053,18 @@ TEST(SessionNameCache, AMissIsScannedAgainOnlyAfterAWhile) {
     EXPECT_EQ(cache.Lookup(0x1000, std::vector<std::string>{"Hunter-2"}, 6'000).plan,
               SessionNameCache::Plan::Scan)
         << "the board's ids changed";
+}
+
+TEST(SessionNameCache, AFreshLookupScansAMissAtOnce) {
+    SessionNameCache cache;
+    const std::vector<std::string> ids{"Hunter-1"};
+    cache.Missed(0x1000, ids, 5'000);
+    EXPECT_EQ(cache.Lookup(0x1000, ids, 6'000, true).plan, SessionNameCache::Plan::Scan);
+    EXPECT_EQ(cache.Lookup(0x1000, ids, 6'000).plan, SessionNameCache::Plan::StillMissing)
+        << "the per-second lookups keep the wait";
+    cache.Found(0x1000, ids, {0x2000, 0x80});
+    EXPECT_EQ(cache.Lookup(0x1000, ids, 6'000, true).plan, SessionNameCache::Plan::Recheck)
+        << "a found member is still only rechecked";
 }
 
 TEST(SessionNameCache, AMemberNeverFoundWaitsLongerEachTime) {

@@ -198,7 +198,8 @@ YAHARGUL_BELL_GUEST = "258.5 -38.5 116.5"  # (at 256.0 -38.5 112.0 a guest died,
 # a rise from 10.7 m off its middle (254.8 -38.5 127.4) was still inside it (it is 23 m high).
 YAHARGUL_BY_THE_BELL = "268.0 -46.5 89.0"
 # The mummy at the end of the Yahar'gul Chapel's hall (m28_00 event 12800430: action button
-# 2800020 on its warp object 2801500 at 460.06 -111.97 -293.97, heading 135 degrees, then 2003:49
+# 6031, the game's 2800020 until PLAIN_ACTION_BUTTONS, on its warp object 2801500 at 460.06
+# -111.97 -293.97, heading 135 degrees, then 2003:49
 # to the Lecture Building's 3202959): in front of it, facing it. The One Reborn's defeat
 # (12801800) as after Provi's fight (day 4, v1.3.1).
 YAHARGUL_CHAPEL_LAMP = 2802951  # 418.8 -123.66 -253.4
@@ -303,6 +304,74 @@ def attack(target: str) -> list[str]:
     game's own kill leaves one standing in a party)."""
     return [f"attack {target} 40"]
 
+
+
+# Kaniel 2026-10-31, teams apart (teams-apart, team-switch, invade-solo): each team's own flags,
+# a map block's unused one and a story or lamp flag; none is on in the rig's saves.
+FORBIDDEN_WOODS = "0x1b000000"
+FORBIDDEN_WOODS_LAMP = 2702950
+TEAM_FLAGS = {"A": (TEAM_WORLD_FLAG, CLERIC_BEAST_DEFEATED),
+              "B": (12400999, ONE_REBORN_DEFEATED),  # the Ward's unused block flag (WARD_BLOCK_FLAG)
+              "C": (OTHER_MAP_FLAG, YAHARGUL_LAMP_LIT)}
+# Simon's hostility in Ludwig's arena (m34: 1726 hostile, 13400913/13400923 its hit and done
+# flags, 73400421 its story step), which reached a team world from nowhere on 2026-10-28.
+SIMON_HOSTILE = (1726, 13400913, 13400923, 73400421)
+
+
+def expect_team_flags(own: str, others: tuple[str, ...], loaded: bool = True) -> list[str]:
+    """A game's checks: its team's flags on, the other teams' and Simon's hostility off. Before a
+    load (not `loaded`) a team guest has only the story flag: a block's flag comes with a load."""
+    return ([f"expect-flag {flag} 1" for flag in TEAM_FLAGS[own][0 if loaded else 1:]] +
+            [f"expect-flag {flag} 0" for team in others for flag in TEAM_FLAGS[team]] +
+            [f"expect-flag {flag} 0" for flag in SIMON_HOSTILE])
+
+
+def flags_off(*teams: str) -> list[str]:
+    """None of the teams' flags on (at the start: the saves')."""
+    return [f"expect-flag {flag} 0" for team in teams for flag in TEAM_FLAGS[team]]
+
+
+def apart_flags(own: str, *others: str) -> list[str]:
+    """None of the teams' flags on at the start, then the team's own set."""
+    return [*flags_off(own, *others), *[f"set-flag {flag} 1" for flag in TEAM_FLAGS[own]],
+            "wait 10"]
+
+
+def apart_script(own: str, others: tuple[str, ...], where: list[str], lamp: str, map_: str,
+                 team: list[str], members: int, sets: bool = True) -> list[str]:
+    """teams-apart's script for one game of team `own`: in its world, its flags set (by its
+    host: `sets`), everyone's checked, then a load from its team's world (the Dream and back) and
+    checked again. Every game checks the start before any sets a flag (apart-start)."""
+    setting = [f"set-flag {flag} 1" for flag in TEAM_FLAGS[own]] if sets else []
+    return [*team, START, *where, "godmode", f"wait-session {members} 300",
+            *flags_off(own, *others), "sync apart-start", *setting, "wait 10", "sync apart-set",
+            "wait 10", *expect_team_flags(own, others, loaded=sets),
+            f"expect-session {members}", "sync apart-checked", f"travel {HUNTERS_DREAM}", "wait-map 0x15000000 180",
+            "wait 10", f"travel {lamp}", f"wait-map {map_} 240",
+            f"wait-session {members} 420", "wait 15", *expect_team_flags(own, others),
+            f"expect-session {members}"]
+
+
+SOLO_TEAM = ["team-create", "team-wait 1", "team-start"]
+TO_WARD = [f"ensure-map {CATHEDRAL_WARD} {CATHEDRAL_WARD_LAMP}"]
+TO_WOODS = [f"ensure-map {FORBIDDEN_WOODS} {FORBIDDEN_WOODS_LAMP}"]
+TEAMS_APART_ROLES = {
+    "host": apart_script("A", ("B", "C"), [], CENTRAL_YHARNAM_LAMP, CENTRAL_YHARNAM,
+                         ["team-create", "team-invite rig_guest", "team-wait 2", "team-start"], 2),
+    "guest": apart_script("A", ("B", "C"), [], CENTRAL_YHARNAM_LAMP, CENTRAL_YHARNAM,
+                          ["team-accept", "team-ready"], 2, sets=False),
+    "guest2": apart_script("B", ("A", "C"), TO_WARD, CATHEDRAL_WARD_LAMP, CATHEDRAL_WARD,
+                           SOLO_TEAM, 1),
+    "guest3": apart_script("C", ("A", "B"), TO_WOODS, FORBIDDEN_WOODS_LAMP, FORBIDDEN_WOODS,
+                           SOLO_TEAM, 1),
+}
+TEAMS_APART3_ROLES = {
+    "host": apart_script("A", ("B", "C"), [], CENTRAL_YHARNAM_LAMP, CENTRAL_YHARNAM, SOLO_TEAM, 1),
+    "guest": apart_script("B", ("A", "C"), TO_WARD, CATHEDRAL_WARD_LAMP, CATHEDRAL_WARD,
+                          SOLO_TEAM, 1),
+    "guest2": apart_script("C", ("A", "B"), TO_WOODS, FORBIDDEN_WOODS_LAMP, FORBIDDEN_WOODS,
+                           SOLO_TEAM, 1),
+}
 
 SCENARIOS = {
     "setup": {
@@ -1911,6 +1980,165 @@ SCENARIOS = {
             "guest": [r"Co-op team menu: this save joins team \w+ where it stands, as its guest"],
         },
         "timeout": 300,
+    },
+    # Kaniel 2026-10-31: three teams on one server, each in its own world, never touch each
+    # other's progress. Team A (host and guest) plays in Central Yharnam, team B (guest2) in the
+    # Cathedral Ward, team C (guest3) in the Forbidden Woods. Each sets its own two flags (a map
+    # block's unused flag and a story or lamp flag); every game then finds its team's on and the
+    # other teams' off, again after a load from its team's world (a trip to the Dream and back).
+    # Simon's hostility (a team world took it from nowhere on 2026-10-28) stays off everywhere.
+    "teams-apart": {
+        "about": "three teams on one server in three worlds: each one's flags reach only its own "
+                 "team's games, before and after a load from its team's world",
+        "roles": TEAMS_APART_ROLES,
+        "syncs": {name: {"chapter": "teams-apart", "roles": list(TEAMS_APART_ROLES)}
+                  for name in ("apart-start", "apart-set", "apart-checked")},
+        "forbid": {role: SESSION_HOLDS for role in TEAMS_APART_ROLES},
+        "allow": CRASH_CLEANUP,
+        "timeout": 1200,
+    },
+    # Kaniel 2026-11-01, the ways into a team a player has: by the leader's code, and an open team
+    # from the list (invites are every other scenario's).
+    "join-by-code": {
+        "about": "a guest joins by the leader's team code, typed as the team screen takes it",
+        "roles": {
+            "host": ["team-create", "team-code-share", "team-wait 2", "team-start", START, "wait-session 2 300", "wait 10", "expect-session 2",
+                     "sync joined", "snapshot"],
+            "guest": ["team-join-code", "team-ready", START,
+                      "wait-session 2 300", "wait 10", "expect-session 2", "sync joined",
+                      "snapshot"],
+        },
+        "syncs": {name: {"chapter": "join-by-code", "roles": ["host", "guest"]}
+                  for name in ("joined",)},
+        "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
+        "timeout": 300,
+    },
+    "join-open-team": {
+        "about": "a guest joins an open team from the list at once, no invite",
+        "roles": {
+            "host": ["team-create", "team-open 2", "team-wait 2", "team-start",
+                     START, "wait-session 2 300", "wait 10", "expect-session 2", "sync joined",
+                     "snapshot"],
+            "guest": ["team-join-open", "team-ready", START, "wait-session 2 300",
+                      "wait 10", "expect-session 2", "sync joined", "snapshot"],
+        },
+        "syncs": {name: {"chapter": "join-open-team", "roles": ["host", "guest"]}
+                  for name in ("joined",)},
+        "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
+        "timeout": 300,
+    },
+    # Kaniel 2026-11-01, the public server: games signed in through a TLS proxy on a hosted server
+    # (Kaniel 2026-11-03: its own accounts, a name and a password; the first role also meets a second
+    # install, wrong passwords and their wait, its recovery code and a sign out). The first quick
+    # match opens a team, the next joins it.
+    "global-quick-match": {
+        "about": "Hosted server, accounts with a password, quick match: the first opens a team, the "
+                 "second joins it, they play one session",
+        "global": True,
+        "roles": {
+            "host": ["team-quick", "team-wait 2", "team-start", START,
+                     "wait-session 2 300", "wait 10", "expect-session 2", "sync played", "snapshot"],
+            "guest": ["team-wait-open", "team-quick", "team-ready", START, "wait-session 2 300",
+                      "wait 10", "expect-session 2", "sync played", "snapshot"],
+        },
+        "syncs": {name: {"chapter": "global-quick-match", "roles": ["host", "guest"]}
+                  for name in ("played",)},
+        "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
+        "timeout": 300,
+    },
+    # Amanises 2026-10-29, teams of five: the fourth guest takes player slot 4. All five in one
+    # session, each one's portrait and vitals on the others' boards; a trip to the Dream and back
+    # re-forms the session with five.
+    "five-hunters": {
+        "about": "a team of five in one session (player slots 7, 6, 5, 4), through a lamp trip",
+        "roles": {role: [START, "wait-session 5 500", "wait 20", "expect-session 5",
+                         "sync five-together", f"travel {HUNTERS_DREAM}", "wait 25",
+                         f"travel {CENTRAL_YHARNAM_LAMP}", "wait-session 5 300", "wait 15",
+                         "expect-session 5", "snapshot", "sync five-done"]
+                  for role in ("host", "guest", "guest2", "guest3", "guest4")},
+        "syncs": {name: {"chapter": "five-hunters",
+                         "roles": ["host", "guest", "guest2", "guest3", "guest4"]}
+                  for name in ("five-together", "five-done")},
+        "forbid": {role: SESSION_HOLDS for role in ("host", "guest", "guest2", "guest3", "guest4")},
+        "allow": CRASH_CLEANUP,
+        "timeout": 1200,
+    },
+    # The same with three games (one each), for a PC with less room.
+    "teams-apart3": {
+        "about": "three one-player teams on one server in three worlds: each one's flags reach "
+                 "only its own game, before and after a load from its team's world",
+        "roles": TEAMS_APART3_ROLES,
+        "syncs": {name: {"chapter": "teams-apart3", "roles": list(TEAMS_APART3_ROLES)}
+                  for name in ("apart-start", "apart-set", "apart-checked")},
+        "forbid": {role: SESSION_HOLDS for role in TEAMS_APART3_ROLES},
+        "allow": CRASH_CLEANUP,
+        "timeout": 1200,
+    },
+    # Kaniel 2026-10-31: a player changes teams. guest2 plays in its own team C in the Ward, then
+    # leaves it and joins the host's team A (invited from its menu); after its next load it has
+    # A's progress. A never gets C's, and team B (the guest, in the Forbidden Woods) neither.
+    "team-switch": {
+        "about": "a player leaves its own team for another one: it takes the new team's progress "
+                 "after a load, the new team never gets its old team's, a third team none",
+        "roles": {
+            "host": ["team-create", "team-wait 1", "team-start", START, "godmode",
+                     *apart_flags("A", "C"), "sync switch-set", "sync switch-left",
+                     "menu-invite rig_guest2 240", "wait-session 2 420", "wait 10",
+                     "sync switch-joined", "sync switch-loaded", "wait 15",
+                     *expect_team_flags("A", ("B", "C")), "expect-session 2"],
+            "guest": ["team-create", "team-wait 1", "team-start", START,
+                      f"ensure-map {FORBIDDEN_WOODS} {FORBIDDEN_WOODS_LAMP}", "godmode",
+                      *apart_flags("B", "A"), "sync switch-set", "sync switch-left",
+                      "sync switch-joined", "sync switch-loaded", "wait 15",
+                      *expect_team_flags("B", ("A", "C")), "expect-session 1"],
+            "guest2": ["team-create", "team-wait 1", "team-start", START,
+                       f"ensure-map {CATHEDRAL_WARD} {CATHEDRAL_WARD_LAMP}", "godmode",
+                       *apart_flags("C", "B"), "sync switch-set", "menu-leave 120", "wait 5",
+                       "sync switch-left", "menu-join 300", "wait-session 2 420",
+                       "sync switch-joined", f"travel {HUNTERS_DREAM}", "wait-map 0x15000000 180",
+                       "wait 10", f"travel {CENTRAL_YHARNAM_LAMP}",
+                       f"wait-map {CENTRAL_YHARNAM} 240", "wait-session 2 420", "wait 10",
+                       *expect_team_flags("A", ("B",)), "sync switch-loaded",
+                       "expect-session 2"],
+        },
+        "syncs": {name: {"chapter": "team-switch", "roles": ["host", "guest", "guest2"]}
+                  for name in ("switch-set", "switch-left", "switch-joined", "switch-loaded")},
+        "expect": {"guest2": [r"Co-op team lobby: the save plays in team \w+ as its host",
+                              r"Co-op team menu: this save joins team \w+ where it stands, as "
+                              r"its guest"]},
+        "allow": CRASH_CLEANUP,
+        "timeout": 1500,
+    },
+    # Kaniel 2026-10-31: invasions on the server (docs/INVASIONS.md, never played in a game before
+    # this). Team A (host and guest) in Central Yharnam allows invaders; guest2, in no team, in the
+    # Cathedral Ward, invades it, is in A's world, and goes home. The invader's own flag stays out
+    # of A's world and A's out of the invader's save.
+    "invade-solo": {
+        "about": "a player in no team invades a team that allows invaders: it reaches the team's "
+                 "world, goes home after, and neither world takes the other's flags",
+        "server": {"Invasions": "true"},
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                     "godmode", "wait-session 2 300", "menu-allow-invaders 1 60",
+                     f"set-flag {TEAM_FLAGS['A'][0]} 1", "sync invade-allowed",
+                     "wait-invader 1 420", "wait 20", "sync invade-in", "sync invade-home",
+                     "wait-invader 0 120", "wait 10", f"expect-flag {TEAM_FLAGS['A'][0]} 1",
+                     f"expect-flag {TEAM_FLAGS['B'][0]} 0", "expect-session 2"],
+            "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                      "sync invade-allowed", "wait-invader 1 420", "sync invade-in",
+                      "sync invade-home", "wait-invader 0 120", "wait 10",
+                      f"expect-flag {TEAM_FLAGS['B'][0]} 0", "expect-session 2"],
+            "guest2": ["team-alone", START, f"ensure-map {CATHEDRAL_WARD} {CATHEDRAL_WARD_LAMP}",
+                       "godmode", f"set-flag {TEAM_FLAGS['B'][0]} 1", "sync invade-allowed",
+                       "menu-invade 420", "wait 15", f"expect-map {CENTRAL_YHARNAM}",
+                       "shot invader-in", "sync invade-in", "menu-invade-leave 240", "wait 20",
+                       "sync invade-home", f"expect-flag {TEAM_FLAGS['B'][0]} 1",
+                       f"expect-flag {TEAM_FLAGS['A'][0]} 0"],
+        },
+        "syncs": {name: {"chapter": "invade-solo", "roles": ["host", "guest", "guest2"]}
+                  for name in ("invade-allowed", "invade-in", "invade-home")},
+        "allow": CRASH_CLEANUP,
+        "timeout": 1500,
     },
     # Kaniel 2026-10-15: between two guests, one guest's actions played on the other guest's own
     # character (a pick-up's gesture, a backstab's teleport, levers). The second guest stands
@@ -3911,6 +4139,69 @@ SCENARIOS["duel"] = {
 }
 
 
+# Amanises 2026-10-29, teams' duels (Kaniel 2026-11-01: the game's own banners, the winning team in
+# a notice): two against one. The host's picks: it and the guest The Hunters (2), guest2 The
+# Yharnamites (1). The host strikes guest2 at 1 HP; the guest stands off, out of reach. The whole
+# team wins, every duelist hears which team, nobody has a party death.
+DUEL_GUEST2_ID = "rig_guest2".encode().hex()
+DUEL_TEAM_NAMES = ("duel-together", "duel-fighting", "duel-low", "duel-over")
+SCENARIOS["duel-teams"] = {
+    "about": "a teams' duel: two against one from the Teams page, the last team standing wins "
+             "together, the notice names it, no party death",
+    "roles": {
+        "host": [START, "godmode", "wait-session 3 300", "wait 5", "teleport -212.0 -54.5 174.0",
+                 "sync duel-together",
+                 f"duel-propose-teams {RIG_HOST_ID}=2 {RIG_GUEST_ID}=2 {DUEL_GUEST2_ID}=1",
+                 "wait-duel countdown 40", "wait-duel fighting 10", "sync duel-fighting",
+                 "sync duel-low", "duel-strike 60", "wait-duel none 20", "sync duel-over",
+                 "wait 3", "snapshot", "expect-session 3"],
+        "guest": [START, "wait-session 3 300", "wait 5", f"teleport {GUEST_PAIR_SPOT}",
+                  "sync duel-together", "duel-answer yes 40", "wait-duel countdown 10",
+                  "wait-duel fighting 10", "sync duel-fighting", "sync duel-low",
+                  "wait-duel none 80", "sync duel-over", "wait 3", "snapshot",
+                  "expect-session 3"],
+        "guest2": [START, "wait-session 3 300", "wait 5", "teleport -209.0 -54.5 174.0",
+                   "sync duel-together", "duel-answer yes 40", "wait-duel countdown 10",
+                   "wait-duel fighting 10", "sync duel-fighting", "hurt self 1", "sync duel-low",
+                   "wait-duel none 80", "sync duel-over", "wait 3", "snapshot",
+                   "expect-session 3"],
+    },
+    "syncs": {name: {"chapter": "duel-teams", "roles": ["host", "guest", "guest2"]}
+              for name in DUEL_TEAM_NAMES},
+    "expect": {
+        "host": [r"Co-op duel: duel 1 fights", r"Co-op duel: PROPOSE for duel 0 \(3 on teams\)",
+                 r"Co-op duel: duel 1 is over: WON, this player's side won",
+                 r"Co-op duel: team 2 won duel 1"],
+        "guest": [r"Co-op duel: duel 1 is over: WON, this player's side won",
+                  r"Co-op duel: team 2 won duel 1"],
+        "guest2": [r"Co-op duel: this player is out of duel 1 \(no party death\)",
+                   r"Co-op duel: duel 1 is over: WON, this player lost",
+                   r"Co-op duel: team 2 won duel 1"],
+    },
+    "forbid": {role: SESSION_HOLDS + DUEL_NO_DEATH for role in ("host", "guest", "guest2")},
+    "timeout": 300,
+}
+
+
+# Kaniel 2026-11-01: a server that answers with another key than the one the launcher pinned: the
+# game never links to it (someone may stand in for it), and says so for the launcher.
+SCENARIOS["wrong-server-key"] = {
+    "about": "the guest pins another key than the server's: no link, and the log line the "
+             "launcher tells the player from",
+    "role_settings": {"guest": {"BB_SHADNET_SERVER_KEY": "ab" * 32}},
+    "start_after": {"guest": ["host", LINKED]},
+    "roles": {
+        "host": ["team-alone", START, "wait 20", "done"],
+        "guest": ["team-alone", START],
+    },
+    "done_on": {"guest": r"Server link: the server says another key than the one pinned"},
+    "expect": {"host": [LINKED],
+               "guest": [r"Server link: the server says another key than the one pinned"]},
+    "forbid": {"guest": [LINKED]},
+    "timeout": 300,
+}
+
+
 SCENARIOS["build-check-version"] = {
     "about": "the guest says another Seamless Co-op release (BB_RELEASE_VERSION 0.0.1, the host "
              "dev): the server refuses the guest's link, saying both versions",
@@ -4096,6 +4387,35 @@ SCENARIOS["spectate-lamp"] = {
     "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS + SPECTATE_FORBID + [r"reset=true"]},
     "timeout": 300,
 }
+# Kaniel 2026-11-03 (Amanises's idea): the spectator's unseen body trails the teammate it watches
+# (SpectateFollow), so that its game keeps the map and the teammate drawn around the camera. The
+# host walks about 50 m off to Iosefka's door while the guest spectates; the guest's body follows
+# about 2 s behind and never onto the host; the host's lamp then wakes it as ever.
+SCENARIOS["spectate-follow"] = {
+    "about": "spectating, the guest's unseen body follows the host it watches 50 m off (about 2 s "
+             "behind, never on it); the host's lamp still wakes it at its own lamp",
+    "settings": PARTY_DEATH,
+    "roles": {
+        # Off to Iosefka's door (a teleport onto its landing), then a walk along the landing: a
+        # trail on the ground (a glide cuts through the stairs).
+        "host": [*SPECTATE_HOST, "wait 8", f"teleport {IOSEFKA_WAIT}", "wait 4",
+                 "glide -200.0 -40.5 214.0 -200.0 -40.5 210.0 -200.0 -40.5 214.0 -200.0 -40.5 218.0",
+                 "wait 15", "lamp-use", "wait-member-vital up 60", "wait 5", "snapshot",
+                 "expect-session 2"],
+        "guest": [*SPECTATE_GUEST, "wait-vital up 120", "wait 5", "snapshot", "expect-hp self > 1",
+                  "expect-session 2"],
+    },
+    "expect": {
+        "host": [SPECTATE_SEEN],
+        "guest": [SPECTATE_OUT, r"spectate: watching .+ \(1 of 1 teammates standing here\)",
+                  r"spectate: the body follows .+ \(move 1\): to \(.+\), ([3-9]|\d\d)\.\d m from it",
+                  r"spectate: a teammate's lamp wakes this player at its own lamp \d+ \(moved there\)"],
+    },
+    "forbid": {"host": SESSION_HOLDS,
+               "guest": SESSION_HOLDS + SPECTATE_FORBID + [r"reset=true", r"spectate: killed",
+                                                           r"the body follows .+, [0-2]\.\d m from it"]},
+    "timeout": 300,
+}
 SCENARIOS["spectate-give-up"] = {
     "about": "spectating, the guest holds Circle 3 s: it wakes at its own lamp at once (no death, no "
              "reload), the host still standing",
@@ -4263,12 +4583,29 @@ SHADOWS_DEFEATED = 12701800
 SHADOWS = ("0x1002405f", "0x10024060", "0x10024061")  # their handles in Kaniel's 10-25 log
 
 
+def _stays_dead(handles, seconds: int) -> list[str]:
+    """A check a second for `seconds`: each of `handles` still at 0 HP."""
+    return [step for _ in range(seconds)
+            for step in ["wait 1", *(f"expect-hp {handle} <= 0" for handle in handles)]]
+
+
+# A dead Shadow brought back in a guest's game (its bring-back of what the host's generator brought
+# back, bloodborne_travel.cpp): a boss killed on both games stays dead.
+SHADOW_BROUGHT_BACK = (r"enemies the host's map generator brought back are dead here[^\n]*"
+                       r"bringing them back:[^\n]*(?:" + "|".join(SHADOWS) + ")")
+
+
 def _shadows(role: str, *, look: bool = False, leave: bool = False) -> list[str]:
     steps = [START, f"set-flag {SHADOWS_DEFEATED} 0", f"travel {FORBIDDEN_GRAVE_LAMP}", "godmode",
              "wait-session 2 300", f"watch-effects {SHADOWS[2]} 240", "wait 10", "census 80"]
     # Both games kill them: the map's enemy owner's HP would bring a kill in the other back.
-    steps += ["sync shadows-kill", f"kill {SHADOWS[0]}", "wait 15", f"kill {SHADOWS[1]}", "wait 5",
-              f"expect-hp {SHADOWS[1]} <= 0", "sync shadows-last"]
+    # Each dead one stays dead, checked every second (2026-11-04: a guest's bring-back revived one
+    # for about 3 s after the kill, so a single check 5 s on caught it only sometimes).
+    steps += ["sync shadows-kill", f"kill {SHADOWS[0]}"]
+    steps += _stays_dead(SHADOWS[:1], 15)
+    steps += [f"kill {SHADOWS[1]}"]
+    steps += _stays_dead(SHADOWS[:2], 10)
+    steps += ["sync shadows-last"]
     if look:
         steps += [f"approach {SHADOWS[2]} {0 if role == 'host' else 3} 10 3.1416"]
         for index in range(12):
@@ -4306,7 +4643,9 @@ for _name, _steps, _syncs, _about in (
         "about": _about,
         "roles": {role: _steps(role) for role in ("host", "guest")},
         "syncs": {sync: {"chapter": _name, "roles": ["host", "guest"]} for sync in _syncs + (("shadows-kill",) if _name.startswith("shadows") else ())},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + ([SHADOW_BROUGHT_BACK]
+                                             if _name.startswith("shadows") else [])},
         "timeout": 600,
     }
 
@@ -4526,6 +4865,109 @@ SCENARIOS["boss-tempo-party"] = {
     },
     "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
     "timeout": 600,
+}
+
+
+# Kaniel's play test 2026-11-03: a guest who had just joined could not level up at the Doll again
+# until it left the Dream (6700, her level-up flag, stayed on after her talk), and the host's level
+# up made the guests kneel (72100100-72100102, her blessing steps, followed as the host's story
+# steps). Her talk (m21_00 t210304): "Level Up" opens the menu and sets 6700 only while 6700 is
+# off; the menu closed, her words, 72100100 on, her blessing events (12100112/12100113) set
+# 72100101/72100102, the kneel, her talk's end, 72100100 off. 6700 going on is the proof her menu
+# opened; on a guest, so is "c17" in its talk answers.
+DOLL_LEVEL_UP = 6700
+DOLL_BLESSING = 72100100
+DOLL_FLAGS = f"flags {DOLL_LEVEL_UP} {DOLL_BLESSING} 72100101 72100102"
+# Her first words: X starts them, a late X ends them and her first choices come 5 s after it, then
+# X takes Level Up.
+OPEN_DOLL_MENU = [f"approach {DOLL} 1.0 0 1.5708", "wait 2", "press cross 200", "wait 24",
+                  "press cross 200", "wait 8", "press cross 200", "wait 3", DOLL_FLAGS]
+LEAVE_THE_DOLL = ["press circle 200", "wait 2", "press circle 200", "wait 2", "press circle 200",
+                  "wait 4", "expect-walks 2 10"]
+# The menu closed (X), her words and blessing over, her talk ended by walking 6 m away; back at
+# her, Level Up again, its menu closed and her talk ended the same way.
+WALK_AWAY_AND_BACK = ["wait 3", "press cross 200", "wait 15", DOLL_FLAGS, *LEAVE_THE_DOLL,
+                      f"approach {DOLL} 6.0 0 1.5708", "wait 5", DOLL_FLAGS, *OPEN_DOLL_MENU,
+                      "wait 3", "press cross 200", "wait 15", DOLL_FLAGS, *LEAVE_THE_DOLL]
+TEAM_HOST = ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START, "godmode",
+             "wait-session 2 300"]
+TEAM_GUEST = ["team-accept", "team-ready", START, "godmode", "wait-session 2 300"]
+# Another player's blessing steps never in this game, nor the kneel they bring.
+NO_BLESSING_HERE = [r"the host's story steps followed here[^\n]* -?7210010[0-2]\b",
+                    r"autoplay flags \(map 0x15000000\):[^\n]* 7210010[0-2]=1"]
+
+SCENARIOS["doll-walk-guest"] = {
+    "about": "a guest levels up at the Doll with the host in the Dream, walks 6 m away, comes "
+             "back and levels up again: her menu opens both times",
+    "roles": {
+        "host": [*TEAM_HOST, f"travel {HUNTERS_DREAM}", "wait-members 2 120", "wait 3",
+                 "sync dw-here", "sync dw-done", "expect-session 2"],
+        "guest": [*TEAM_GUEST, "wait 5", f"travel {HUNTERS_DREAM}", "wait 8", "sync dw-here",
+                  "wait 3", *OPEN_DOLL_MENU, *WALK_AWAY_AND_BACK, "sync dw-done",
+                  "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-walk-guest", "roles": ["host", "guest"]}
+              for sync in ("dw-here", "dw-done")},
+    "expect": {"guest": [r"c17x[\s\S]*c17x", r"autoplay: walked[\s\S]*autoplay: walked"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 420,
+}
+SCENARIOS["doll-walk-alone"] = {
+    "about": "a guest alone in the Dream (the host in Central Yharnam) levels up, walks 6 m away, "
+             "comes back and levels up again: her menu opens both times",
+    "roles": {
+        "host": [*TEAM_HOST, "wait 5", "sync da-here", "sync da-done", "expect-session 2"],
+        "guest": [*TEAM_GUEST, "wait 5", f"travel {HUNTERS_DREAM}", "wait 8", "sync da-here",
+                  "wait 3", *OPEN_DOLL_MENU, *WALK_AWAY_AND_BACK, "sync da-done",
+                  "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-walk-alone", "roles": ["host", "guest"]}
+              for sync in ("da-here", "da-done")},
+    "expect": {"guest": [r"c17x[\s\S]*c17x", r"autoplay: walked[\s\S]*autoplay: walked"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 420,
+}
+SCENARIOS["doll-walk-host"] = {
+    "about": "the host levels up with a team guest in the Dream, walks 6 m away, comes back and "
+             "levels up again; the guest takes none of her blessing steps and does not kneel",
+    "roles": {
+        "host": [*TEAM_HOST, f"travel {HUNTERS_DREAM}", "wait-members 2 120", "wait 3",
+                 "sync dh2-here", *OPEN_DOLL_MENU, *WALK_AWAY_AND_BACK, "sync dh2-done",
+                 "expect-session 2"],
+        "guest": [*TEAM_GUEST, "wait 5", f"travel {HUNTERS_DREAM}", "wait 8", "sync dh2-here",
+                  *[step for _ in range(40) for step in ("wait 3", DOLL_FLAGS)],
+                  "expect-walks 2 10", "sync dh2-done", "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-walk-host", "roles": ["host", "guest"]}
+              for sync in ("dh2-here", "dh2-done")},
+    # Her menu opened again: 6700 off once her talk was over, on with the second Level Up.
+    "expect": {"host": [r"6700=1[\s\S]*6700=0[\s\S]*6700=1",
+                        r"autoplay: walked[\s\S]*autoplay: walked"],
+               "guest": [r"autoplay: walked"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": [*SESSION_HOLDS, *NO_BLESSING_HERE]},
+    "timeout": 480,
+}
+SCENARIOS["doll-level-up-host"] = {
+    "about": "the host levels up at the Doll with a team guest in the Dream: the guest takes none "
+             "of her blessing steps, does not kneel and walks away",
+    "roles": {
+        "host": [*TEAM_HOST, f"travel {HUNTERS_DREAM}", "wait-members 2 120", "wait 3",
+                 "sync dh-here", *OPEN_DOLL_MENU, f"expect-flag {DOLL_LEVEL_UP} 1",
+                 "sync dh-closing", "press cross 200", f"wait-flag {DOLL_BLESSING} 1 20",
+                 DOLL_FLAGS, "wait 3", DOLL_FLAGS, "wait 12", DOLL_FLAGS, *LEAVE_THE_DOLL,
+                 "sync dh-checked", "expect-session 2"],
+        "guest": [*TEAM_GUEST, "wait 5", f"travel {HUNTERS_DREAM}", "wait 8", "sync dh-here",
+                  "sync dh-closing", *[step for _ in range(8) for step in ("wait 2", DOLL_FLAGS)],
+                  f"expect-flag {DOLL_BLESSING} 0", "expect-flag 72100101 0",
+                  "expect-flag 72100102 0", "expect-walks 2 10", "sync dh-checked",
+                  "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-level-up-host", "roles": ["host", "guest"]}
+              for sync in ("dh-here", "dh-closing", "dh-checked")},
+    "expect": {"host": [r"autoplay flags \(map 0x15000000\):[^\n]* 72100100=1"],
+               "guest": [r"autoplay: walked"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": [*SESSION_HOLDS, *NO_BLESSING_HERE]},
+    "timeout": 300,
 }
 
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to

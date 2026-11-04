@@ -20,6 +20,7 @@ struct BackendConfig {
     int ghostTtlMinutes = 30;
     int lanternTtlMinutes = 10;
     int tombCap = 100;
+    int replyBytes = 64 * 1024; // Amanises 2026-10-26: the largest list sent (0: no cap)
     int summonPoll = 5;
 };
 
@@ -34,7 +35,7 @@ struct HostedConfig {
     int newAccountsPerHour = 5;
     int signupWorkBits = 20;    // a new account's work (coop/link_auth.h): ~0.3 s of one core
     int signupWorkMaxBits = 20; // 2 bits more per doubling of the accounts a minute over:
-    int signupsPerMinute = 60;  // this many
+    int signupsPerMinute = 300; // this many (Admission::DefaultSignupsPerMinute)
     double datagramsPerSecond = 1500.0;
     double bytesPerSecond = 400000.0;
     int lobbyPlayers = 32;     // players listed to each player besides its team and invites
@@ -57,7 +58,7 @@ struct ShardConfig {
     QString publicAddress;   // "a.b.c.d:port": the games reach this shard's link there
     QByteArray token;        // the shards' and the directory's shared secret
     QByteArray regionSecret; // the tickets' key (empty: derived from the token)
-    int capacity = 800;
+    int capacity = 350;      // Region::DefaultShardCapacity
     bool draining = false;
     int heartbeatMs = 2000;
     bool Enabled() const {
@@ -67,13 +68,30 @@ struct ShardConfig {
 
 // Invasions (docs/INVASIONS.md): a solo player invades a team's world that allows it. Off unless
 // the operator turns it on (a hosted server or one at home alike).
+// Global servers' sign-in (docs/HOSTED_SERVER.md, "Global servers: accounts"), on a Hosted server
+// only: SignIn=password (the default: a name and a password, password_accounts.h; Kaniel
+// 2026-11-04: the only sign-in) or open (any new id, with the signup work: the hosted server before
+// sign-ins, for tests). The accounts live on one shard of a region, its home
+// (PasswordHome, every lone server's): /bb/auth/* go there; the others tell the secrets.
+struct SignInConfig {
+    bool passwords = true;
+    bool home = true;
+    quint32 hashMemoryKib = 64 * 1024; // PasswordAccounts::HashParams: ~100-150 ms
+    quint32 hashPasses = 2;
+    int hashThreads = 2;     // hashes at once, off the server's threads
+    int hashQueue = 32;      // waiting for one; past it a request hears "busy"
+    int triesPerMinute = 30; // an address's requests to /bb/auth/*
+    QString commonPasswords = QStringLiteral("common-passwords.txt");
+    bool proxied = false; // behind our own TLS proxy (SignInProxied)
+};
+
 struct InvasionConfig {
     bool enabled = false; // Invasions
     // InvasionKind / InvasionSign: what the invader's game joins the target's session with
     // (GameMan +0x16F0 / +0x16F4). Placeholders until the retail Sinister Resonant Bell capture
     // (docs/INVASIONS.md, phase 0) says the real values.
     quint32 kind = 0xFFFFFFFF;
-    quint32 sign = 4;
+    quint32 sign = 3; // Amanises 2026-10-29: 4 is the fifth hunter's now (team_lobby.cpp)
 };
 
 class ConfigManager {
@@ -149,6 +167,11 @@ public:
     HostedConfig GetHosted() const {
         QReadLocker lk(&m_lock);
         return m_hosted;
+    }
+
+    SignInConfig GetSignIn() const {
+        QReadLocker lk(&m_lock);
+        return m_signIn;
     }
 
     BackendConfig GetBackend() const {
@@ -232,6 +255,7 @@ private:
     BackendConfig m_backend;
     HostedConfig m_hosted;
     ShardConfig m_shard;
+    SignInConfig m_signIn;
     InvasionConfig m_invasions;
     bool m_httpLinkedOnly = false;
     QString m_statsPort = "31320";

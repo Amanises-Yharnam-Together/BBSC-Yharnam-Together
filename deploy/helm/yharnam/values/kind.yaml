@@ -16,6 +16,8 @@ config:
   # 8 bits: bbload's games all join at once on one box (docs/HOSTED_SERVER.md does the same).
   HostedSignupWorkBits: 8
   HostedSignupWorkMaxBits: 8
+  # bbload's games make their own ids (no launcher sign-in).
+  SignIn: open
 backup:
   enabled: true
   image: { repository: yharnam-backup, tag: local, pullPolicy: Never }

@@ -256,11 +256,11 @@ TEST_F(BloodborneEboot, BannerSeventeenIsTheNightmareSlainMovie) {
     EXPECT_EQ(0x298u + 17 * 0x58 + 0x20, 0x890u);
 }
 
-// Party death's YOU ARE DOWN is banner 15: the setup puts the movie named "TextEffect_YouWin" in
-// slot 15's +0x20, the HUD patch makes it the yellow banner, and an id out of 1 to 17 queues
-// nothing (m29 12900192's banner is patched to 0).
+// Banner 15 is UNLOCKED: the setup puts the movie named "TextEffect_YouWin" in slot 15's +0x20
+// (the party HUD's YOU ARE DOWN is a copy of it of its own), and an id out of 1 to 17 queues
+// nothing.
 TEST_F(BloodborneEboot, BannerFifteenIsTheYouWinMovie) {
-    EXPECT_EQ(DownedBannerTextEffect, 15);
+    EXPECT_EQ(UnlockedTextEffect, 15);
     EXPECT_EQ(Bytes(0x01BF628D, 3), HexBytes("48 8D 15"));
     EXPECT_EQ(0x01BF6294 + ReadAt<s32>(*text, 0x01BF6290), 0x049343A1u);
     EXPECT_EQ(Bytes(0x01BF62BE, 3), HexBytes("49 8D 87"));
@@ -647,6 +647,20 @@ TEST_F(BloodborneEboot, PlacementCallsWhatTheGamesLampPlacementCalls) {
     EXPECT_EQ(CallTarget(0x0132F612), ResetCharacterFollowOffset);
     EXPECT_EQ(Bytes(SnapCharacterPositionOffset, 4), FunctionPrologue);
     EXPECT_EQ(Bytes(ResetCharacterFollowOffset, 4), FunctionPrologue);
+}
+
+// An enemy's senses take a character as a target through 0x012B2960 (AddEnemyTargetOffset):
+// sight with (targeting + 0x10, 0, character, 0, [targeting + 8]); its type 0 target is built by
+// 0x012A7260, which sets kind 1 (`mov dword [rbx + 8], 1`) and the handle (+0x30 of the target).
+TEST_F(BloodborneEboot, AnEnemyTakesATargetTheWayItsSensesDo) {
+    EXPECT_EQ(CallTarget(0x012AEA2E), AddEnemyTargetOffset);
+    EXPECT_EQ(CallTarget(0x012ABDB0), AddEnemyTargetOffset);
+    EXPECT_EQ(Bytes(0x012AEA23, 4), (std::vector<u8>{0x48, 0x83, 0xC3, 0x10})); // rbx + 0x10
+    EXPECT_EQ(Bytes(0x012AEA29, 2), (std::vector<u8>{0x31, 0xC9}));             // type 0
+    EXPECT_EQ(CallTarget(0x012B2C2E), CharacterTargetInitOffset);
+    EXPECT_EQ(Bytes(0x012A737C, 7), (std::vector<u8>{0xC7, 0x43, 0x08, 0x01, 0x00, 0x00, 0x00}));
+    EXPECT_EQ(Bytes(AddEnemyTargetOffset, 4), FunctionPrologue);
+    EXPECT_EQ(Bytes(CharacterTargetInitOffset, 4), FunctionPrologue);
 }
 
 // The camera manager: the in-game step builds it (0x01435FC0) and keeps it in [[0x0553E860]

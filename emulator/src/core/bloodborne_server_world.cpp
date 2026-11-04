@@ -75,6 +75,9 @@ std::atomic<bool> inbox_news{false};
 // The others' hits (bbcoop::EnemyHit) as they came, for the next enemy step.
 std::mutex enemy_hits_mutex;
 std::vector<EnemyHitNews> enemy_hits;
+// The owners' enemy places (bbcoop::EnemyPlaces), for a take-over (see EnemyPlace).
+std::mutex enemy_places_mutex;
+EnemyPlacesBook enemy_places;
 std::mutex altar_records_mutex;
 std::vector<AltarRecordNews> altar_records;
 // Kaniel 2026-10-24: the team's pings (bbcoop::Ping) as they came, for the next pings tick.
@@ -614,6 +617,21 @@ void StreamTick(s64 now_ms) {
                     if (TakeLobbyMessage(*envelope)) {
                         continue;
                     }
+                    if (envelope->has_enemy_places()) {
+                        const bbcoop::EnemyPlaces& news = envelope->enemy_places();
+                        std::vector<EnemyPlace> places;
+                        for (const bbcoop::EnemyPlace& place : news.places()) {
+                            if (places.size() < EnemyPlacesMost) {
+                                places.push_back({place.handle(),
+                                                  {place.at().x(), place.at().y(), place.at().z()},
+                                                  place.heading(),
+                                                  place.fighting()});
+                            }
+                        }
+                        std::scoped_lock places_lock{enemy_places_mutex};
+                        enemy_places.Heard(news.map(), std::move(places), now_ms);
+                        continue;
+                    }
                     if (envelope->has_enemy_hit()) {
                         const bbcoop::EnemyHit& hit = envelope->enemy_hit();
                         std::scoped_lock hits_lock{enemy_hits_mutex};
@@ -946,6 +964,40 @@ std::vector<EnemyOwnerEntry> ServerEnemyOwners(s64 now_ms) {
     return server_owners;
 }
 
+void SendEnemyPlaces(u32 map, std::span<const EnemyPlace> places) {
+    if (!ServerWorldOn() || !enemy_owner_switch) {
+        return;
+    }
+    bbcoop::Envelope envelope;
+    bbcoop::EnemyPlaces& message = *envelope.mutable_enemy_places();
+    message.set_map(map);
+    for (const EnemyPlace& place : places) {
+        bbcoop::EnemyPlace& out = *message.add_places();
+        out.set_handle(place.handle);
+        out.mutable_at()->set_x(place.at[0]);
+        out.mutable_at()->set_y(place.at[1]);
+        out.mutable_at()->set_z(place.at[2]);
+        out.set_heading(place.heading);
+        out.set_fighting(place.fighting);
+    }
+    Queue(std::move(envelope));
+}
+
+std::vector<EnemyPlace> HeardEnemyPlaces(u32 map) {
+    std::scoped_lock lock{enemy_places_mutex};
+    return enemy_places.Take(map, SteadyMilliseconds());
+}
+
+void DropEnemyPlaces(u32 map) {
+    std::scoped_lock lock{enemy_places_mutex};
+    enemy_places.Drop(map);
+}
+
+void ForgetEnemyPlaces() {
+    std::scoped_lock lock{enemy_places_mutex};
+    enemy_places.Clear();
+}
+
 void SendEnemyHit(u32 map, u32 handle, s32 hp, s32 max) {
     if (!ServerWorldOn() || !enemy_owner_switch) {
         return;
@@ -982,7 +1034,8 @@ std::vector<TeamPing> TakeTeamPings() {
     return std::exchange(team_pings, {});
 }
 
-void SendDuelRequest(bbcoop::DuelRequest::Action action, u32 duel, u32 map) {
+void SendDuelRequest(bbcoop::DuelRequest::Action action, u32 duel, u32 map,
+                     const std::vector<std::pair<std::string, u32>>& teams) {
     if (!ServerWorldOn()) {
         return;
     }
@@ -990,6 +1043,11 @@ void SendDuelRequest(bbcoop::DuelRequest::Action action, u32 duel, u32 map) {
     envelope.mutable_duel_request()->set_action(action);
     envelope.mutable_duel_request()->set_duel(duel);
     envelope.mutable_duel_request()->set_map(map);
+    for (const auto& [member, team] : teams) {
+        bbcoop::DuelPick& pick = *envelope.mutable_duel_request()->add_teams();
+        pick.set_member(member);
+        pick.set_team(team);
+    }
     Queue(std::move(envelope));
 }
 
@@ -2073,6 +2131,28 @@ void TeamBackAtTitle() {
     }
 }
 
+// The session's members for TeamJoin: the invader only once its game is one of them. Only two
+// members can read "alone", and the name search runs twice a second at most.
+size_t TeamJoinMembers() {
+    const size_t members = SessionMembers();
+    const std::string invader = InvaderInWorld();
+    if (invader.empty() || members != 2) {
+        return members;
+    }
+    static s64 looked_ms = 0;
+    static bool in_session = false;
+    if (const s64 now_ms = SteadyMilliseconds(); now_ms - looked_ms >= 500) {
+        looked_ms = now_ms;
+        const std::vector<std::string> online_ids{OnlineIdOfBoardMember(invader)};
+        std::vector<std::optional<std::string>> names;
+        for (const u64 member : OtherSessionMembers()) {
+            names.push_back(SessionMemberBoardName(member, online_ids));
+        }
+        in_session = InvaderInSession(names, invader);
+    }
+    return TeamSessionMembers(members, in_session);
+}
+
 bool TickTeamJoin(bool ready) {
     if (!team_switch) {
         return false;
@@ -2127,6 +2207,15 @@ bool TickTeamJoin(bool ready) {
     if (!in_team) {
         return true; // alone (from the title, or out of its team since): no session to open or join
     }
+    const u64 net_sync = ReadValue<u64>(image_base + SummonSessionRulesPointerOffset, 0);
+    if (net_sync >= 0x10000 && HasMemoryAccess(net_sync + 0x84, 4, MemoryProt::CpuWrite) &&
+        TakenOverSyncStalled(TeamHostTookOver(), ReadValue<s32>(manager, 0x124),
+                             ReadValue<s32>(net_sync, 0x84))) {
+        WriteValue(net_sync, 0x84, s32{4});
+        LOG_INFO(Debug,
+                 "Co-op team join: this game took the team over and hosts, but NetSync stood "
+                 "at 0: 4, as on any host");
+    }
     const TeamJoin::Frame frame{
         .host = !IsPartyGuestRole(),
         .matching_state = ReadValue<s32>(manager, 0x124),
@@ -2134,7 +2223,7 @@ bool TickTeamJoin(bool ready) {
         .session_known = session.has_value() && !session->join().empty(),
         .room_owner = Libraries::Np::NpMatching2::OwnsItsRoom(),
         .room_has_others = Libraries::Np::NpMatching2::OwnedRoomHasOthers(),
-        .session_members = TeamSessionMembers(SessionMembers(), !InvaderInWorld().empty()),
+        .session_members = TeamJoinMembers(),
         .standing = party_death_run.downed.Current() == Vital::Up ||
                     party_death_run.downed.Current() == Vital::Off,
         .now_ms = SteadyMilliseconds(),
@@ -2311,6 +2400,21 @@ void ReportRot(std::span<const u32> rot) {
 void TeamLobbyRequest(bbcoop::TeamRequest::Action action, const std::string& id) {
     bbcoop::Envelope envelope;
     *envelope.mutable_team_request() = TeamMenuRequest(action, id);
+    // Amanises 2026-10-25, quick match: the character's level while it plays (the server matches
+    // near levels); at the title no character is loaded (0: any team fits).
+    if (action == bbcoop::TeamRequest::QUICK_MATCH) {
+        bool playing = false;
+        {
+            std::scoped_lock lock{team_mutex};
+            playing = lobby_playing;
+        }
+        const u64 data = playing ? OwnGameData() : 0;
+        const s32 level = data >= 0x10000 && HasMemoryAccess(data + 0x90, 4, MemoryProt::CpuRead)
+                              ? ReadValue<s32>(data, 0x90)
+                              : 0;
+        envelope.mutable_team_request()->set_level(level > 0 && level < 1000 ? level : 0);
+        LOG_INFO(Debug, "Co-op team lobby: quick match at level {}", level);
+    }
     // A typed code joins a team: not in the log.
     LOG_INFO(Debug, "Co-op team lobby: the menu asks {} {}",
              bbcoop::TeamRequest::Action_Name(action),
@@ -2771,6 +2875,16 @@ bool IsTeamTitleVerb(std::string_view verb) {
     return verb.starts_with("team-");
 }
 
+// The rig's team-code-share and team-join-code: the leader's code, for the other roles' games
+// (beside the role folders; a typed code never goes in the log).
+std::optional<std::filesystem::path> RigTeamCodeFile() {
+    const char* script = std::getenv("SHADPS4_BLOODBORNE_AUTOPLAY");
+    if (script == nullptr || script[0] == '\0') {
+        return std::nullopt;
+    }
+    return std::filesystem::path{script}.parent_path().parent_path() / "rig-team-code.txt";
+}
+
 bool RunTeamTitleVerb(const AutoplayCommand& command, bool begun, double elapsed,
                       std::string& failure) {
     constexpr double TimeoutSeconds = 180.0;
@@ -2854,6 +2968,56 @@ bool RunTeamTitleVerb(const AutoplayCommand& command, bool begun, double elapsed
                                                     : TeamGate::Choice::Alone);
         }
         done = true;
+    } else if (command.verb == "team-quick") {
+        // team-quick: the team screen's Quick match, by the request the screen sends.
+        done = lobby && lobby->has_team();
+        if (lobby && !done && (!begun || elapsed > 5.0)) {
+            TeamLobbyRequest(bbcoop::TeamRequest::QUICK_MATCH, {});
+        }
+    } else if (command.verb == "team-open" && command.args.size() == 1) {
+        // team-open <0|1|2>: the leader says how the team is joined.
+        const auto mode = static_cast<bbcoop::Team::Join>(std::atoi(command.args[0].c_str()));
+        done = lobby && lobby->has_team() && lobby->team().join() == mode;
+        if (lobby && lobby->has_team() && !done && (!begun || elapsed > 5.0)) {
+            bbcoop::Envelope envelope;
+            envelope.mutable_team_request()->set_action(bbcoop::TeamRequest::OPEN);
+            envelope.mutable_team_request()->set_join(mode);
+            QueueLobby(std::move(envelope));
+        }
+    } else if (command.verb == "team-join-open") {
+        // The first open team listed, as its row's Join.
+        done = lobby && lobby->has_team();
+        if (lobby && !done && lobby->open_teams_size() > 0 && (!begun || elapsed > 5.0)) {
+            request(bbcoop::TeamRequest::ASK_JOIN, {}, lobby->open_teams(0).team());
+        }
+    } else if (command.verb == "team-code-share") {
+        done = lobby && lobby->has_team() && !lobby->team().code().empty();
+        if (const auto file = RigTeamCodeFile(); done && file) {
+            std::ofstream{*file} << lobby->team().code();
+        }
+    } else if (command.verb == "team-join-code") {
+        done = lobby && lobby->has_team();
+        // Every 15 s: a stale file from an earlier run must not use up the five wrong codes a
+        // minute (TeamLobby::LookupTries) before the leader's new one is there.
+        static double tried_at = -100.0;
+        if (!begun) {
+            tried_at = -100.0;
+        }
+        if (const auto file = RigTeamCodeFile();
+            lobby && !done && file && elapsed - tried_at >= 15.0) {
+            std::string code;
+            std::ifstream{*file} >> code;
+            if (!code.empty()) {
+                tried_at = elapsed;
+                bbcoop::Envelope envelope;
+                envelope.mutable_team_request()->set_action(bbcoop::TeamRequest::JOIN_CODE);
+                envelope.mutable_team_request()->set_code(code);
+                QueueLobby(std::move(envelope));
+            }
+        }
+    } else if (command.verb == "team-wait-open") {
+        // An open team is listed (the title has no sync).
+        done = lobby && lobby->open_teams_size() > 0;
     } else if (command.verb == "team-leave") {
         done = lobby && !lobby->has_team();
         if (lobby && lobby->has_team() && (!begun || elapsed > 5.0)) {

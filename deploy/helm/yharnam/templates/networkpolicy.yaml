@@ -37,6 +37,13 @@ spec:
       ports:
         - { port: {{ .Values.directory.port }}, protocol: TCP }
     {{- end }}
+    # The accounts' home (shard 0): the Caddy sidecars send /bb/auth/* there.
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "yharnam.shardSelector" . | nindent 14 }}
+      ports:
+        - { port: {{ $p.webapi }}, protocol: TCP }
     {{- if eq .Values.tls.mode "caddy" }}
     # ACME (Let's Encrypt) for the Caddy sidecar.
     - ports:

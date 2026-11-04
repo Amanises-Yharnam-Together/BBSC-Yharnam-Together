@@ -153,6 +153,16 @@ TEST(BloodborneWriteWatch, TheStackScanStaysOnTheStack) {
 
 // Kaniel's playtest 2026-10-16: krolebord's copy stayed by the Cleric Beast lantern after his Dream
 // trip: Lisara stood 16 m away and kept it shown. Each member vouches for one character only.
+// Rig owner-crash-fight 2026-11-03: the crashed host's copy, shown again as the guest left its
+// session alone, took the enemy off the guest.
+TEST(MemberPresence, ACopyHiddenForAGoneMemberStaysHiddenOutOfTheSession) {
+    EXPECT_FALSE(ShowsHiddenCopies(false, true, true)) << "the session left: stays hidden";
+    EXPECT_FALSE(ShowsHiddenCopies(false, false, false));
+    EXPECT_TRUE(ShowsHiddenCopies(true, false, true)) << "a stale board: as the game has them";
+    EXPECT_TRUE(ShowsHiddenCopies(true, true, false)) << "loading";
+    EXPECT_FALSE(ShowsHiddenCopies(true, true, true)) << "in the session: the board decides";
+}
+
 TEST(MemberPresence, OneMemberKeepsOnlyOneCharacterShown) {
     constexpr u32 Yharnam = 0x18010000, Dream = 0x15000000;
     const auto member = [](std::string name, u32 map, float x) {

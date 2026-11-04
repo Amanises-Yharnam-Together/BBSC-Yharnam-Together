@@ -55,11 +55,30 @@ foes alone while the duel lasts.
   not on before. A game away from the duel's map for 10 s gives back by itself, in case the server's
   end never comes.
 
-## Later
+## Teams (Amanises 2026-10-29)
 
-Teams of two: the server's `Duelist.side` already carries a side per duelist (free for all gives
-each its own); a team duel gives two duelists one side, and the games already only strike other
-sides.
+**Duel** on the team screen opens a page first: **Free for all** (as above: everyone here fights
+everyone) or **Teams**. With teams, each hunter on your map is listed with a team: **The
+Yharnamites** (gold), **The Hunters** (red), **The Great Ones** (pale blue), or *Not in this duel*.
+Choosing a hunter moves them to the next team (you always keep one); **Shuffle** deals two even
+teams at random. **Send the challenge** needs two teams with someone on them, so 2v1, 2v2, 2v3,
+1v1v2 and so on all work.
+
+- Only the hunters on a team are asked. Their box names the teams: "<name> challenges you to a team
+  duel. Accept?", then their own team and the others with who is on each.
+- Teammates cannot hurt each other: a team's duelists share one side, and a game only makes the
+  bodies of other sides hostile.
+- If the answers leave only one team, the duel is off for everyone (`ONE_TEAM`, the notice "Only
+  one team accepted: the duel is off.").
+- The last team with someone standing wins. Every duelist of that team gets a win on its count,
+  the ones put out too. The game's own banners stay (ADVERSARY EXPUNGED, YOU DIED), and every
+  duelist hears the result in a notice ("The Hunters won the duel.").
+- The countdown shows "Your team: <team>" in the team's colour.
+
+How: `DuelRequest.teams` (`DuelPick` member + team 1-3) on PROPOSE; the server's seat keeps the
+pick, shows it as the side from the question on, and at the start gives every duelist in its team
+as its side (`DuelState.teams`). Games without the team page still fight team duels correctly
+(sides were always per side, not per player); they only cannot start one.
 
 ## Rig
 

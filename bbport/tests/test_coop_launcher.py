@@ -809,6 +809,32 @@ class PlayTests(unittest.TestCase):
         self.assertFalse(any('31313' in line for line in host))
 
 
+class DiscordStatusTests(unittest.TestCase):
+    """Kaniel 2026-11-01: the Discord status is off by default, and no join secrets on a home server."""
+
+    def env(self, **settings):
+        return coop.discord_environment({'BB_DISCORD_STATUS': 'old', 'BB_DISCORD_JOIN': 'old'}, settings)
+
+    def test_off_by_default(self):
+        self.assertEqual(coop.DEFAULTS['discord_status'], '')
+        with mock.patch.object(coop, 'DISCORD_APP_ID', '123'):
+            self.assertEqual(self.env(), {})
+            self.assertEqual(self.env(discord_status=''), {})
+
+    def test_not_without_our_application(self):
+        with mock.patch.object(coop, 'DISCORD_APP_ID', ''):
+            self.assertEqual(self.env(discord_status='1'), {})
+
+    def test_on_a_home_server_it_shows_but_offers_no_join(self):
+        with mock.patch.object(coop, 'DISCORD_APP_ID', '123'):
+            self.assertEqual(self.env(discord_status='1', server_type='local'),
+                             {'BB_DISCORD_STATUS': '1', 'BB_DISCORD_APP_ID': '123'})
+
+    def test_on_a_public_server_friends_join_from_discord(self):
+        with mock.patch.object(coop, 'DISCORD_APP_ID', '123'):
+            self.assertEqual(self.env(discord_status='1', server_type='global')['BB_DISCORD_JOIN'], '1')
+
+
 class UpdateTests(unittest.TestCase):
     """Kaniel 2026-10-16: the launcher updates the install from this repository's releases, every release
     counted (pre-releases too), and only a file that matches its SHA-256 is run."""
@@ -1219,6 +1245,16 @@ class SystemCertificateTests(unittest.TestCase):
         # Still checked: never a context that takes any certificate.
         self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
         self.assertTrue(context.check_hostname)
+
+    def test_an_ssl_context_that_cannot_be_made_keeps_the_default(self):
+        # Amanises 2026-10-29: FileNotFoundError from ssl.SSLContext in a frozen launcher: it did not
+        # start at all, not even --script.
+        import ssl
+        for failure in (FileNotFoundError('no certificates'), ssl.SSLError('none')):
+            fake = mock.Mock(SSLContext=mock.Mock(side_effect=failure))
+            with mock.patch.dict(sys.modules, {'truststore': fake}):
+                self.assertFalse(coop.use_system_certificates())
+            self.assertIsNone(coop.urllib.request._opener)
 
     def test_without_truststore_the_default_stays(self):
         with mock.patch.dict(sys.modules, {'truststore': None}):

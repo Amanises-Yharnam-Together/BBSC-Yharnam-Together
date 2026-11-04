@@ -2271,8 +2271,10 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
                     if (rasterizer && rasterizer->HasUnsubmittedSignals()) {
                         rasterizer->Flush();
                     }
+                    gfx_waits_on_memory.store(true, std::memory_order_release);
                     YIELD_GFX();
                 }
+                gfx_waits_on_memory.store(false, std::memory_order_release);
                 if (dcb_stats) {
                     ++g_dcb_stats.wait_outcome[met ? 2 : 3];
                     g_dcb_stats.wait_ms += std::chrono::duration<double, std::milli>(

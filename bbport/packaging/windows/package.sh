@@ -150,6 +150,15 @@ ldd "$dest/bin/bb-probe.exe" "$dest/bin/bb-gpu-capabilities.exe" |
     awk '/\/clang64\/bin\// {print $3}' | sort -u | while read -r dll; do
         cp -u "$dll" "$dest/bin/"
     done
+# Amanises 2026-10-26: a DLL the CLANG64 tree has that ldd found in Windows' folder instead (a codec a
+# program installed there, xvidcore.dll for FFmpeg) is not on players' PCs: CLANG64's copy goes too.
+# Not the Vulkan loader: the graphics driver puts its own in Windows' folder.
+ldd "$dest"/bin/*.exe "$dest"/bin/*.dll 2>/dev/null |
+    awk 'tolower($3) ~ /\/c\/windows\// && tolower($1) != "vulkan-1.dll" {print $1}' | sort -u | while read -r name; do
+        if [[ -f "/clang64/bin/$name" && ! -f "$dest/bin/$name" ]]; then
+            cp "/clang64/bin/$name" "$dest/bin/"
+        fi
+    done
 cp -r scripts patches "$dest/"
 # Legacy CPU (Intel 3rd generation and older): the translation plan scripts/cpu_compat.py applies.
 mkdir -p "$dest/tools" && cp tools/legacy-cpu-plan.json "$dest/tools/"

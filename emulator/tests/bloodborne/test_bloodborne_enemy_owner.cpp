@@ -75,10 +75,131 @@ TEST(EnemyOwner, AHostThatFollowsSendsItsHitsAsAGuestDoes) {
     EXPECT_EQ(EnemyHitState(EnemyRole::Unknown, Hosting), std::nullopt);
 }
 
+// Rig host-arrives-hurt-enemy: the owner tells the others where its moved enemies are.
+TEST(EnemyOwner, OnlyTheEnemiesThatMovedAreSentTheFarthestFirst) {
+    const std::map<u32, std::array<float, 3>> first{
+        {0x2021, {6.8f, -11.0f, 122.5f}}, {0x2022, {0.0f, 0.0f, 0.0f}}, {0x2023, {5.0f, 0, 5.0f}}};
+    const std::vector<EnemyPlace> now{
+        {0x2021, {8.2f, -11.0f, 126.4f}, 0.5f}, // 4.1 m
+        {0x2022, {0.5f, 0.0f, 0.0f}, 0.0f},     // 0.5 m: not moved
+        {0x2023, {5.0f, 0.0f, 25.0f}, 1.0f},    // 20 m
+        {0x2024, {1.0f, 2.0f, 3.0f}, 0.0f},     // never seen before: not moved
+    };
+    const std::vector<EnemyPlace> moved = MovedEnemyPlaces(now, first);
+    ASSERT_EQ(moved.size(), 2u);
+    EXPECT_EQ(moved[0].handle, 0x2023u);
+    EXPECT_EQ(moved[1], now[0]);
+    std::vector<EnemyPlace> many;
+    std::map<u32, std::array<float, 3>> many_first;
+    for (u32 i = 0; i < EnemyPlacesMost + 10; ++i) {
+        many.push_back({i, {static_cast<float>(i) + 2.0f, 0.0f, 0.0f}, 0.0f});
+        many_first[i] = {0.0f, 0.0f, 0.0f};
+    }
+    const std::vector<EnemyPlace> capped = MovedEnemyPlaces(many, many_first);
+    ASSERT_EQ(capped.size(), EnemyPlacesMost);
+    EXPECT_EQ(capped.front().handle, EnemyPlacesMost + 9) << "the farthest";
+}
+
+// Rig owner-crash-fight: the enemy fighting beside the guest had not moved; sent all the same.
+TEST(EnemyOwner, AnEnemyInAFightIsSentThoughItDidNotMove) {
+    const std::map<u32, std::array<float, 3>> first{{0x2031, {1.0f, 0.0f, 1.0f}},
+                                                    {0x2032, {2.0f, 0.0f, 2.0f}}};
+    std::vector<EnemyPlace> now{{0x2031, {1.2f, 0.0f, 1.0f}, 0.0f},
+                                {0x2032, {2.0f, 0.0f, 2.3f}, 0.0f}};
+    now[1].fighting = true;
+    const std::vector<EnemyPlace> sent = MovedEnemyPlaces(now, first);
+    ASSERT_EQ(sent.size(), 1u) << "the idle one that did not move stays out";
+    EXPECT_EQ(sent[0], now[1]);
+}
+
+TEST(EnemyOwner, ATakenOverFightGoesOnAtTheNearestStandingPlayer) {
+    const std::array<float, 3> enemy{0.0f, 0.0f, 0.0f};
+    const std::vector<PlayerSpot> players{
+        {{40.0f, 0.0f, 0.0f}, true}, // out of range
+        {{2.0f, 0.0f, 0.0f}, false}, // down
+        {{0.0f, 0.0f, 10.0f}, true},
+        {{5.0f, 0.0f, 0.0f}, true},
+    };
+    EXPECT_EQ(NearestStandingPlayer(enemy, players), std::optional<size_t>{3});
+    EXPECT_EQ(NearestStandingPlayer(enemy, std::span{players}.first(2)), std::nullopt);
+    EXPECT_EQ(NearestStandingPlayer(enemy, {}), std::nullopt);
+}
+
+TEST(EnemyOwner, ATakeOverUsesOnlyFreshPlacesOfItsMap) {
+    EnemyPlacesBook book;
+    book.Heard(0x18000000, {{0x2021, {8.2f, -11.0f, 126.4f}, 0.5f}}, 1000);
+    ASSERT_EQ(book.Take(0x18000000, 1000 + EnemyPlacesFreshMs - 1).size(), 1u);
+    EXPECT_TRUE(book.Take(0x18010000, 1000).empty()) << "another map";
+    EXPECT_TRUE(book.Take(0x18000000, 1000 + EnemyPlacesFreshMs).empty()) << "stale";
+    book.Heard(0x18000000, {}, 2000);
+    EXPECT_TRUE(book.Take(0x18000000, 2000).empty()) << "the newest report wins";
+    book.Heard(0x18000000, {{0x2021, {1.0f, 2.0f, 3.0f}, 0.0f}}, 3000);
+    book.Heard(0x18010000, {{0x2022, {1.0f, 2.0f, 3.0f}, 0.0f}}, 3000);
+    book.Drop(0x18000000);
+    EXPECT_TRUE(book.Take(0x18000000, 3000).empty()) << "put back once";
+    EXPECT_EQ(book.Take(0x18010000, 3000).size(), 1u) << "only that map's";
+    book.Clear();
+    EXPECT_TRUE(book.Take(0x18000000, 3000).empty()) << "a wipe forgets them";
+}
+
 TEST(EnemyOwner, TheOwnerRunsTheAiAFollowerTheNetworkController) {
     EXPECT_EQ(EnemyOwnershipWord(EnemyRole::Owner), std::optional<u16>{0});
     EXPECT_EQ(EnemyOwnershipWord(EnemyRole::Follower), std::optional<u16>{0xFFFF});
     EXPECT_EQ(EnemyOwnershipWord(EnemyRole::Unknown), std::nullopt);
+}
+
+// Rig party-death 2026-11-02: the game left a session by itself 15 s after a wipe.
+TEST(EnemyOwner, OnlyTheStopRequestAfterAWipeIsKept) {
+    constexpr u64 AfterWipe = 0x01380A6A;
+    EXPECT_TRUE(KeepsSessionAfterWipe(AfterWipe, true, 15'000));
+    EXPECT_TRUE(KeepsSessionAfterWipe(0x01393323, true, 15'000)) << "its LeaveSession";
+    EXPECT_FALSE(KeepsSessionAfterWipe(0x01393323, false, 15'000));
+    EXPECT_TRUE(KeepsSessionAfterWipe(AfterWipe, true, KeepAfterWipeMs - 1));
+    EXPECT_FALSE(KeepsSessionAfterWipe(AfterWipe, true, KeepAfterWipeMs));
+    EXPECT_FALSE(KeepsSessionAfterWipe(AfterWipe, false, 15'000)) << "no party session";
+    EXPECT_FALSE(KeepsSessionAfterWipe(0x0193C65C, true, 15'000)) << "another caller";
+}
+
+// Rig party-death 2026-11-02: hosting with NetSync at 0 no player state moves (ch 6).
+TEST(EnemyOwner, ATakenOverHostStuckAtSyncZeroIsTheOnlyStall) {
+    EXPECT_TRUE(TakenOverSyncStalled(true, MatchingStateHosting, 0));
+    EXPECT_FALSE(TakenOverSyncStalled(false, MatchingStateHosting, 0)) << "a host from the start";
+    EXPECT_FALSE(TakenOverSyncStalled(true, MatchingStateHosting, 4));
+    for (const s32 joining : {1, 2, 3}) {
+        EXPECT_FALSE(TakenOverSyncStalled(true, MatchingStateHosting, joining));
+    }
+    EXPECT_FALSE(TakenOverSyncStalled(true, 0, 0)) << "out of any session";
+    EXPECT_FALSE(TakenOverSyncStalled(true, MatchingStateSummonedGuest, 0));
+}
+
+// Rig party-death 2026-11-02: a guest had come back and owned the map; the host's hit (ch 0x15)
+// never landed on its copy, so the two HPs split and no wipe came. The news is the repair.
+TEST(EnemyOwner, TheOwnerTakesAHitOnlyAfterItsGameHadItsChance) {
+    OwnerHitCatchUp hits;
+    hits.Heard(0x280B, 482, 484, 1000);
+    EXPECT_TRUE(hits.Take(1000 + OwnerHitWaitMs - 1).empty());
+    const auto due = hits.Take(1000 + OwnerHitWaitMs);
+    ASSERT_EQ(due.size(), 1u);
+    EXPECT_EQ(due[0].handle, 0x280Bu);
+    EXPECT_EQ(due[0].hp, 482);
+    EXPECT_EQ(due[0].max, 484);
+    EXPECT_TRUE(hits.Take(1000 + OwnerHitWaitMs).empty()); // once
+}
+
+TEST(EnemyOwner, AQuickSecondHitReplacesTheFirstAndDoesNotWaitLonger) {
+    OwnerHitCatchUp hits;
+    hits.Heard(0x280B, 482, 484, 1000);
+    hits.Heard(0x280B, 470, 484, 1000 + OwnerHitWaitMs - 1);
+    const auto due = hits.Take(1000 + OwnerHitWaitMs);
+    ASSERT_EQ(due.size(), 1u);
+    EXPECT_EQ(due[0].hp, 470);
+}
+
+TEST(EnemyOwner, AWipeForgetsTheHitsStillWaiting) {
+    OwnerHitCatchUp hits;
+    hits.Heard(0x280B, 482, 484, 1000);
+    hits.Clear();
+    EXPECT_TRUE(hits.Take(1000 + OwnerHitWaitMs).empty());
 }
 
 // Playtest 2026-10-18: krolebord was levelling up at the Doll when the Dream's owner changed; the

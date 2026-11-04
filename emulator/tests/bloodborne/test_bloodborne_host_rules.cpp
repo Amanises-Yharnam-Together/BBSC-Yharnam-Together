@@ -216,14 +216,16 @@ TEST(BloodborneEnemyScaling, FromVanillaAloneToTheHarderDefaultsForAFullTeam) {
     const auto two = TeamScaledEnemies(2);
     const auto three = TeamScaledEnemies(3);
     const auto four = TeamScaledEnemies(4);
-    ASSERT_TRUE(two && three && four);
-    EXPECT_FLOAT_EQ(two->hp, 1.0f + 2.0f / 3.0f);
-    EXPECT_FLOAT_EQ(two->damage, 1.0f + 0.5f / 3.0f);
-    EXPECT_FLOAT_EQ(two->poise, 1.0f + 2.0f / 3.0f);
-    EXPECT_FLOAT_EQ(three->hp, 1.0f + 4.0f / 3.0f);
-    EXPECT_FLOAT_EQ(four->hp, HarderDefaultHp);
-    EXPECT_FLOAT_EQ(four->damage, HarderDefaultDamage);
-    EXPECT_FLOAT_EQ(four->poise, HarderDefaultPoise);
+    const auto five = TeamScaledEnemies(5);
+    ASSERT_TRUE(two && three && four && five);
+    EXPECT_FLOAT_EQ(two->hp, 1.0f + 2.0f / 4.0f);
+    EXPECT_FLOAT_EQ(two->damage, 1.0f + 0.5f / 4.0f);
+    EXPECT_FLOAT_EQ(two->poise, 1.0f + 2.0f / 4.0f);
+    EXPECT_FLOAT_EQ(three->hp, 1.0f + 4.0f / 4.0f);
+    EXPECT_FLOAT_EQ(four->hp, 1.0f + 6.0f / 4.0f);
+    EXPECT_FLOAT_EQ(five->hp, HarderDefaultHp);
+    EXPECT_FLOAT_EQ(five->damage, HarderDefaultDamage);
+    EXPECT_FLOAT_EQ(five->poise, HarderDefaultPoise);
     // Never past a full team.
     EXPECT_FLOAT_EQ(TeamScaledEnemies(7)->hp, HarderDefaultHp);
     // Each step is one the game takes (ParseHarderEnemies' range).

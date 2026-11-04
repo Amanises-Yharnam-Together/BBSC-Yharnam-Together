@@ -3,6 +3,7 @@
 
 #include <atomic>
 
+#include "bbport_idle_wait.h"
 #include "gnm_error.h"
 #include "gnmdriver.h"
 
@@ -428,6 +429,15 @@ int PS4_SYSV_ABI sceGnmDestroyWorkloadStream() {
     return ORBIS_OK;
 }
 
+// As WaitGpuIdle, but on the way to a compute submission: not while the graphics stream waits on
+// memory, which may be that very packet's label (bbport_idle_wait.h).
+static void WaitGpuIdleForCompute() {
+    std::unique_lock lock{m_wait_idle};
+    BbIdleWait::IdleUnlessStuck(
+        cv_lock, lock, [] { return submission_lock == 0; },
+        [] { return liverpool->GfxWaitsOnMemory(); });
+}
+
 void PS4_SYSV_ABI sceGnmDingDong(u32 gnm_vqid, u32 next_offs_dw) {
     HLE_TRACE;
     LOG_DEBUG(Lib_GnmDriver, "vqid {}, offset_dw {}", gnm_vqid, next_offs_dw);
@@ -438,7 +448,7 @@ void PS4_SYSV_ABI sceGnmDingDong(u32 gnm_vqid, u32 next_offs_dw) {
 
     std::scoped_lock lk{m_submit_lock};
     if (!SubmitLockOnDecode()) {
-        WaitGpuIdle();
+        WaitGpuIdleForCompute();
     }
 
     if (DebugState.ShouldPauseInSubmit()) {
