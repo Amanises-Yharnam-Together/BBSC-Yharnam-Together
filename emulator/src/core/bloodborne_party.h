@@ -1991,10 +1991,12 @@ private:
 // member count never stayed down for MemberDepartures, so nothing re-created her and the host saw
 // her old body hidden until a trip. Tick says when to re-create: `left` is a member's leave the
 // game's own handler saw this tick; the members back to as many as before it within
-// RejoinWindowMs is a rejoin, re-created once the count held RejoinSettleMs.
+// RejoinWindowMs is a rejoin, re-created once the count held RejoinSettleMs. A real join takes
+// longer than that window, and a re-create in the middle of one kept the joining game from ever
+// syncing (rig party3 leader-returns3, 2026-11-04).
 class RecreateAfterRejoin {
 public:
-    static constexpr s64 RejoinWindowMs = 15'000;
+    static constexpr s64 RejoinWindowMs = 3'000;
     static constexpr s64 RejoinSettleMs = 2'000;
     bool Tick(bool in_session, size_t others, bool left, s64 now_ms);
 

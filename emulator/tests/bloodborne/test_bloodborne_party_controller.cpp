@@ -3749,3 +3749,18 @@ TEST(BloodbornePartyController, NoReCreateOutOfTheSession) {
     EXPECT_FALSE(rejoin.Tick(true, 2, false, 1200));
     EXPECT_FALSE(rejoin.Tick(true, 2, false, 1200 + RecreateAfterRejoin::RejoinSettleMs));
 }
+
+// Rig party3 leader-returns3 (2026-11-04): an old host that left came back through a real join
+// (title, load) about 15 s later, and a re-create in the middle of that join kept it from ever
+// syncing. A real join takes longer than RejoinWindowMs; only a drop that is back at once (the
+// game's room rejoin, 0.4 s for Lisara) is re-created.
+TEST(BloodbornePartyController, NoReCreateForARealJoinAfterALeave) {
+    EXPECT_LE(RecreateAfterRejoin::RejoinWindowMs, 3'000);
+    RecreateAfterRejoin rejoin;
+    rejoin.Tick(true, 2, false, 0);
+    rejoin.Tick(true, 2, true, 1000);
+    rejoin.Tick(true, 1, false, 1100);
+    for (s64 at = 1200; at < 30000; at += 100) {
+        EXPECT_FALSE(rejoin.Tick(true, at < 15000 ? 1 : 2, false, at)) << at;
+    }
+}
