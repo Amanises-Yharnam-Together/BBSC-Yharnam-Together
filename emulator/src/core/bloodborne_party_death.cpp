@@ -1667,6 +1667,7 @@ void WatchTeammate(PartyDeathRun& run, const DeathTick& tick, int step) {
     if (next != run.watched || handle != run.watched_handle) {
         run.watched = next;
         run.watched_handle = handle;
+        run.follow.Reset();
         Coop::SetSpectateCamera(handle, next ? Coop::CharacterNameOf(*next) : std::string{});
     }
 }
@@ -1700,6 +1701,10 @@ void StartSpectating(PartyDeathRun& run, const DeathTick& tick, bool boss_fight)
     run.fade_before = fade > 0.0f ? fade : 1.0f;
     run.watched.reset();
     run.watched_handle = 0;
+    run.follow.Reset();
+    run.spectating_boss_fight = boss_fight;
+    run.follow_held_by_boss = false;
+    run.follow_moves = 0;
     run.alone_since.reset();
     run.down_out_of_session_since.reset();
     run.boss_watch.Restart();
@@ -1725,8 +1730,60 @@ void EndSpectating(PartyDeathRun& run, u64 player, u64 data) {
     }
     run.watched.reset();
     run.watched_handle = 0;
+    run.follow.Reset();
     Coop::SetSpectateCamera(0, {});
 }
+
+namespace {
+
+// Kaniel 2026-11-03, from an idea of Amanises's: the unseen body trails the watched teammate
+// (SpectateFollow), so that the game streams the map and draws the teammate around it. Only on
+// the spectator's own map with the world loaded, and never into a boss fight it was not in (its
+// arena's fog wall stays between them: its game may run the arena's events for a body inside).
+void FollowWatched(PartyDeathRun& run, const DeathTick& tick) {
+    if (!run.watched || run.watched_handle == 0 || !tick.in_session || tick.map == 0) {
+        return;
+    }
+    const auto entry = std::ranges::find(tick.board, *run.watched, &MemberVitals::member);
+    if (entry == tick.board.end() || entry->map != tick.map) {
+        run.follow.Reset();
+        return;
+    }
+    if (entry->boss && !run.spectating_boss_fight) {
+        if (!run.follow_held_by_boss) {
+            run.follow_held_by_boss = true;
+            LOG_INFO(Debug, "Bloodborne spectate: {} is in a boss fight: the body stays out of it",
+                     Coop::CharacterNameOf(*run.watched));
+        }
+        run.follow.Reset();
+        return;
+    }
+    run.follow_held_by_boss = false;
+    const std::vector<OtherPlayer> players = OtherPlayers();
+    const auto mate = std::ranges::find_if(players, [&](const OtherPlayer& player) {
+        return ReadValue<u32>(player.character, 0x08) == run.watched_handle;
+    });
+    const std::optional<LampPosition> me = CharacterPosition(tick.player);
+    if (mate == players.end() || !mate->at || !me) {
+        return;
+    }
+    // Its copy's floor here (a collision part, [character +0x288]): none in mid-air.
+    const bool on_ground = ReadValue<u64>(mate->character, 0x288) >= 0x10000;
+    if (const auto to = run.follow.Tick(tick.now, *mate->at, *me, on_ground)) {
+        TeleportLocalPlayer(*to, LocalPlayerHeading().value_or(0.0f));
+        if (++run.follow_moves <= 5 || run.follow_moves % 50 == 0) {
+            LOG_INFO(Debug,
+                     "Bloodborne spectate: the body follows {} (move {}): to ({:.1f}, {:.1f}, "
+                     "{:.1f}), {:.1f} m from it",
+                     Coop::CharacterNameOf(*run.watched), run.follow_moves, (*to)[0], (*to)[1],
+                     (*to)[2],
+                     std::hypot((*to)[0] - (*mate->at)[0], (*to)[1] - (*mate->at)[1],
+                                (*to)[2] - (*mate->at)[2]));
+        }
+    }
+}
+
+} // namespace
 
 // Kaniel 2026-10-25: a spectator wakes at its own last lamp (the one it last rested at, GlobalState
 // +0x1528, not the host's), with its full HP and without a reload: moved there while the lamp is
@@ -1781,6 +1838,7 @@ void TickSpectating(PartyDeathRun& run, const DeathTick& tick, bool lamp_used) {
     }
     KeepSpectating(run, tick.player, tick.data);
     WatchTeammate(run, tick, spectate_steps.exchange(0));
+    FollowWatched(run, tick);
     SpectateCheck check;
     const auto wipe = tick.view.Fresh() ? WipeFor(tick.view.board, tick.view.member) : std::nullopt;
     check.wiped = wipe && *wipe != run.handled_wipe;

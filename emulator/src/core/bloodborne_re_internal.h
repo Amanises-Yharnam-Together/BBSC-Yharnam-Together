@@ -1225,6 +1225,12 @@ struct PartyDeathRun {
     s64 boss_read_at = 0;
     std::optional<s64> alone_since;
     float fade_before = 1.0f;
+    // Kaniel 2026-11-03 (Amanises's idea): the unseen body trails the watched teammate
+    // (SpectateFollow); a spectator out of a boss fight never follows into its arena.
+    SpectateFollow follow;
+    bool spectating_boss_fight = false;
+    bool follow_held_by_boss = false;
+    u32 follow_moves = 0;
 };
 extern PartyDeathRun party_death_run;
 // Co-op work on the game's threads, logged next to the port's Perf lines (see CoopTimeMeter).
