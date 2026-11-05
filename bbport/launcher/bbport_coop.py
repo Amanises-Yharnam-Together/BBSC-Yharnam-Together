@@ -322,7 +322,7 @@ def missing(settings):
 # Kaniel 2026-11-04: password only (the server's own accounts, a name and a password: bbport_auth.py).
 
 # The public server's address, once it runs: https only, its directory or the server itself.
-GLOBAL_SERVER = ''
+GLOBAL_SERVER = 'https://seamlesshunt.com'
 GLOBAL_CLOSED_TEXT = 'The public server is not open yet.'
 # A new id on a Global server without a sign-in, or an old or signed-out secret (the server's
 # link_server.cpp AccountFirst).
@@ -482,7 +482,8 @@ def server_ids_of(saved):
 # ships here, by its name as typed (server_key): its operator reads it from shadNet's log or the admin
 # `key` command. Any other server's (a friend's home host) is trusted the first time, as the game's
 # log says it (p2p_sockets.cpp), and kept in coop.json's server_keys.
-KNOWN_SERVER_KEYS = {}
+# Kaniel's Fornex VPS (199.195.193.131), shadNet deployed 2026-11-05.
+KNOWN_SERVER_KEYS = {'https://seamlesshunt.com': 'e55f4f13d3845aa4eddeb0e12a9d143cb5f68af0a71e0dba111c688a1014c958'}
 LEARNED_KEY_LINE = "Server link: the server's key, trusted on first use: "
 OTHER_KEY_LINE = 'Server link: the server says another key than the one pinned'
 OTHER_KEY_TEXT = ("The server answered with another key than the one kept for it: someone else may be answering "
