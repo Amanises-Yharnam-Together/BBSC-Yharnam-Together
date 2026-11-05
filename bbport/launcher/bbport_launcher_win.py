@@ -3948,11 +3948,8 @@ class Launcher:
             self.coop_vars[key] = v
             return v
 
-        self.flow(card, _('Set co-op up once, in four steps. Everyone uses this same release; the others see '
-                          'your character\'s name.',
-                          'Настройте кооператив один раз, в четыре шага. Все используют один релиз; другие видят '
-                          'имя вашего персонажа.'), 'body', MUTED).grid(
-            row=1, column=0, columnspan=2, sticky='we', pady=(px(6), px(4)))
+        self.coop_intro = self.flow(card, '', 'body', MUTED)
+        self.coop_intro.grid(row=1, column=0, columnspan=2, sticky='we', pady=(px(6), px(4)))
         self.coop_step_names = [_('Server', 'Сервер'), _('Game and host', 'Игра и хост'), _('Enemies', 'Враги'),
                                 _('Travel', 'Путешествия')]
         bar = tk.Frame(card, bg=CARD)
@@ -4506,6 +4503,18 @@ class Launcher:
     def coop_show_step(self):
         """The step bar, Back, and Next or Done, as the current step and what is missing allow."""
         px, step, last = self.px, self.coop_step, len(self.coop_steps) - 1
+        # Kaniel 2026-11-05: the setup's steps (Back, Next) only until it was done once; after that the
+        # same pages are plain settings: any tab, and Done on each.
+        setup = self.coop_setup_mode()
+        self.coop_intro.configure(text=_(
+            'Set co-op up once, in four steps. Everyone uses this same release; the others see your '
+            'character\'s name.',
+            'Настройте кооператив один раз, в четыре шага. Все используют один релиз; другие видят '
+            'имя вашего персонажа.') if setup else _(
+            'Your co-op settings: pick a tab to change it. Everyone uses this same release; the others see '
+            'your character\'s name.',
+            'Ваши настройки кооператива: выберите вкладку, чтобы изменить. Все используют один релиз; '
+            'другие видят имя вашего персонажа.'))
         missing = self.coop_missing_by_step()
         blocked = min((at for at, _text in missing), default=last + 1)
         for index, tab in enumerate(self.coop_step_tabs):
@@ -4513,10 +4522,10 @@ class Launcher:
                           cursor='hand2' if index != step and index <= blocked else '')
         for widget in (self.coop_back, self.coop_next, self.coop_done, self.coop_missing):
             widget.pack_forget()
-        if step:
+        if step and setup:
             self.coop_back.pack(side='left')
-        here = [text for at, text in missing if at <= step]
-        button = self.coop_done if step == last else self.coop_next
+        here = [text for at, text in missing if at <= step] if setup else [text for _at, text in missing]
+        button = self.coop_done if step == last or not setup else self.coop_next
         button.configure(state='disabled' if here else 'normal')
         button.pack(side='right')
         self.coop_missing.configure(text=_('Still needed: {}', 'Ещё нужно: {}').format(', '.join(here))
@@ -4758,6 +4767,10 @@ class Launcher:
         self.coop_required = False
         self.coop_cover.place_forget()
         self.refresh_status()
+
+    def coop_setup_mode(self):
+        """The co-op page is the step-by-step setup until it was done once (Done saved 'confirmed')."""
+        return self.coop.get('confirmed') != '1'
 
     def coop_needs_setup(self):
         """At the start: the co-op settings open by themselves until they were done once and still hold."""

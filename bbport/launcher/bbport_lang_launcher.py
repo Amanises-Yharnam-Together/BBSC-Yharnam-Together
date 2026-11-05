@@ -130,7 +130,7 @@ LAUNCHER_KEYS = [
     'Exclusive fullscreen',
     'Precise',
     'English',
-    'Local (the public server is not open yet)',
+    'Local (the public server is not open yet)',    "Your co-op settings: pick a tab to change it. Everyone uses this same release; the others see your character's name.",
 ]
 
 LAUNCHER = {
@@ -262,6 +262,7 @@ LAUNCHER = {
         'Точный',
         'Английский',
         'Локальный (публичный сервер ещё не открыт)',
+        'Ваши настройки кооператива: выберите вкладку, чтобы изменить. Все используют один релиз; другие видят имя вашего персонажа.',
     ],
     'ar': [
         'يحتاج DLSS إلى {} في {}: الناقص {}. شغّل برنامج الإعداد مرة أخرى؛ وإن اختفت مجددًا فقد حذفها برنامج مكافحة الفيروسات. حتى ذلك الحين يُستخدم FSR 3.1.',
@@ -391,6 +392,7 @@ LAUNCHER = {
         'دقيق',
         'الإنجليزية',
         'محلي (الخادم العام غير مفتوح بعد)',
+        'إعدادات اللعب التعاوني: اختر تبويبًا لتغييره. يستخدم الجميع الإصدار نفسه؛ ويرى الآخرون اسم شخصيتك.',
     ],
     'es': [
         'DLSS necesita {} en {}: faltan {}. Ejecuta de nuevo el instalador; si vuelven a desaparecer, tu antivirus los eliminó. Mientras tanto se usa FSR 3.1.',
@@ -520,6 +522,7 @@ LAUNCHER = {
         'Preciso',
         'Inglés',
         'Local (el servidor público aún no está abierto)',
+        'Tus ajustes de cooperativo: elige una pestaña para cambiarla. Todos usan esta misma versión; los demás ven el nombre de tu personaje.',
     ],
     'pt': [
         'O DLSS precisa de {} em {}: faltam {}. Execute o instalador de novo; se sumirem de novo, seu antivírus os removeu. Até lá, o FSR 3.1 é usado.',
@@ -649,6 +652,7 @@ LAUNCHER = {
         'Preciso',
         'Inglês',
         'Local (o servidor público ainda não está aberto)',
+        'Suas configurações de cooperativo: escolha uma aba para alterá-la. Todos usam esta mesma versão; os outros veem o nome do seu personagem.',
     ],
     'fr': [
         'DLSS a besoin de {} dans {} : {} manquant(s). Relancez l’installation ; s’ils disparaissent encore, votre antivirus les a supprimés. En attendant, FSR 3.1 est utilisé.',
@@ -778,6 +782,7 @@ LAUNCHER = {
         'Précis',
         'Anglais',
         'Local (le serveur public n’est pas encore ouvert)',
+        'Vos réglages coop : choisissez un onglet pour le modifier. Tout le monde utilise cette même version ; les autres voient le nom de votre personnage.',
     ],
     'de': [
         'DLSS braucht {} in {}: {} fehlen. Führe das Setup erneut aus; verschwinden sie wieder, hat dein Virenschutz sie entfernt. Bis dahin wird FSR 3.1 verwendet.',
@@ -907,6 +912,7 @@ LAUNCHER = {
         'Genau',
         'Englisch',
         'Lokal (der öffentliche Server ist noch nicht offen)',
+        'Deine Koop-Einstellungen: Wähle einen Reiter, um ihn zu ändern. Alle nutzen dieselbe Version; die anderen sehen den Namen deines Charakters.',
     ],
     'it': [
         'DLSS richiede {} in {}: mancano {}. Esegui di nuovo il setup; se spariscono ancora, li ha rimossi l’antivirus. Nel frattempo si usa FSR 3.1.',
@@ -1036,6 +1042,7 @@ LAUNCHER = {
         'Preciso',
         'Inglese',
         'Locale (il server pubblico non è ancora aperto)',
+        'Le tue impostazioni co-op: scegli una scheda per modificarla. Tutti usano questa stessa versione; gli altri vedono il nome del tuo personaggio.',
     ],
     'pl': [
         'DLSS potrzebuje {} w {}: brakuje {}. Uruchom instalator ponownie; jeśli znowu znikną, usunął je antywirus. Do tego czasu używany jest FSR 3.1.',
@@ -1165,6 +1172,7 @@ LAUNCHER = {
         'Dokładny',
         'Angielski',
         'Lokalny (serwer publiczny nie jest jeszcze otwarty)',
+        'Twoje ustawienia co-op: wybierz kartę, aby ją zmienić. Wszyscy używają tego samego wydania; inni widzą imię twojej postaci.',
     ],
     'tr': [
         'DLSS için {} dosyaları {} içinde gerekli: {} eksik. Kurulumu yeniden çalıştır; yine kaybolurlarsa antivirüsün silmiştir. O zamana kadar FSR 3.1 kullanılır.',
@@ -1294,6 +1302,7 @@ LAUNCHER = {
         'Kesin',
         'İngilizce',
         'Yerel (genel sunucu henüz açık değil)',
+        'Ortak oyun ayarların: değiştirmek için bir sekme seç. Herkes aynı sürümü kullanır; diğerleri karakterinin adını görür.',
     ],
     'zh': [
         'DLSS 需要 {}（位于 {}）：缺少 {}。请重新运行安装程序；如果它们再次消失，就是被杀毒软件删除了。在此之前使用 FSR 3.1。',
@@ -1423,6 +1432,7 @@ LAUNCHER = {
         '精确',
         '英语',
         '本地（公共服务器尚未开放）',
+        '你的合作设置：选择一个标签页进行修改。所有人使用同一版本；其他人看到的是你的角色名。',
     ],
     'ja': [
         'DLSS には {} が {} に必要です：{} が見つかりません。セットアップをもう一度実行してください。また消える場合はウイルス対策ソフトが削除しています。それまでは FSR 3.1 を使います。',
@@ -1552,6 +1562,7 @@ LAUNCHER = {
         '正確',
         '英語',
         'ローカル（公開サーバーはまだ開いていません）',
+        '協力プレイの設定：変更するタブを選んでください。全員が同じリリースを使います。ほかのプレイヤーにはキャラクター名が表示されます。',
     ],
     'ko': [
         'DLSS에는 {}의 {}가 필요합니다: {} 없음. 설치 프로그램을 다시 실행하세요. 또 사라지면 백신이 삭제한 것입니다. 그때까지는 FSR 3.1을 사용합니다.',
@@ -1681,5 +1692,6 @@ LAUNCHER = {
         '정밀',
         '영어',
         '로컬(공용 서버가 아직 열리지 않음)',
+        '협동 설정: 바꿀 탭을 고르세요. 모두 같은 릴리스를 사용하며, 다른 사람에게는 캐릭터 이름이 보입니다.',
     ],
 }

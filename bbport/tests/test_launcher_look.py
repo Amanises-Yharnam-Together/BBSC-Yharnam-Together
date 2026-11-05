@@ -334,6 +334,20 @@ class CoopSettingsTests(unittest.TestCase):
         self.settle()
         self.assertTrue(cover.winfo_ismapped())
         self.assertTrue(self.app.server_row.winfo_manager())
+        # Kaniel 2026-11-05: once done, the page is settings, not the setup again: Done on every tab, no
+        # Back or Next, and any tab can be picked.
+        self.assertEqual(self.app.coop_step, 0)
+        self.assertIn('pick a tab', self.app.coop_intro.cget('text'))
+        self.assertTrue(self.app.coop_done.canvas.winfo_ismapped(), 'Done on the first tab')
+        self.assertFalse(self.app.coop_next.canvas.winfo_ismapped(), 'no Next once set up')
+        self.assertFalse(self.app.coop_back.canvas.winfo_ismapped())
+        self.app.coop_go(3)
+        self.settle()
+        self.assertEqual(self.app.coop_step, 3, 'any tab at once')
+        self.assertFalse(self.app.coop_back.canvas.winfo_ismapped(), 'no Back once set up')
+        self.app.coop_done.invoke()
+        self.settle()
+        self.assertFalse(cover.winfo_ismapped())
 
 
     def test_play_never_starts_the_server(self):
