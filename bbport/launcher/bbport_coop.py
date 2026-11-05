@@ -1130,9 +1130,20 @@ def events_current(install):
         return False
 
 
+# Files the game view must reach through its links. Kaniel 2026-11-05: a view left from an older
+# install still had its hard-linked eboot.bin while the sce_module and menu links no longer led to
+# the game, and PLAY failed ("prepare failed: ... sce_module\\libc.prx") instead of making it again.
+VIEW_CHECKS = (('eboot.bin',), ('sce_module', 'libc.prx'), ('dvdroot_ps4', 'event', 'common.emevd.dcx'))
+
+
+def view_complete(view):
+    """Whether the game view's key files resolve (its links still lead to the game)."""
+    return all(Path(view, *parts).is_file() for parts in VIEW_CHECKS)
+
+
 def needs_prepare(install, settings):
     root = view_root(install)
-    return (settings.get('prepared') != prepared_key(settings) or not is_game_folder(root / 'CUSA03173')
+    return (settings.get('prepared') != prepared_key(settings) or not view_complete(root / 'CUSA03173')
             or not events_current(install))
 
 

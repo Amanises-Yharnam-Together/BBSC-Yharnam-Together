@@ -452,6 +452,21 @@ class GameViewTests(unittest.TestCase):
             self.assertFalse(view.exists())
             self.assertTrue((game / 'eboot.bin').is_file())
 
+    def test_a_view_whose_links_no_longer_lead_to_the_game_is_made_again(self):
+        # Kaniel 2026-11-05: an old view kept its eboot.bin but sce_module no longer resolved, and PLAY failed.
+        with tempfile.TemporaryDirectory() as folder:
+            install = Path(folder)
+            view = coop.view_root(install) / 'CUSA03173'
+            for parts in coop.VIEW_CHECKS:
+                Path(view, *parts).parent.mkdir(parents=True, exist_ok=True)
+                Path(view, *parts).write_bytes(b'x')
+            settings = {'game': 'G', 'update': ''}
+            settings['prepared'] = coop.prepared_key(settings)
+            with mock.patch.object(coop, 'events_current', return_value=True):
+                self.assertFalse(coop.needs_prepare(install, settings))
+                (view / 'sce_module' / 'libc.prx').unlink()
+                self.assertTrue(coop.needs_prepare(install, settings))
+
 
 class UninstallTests(unittest.TestCase):
     """Provi 2026-10-30: the uninstall left files behind (a new install elsewhere still met the old one) and
