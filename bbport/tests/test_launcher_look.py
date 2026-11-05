@@ -574,13 +574,16 @@ class CoopSettingsTests(unittest.TestCase):
         self.assertEqual(app.coop_auth_strength.cget('text'), 'Strength: strong')
         self.press('sign_up', self.account(recovery_code='ABCD-EFGH-JKMN-PQRS-TVWX'))
         self.assertEqual(app.coop_auth_view, 'code')
-        self.assertEqual(app.coop_auth_code_text.cget('text'), 'ABCD-EFGH-JKMN-PQRS-TVWX')
+        # A read-only entry (c9b2240): the code can be selected and copied by hand too.
+        self.assertEqual(app.coop_auth_code_text.get(), 'ABCD-EFGH-JKMN-PQRS-TVWX')
+        self.assertEqual(str(app.coop_auth_code_text.cget('state')), 'readonly')
         self.assertEqual(app.coop_auth_action.state, 'disabled', 'not before "I saved it"')
         for saved in self.saved:
             self.assertNotIn('ABCD-EFGH', json.dumps(saved), 'the code is never kept')
         with mock.patch.object(app.root, 'clipboard_append') as copied:
             app.coop_auth_other.invoke()
         copied.assert_called_once_with('ABCD-EFGH-JKMN-PQRS-TVWX')
+        self.assertEqual(app.coop_auth_other.text, 'Copied', 'Copy says it did something')
         app.coop_auth_saved.set(True)
         self.settle(0.2)
         self.assertEqual(app.coop_auth_action.state, 'normal')
