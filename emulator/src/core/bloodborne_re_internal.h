@@ -683,6 +683,8 @@ void MakeEnemiesHarder();
 // this game plays by (its team's while in one, else its own).
 const HostRules& OwnHostRules();
 HostRules ActiveHostRules();
+// Whether this game plays in a team (its rules the team's).
+bool InTeamNow();
 // Kaniel 2026-10-28, the boss tempo rule (bloodborne_boss_tempo.cpp): the tuning this game
 // plays by (its rules' level and the dev setting); the hook at AddSubGoalLifeHookOffset, and the
 // game thread's step that finds the bosses on the map.

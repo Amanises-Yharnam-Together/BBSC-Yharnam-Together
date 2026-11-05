@@ -51,8 +51,9 @@ DEFAULTS = {'game': '', 'update': '', 'role': 'guest', 'host_ip': '', 'account':
             'confirmed': '',
             # The PC the player id was made on (this_machine()): a copied install makes its own id.
             'machine': '',
-            # Kaniel 2026-10-25: the host rules ('1' on, all off by default): the leader's are its team's.
-            'rule_rot': '', 'rule_travel': '', 'rule_vote': '', 'rule_scale': '',
+            # Kaniel 2026-10-25: the host rules ('1' on): the leader's are its team's. Off by default but
+            # the enemies' Auto scaling (Kaniel 2026-11-05: "please default to auto").
+            'rule_rot': '', 'rule_travel': '', 'rule_vote': '', 'rule_scale': '1',
             # Kaniel 2026-11-01: '1' shows the game on Discord (off by default).
             'discord_status': '',
             # Kaniel 2026-11-01: 'local' (a host's own server, by its address: as ever) or 'global' (the
@@ -1357,15 +1358,25 @@ def game_environment(env, settings, install, root):
     for key in ('SHADPS4_P2P_PORT', 'SHADPS4_BLOODBORNE_HARDER_ENEMIES', 'SHADPS4_BLOODBORNE_PARTY_DEATH',
                 'BB_COMMUNITY_SERVER', 'SHADPS4_BLOODBORNE_HOST_RULES'):
         env.pop(key, None)
-    if (rules := host_rules_value(settings)) != 'off':
-        env['SHADPS4_BLOODBORNE_HOST_RULES'] = rules
+    # Kaniel 2026-11-05: on the public server the team's rules and enemy strength are its leader's, set
+    # on the game's team screen (the server's default until then): none of this launcher's. On a local
+    # server this launcher's always go ('off' too): the team its player leads starts with them.
+    local = rule_steps(settings) != []
+    if local:
+        env['SHADPS4_BLOODBORNE_HOST_RULES'] = host_rules_value(settings)
     port = str(settings.get('p2p_port', 'auto'))
     if port not in ('auto', '', '51610', '51611'):
         env['SHADPS4_P2P_PORT'] = port
     harder = str(settings.get('harder', 'off'))
-    if harder != 'off' and valid_harder(harder):
+    if local and harder != 'off' and valid_harder(harder):
         env['SHADPS4_BLOODBORNE_HARDER_ENEMIES'] = harder
     return discord_environment(env, settings)
+
+
+def rule_steps(settings):
+    """The co-op page's steps with the team rules (2 Enemies, 3 Travel): a local server's only. On the
+    public server the team's leader sets them on the game's team screen (Kaniel 2026-11-05)."""
+    return [] if settings.get('server_type') == 'global' else [2, 3]
 
 
 REPORTS_SENT = 'reports-sent.json'

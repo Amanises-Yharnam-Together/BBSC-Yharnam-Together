@@ -3406,11 +3406,81 @@ void DrawDuelSetup(ImDrawList* draw, ImVec2 win, ImVec2 size) {
 /// choice each for the whole team, on their own page behind the settings button in the screen's top
 /// right corner (Triangle opens it too). Its leader changes them, the others see them; the host
 /// rules (the leader's launcher's Co-op settings) are listed under them.
+/// Kaniel 2026-11-05: the team rules on the settings page, as the lobby has them (the team's) or
+/// as its leader just set them.
+struct TeamRules {
+    bool scale = true, rot = false, travel = false, vote = false;
+    int tempo = 0;
+    float hp = 3.0f, damage = 1.5f, poise = 3.0f;
+    bool operator==(const TeamRules&) const = default;
+};
+
+TeamRules LobbyRules() {
+    return TeamRules{.scale = lobby.rule_scale != 0,
+                     .rot = lobby.rule_rot != 0,
+                     .travel = lobby.rule_travel != 0,
+                     .vote = lobby.rule_travel != 0 && lobby.rule_vote != 0,
+                     .tempo = lobby.rule_tempo,
+                     .hp = lobby.rule_hp,
+                     .damage = lobby.rule_damage,
+                     .poise = lobby.rule_poise};
+}
+
+/// The strength row's steps (HP, damage, poise): each press the next, the standard in the middle.
+struct Strength {
+    float hp, damage, poise;
+    const char* en;
+    const char* ru;
+};
+constexpr Strength Strengths[] = {{1.0f, 1.0f, 1.0f, "Game's own", "Как в игре"},
+                                  {2.0f, 1.25f, 2.0f, "Mild", "Умеренная"},
+                                  {3.0f, 1.5f, 3.0f, "Standard", "Стандартная"},
+                                  {4.0f, 2.0f, 4.0f, "Hard", "Высокая"},
+                                  {6.0f, 2.5f, 6.0f, "Brutal", "Жестокая"}};
+
+int StrengthIndex(const TeamRules& rules) {
+    for (int i = 0; i < int(std::size(Strengths)); ++i) {
+        const Strength& s = Strengths[i];
+        if (s.hp == rules.hp && s.damage == rules.damage && s.poise == rules.poise) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+std::string StrengthText(const TeamRules& rules) {
+    const int index = StrengthIndex(rules);
+    char text[160];
+    std::snprintf(text, sizeof(text), "%s%sHP x%g, %s x%g, %s x%g%s",
+                  index < 0 ? "" : T(Strengths[index].en, Strengths[index].ru), index < 0 ? "" : "  (",
+                  double(rules.hp), T("damage", "урон"), double(rules.damage), T("poise", "стойкость"),
+                  double(rules.poise), index < 0 ? "" : ")");
+    return text; // without a step's name: a server's own default or a launcher's custom one
+}
+
+void NextStrength(TeamRules& rules) {
+    const int index = StrengthIndex(rules);
+    const Strength& next = Strengths[index < 0 ? 2 : (index + 1) % int(std::size(Strengths))];
+    rules.hp = next.hp;
+    rules.damage = next.damage;
+    rules.poise = next.poise;
+}
+
+/// The text bbcoop_lobby_request(BBCOOP_TEAM_RULES) takes (the game's ScreenRulesText).
+std::string ScreenRules(const TeamRules& rules) {
+    char text[96];
+    std::snprintf(text, sizeof(text), "%d,%d,%d,%d,%d,%g,%g,%g", rules.rot ? 1 : 0, rules.travel ? 1 : 0,
+                  rules.travel && rules.vote ? 1 : 0, rules.scale ? 1 : 0, rules.tempo, double(rules.hp),
+                  double(rules.damage), double(rules.poise));
+    return text;
+}
+
 struct SettingsPage {
     bool open = false;
     // A press shows its new value at once, until the server's word comes back (or 2 s pass): the
     // row kept its old value meanwhile and read as a press that did nothing.
     int join = -1, invaders = -1, deaths = -1;
+    std::optional<TeamRules> rules;
     double pressed_at = 0.0;
 };
 SettingsPage settings;
@@ -3481,24 +3551,6 @@ bool SettingRow(ImDrawList* draw, const char* id, const char* name, const char* 
     return pressed;
 }
 
-/// The host rules on, joined with dots; "none".
-std::string HostRules() {
-    std::string rules;
-    const auto add = [&](bool on, const char* name) {
-        if (on) {
-            rules += rules.empty() ? "" : "  \xC2\xB7  ";
-            rules += name;
-        }
-    };
-    add(lobby.rule_rot, T("Rot", "Гниль"));
-    add(lobby.rule_travel, lobby.rule_vote ? T("Travel together (vote)", "Путь вместе (голосование)")
-                                           : T("Travel together", "Путь вместе"));
-    add(lobby.rule_scale, T("Enemies scale with the team", "Враги сильнее с командой"));
-    add(lobby.rule_tempo == 1, T("Boss tempo: Aggressive", "Темп боссов: агрессивный"));
-    add(lobby.rule_tempo == 2, T("Boss tempo: Relentless", "Темп боссов: беспощадный"));
-    return rules.empty() ? std::string(T("none", "нет")) : rules;
-}
-
 void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
     const bool back = ImGui::IsKeyPressed(ImGuiKey_Escape, false) ||
                       ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight, false) ||
@@ -3541,10 +3593,11 @@ void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
     const int invaders = settings.invaders >= 0 ? settings.invaders : invaders_now;
     const int deaths = settings.deaths >= 0 ? settings.deaths : deaths_now;
 
-    ImGui::PushFont(MenuArt::Font(), 24.0f);
-    const ImVec2 row(std::min(S(820.0f), size.x - S(160.0f)), S(62.0f));
-    const float rx = mid - row.x * 0.5f, gap = S(16.0f);
-    float y = win.y + S(150.0f) + under;
+    ImGui::PushFont(MenuArt::Font(), 22.0f);
+    // Kaniel 2026-11-05: the team rules are here too, so the rows are lower.
+    const ImVec2 row(std::min(S(820.0f), size.x - S(160.0f)), S(50.0f));
+    const float rx = mid - row.x * 0.5f, gap = S(8.0f);
+    float y = win.y + S(130.0f) + under;
     // Amanises 2026-10-25, open teams: how the team is joined, each press the next way (by invite
     // only, listed with its leader taking who asks, listed for anyone to join).
     const char* join_text = join == BBCOOP_JOIN_OPEN  ? T("Open to all", "Открыт всем")
@@ -3577,7 +3630,60 @@ void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
         settings.pressed_at = now;
         bbcoop_lobby_request(BBCOOP_TEAM_DEATH_MODE, settings.deaths ? "1" : "0");
     }
-    y += row.y + S(30.0f);
+    y += row.y + gap;
+    // Kaniel 2026-11-05: the team rules (were the leader's launcher's): the enemies' strength, Rot,
+    // travelling together and the boss tempo, its leader's to change here, the others' to read.
+    TeamRules rules = settings.rules && now - settings.pressed_at <= 2.0 ? *settings.rules : LobbyRules();
+    if (settings.rules && (now - settings.pressed_at > 2.0 || *settings.rules == LobbyRules())) {
+        settings.rules.reset();
+    }
+    bool changed = false;
+    if (SettingRow(draw, "rule_enemies", T("Enemies", "Враги"),
+                   rules.scale ? T("Auto: stronger with each hunter", "Авто: сильнее с каждым охотником")
+                               : T("Fixed: the same for any team", "Постоянно: одинаково для любой команды"),
+                   ImVec2(rx, y), row, leads)) {
+        rules.scale = !rules.scale;
+        changed = true;
+    }
+    y += row.y + gap;
+    const std::string strength = StrengthText(rules);
+    if (SettingRow(draw, "rule_strength", T("Enemy strength", "Сила врагов"), strength.c_str(), ImVec2(rx, y), row,
+                   leads)) {
+        NextStrength(rules);
+        changed = true;
+    }
+    y += row.y + gap;
+    if (SettingRow(draw, "rule_rot", T("Rot", "Гниль"), rules.rot ? T("On", "Вкл.") : T("Off", "Выкл."),
+                   ImVec2(rx, y), row, leads)) {
+        rules.rot = !rules.rot;
+        changed = true;
+    }
+    y += row.y + gap;
+    if (SettingRow(draw, "rule_travel", T("Travel together", "Путь вместе"),
+                   !rules.travel ? T("Off", "Выкл.")
+                   : rules.vote  ? T("On, the team votes", "Вкл., команда голосует")
+                                 : T("On", "Вкл."),
+                   ImVec2(rx, y), row, leads)) {
+        // Off, on, on with the vote, off.
+        rules.vote = rules.travel && !rules.vote;
+        rules.travel = !rules.travel || rules.vote;
+        changed = true;
+    }
+    y += row.y + gap;
+    if (SettingRow(draw, "rule_tempo", T("Boss tempo", "Темп боссов"),
+                   rules.tempo == 2   ? T("Relentless", "Беспощадный")
+                   : rules.tempo == 1 ? T("Aggressive", "Агрессивный")
+                                      : T("Vanilla", "Обычный"),
+                   ImVec2(rx, y), row, leads)) {
+        rules.tempo = (rules.tempo + 1) % 3;
+        changed = true;
+    }
+    if (changed) {
+        settings.rules = rules;
+        settings.pressed_at = now;
+        bbcoop_lobby_request(BBCOOP_TEAM_RULES, ScreenRules(rules).c_str());
+    }
+    y += row.y + S(20.0f);
     ImGui::PopFont();
 
     // What the focused row means, then the host rules.
@@ -3593,25 +3699,33 @@ void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
                                 "Разрешены: охотники других миров могут вторгаться в мир команды красными фантомами "
                                 "(если сервер разрешает вторжения).")
                         : focus.id == "deaths" ? DeathModeHint()
-                                               : "";
+                        : focus.id == "rule_enemies"
+                            ? T("Auto: normal enemies for a hunter alone, stronger with each teammate on the same map, "
+                                "up to the strength below for a full team. Fixed: the strength below at all times.",
+                                "Авто: обычные враги для одного охотника, сильнее с каждым союзником на той же карте, "
+                                "до силы ниже для полной команды. Постоянно: сила ниже всегда.")
+                        : focus.id == "rule_strength"
+                            ? T("The enemies' HP, damage and poise, times the game's own: the same in every "
+                                "teammate's game.",
+                                "HP, урон и стойкость врагов, во столько раз больше обычных: одинаково в игре "
+                                "каждого союзника.")
+                        : focus.id == "rule_rot"
+                            ? T("A real death (not a down a teammate revives) adds a penalty, until a lamp rest, "
+                                "a level up or a boss kill takes it away.",
+                                "Настоящая смерть (не падение, из которого поднимают) добавляет штраф, пока его не "
+                                "снимет отдых у лампы, новый уровень или победа над боссом.")
+                        : focus.id == "rule_travel"
+                            ? T("A lamp or headstone trip asks the team to come along; with the vote one No stops "
+                                "it.",
+                                "Путь через лампу или надгробие зовёт команду с собой; с голосованием одно «Нет» "
+                                "его отменяет.")
+                        : focus.id == "rule_tempo"
+                            ? T("Bosses rest less between attacks and turn faster.",
+                                "Боссы меньше отдыхают между атаками и быстрее поворачиваются.")
+                            : "";
     if (about[0]) {
         WrappedText(draw, ImVec2(rx, y), row.x, Plain(0.8f), about);
     }
-    y += S(90.0f);
-    Divider(draw, rx, rx + row.x, y, 0.6f);
-    y += S(24.0f);
-    ImGui::PushFont(MenuArt::Font(), 21.0f);
-    const char* rules_title = T("Host rules", "Правила хоста");
-    ts = ImGui::CalcTextSize(rules_title);
-    draw->AddText(ImVec2(mid - ts.x * 0.5f, y), Gold(0.85f), rules_title);
-    ImGui::PopFont();
-    y += S(34.0f);
-    const std::string rules = HostRules();
-    WrappedText(draw, ImVec2(rx, y), row.x, Plain(0.85f), rules.c_str());
-    y += S(30.0f);
-    const char* where = T("Set in the leader's launcher, on its Co-op page.", "Задаются в лаунчере лидера, на странице «Кооп».");
-    ts = ImGui::CalcTextSize(where);
-    draw->AddText(ImVec2(mid - ts.x * 0.5f, y), Dim(0.8f), where);
     ImGui::PopFont();
 
     ImGui::PushFont(MenuArt::Font(), 18.0f);

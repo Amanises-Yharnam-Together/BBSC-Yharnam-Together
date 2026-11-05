@@ -314,11 +314,9 @@ class CoopSettingsTests(unittest.TestCase):
         self.app.coop_next.invoke()
         self.settle()
         self.assertEqual(self.app.coop_step, 2)
-        self.assertEqual(self.app.coop_next.state, 'disabled', 'the enemies are chosen, not taken by default')
-        self.assertIn('the enemies', self.app.coop_missing.cget('text'))
-        self.app.coop_enemies.current(0)
-        self.app.coop_enemies.event_generate('<<ComboboxSelected>>')
-        self.settle()
+        # Kaniel 2026-11-05: the enemies are Auto unless the player picks otherwise.
+        self.assertEqual(self.app.coop_next.state, 'normal', 'Auto needs no level of its own')
+        self.assertNotIn('the enemies', self.app.coop_missing.cget('text'))
         self.app.coop_next.invoke()
         self.settle()
         self.assertTrue(self.app.coop_done.canvas.winfo_ismapped(), 'Done on the last step')
@@ -345,6 +343,24 @@ class CoopSettingsTests(unittest.TestCase):
         self.settle()
         self.assertEqual(self.app.coop_step, 3, 'any tab at once')
         self.assertFalse(self.app.coop_back.canvas.winfo_ismapped(), 'no Back once set up')
+        # Kaniel 2026-11-05: on the public server the team's leader sets the enemies and travel rules
+        # in the game: no Enemies or Travel tabs.
+        with mock.patch.object(bbport_coop, 'is_signed_in_global', return_value=True):
+            self.app.coop_vars['server_type'].set('global')
+            self.app.coop_changed()
+            self.settle()
+            self.assertEqual(self.app.coop_step, 1, 'off a tab the public server has not')
+            self.assertTrue(self.app.coop_step_tabs[1].winfo_ismapped())
+            self.assertFalse(self.app.coop_step_tabs[2].winfo_ismapped())
+            self.assertFalse(self.app.coop_step_tabs[3].winfo_ismapped())
+            self.app.coop_go(3)
+            self.settle()
+            self.assertEqual(self.app.coop_step, 1)
+            self.assertIn('team screen', self.app.coop_intro.cget('text'))
+            self.app.coop_vars['server_type'].set('local')
+            self.app.coop_changed()
+            self.settle()
+            self.assertTrue(self.app.coop_step_tabs[3].winfo_ismapped(), 'a local server has them')
         self.app.coop_done.invoke()
         self.settle()
         self.assertFalse(cover.winfo_ismapped())
@@ -474,10 +490,13 @@ class CoopSettingsTests(unittest.TestCase):
         self.settle()
         self.assertEqual(app.coop_step, 2)
         self.assertTrue(app.coop_steps[2].winfo_ismapped() and not app.coop_steps[1].winfo_ismapped())
-        self.assertEqual(app.coop_enemy_mode.get(), 'fixed', 'Auto is a host rule, off by default')
+        # Kaniel 2026-11-05: Auto by default.
+        self.assertEqual(app.coop_enemy_mode.get(), 'auto', 'Auto is the default')
+        app.coop_enemy_mode.set('fixed')
+        self.settle(0.5)
         app.coop_go(3)
         self.settle()
-        self.assertEqual(app.coop_step, 2, 'the enemies are still to be chosen')
+        self.assertEqual(app.coop_step, 2, 'Fixed: the enemies are still to be chosen')
         app.coop_enemy_mode.set('auto')
         self.settle(0.5)
         self.assertEqual(app.coop['rule_scale'], '1', 'Auto is the scaling rule')
@@ -727,10 +746,16 @@ class CoopSettingsTests(unittest.TestCase):
         self.assertEqual(self.saved[-1]['harder'], '4,10,2', 'closing right after typing keeps it')
 
     def test_host_rules_are_switches_off_by_default(self):
-        """Kaniel 2026-10-25: the host rules in the co-op card, each off at first; the vote only goes with
-        travelling together; what is switched on is saved."""
-        for key in ('rule_rot', 'rule_travel', 'rule_vote', 'rule_scale'):
+        """Kaniel 2026-10-25: the host rules in the co-op card, each off at first but the enemies' Auto
+        scaling (Kaniel 2026-11-05); the vote only goes with travelling together; what is switched on is
+        saved."""
+        for key in ('rule_rot', 'rule_travel', 'rule_vote'):
             self.assertEqual(self.app.coop_vars[key].get(), '', key)
+        self.assertEqual(self.app.coop_vars['rule_scale'].get(), '1', 'Auto by default')
+        self.app.coop_vars['rule_scale'].set('')
+        self.settle(0.5)
+        self.assertEqual(self.app.coop['rule_scale'], '', 'saved')
+        self.assertEqual(bbport_coop.host_rules_value(self.app.coop), 'off')
         self.app.coop_vars['rule_scale'].set('1')
         self.settle(0.5)
         self.assertEqual(self.app.coop['rule_scale'], '1', 'saved')
@@ -751,7 +776,8 @@ class CoopSettingsTests(unittest.TestCase):
         self.app.coop_tempo.event_generate('<<ComboboxSelected>>')
         self.settle(0.5)
         self.assertEqual(self.app.coop['rule_tempo'], 'relentless', 'saved')
-        self.assertEqual(bbport_coop.host_rules_value(self.app.coop), 'relentless')
+        self.assertEqual(bbport_coop.host_rules_value(self.app.coop), 'scale,relentless',
+                         'with the default Auto enemies')
         self.app.coop_tempo.current(0)
         self.app.coop_tempo.event_generate('<<ComboboxSelected>>')
         self.settle(0.5)

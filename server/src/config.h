@@ -171,6 +171,12 @@ public:
         QReadLocker lk(&m_lock);
         return m_hosted;
     }
+    // Kaniel 2026-11-05: the rules a team starts with when its maker's game sent none
+    // (BloodborneCoop::ParseTeamRules; empty: Auto enemies of the standard strength, nothing else).
+    QString GetTeamDefaultRules() const {
+        QReadLocker lk(&m_lock);
+        return m_teamDefaultRules;
+    }
 
     SignInConfig GetSignIn() const {
         QReadLocker lk(&m_lock);
@@ -258,6 +264,7 @@ private:
     bool m_checkServerBuild = true;
     BackendConfig m_backend;
     HostedConfig m_hosted;
+    QString m_teamDefaultRules;
     ShardConfig m_shard;
     SignInConfig m_signIn;
     InvasionConfig m_invasions;

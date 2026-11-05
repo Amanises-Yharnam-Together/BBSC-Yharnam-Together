@@ -134,6 +134,9 @@ LAUNCHER_KEYS = [
     'PLAY stopped on an unexpected error: {}. Press Support bundle and send the zip.',
     'Start server stopped on an unexpected error: {}',
     "Your co-op settings: pick a tab to change it. Everyone uses this same release; the others see your character's name.",
+    "Set co-op up once, in two steps. Everyone uses this same release; the others see your character's name. Enemies and travel are the team leader's, on the game's team screen.",
+    "Your co-op settings: pick a tab to change it. Enemies and travel are the team leader's, on the game's team screen.",
+    'Game patches for version 1.09, applied at start.',
 ]
 
 LAUNCHER = {
@@ -268,6 +271,9 @@ LAUNCHER = {
         'PLAY остановился из-за непредвиденной ошибки: {}. Нажмите «Пакет для поддержки» и отправьте архив.',
         'Запуск сервера остановлен ошибкой: {}',
         'Ваши настройки кооператива: выберите вкладку, чтобы изменить. Все используют один релиз; другие видят имя вашего персонажа.',
+        'Настройте кооператив один раз, в два шага. Все используют один релиз; другие видят имя вашего персонажа. Враги и путешествия выбирает лидер команды, на экране команды в игре.',
+        'Ваши настройки кооператива: выберите вкладку, чтобы изменить. Враги и путешествия выбирает лидер команды, на экране команды в игре.',
+        'Патчи игры для версии 1.09, применяются при запуске.',
     ],
     'ar': [
         'يحتاج DLSS إلى {} في {}: الناقص {}. شغّل برنامج الإعداد مرة أخرى؛ وإن اختفت مجددًا فقد حذفها برنامج مكافحة الفيروسات. حتى ذلك الحين يُستخدم FSR 3.1.',
@@ -400,6 +406,9 @@ LAUNCHER = {
         'توقف التشغيل بسبب خطأ غير متوقع: {}. اضغط على حزمة الدعم وأرسل الملف المضغوط.',
         'توقف تشغيل الخادم بسبب خطأ غير متوقع: {}',
         'إعدادات اللعب التعاوني: اختر تبويبًا لتغييره. يستخدم الجميع الإصدار نفسه؛ ويرى الآخرون اسم شخصيتك.',
+        'اضبط اللعب التعاوني مرة واحدة، في خطوتين. يستخدم الجميع الإصدار نفسه؛ ويرى الآخرون اسم شخصيتك. الأعداء والسفر يحددهما قائد الفريق، في شاشة الفريق داخل اللعبة.',
+        'إعدادات اللعب التعاوني: اختر تبويبًا لتغييره. الأعداء والسفر يحددهما قائد الفريق، في شاشة الفريق داخل اللعبة.',
+        'تصحيحات اللعبة للإصدار 1.09، تُطبَّق عند التشغيل.',
     ],
     'es': [
         'DLSS necesita {} en {}: faltan {}. Ejecuta de nuevo el instalador; si vuelven a desaparecer, tu antivirus los eliminó. Mientras tanto se usa FSR 3.1.',
@@ -532,6 +541,9 @@ LAUNCHER = {
         'JUGAR se detuvo por un error inesperado: {}. Pulsa Paquete de soporte y envía el zip.',
         'Iniciar servidor se detuvo por un error inesperado: {}',
         'Tus ajustes de cooperativo: elige una pestaña para cambiarla. Todos usan esta misma versión; los demás ven el nombre de tu personaje.',
+        'Configura el cooperativo una vez, en dos pasos. Todos usan esta misma versión; los demás ven el nombre de tu personaje. Los enemigos y los viajes los elige el líder del equipo, en la pantalla de equipo del juego.',
+        'Tus ajustes de cooperativo: elige una pestaña para cambiarla. Los enemigos y los viajes los elige el líder del equipo, en la pantalla de equipo del juego.',
+        'Parches del juego para la versión 1.09, aplicados al iniciar.',
     ],
     'pt': [
         'O DLSS precisa de {} em {}: faltam {}. Execute o instalador de novo; se sumirem de novo, seu antivírus os removeu. Até lá, o FSR 3.1 é usado.',
@@ -664,6 +676,9 @@ LAUNCHER = {
         'JOGAR parou por um erro inesperado: {}. Clique em Pacote de suporte e envie o zip.',
         'Iniciar servidor parou por um erro inesperado: {}',
         'Suas configurações de cooperativo: escolha uma aba para alterá-la. Todos usam esta mesma versão; os outros veem o nome do seu personagem.',
+        'Configura o cooperativo uma vez, em dois passos. Todos usam esta mesma versão; os outros veem o nome da tua personagem. Os inimigos e as viagens são do líder da equipa, no ecrã de equipa do jogo.',
+        'As tuas definições de cooperativo: escolhe um separador para o alterar. Os inimigos e as viagens são do líder da equipa, no ecrã de equipa do jogo.',
+        'Patches do jogo para a versão 1.09, aplicados ao iniciar.',
     ],
     'fr': [
         'DLSS a besoin de {} dans {} : {} manquant(s). Relancez l’installation ; s’ils disparaissent encore, votre antivirus les a supprimés. En attendant, FSR 3.1 est utilisé.',
@@ -796,6 +811,9 @@ LAUNCHER = {
         'JOUER s’est arrêté sur une erreur inattendue : {}. Cliquez sur Paquet d’assistance et envoyez le zip.',
         'Démarrer le serveur s’est arrêté sur une erreur inattendue : {}',
         'Vos réglages coop : choisissez un onglet pour le modifier. Tout le monde utilise cette même version ; les autres voient le nom de votre personnage.',
+        "Configurez la coopération une fois, en deux étapes. Tout le monde utilise cette même version ; les autres voient le nom de votre personnage. Les ennemis et les voyages sont au chef d'équipe, sur l'écran d'équipe du jeu.",
+        "Vos réglages de coopération : choisissez un onglet pour le modifier. Les ennemis et les voyages sont au chef d'équipe, sur l'écran d'équipe du jeu.",
+        'Correctifs du jeu pour la version 1.09, appliqués au démarrage.',
     ],
     'de': [
         'DLSS braucht {} in {}: {} fehlen. Führe das Setup erneut aus; verschwinden sie wieder, hat dein Virenschutz sie entfernt. Bis dahin wird FSR 3.1 verwendet.',
@@ -928,6 +946,9 @@ LAUNCHER = {
         'SPIELEN wurde durch einen unerwarteten Fehler gestoppt: {}. Klicke auf Support-Paket und sende die ZIP-Datei.',
         'Server starten wurde durch einen unerwarteten Fehler gestoppt: {}',
         'Deine Koop-Einstellungen: Wähle einen Reiter, um ihn zu ändern. Alle nutzen dieselbe Version; die anderen sehen den Namen deines Charakters.',
+        'Richte Koop einmal ein, in zwei Schritten. Alle nutzen dieselbe Version; die anderen sehen den Namen deines Charakters. Gegner und Reisen legt der Teamanführer fest, im Teambildschirm des Spiels.',
+        'Deine Koop-Einstellungen: wähle einen Reiter, um ihn zu ändern. Gegner und Reisen legt der Teamanführer fest, im Teambildschirm des Spiels.',
+        'Spielpatches für Version 1.09, beim Start angewendet.',
     ],
     'it': [
         'DLSS richiede {} in {}: mancano {}. Esegui di nuovo il setup; se spariscono ancora, li ha rimossi l’antivirus. Nel frattempo si usa FSR 3.1.',
@@ -1060,6 +1081,9 @@ LAUNCHER = {
         'GIOCA si è fermato per un errore imprevisto: {}. Premi Pacchetto di supporto e invia lo zip.',
         'Avvia server si è fermato per un errore imprevisto: {}',
         'Le tue impostazioni co-op: scegli una scheda per modificarla. Tutti usano questa stessa versione; gli altri vedono il nome del tuo personaggio.',
+        'Configura la cooperativa una volta, in due passi. Tutti usano questa stessa versione; gli altri vedono il nome del tuo personaggio. Nemici e viaggi li sceglie il capo della squadra, nella schermata della squadra del gioco.',
+        'Le tue impostazioni cooperative: scegli una scheda per cambiarla. Nemici e viaggi li sceglie il capo della squadra, nella schermata della squadra del gioco.',
+        "Patch del gioco per la versione 1.09, applicate all'avvio.",
     ],
     'pl': [
         'DLSS potrzebuje {} w {}: brakuje {}. Uruchom instalator ponownie; jeśli znowu znikną, usunął je antywirus. Do tego czasu używany jest FSR 3.1.',
@@ -1192,6 +1216,9 @@ LAUNCHER = {
         'GRAJ zatrzymało się z powodu nieoczekiwanego błędu: {}. Kliknij Pakiet wsparcia i wyślij plik zip.',
         'Uruchom serwer zatrzymało się z powodu nieoczekiwanego błędu: {}',
         'Twoje ustawienia co-op: wybierz kartę, aby ją zmienić. Wszyscy używają tego samego wydania; inni widzą imię twojej postaci.',
+        'Skonfiguruj tryb kooperacji raz, w dwóch krokach. Wszyscy używają tego samego wydania; inni widzą imię twojej postaci. Wrogów i podróże ustala lider drużyny, na ekranie drużyny w grze.',
+        'Twoje ustawienia kooperacji: wybierz kartę, aby ją zmienić. Wrogów i podróże ustala lider drużyny, na ekranie drużyny w grze.',
+        'Poprawki gry dla wersji 1.09, stosowane przy uruchomieniu.',
     ],
     'tr': [
         'DLSS için {} dosyaları {} içinde gerekli: {} eksik. Kurulumu yeniden çalıştır; yine kaybolurlarsa antivirüsün silmiştir. O zamana kadar FSR 3.1 kullanılır.',
@@ -1324,6 +1351,9 @@ LAUNCHER = {
         'OYNA beklenmeyen bir hata yüzünden durdu: {}. Destek paketi düğmesine basıp zip dosyasını gönderin.',
         'Sunucuyu başlat beklenmeyen bir hata yüzünden durdu: {}',
         'Ortak oyun ayarların: değiştirmek için bir sekme seç. Herkes aynı sürümü kullanır; diğerleri karakterinin adını görür.',
+        'Ortak oyunu bir kez, iki adımda kur. Herkes aynı sürümü kullanır; diğerleri karakterinin adını görür. Düşmanları ve yolculuğu takım lideri, oyundaki takım ekranında belirler.',
+        'Ortak oyun ayarların: değiştirmek için bir sekme seç. Düşmanları ve yolculuğu takım lideri, oyundaki takım ekranında belirler.',
+        'Sürüm 1.09 için oyun yamaları, başlangıçta uygulanır.',
     ],
     'zh': [
         'DLSS 需要 {}（位于 {}）：缺少 {}。请重新运行安装程序；如果它们再次消失，就是被杀毒软件删除了。在此之前使用 FSR 3.1。',
@@ -1456,6 +1486,9 @@ LAUNCHER = {
         '“开始游戏”因意外错误而停止：{}。请点击“支持包”并发送该 zip 文件。',
         '“启动服务器”因意外错误而停止：{}',
         '你的合作设置：选择一个标签页进行修改。所有人使用同一版本；其他人看到的是你的角色名。',
+        '一次设置好联机，两个步骤。所有人使用同一个版本；其他人看到的是你角色的名字。敌人和旅行由队长在游戏的队伍界面中设定。',
+        '你的联机设置：选择一个标签页来修改。敌人和旅行由队长在游戏的队伍界面中设定。',
+        '适用于 1.09 版本的游戏补丁，在启动时应用。',
     ],
     'ja': [
         'DLSS には {} が {} に必要です：{} が見つかりません。セットアップをもう一度実行してください。また消える場合はウイルス対策ソフトが削除しています。それまでは FSR 3.1 を使います。',
@@ -1588,6 +1621,9 @@ LAUNCHER = {
         '予期しないエラーでプレイが止まりました: {}。サポートパッケージを押して zip を送ってください。',
         '予期しないエラーでサーバーの起動が止まりました: {}',
         '協力プレイの設定：変更するタブを選んでください。全員が同じリリースを使います。ほかのプレイヤーにはキャラクター名が表示されます。',
+        '協力プレイを一度だけ、2ステップで設定します。全員が同じリリースを使い、ほかの人にはキャラクター名が表示されます。敵と移動はチームリーダーがゲームのチーム画面で決めます。',
+        '協力プレイの設定: 変更するタブを選んでください。敵と移動はチームリーダーがゲームのチーム画面で決めます。',
+        'バージョン 1.09 用のゲームパッチ。起動時に適用されます。',
     ],
     'ko': [
         'DLSS에는 {}의 {}가 필요합니다: {} 없음. 설치 프로그램을 다시 실행하세요. 또 사라지면 백신이 삭제한 것입니다. 그때까지는 FSR 3.1을 사용합니다.',
@@ -1720,5 +1756,8 @@ LAUNCHER = {
         '예기치 않은 오류로 플레이가 멈췄습니다: {}. 지원 패키지를 눌러 zip 파일을 보내 주세요.',
         '예기치 않은 오류로 서버 시작이 멈췄습니다: {}',
         '협동 설정: 바꿀 탭을 고르세요. 모두 같은 릴리스를 사용하며, 다른 사람에게는 캐릭터 이름이 보입니다.',
+        '협동을 한 번, 두 단계로 설정합니다. 모두 같은 릴리스를 사용하며, 다른 사람에게는 캐릭터 이름이 보입니다. 적과 이동은 팀 리더가 게임의 팀 화면에서 정합니다.',
+        '협동 설정: 바꿀 탭을 고르세요. 적과 이동은 팀 리더가 게임의 팀 화면에서 정합니다.',
+        '버전 1.09용 게임 패치, 시작할 때 적용됩니다.',
     ],
 }

@@ -3954,10 +3954,12 @@ class Launcher:
                                 _('Travel', 'Путешествия')]
         bar = tk.Frame(card, bg=CARD)
         bar.grid(row=2, column=0, columnspan=2, sticky='we', pady=(px(14), px(2)))
-        self.coop_step_tabs = []
+        self.coop_step_tabs, self.coop_step_lines = [], [None]
         for index, name in enumerate(self.coop_step_names):
             if index:
-                tk.Frame(bar, bg=LINE, height=1, width=px(36)).pack(side='left', padx=px(12))
+                line = tk.Frame(bar, bg=LINE, height=1, width=px(36))
+                line.pack(side='left', padx=px(12))
+                self.coop_step_lines.append(line)
             tab = self.label(bar, f'{index + 1}   {spaced(name)}', 'small_bold', DIM)
             tab.pack(side='left')
             tab.bind('<Button-1>', lambda _e, index=index: self.coop_go(index))
@@ -4486,9 +4488,14 @@ class Launcher:
         paint()
         return frame
 
+    def coop_visible_steps(self):
+        """The co-op page's steps for this server: Server and Game always, Enemies and Travel on a local
+        server only (Kaniel 2026-11-05: on the public server the team's leader sets them in the game)."""
+        return [0, 1] + bbport_coop.rule_steps(self.coop)
+
     def coop_go(self, step):
         """Shows a step of the co-op setup; a later one only once the ones before it lack nothing."""
-        step = max(0, min(step, len(self.coop_steps) - 1))
+        step = max(0, min(step, self.coop_visible_steps()[-1]))
         self.coop_custom_tidy()
         if getattr(self, 'coop_change_job', None):
             self.root.after_cancel(self.coop_change_job)
@@ -4502,19 +4509,52 @@ class Launcher:
 
     def coop_show_step(self):
         """The step bar, Back, and Next or Done, as the current step and what is missing allow."""
-        px, step, last = self.px, self.coop_step, len(self.coop_steps) - 1
+        px = self.px
+        # Kaniel 2026-11-05: on the public server no Enemies or Travel tabs (the team's leader sets them
+        # on the game's team screen); a step it has not is left for its last.
+        visible = self.coop_visible_steps()
+        last = visible[-1]
+        if self.coop_step > last:
+            self.coop_steps[self.coop_step].grid_forget()
+            self.coop_step = last
+            self.coop_steps[last].grid(row=self.coop_step_row, column=0, columnspan=2, sticky='we')
+        step = self.coop_step
+        for index, tab in enumerate(self.coop_step_tabs):
+            line = self.coop_step_lines[index]
+            if index in visible and not tab.winfo_manager():
+                if line is not None:
+                    line.pack(side='left', padx=px(12))
+                tab.pack(side='left')
+            elif index not in visible and tab.winfo_manager():
+                if line is not None:
+                    line.pack_forget()
+                tab.pack_forget()
         # Kaniel 2026-11-05: the setup's steps (Back, Next) only until it was done once; after that the
         # same pages are plain settings: any tab, and Done on each.
         setup = self.coop_setup_mode()
-        self.coop_intro.configure(text=_(
-            'Set co-op up once, in four steps. Everyone uses this same release; the others see your '
-            'character\'s name.',
-            'Настройте кооператив один раз, в четыре шага. Все используют один релиз; другие видят '
-            'имя вашего персонажа.') if setup else _(
-            'Your co-op settings: pick a tab to change it. Everyone uses this same release; the others see '
-            'your character\'s name.',
-            'Ваши настройки кооператива: выберите вкладку, чтобы изменить. Все используют один релиз; '
-            'другие видят имя вашего персонажа.'))
+        on_global = not bbport_coop.rule_steps(self.coop)
+        if setup and on_global:
+            intro = _('Set co-op up once, in two steps. Everyone uses this same release; the others see your '
+                      'character\'s name. Enemies and travel are the team leader\'s, on the game\'s team screen.',
+                      'Настройте кооператив один раз, в два шага. Все используют один релиз; другие видят '
+                      'имя вашего персонажа. Враги и путешествия выбирает лидер команды, на экране команды '
+                      'в игре.')
+        elif setup:
+            intro = _('Set co-op up once, in four steps. Everyone uses this same release; the others see your '
+                      'character\'s name.',
+                      'Настройте кооператив один раз, в четыре шага. Все используют один релиз; другие видят '
+                      'имя вашего персонажа.')
+        elif on_global:
+            intro = _('Your co-op settings: pick a tab to change it. Enemies and travel are the team '
+                      'leader\'s, on the game\'s team screen.',
+                      'Ваши настройки кооператива: выберите вкладку, чтобы изменить. Враги и путешествия '
+                      'выбирает лидер команды, на экране команды в игре.')
+        else:
+            intro = _('Your co-op settings: pick a tab to change it. Everyone uses this same release; the '
+                      'others see your character\'s name.',
+                      'Ваши настройки кооператива: выберите вкладку, чтобы изменить. Все используют один '
+                      'релиз; другие видят имя вашего персонажа.')
+        self.coop_intro.configure(text=intro)
         missing = self.coop_missing_by_step()
         blocked = min((at for at, _text in missing), default=last + 1)
         for index, tab in enumerate(self.coop_step_tabs):
@@ -4741,8 +4781,10 @@ class Launcher:
             missing.append((1, _('the game folder', 'папка игры')))
         if not on_global and not bbport_coop.valid_host(self.coop.get('host_ip', '')):
             missing.append((1, _("the host's IP", 'IP хоста')))
-        # Auto scaling needs no level of its own (the game takes its own steps with the team's size).
-        if self.coop.get('rule_scale') != '1' and 'harder' not in getattr(self, 'coop_picked', {'harder'}):
+        # Auto scaling needs no level of its own (the game takes its own steps with the team's size); the
+        # public server has no Enemies step (Kaniel 2026-11-05).
+        if (not on_global and self.coop.get('rule_scale') != '1'
+                and 'harder' not in getattr(self, 'coop_picked', {'harder'})):
             missing.append((2, _('the enemies', 'враги')))
         return missing
 

@@ -1232,14 +1232,15 @@ int TheLeaderAllowsInvaders() {
   return 0;
 }
 
-// Kaniel 2026-10-25 (host rules): the leader's rules are the team's, all off
-// by default; a member sees them, only the leader sets them, at any time.
+// Kaniel 2026-10-25 (host rules): the leader's rules are the team's; a member
+// sees them, only the leader sets them, at any time. Kaniel 2026-11-05: a team
+// whose maker set none has the server's default, Auto enemies and nothing else.
 int TheLeaderSetsTheTeamsRules() {
   TwoHunters t;
   TeamLobby &lobby = t.lobby;
   const bbcoop::TeamRules none = lobby.StateFor("b").team().rules();
   CHECK(!none.rot() && !none.travel_together() && !none.travel_vote() &&
-        !none.enemy_scaling());
+        none.enemy_scaling());
   bbcoop::TeamRequest rules = Request(Action::RULES);
   rules.mutable_rules()->set_rot(true);
   rules.mutable_rules()->set_enemy_scaling(true);
@@ -1267,6 +1268,87 @@ int TheLeaderSetsTheTeamsRules() {
   CHECK(lobby.Request("a", rules).changed);
   CHECK(back.ParseFromString(lobby.StateFor("b").SerializeAsString()));
   CHECK(back.team().rules().boss_tempo() == bbcoop::BOSS_TEMPO_RELENTLESS);
+  return 0;
+}
+
+// Kaniel 2026-11-05 (public server): the enemies' strength is a team rule. A
+// team made by a player whose game sent no rules (the public server's launcher
+// has no rule steps) takes the server's default rules: Auto, the standard
+// strength (0), unless the server's config set others.
+int ATeamWithoutItsMakersRulesTakesTheServersDefault() {
+  {
+    TwoHunters t;
+    const bbcoop::TeamRules rules = t.lobby.StateFor("b").team().rules();
+    CHECK(rules.enemy_scaling() && rules.enemy_hp() == 0.0f &&
+          rules.enemy_damage() == 0.0f && rules.enemy_poise() == 0.0f);
+  }
+  TeamLobby lobby = NewLobby();
+  bbcoop::TeamRules configured;
+  configured.set_enemy_scaling(false);
+  configured.set_enemy_hp(2.0f);
+  configured.set_enemy_damage(1.25f);
+  configured.set_enemy_poise(2.0f);
+  configured.set_travel_together(true);
+  lobby.SetDefaultRules(configured);
+  lobby.Arrive("a", "Kaniel", false);
+  lobby.Request("a", Request(Action::CREATE));
+  const bbcoop::TeamRules made = lobby.TeamOf("a")->rules();
+  CHECK(!made.enemy_scaling() && made.enemy_hp() == 2.0f &&
+        made.enemy_damage() == 1.25f && made.enemy_poise() == 2.0f &&
+        made.travel_together());
+  // A maker whose game did send rules keeps its own.
+  lobby.Arrive("b", "Ada", false);
+  bbcoop::TeamRequest own = Request(Action::RULES);
+  own.mutable_rules()->set_rot(true);
+  lobby.Request("b", own);
+  lobby.Request("b", Request(Action::CREATE));
+  CHECK(lobby.TeamOf("b")->rules().rot() &&
+        !lobby.TeamOf("b")->rules().travel_together());
+  return 0;
+}
+
+// The server's default rules from shadnet.cfg (TeamDefaultRules): Auto or Fixed
+// enemies and their strength, and the other rules by name; anything unknown or
+// out of range is refused (the server then keeps its own default).
+int TheServersDefaultRulesComeFromItsConfig() {
+  const auto fixed = ParseTeamRules(
+      "enemies=fixed; hp=2.5; damage=1.25; poise=2; rot; travel; vote; tempo=1");
+  CHECK(fixed.has_value());
+  CHECK(!fixed->enemy_scaling() && fixed->enemy_hp() == 2.5f &&
+        fixed->enemy_damage() == 1.25f && fixed->enemy_poise() == 2.0f &&
+        fixed->rot() && fixed->travel_together() && fixed->travel_vote() &&
+        fixed->boss_tempo() == bbcoop::BOSS_TEMPO_AGGRESSIVE);
+  const auto automatic = ParseTeamRules("enemies=auto");
+  CHECK(automatic.has_value() && automatic->enemy_scaling() &&
+        automatic->enemy_hp() == 0.0f && !automatic->rot());
+  CHECK(ParseTeamRules("").has_value() && ParseTeamRules("")->enemy_scaling());
+  CHECK(!ParseTeamRules("enemies=hard"));
+  CHECK(!ParseTeamRules("hp=0.5"));   // weaker than the game's own
+  CHECK(!ParseTeamRules("hp=11"));    // past HarderEnemiesMax
+  CHECK(!ParseTeamRules("tempo=3"));
+  CHECK(!ParseTeamRules("fly"));
+  return 0;
+}
+
+// Kaniel 2026-11-05: the leader sets the enemies' strength (the team screen in
+// its game); every member's state carries it, a member cannot change it.
+int TheLeaderSetsTheEnemiesStrength() {
+  TwoHunters t;
+  TeamLobby &lobby = t.lobby;
+  bbcoop::TeamRequest rules = Request(Action::RULES);
+  rules.mutable_rules()->set_enemy_scaling(false);
+  rules.mutable_rules()->set_enemy_hp(2.5f);
+  rules.mutable_rules()->set_enemy_damage(1.0f);
+  rules.mutable_rules()->set_enemy_poise(1.5f);
+  CHECK(!lobby.Request("b", rules).notice.empty()); // not the leader
+  CHECK(lobby.StateFor("b").team().rules().enemy_scaling());
+  CHECK(lobby.Request("a", rules).changed);
+  bbcoop::LobbyState back;
+  CHECK(back.ParseFromString(lobby.StateFor("b").SerializeAsString()));
+  CHECK(!back.team().rules().enemy_scaling() &&
+        back.team().rules().enemy_hp() == 2.5f &&
+        back.team().rules().enemy_damage() == 1.0f &&
+        back.team().rules().enemy_poise() == 1.5f);
   return 0;
 }
 
@@ -1538,6 +1620,9 @@ int main() {
   int failed = 0;
   failed |= TheLeaderSetsTheTeamsRules();
   failed |= RulesSetBeforeATeamGoIntoTheTeam();
+  failed |= ATeamWithoutItsMakersRulesTakesTheServersDefault();
+  failed |= TheLeaderSetsTheEnemiesStrength();
+  failed |= TheServersDefaultRulesComeFromItsConfig();
   failed |= AMembersRotIsKeptWhileItsTeamLives();
   failed |= TheLeaderPicksTheTeamsDeathMode();
   failed |= PlayersAreSeenByTheirCharactersName();

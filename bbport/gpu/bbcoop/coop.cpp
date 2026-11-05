@@ -590,6 +590,14 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
         lobby->rule_vote = rules.travel_vote ? 1 : 0;
         lobby->rule_scale = rules.enemy_scaling ? 1 : 0;
         lobby->rule_tempo = static_cast<int>(rules.boss_tempo);
+        // Kaniel 2026-11-05: the team's enemy strength (the standard when it set none).
+        const Core::Bloodborne::HarderEnemies strength = rules.enemies.value_or(
+            Core::Bloodborne::HarderEnemies{Core::Bloodborne::HarderDefaultHp,
+                                            Core::Bloodborne::HarderDefaultDamage,
+                                            Core::Bloodborne::HarderDefaultPoise});
+        lobby->rule_hp = strength.hp;
+        lobby->rule_damage = strength.damage;
+        lobby->rule_poise = strength.poise;
     }
     if (state->has_team()) {
         const bbcoop::Team& team = state->team();
@@ -879,6 +887,7 @@ static_assert(BBCOOP_TEAM_WORLD == bbcoop::TeamRequest::WORLD &&
               BBCOOP_TEAM_ASK_ACCEPT == bbcoop::TeamRequest::ASK_ACCEPT &&
               BBCOOP_TEAM_ASK_DECLINE == bbcoop::TeamRequest::ASK_DECLINE &&
               BBCOOP_TEAM_RESET_LAMPS == bbcoop::TeamRequest::RESET_LAMPS &&
+              BBCOOP_TEAM_RULES == bbcoop::TeamRequest::RULES &&
               BBCOOP_TEAM_QUICK_MATCH == bbcoop::TeamRequest::QUICK_MATCH);
 static_assert(BBCOOP_JOIN_INVITE_ONLY == bbcoop::Team::INVITE_ONLY &&
               BBCOOP_JOIN_ASK == bbcoop::Team::ASK && BBCOOP_JOIN_OPEN == bbcoop::Team::OPEN);

@@ -74,28 +74,43 @@ class AnswersTests(unittest.TestCase):
 
     def test_host_rules_are_off_until_the_host_turns_them_on(self):
         """Kaniel 2026-10-25: the host rules (Rot, travel together with its vote, enemies scaling with
-        the team), each off by default; the leader's launcher's are the team's (the game sends them)."""
-        env = coop.game_environment({'SHADPS4_BLOODBORNE_HOST_RULES': 'rot'}, dict(coop.DEFAULTS),
-                                    Path('.'), Path('.'))
-        self.assertNotIn('SHADPS4_BLOODBORNE_HOST_RULES', env, 'off by default, whatever the env had')
-        self.assertEqual(coop.host_rules_value(coop.DEFAULTS), 'off')
+        the team), off by default but the enemies' Auto scaling (Kaniel 2026-11-05); the leader's
+        launcher's are the team's on a local server (the game sends them, 'off' too)."""
+        local = dict(coop.DEFAULTS, rule_scale='')
+        env = coop.game_environment({'SHADPS4_BLOODBORNE_HOST_RULES': 'rot'}, local, Path('.'), Path('.'))
+        self.assertEqual(env['SHADPS4_BLOODBORNE_HOST_RULES'], 'off', 'none on, whatever the env had')
+        self.assertEqual(coop.host_rules_value(local), 'off')
+        self.assertEqual(coop.DEFAULTS['rule_scale'], '1', 'Auto by default')
+        self.assertEqual(coop.host_rules_value(coop.DEFAULTS), 'scale')
         on = dict(coop.DEFAULTS, rule_rot='1', rule_travel='1', rule_vote='1', rule_scale='1')
         self.assertEqual(coop.host_rules_value(on), 'rot,travel,vote,scale')
         env = coop.game_environment({}, on, Path('.'), Path('.'))
         self.assertEqual(env['SHADPS4_BLOODBORNE_HOST_RULES'], 'rot,travel,vote,scale')
-        self.assertEqual(coop.host_rules_value(dict(coop.DEFAULTS, rule_vote='1')), 'off',
+        self.assertEqual(coop.host_rules_value(dict(local, rule_vote='1')), 'off',
                          'the vote is a part of travelling together')
-        self.assertEqual(coop.host_rules_value(dict(coop.DEFAULTS, rule_scale='1')), 'scale')
+        self.assertEqual(coop.host_rules_value(dict(local, rule_scale='1')), 'scale')
         # Kaniel 2026-10-28: the boss tempo, Vanilla ('') unless picked; anything else is Vanilla.
         self.assertEqual(coop.DEFAULTS['rule_tempo'], '')
         self.assertEqual(coop.host_rules_value(dict(on, rule_tempo='relentless')),
                          'rot,travel,vote,scale,relentless')
-        self.assertEqual(coop.host_rules_value(dict(coop.DEFAULTS, rule_tempo='aggressive')), 'aggressive')
-        self.assertEqual(coop.host_rules_value(dict(coop.DEFAULTS, rule_tempo='rot')), 'off')
+        self.assertEqual(coop.host_rules_value(dict(local, rule_tempo='aggressive')), 'aggressive')
+        self.assertEqual(coop.host_rules_value(dict(local, rule_tempo='rot')), 'off')
         with tempfile.TemporaryDirectory() as folder:
             coop.save_settings(folder, dict(coop.DEFAULTS, rule_travel='1'))
             kept = coop.read_settings(folder)
             self.assertEqual((kept['rule_travel'], kept['rule_rot']), ('1', ''))
+
+    def test_on_the_public_server_the_team_leader_sets_the_rules_in_game(self):
+        """Kaniel 2026-11-05: on the public server the team rules and the enemies' strength are the
+        team's, set by its leader on the game's team screen (the server's default until then): the
+        launcher passes none of its own to the game."""
+        on = dict(coop.DEFAULTS, server_type='global', rule_rot='1', rule_travel='1', harder='3,1.5,3')
+        env = coop.game_environment({'SHADPS4_BLOODBORNE_HOST_RULES': 'rot',
+                                     'SHADPS4_BLOODBORNE_HARDER_ENEMIES': '2,2,2'}, on, Path('.'), Path('.'))
+        self.assertNotIn('SHADPS4_BLOODBORNE_HOST_RULES', env)
+        self.assertNotIn('SHADPS4_BLOODBORNE_HARDER_ENEMIES', env)
+        self.assertEqual(coop.rule_steps(on), [], 'no Enemies or Travel steps')
+        self.assertEqual(coop.rule_steps(dict(on, server_type='local')), [2, 3])
 
     def test_missing_answers_are_named(self):
         # No party settings: teams are made in the game (phase 6), so no party name or password.
