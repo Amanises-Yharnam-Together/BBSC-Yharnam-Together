@@ -5026,7 +5026,7 @@ PROBE_NAMES = (
     "iosefka-look", "iosefka-new", "iosefka-mine", "prey-replay",
     # pictures to look at (visible runs)
     "frame-gen-look", "logarius-look", "shadows-look", "aspect-hud-wide", "aspect-hud-16x9",
-    "aspect-team-43", "team-load-art", "team-screen", "portrait-dressed",
+    "aspect-team-43", "team-load-art", "team-screen", "portrait-dressed", "phantom-glow",
     # perf measurements for player reports
     "solo-death-tick", "guest-follower-stutter", "guest-follower-stutter-harder",
     "guest-follower-player-build",
