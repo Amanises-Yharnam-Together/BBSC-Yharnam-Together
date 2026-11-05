@@ -29,6 +29,13 @@ inline bool TakesEvents(const Screens& s) {
     return s.menu || s.quit || s.team || s.map || s.travel;
 }
 
+/// The system's text input is on (SDL_StartTextInput): a text box has the focus (ImGui's
+/// WantTextInput) on a screen that takes the events. Kaniel 2026-11-05: the team screen's search
+/// boxes took no typing while this was the Insert menu's only.
+inline bool WantsTextInput(const Screens& s, bool box_focused) {
+    return box_focused && TakesEvents(s);
+}
+
 /// The system cursor shows over the game, fullscreen too: the screens chosen on with the mouse.
 inline bool ShowsCursor(const Screens& s) {
     return s.menu || s.quit || s.team || s.travel;

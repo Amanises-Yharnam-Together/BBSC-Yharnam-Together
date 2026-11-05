@@ -7832,7 +7832,8 @@ void UpdateTextInput(SDL_Window* window) {
     bool want = false;
     {
         std::scoped_lock lock{imgui_mutex};
-        want = initialized && menu_open && ImGui::GetIO().WantTextInput;
+        // Kaniel 2026-11-05: the team screen's search boxes too, not only the Insert menu's.
+        want = initialized && BbOverlayInput::WantsTextInput(OpenScreens(), ImGui::GetIO().WantTextInput);
     }
     if (want != SDL_TextInputActive(window)) {
         if (want) {

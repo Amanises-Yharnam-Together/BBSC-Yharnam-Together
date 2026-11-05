@@ -40,6 +40,19 @@ void NothingOpenLeavesTheGame() {
     assert(!ShowsCursor({}));
 }
 
+// Kaniel 2026-11-05: the team screen's search boxes ("Search hunters online", the friends page's)
+// took no typing: the system's text input came on for the Insert menu only, so no characters
+// reached them. It comes on whenever a screen that takes the events has a text box focused.
+void TextBoxesTakeTypingOnEveryScreenThatTakesEvents() {
+    for (const Screens s : {Screens{.menu = true}, Screens{.quit = true}, Screens{.team = true},
+                            Screens{.map = true}, Screens{.travel = true}}) {
+        assert(WantsTextInput(s, true));
+        assert(!WantsTextInput(s, false)); // no box focused: no text input (no IME over the game)
+    }
+    assert(!WantsTextInput(Screens{.joining = true}, true));
+    assert(!WantsTextInput({}, true)); // the game's own (the prompt types through its own path)
+}
+
 } // namespace
 
 int main() {
@@ -47,6 +60,7 @@ int main() {
     ScreensWithButtonsTakeEvents();
     LoadCoverHoldsTheGameOnly();
     NothingOpenLeavesTheGame();
+    TextBoxesTakeTypingOnEveryScreenThatTakesEvents();
     std::printf("overlay-input-test: ok\n");
     return 0;
 }
