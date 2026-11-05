@@ -1275,3 +1275,34 @@ class SystemCertificateTests(unittest.TestCase):
         with mock.patch.dict(sys.modules, {'truststore': None}):
             self.assertFalse(coop.use_system_certificates())
         self.assertIsNone(coop.urllib.request._opener)
+
+
+class ConsoleTextTests(unittest.TestCase):
+    """2026-11-05: on a Russian Windows netsh writes CP866, which text=True read as CP1251 and lost
+    (stdout None): PLAY's firewall check failed and the spinner never stopped."""
+
+    RUSSIAN_RULE = ('Имя правила:                          BBSC game\r\nШлюз: нет\r\nПрограмма:   '
+                    r'C:\Users\Артем\Yharnam Together\bin\bb-probe.exe' '\r\n')
+
+    def test_oem_output_is_read(self):
+        raw = self.RUSSIAN_RULE.encode('cp866')
+        text = coop.console_text(raw)
+        if sys.platform == 'win32' and coop.ctypes.windll.kernel32.GetOEMCP() == 866:
+            self.assertIn('Артем', text)
+        self.assertIsInstance(text, str)
+        self.assertIn('bb-probe.exe', text)
+
+    def test_utf8_and_empty(self):
+        self.assertEqual(coop.console_text('Артем'.encode('utf-8')), 'Артем')
+        self.assertEqual(coop.console_text(b''), '')
+        self.assertEqual(coop.console_text(None), '')
+        self.assertEqual(coop.console_text('as text'), 'as text')
+
+    def test_firewall_ready_with_cp866_netsh(self):
+        install = Path('C:/Games/Yharnam Together')
+        raw = ('Программа: ' + str(install / 'bin' / 'bb-probe.exe') + '\r\nШ\r\n').encode('cp866')
+        done = mock.Mock(returncode=0, stdout=raw)
+        with mock.patch.object(coop.subprocess, 'run', return_value=done):
+            self.assertTrue(coop.firewall_ready(install, False))
+        with mock.patch.object(coop.subprocess, 'run', return_value=mock.Mock(returncode=0, stdout=b'\x98\xff')):
+            self.assertFalse(coop.firewall_ready(install, False))

@@ -5023,6 +5023,11 @@ class Launcher:
             try:
                 self.coop_firewall()
                 said = bbport_coop.start_servers(PORT_DIR, host_ip)
+            except Exception as error:  # noqa: BLE001 - 2026-11-05: an error left the line on Starting… for good
+                import traceback
+                traceback.print_exc()
+                said = [_('Start server stopped on an unexpected error: {}', 'Запуск сервера остановлен ошибкой: {}'
+                          ).format(f'{type(error).__name__}: {error}')]
             finally:
                 self.server_starting = False
             state = bbport_coop.server_state()
@@ -5185,6 +5190,12 @@ class Launcher:
                                                               encoding='utf-8')
         except (RuntimeError, OSError, ValueError) as error:
             failed = str(error)
+        except Exception as error:  # noqa: BLE001 - 2026-11-05: any other error left PLAY spinning for good
+            import traceback
+            traceback.print_exc()  # launcher-errors.txt
+            failed = _('PLAY stopped on an unexpected error: {}. Press Support bundle and send the zip.',
+                       'PLAY остановился из-за непредвиденной ошибки: {}. Нажмите «Пакет для поддержки» и '
+                       'отправьте архив.').format(f'{type(error).__name__}: {error}')
         self.ui_calls.put(lambda: self.coop_start_game(settings, root, failed, note))
 
     def coop_start_game(self, settings, root, failed, note):

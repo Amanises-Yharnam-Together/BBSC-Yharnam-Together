@@ -1519,15 +1519,38 @@ def start_servers(install, host_ip, wait_s=10.0):
     return said
 
 
+def console_text(data):
+    """A Windows tool's output as text, never None. netsh and route write in the console's (OEM) code
+    page: on a Russian Windows CP866, which the ANSI one (CP1251) cannot read, so text=True lost the
+    whole output (stdout None) and PLAY's firewall check failed on every start (play check 2026-11-05,
+    a Russian player: the spinner forever)."""
+    if not data:
+        return ''
+    if isinstance(data, str):
+        return data
+    try:
+        return data.decode('utf-8')
+    except UnicodeDecodeError:
+        pass
+    for codec in ('oem', 'mbcs'):  # Windows only; elsewhere the lookup fails and the next one is tried
+        try:
+            return data.decode(codec, 'replace')
+        except LookupError:
+            continue
+    return data.decode('latin-1')
+
+
 def our_processes(install):
     """(pid, name, command line) of this install's shadnet (its watchdog too) and backend."""
     install = str(Path(install).resolve()).lower()
-    script = ("Get-CimInstance Win32_Process -Filter \"Name='shadnet.exe' OR Name='BLauncher.exe' OR "
+    # UTF-8 out, so an install path in any language comes back as it is (not through the OEM code page).
+    script = ("[Console]::OutputEncoding = [Text.Encoding]::UTF8; "
+              "Get-CimInstance Win32_Process -Filter \"Name='shadnet.exe' OR Name='BLauncher.exe' OR "
               "Name='python.exe' OR Name='pythonw.exe'\" | ForEach-Object { \"$($_.ProcessId)|$($_.Name)|"
               "$($_.ExecutablePath)|$($_.CommandLine)\" }")
     try:
-        out = subprocess.run(['powershell', '-NoProfile', '-Command', script], capture_output=True, text=True,
-                             timeout=20, creationflags=NO_WINDOW).stdout
+        out = console_text(subprocess.run(['powershell', '-NoProfile', '-Command', script], capture_output=True,
+                                          timeout=20, creationflags=NO_WINDOW).stdout)
     except (OSError, subprocess.TimeoutExpired):
         return []
     found = []
@@ -1680,10 +1703,10 @@ def firewall_ready(install, host):
     for name in names:
         try:
             out = subprocess.run(['netsh', 'advfirewall', 'firewall', 'show', 'rule', f'name={name}', 'verbose'],
-                                 capture_output=True, text=True, timeout=15, creationflags=NO_WINDOW)
+                                 capture_output=True, timeout=15, creationflags=NO_WINDOW)
         except (OSError, subprocess.TimeoutExpired):
             return False
-        if out.returncode != 0 or (name == RULE_GAME and probe not in out.stdout.lower()):
+        if out.returncode != 0 or (name == RULE_GAME and probe not in console_text(out.stdout).lower()):
             return False
     return True
 

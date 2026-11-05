@@ -130,7 +130,10 @@ LAUNCHER_KEYS = [
     'Exclusive fullscreen',
     'Precise',
     'English',
-    'Local (the public server is not open yet)',    "Your co-op settings: pick a tab to change it. Everyone uses this same release; the others see your character's name.",
+    'Local (the public server is not open yet)',
+    'PLAY stopped on an unexpected error: {}. Press Support bundle and send the zip.',
+    'Start server stopped on an unexpected error: {}',
+    "Your co-op settings: pick a tab to change it. Everyone uses this same release; the others see your character's name.",
 ]
 
 LAUNCHER = {
@@ -262,6 +265,8 @@ LAUNCHER = {
         'Точный',
         'Английский',
         'Локальный (публичный сервер ещё не открыт)',
+        'PLAY остановился из-за непредвиденной ошибки: {}. Нажмите «Пакет для поддержки» и отправьте архив.',
+        'Запуск сервера остановлен ошибкой: {}',
         'Ваши настройки кооператива: выберите вкладку, чтобы изменить. Все используют один релиз; другие видят имя вашего персонажа.',
     ],
     'ar': [
@@ -392,6 +397,8 @@ LAUNCHER = {
         'دقيق',
         'الإنجليزية',
         'محلي (الخادم العام غير مفتوح بعد)',
+        'توقف التشغيل بسبب خطأ غير متوقع: {}. اضغط على حزمة الدعم وأرسل الملف المضغوط.',
+        'توقف تشغيل الخادم بسبب خطأ غير متوقع: {}',
         'إعدادات اللعب التعاوني: اختر تبويبًا لتغييره. يستخدم الجميع الإصدار نفسه؛ ويرى الآخرون اسم شخصيتك.',
     ],
     'es': [
@@ -522,6 +529,8 @@ LAUNCHER = {
         'Preciso',
         'Inglés',
         'Local (el servidor público aún no está abierto)',
+        'JUGAR se detuvo por un error inesperado: {}. Pulsa Paquete de soporte y envía el zip.',
+        'Iniciar servidor se detuvo por un error inesperado: {}',
         'Tus ajustes de cooperativo: elige una pestaña para cambiarla. Todos usan esta misma versión; los demás ven el nombre de tu personaje.',
     ],
     'pt': [
@@ -652,6 +661,8 @@ LAUNCHER = {
         'Preciso',
         'Inglês',
         'Local (o servidor público ainda não está aberto)',
+        'JOGAR parou por um erro inesperado: {}. Clique em Pacote de suporte e envie o zip.',
+        'Iniciar servidor parou por um erro inesperado: {}',
         'Suas configurações de cooperativo: escolha uma aba para alterá-la. Todos usam esta mesma versão; os outros veem o nome do seu personagem.',
     ],
     'fr': [
@@ -782,6 +793,8 @@ LAUNCHER = {
         'Précis',
         'Anglais',
         'Local (le serveur public n’est pas encore ouvert)',
+        'JOUER s’est arrêté sur une erreur inattendue : {}. Cliquez sur Paquet d’assistance et envoyez le zip.',
+        'Démarrer le serveur s’est arrêté sur une erreur inattendue : {}',
         'Vos réglages coop : choisissez un onglet pour le modifier. Tout le monde utilise cette même version ; les autres voient le nom de votre personnage.',
     ],
     'de': [
@@ -912,6 +925,8 @@ LAUNCHER = {
         'Genau',
         'Englisch',
         'Lokal (der öffentliche Server ist noch nicht offen)',
+        'SPIELEN wurde durch einen unerwarteten Fehler gestoppt: {}. Klicke auf Support-Paket und sende die ZIP-Datei.',
+        'Server starten wurde durch einen unerwarteten Fehler gestoppt: {}',
         'Deine Koop-Einstellungen: Wähle einen Reiter, um ihn zu ändern. Alle nutzen dieselbe Version; die anderen sehen den Namen deines Charakters.',
     ],
     'it': [
@@ -1042,6 +1057,8 @@ LAUNCHER = {
         'Preciso',
         'Inglese',
         'Locale (il server pubblico non è ancora aperto)',
+        'GIOCA si è fermato per un errore imprevisto: {}. Premi Pacchetto di supporto e invia lo zip.',
+        'Avvia server si è fermato per un errore imprevisto: {}',
         'Le tue impostazioni co-op: scegli una scheda per modificarla. Tutti usano questa stessa versione; gli altri vedono il nome del tuo personaggio.',
     ],
     'pl': [
@@ -1172,6 +1189,8 @@ LAUNCHER = {
         'Dokładny',
         'Angielski',
         'Lokalny (serwer publiczny nie jest jeszcze otwarty)',
+        'GRAJ zatrzymało się z powodu nieoczekiwanego błędu: {}. Kliknij Pakiet wsparcia i wyślij plik zip.',
+        'Uruchom serwer zatrzymało się z powodu nieoczekiwanego błędu: {}',
         'Twoje ustawienia co-op: wybierz kartę, aby ją zmienić. Wszyscy używają tego samego wydania; inni widzą imię twojej postaci.',
     ],
     'tr': [
@@ -1302,6 +1321,8 @@ LAUNCHER = {
         'Kesin',
         'İngilizce',
         'Yerel (genel sunucu henüz açık değil)',
+        'OYNA beklenmeyen bir hata yüzünden durdu: {}. Destek paketi düğmesine basıp zip dosyasını gönderin.',
+        'Sunucuyu başlat beklenmeyen bir hata yüzünden durdu: {}',
         'Ortak oyun ayarların: değiştirmek için bir sekme seç. Herkes aynı sürümü kullanır; diğerleri karakterinin adını görür.',
     ],
     'zh': [
@@ -1432,6 +1453,8 @@ LAUNCHER = {
         '精确',
         '英语',
         '本地（公共服务器尚未开放）',
+        '“开始游戏”因意外错误而停止：{}。请点击“支持包”并发送该 zip 文件。',
+        '“启动服务器”因意外错误而停止：{}',
         '你的合作设置：选择一个标签页进行修改。所有人使用同一版本；其他人看到的是你的角色名。',
     ],
     'ja': [
@@ -1562,6 +1585,8 @@ LAUNCHER = {
         '正確',
         '英語',
         'ローカル（公開サーバーはまだ開いていません）',
+        '予期しないエラーでプレイが止まりました: {}。サポートパッケージを押して zip を送ってください。',
+        '予期しないエラーでサーバーの起動が止まりました: {}',
         '協力プレイの設定：変更するタブを選んでください。全員が同じリリースを使います。ほかのプレイヤーにはキャラクター名が表示されます。',
     ],
     'ko': [
@@ -1692,6 +1717,8 @@ LAUNCHER = {
         '정밀',
         '영어',
         '로컬(공용 서버가 아직 열리지 않음)',
+        '예기치 않은 오류로 플레이가 멈췄습니다: {}. 지원 패키지를 눌러 zip 파일을 보내 주세요.',
+        '예기치 않은 오류로 서버 시작이 멈췄습니다: {}',
         '협동 설정: 바꿀 탭을 고르세요. 모두 같은 릴리스를 사용하며, 다른 사람에게는 캐릭터 이름이 보입니다.',
     ],
 }
