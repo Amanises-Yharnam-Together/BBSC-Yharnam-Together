@@ -131,6 +131,8 @@ LAUNCHER_KEYS = [
     'Precise',
     'English',
     'Local (the public server is not open yet)',
+    'PLAY stopped on an unexpected error: {}. Press Support bundle and send the zip.',
+    'Start server stopped on an unexpected error: {}',
 ]
 
 LAUNCHER = {
@@ -262,6 +264,8 @@ LAUNCHER = {
         'Точный',
         'Английский',
         'Локальный (публичный сервер ещё не открыт)',
+        'PLAY остановился из-за непредвиденной ошибки: {}. Нажмите «Пакет для поддержки» и отправьте архив.',
+        'Запуск сервера остановлен ошибкой: {}',
     ],
     'ar': [
         'يحتاج DLSS إلى {} في {}: الناقص {}. شغّل برنامج الإعداد مرة أخرى؛ وإن اختفت مجددًا فقد حذفها برنامج مكافحة الفيروسات. حتى ذلك الحين يُستخدم FSR 3.1.',
@@ -391,6 +395,8 @@ LAUNCHER = {
         'دقيق',
         'الإنجليزية',
         'محلي (الخادم العام غير مفتوح بعد)',
+        'توقف التشغيل بسبب خطأ غير متوقع: {}. اضغط على حزمة الدعم وأرسل الملف المضغوط.',
+        'توقف تشغيل الخادم بسبب خطأ غير متوقع: {}',
     ],
     'es': [
         'DLSS necesita {} en {}: faltan {}. Ejecuta de nuevo el instalador; si vuelven a desaparecer, tu antivirus los eliminó. Mientras tanto se usa FSR 3.1.',
@@ -520,6 +526,8 @@ LAUNCHER = {
         'Preciso',
         'Inglés',
         'Local (el servidor público aún no está abierto)',
+        'JUGAR se detuvo por un error inesperado: {}. Pulsa Paquete de soporte y envía el zip.',
+        'Iniciar servidor se detuvo por un error inesperado: {}',
     ],
     'pt': [
         'O DLSS precisa de {} em {}: faltam {}. Execute o instalador de novo; se sumirem de novo, seu antivírus os removeu. Até lá, o FSR 3.1 é usado.',
@@ -649,6 +657,8 @@ LAUNCHER = {
         'Preciso',
         'Inglês',
         'Local (o servidor público ainda não está aberto)',
+        'JOGAR parou por um erro inesperado: {}. Clique em Pacote de suporte e envie o zip.',
+        'Iniciar servidor parou por um erro inesperado: {}',
     ],
     'fr': [
         'DLSS a besoin de {} dans {} : {} manquant(s). Relancez l’installation ; s’ils disparaissent encore, votre antivirus les a supprimés. En attendant, FSR 3.1 est utilisé.',
@@ -778,6 +788,8 @@ LAUNCHER = {
         'Précis',
         'Anglais',
         'Local (le serveur public n’est pas encore ouvert)',
+        'JOUER s’est arrêté sur une erreur inattendue : {}. Cliquez sur Paquet d’assistance et envoyez le zip.',
+        'Démarrer le serveur s’est arrêté sur une erreur inattendue : {}',
     ],
     'de': [
         'DLSS braucht {} in {}: {} fehlen. Führe das Setup erneut aus; verschwinden sie wieder, hat dein Virenschutz sie entfernt. Bis dahin wird FSR 3.1 verwendet.',
@@ -907,6 +919,8 @@ LAUNCHER = {
         'Genau',
         'Englisch',
         'Lokal (der öffentliche Server ist noch nicht offen)',
+        'SPIELEN wurde durch einen unerwarteten Fehler gestoppt: {}. Klicke auf Support-Paket und sende die ZIP-Datei.',
+        'Server starten wurde durch einen unerwarteten Fehler gestoppt: {}',
     ],
     'it': [
         'DLSS richiede {} in {}: mancano {}. Esegui di nuovo il setup; se spariscono ancora, li ha rimossi l’antivirus. Nel frattempo si usa FSR 3.1.',
@@ -1036,6 +1050,8 @@ LAUNCHER = {
         'Preciso',
         'Inglese',
         'Locale (il server pubblico non è ancora aperto)',
+        'GIOCA si è fermato per un errore imprevisto: {}. Premi Pacchetto di supporto e invia lo zip.',
+        'Avvia server si è fermato per un errore imprevisto: {}',
     ],
     'pl': [
         'DLSS potrzebuje {} w {}: brakuje {}. Uruchom instalator ponownie; jeśli znowu znikną, usunął je antywirus. Do tego czasu używany jest FSR 3.1.',
@@ -1165,6 +1181,8 @@ LAUNCHER = {
         'Dokładny',
         'Angielski',
         'Lokalny (serwer publiczny nie jest jeszcze otwarty)',
+        'GRAJ zatrzymało się z powodu nieoczekiwanego błędu: {}. Kliknij Pakiet wsparcia i wyślij plik zip.',
+        'Uruchom serwer zatrzymało się z powodu nieoczekiwanego błędu: {}',
     ],
     'tr': [
         'DLSS için {} dosyaları {} içinde gerekli: {} eksik. Kurulumu yeniden çalıştır; yine kaybolurlarsa antivirüsün silmiştir. O zamana kadar FSR 3.1 kullanılır.',
@@ -1294,6 +1312,8 @@ LAUNCHER = {
         'Kesin',
         'İngilizce',
         'Yerel (genel sunucu henüz açık değil)',
+        'OYNA beklenmeyen bir hata yüzünden durdu: {}. Destek paketi düğmesine basıp zip dosyasını gönderin.',
+        'Sunucuyu başlat beklenmeyen bir hata yüzünden durdu: {}',
     ],
     'zh': [
         'DLSS 需要 {}（位于 {}）：缺少 {}。请重新运行安装程序；如果它们再次消失，就是被杀毒软件删除了。在此之前使用 FSR 3.1。',
@@ -1423,6 +1443,8 @@ LAUNCHER = {
         '精确',
         '英语',
         '本地（公共服务器尚未开放）',
+        '“开始游戏”因意外错误而停止：{}。请点击“支持包”并发送该 zip 文件。',
+        '“启动服务器”因意外错误而停止：{}',
     ],
     'ja': [
         'DLSS には {} が {} に必要です：{} が見つかりません。セットアップをもう一度実行してください。また消える場合はウイルス対策ソフトが削除しています。それまでは FSR 3.1 を使います。',
@@ -1552,6 +1574,8 @@ LAUNCHER = {
         '正確',
         '英語',
         'ローカル（公開サーバーはまだ開いていません）',
+        '予期しないエラーでプレイが止まりました: {}。サポートパッケージを押して zip を送ってください。',
+        '予期しないエラーでサーバーの起動が止まりました: {}',
     ],
     'ko': [
         'DLSS에는 {}의 {}가 필요합니다: {} 없음. 설치 프로그램을 다시 실행하세요. 또 사라지면 백신이 삭제한 것입니다. 그때까지는 FSR 3.1을 사용합니다.',
@@ -1681,5 +1705,7 @@ LAUNCHER = {
         '정밀',
         '영어',
         '로컬(공용 서버가 아직 열리지 않음)',
+        '예기치 않은 오류로 플레이가 멈췄습니다: {}. 지원 패키지를 눌러 zip 파일을 보내 주세요.',
+        '예기치 않은 오류로 서버 시작이 멈췄습니다: {}',
     ],
 }

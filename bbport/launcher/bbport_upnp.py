@@ -74,8 +74,10 @@ def default_gateways(route_print=None):
         if sys.platform != 'win32':
             return []
         try:
-            route_print = subprocess.run(['route', 'print', '-4', '0.0.0.0'], capture_output=True, text=True,
-                                         timeout=5, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)).stdout
+            # Bytes, read with errors replaced: the OEM code page's words cannot stop it (2026-11-05).
+            route_print = subprocess.run(['route', 'print', '-4', '0.0.0.0'], capture_output=True,
+                                         timeout=5, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+                                         ).stdout.decode('ascii', 'replace')
         except (OSError, subprocess.SubprocessError):
             return []
     found = []
