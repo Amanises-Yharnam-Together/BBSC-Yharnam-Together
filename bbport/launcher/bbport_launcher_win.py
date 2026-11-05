@@ -4299,8 +4299,14 @@ class Launcher:
             self.coop_auth_strength.pack(fill='x', pady=(px(2), 0))
             self.coop_auth_strength_shown()
         if view == 'code':
-            self.coop_auth_code_text = self.label(host, self.coop_auth_code, 'body_bold', ACCENT_HI, anchor='w')
-            self.coop_auth_code_text.pack(fill='x', pady=(px(8), 0))
+            # A read-only entry, not a label, so the code can also be selected and copied by hand.
+            code = self.tk.StringVar(value=self.coop_auth_code)
+            self.coop_auth_code_text = self.tk.Entry(
+                host, textvariable=code, state='readonly', font=self.fonts['body_bold'], fg=ACCENT_HI,
+                readonlybackground=CARD, bg=CARD, relief='flat', bd=0, highlightthickness=0,
+                selectbackground=ACCENT_HI, selectforeground=CARD, width=len(self.coop_auth_code) + 2)
+            self.coop_auth_code_text.var = code
+            self.coop_auth_code_text.pack(anchor='w', pady=(px(8), 0))
             self.coop_auth_saved.set(False)
             saved = self.switch(host, self.coop_auth_saved, _('I saved it', 'Я сохранил(а) его'))
             saved.pack(anchor='w', pady=(px(8), 0))
@@ -4348,8 +4354,20 @@ class Launcher:
             self.coop_auth_action.configure(state='normal' if self.coop_auth_saved.get() else 'disabled')
 
     def coop_auth_copy(self):
+        """Copies the recovery code and says so on the button (Kaniel 2026-11-05: Copy seemed to do nothing)."""
         self.root.clipboard_clear()
         self.root.clipboard_append(self.coop_auth_code)
+        # Windows: hand the text to the system clipboard now, not at the next idle moment.
+        self.root.update()
+        button = self.coop_auth_other
+        if button is None:
+            return
+        button.configure(text=_('Copied', 'Скопировано'))
+
+        def back():
+            if button.canvas.winfo_exists():
+                button.configure(text=_('Copy', 'Копировать'))
+        self.root.after(2000, back)
 
     def coop_auth_pressed(self):
         """The view's main button."""
