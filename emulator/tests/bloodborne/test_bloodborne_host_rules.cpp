@@ -238,6 +238,69 @@ TEST(BloodborneEnemyScaling, FromVanillaAloneToTheHarderDefaultsForAFullTeam) {
     }
 }
 
+// Kaniel 2026-11-05: the enemies' strength is the team's (its leader sets it on the team screen):
+// Auto grows from vanilla alone to the team's strength for a full team, Fixed is the team's
+// strength at all times; neither takes a player's own launcher value while in a team.
+TEST(BloodborneEnemyScaling, TheTeamsStrengthOverEachPlayersOwn) {
+    const HarderEnemies own{9.0f, 9.0f, 9.0f};
+    const HarderEnemies team{2.0f, 1.25f, 2.0f};
+    HostRules rules;
+    rules.enemy_scaling = true;
+    rules.enemies = team;
+    EXPECT_FALSE(EnemiesWanted(rules, true, 1, own).has_value()) << "Auto alone: vanilla";
+    const auto full = EnemiesWanted(rules, true, TeamSlots, own);
+    ASSERT_TRUE(full.has_value());
+    EXPECT_FLOAT_EQ(full->hp, 2.0f);
+    EXPECT_FLOAT_EQ(full->damage, 1.25f);
+    EXPECT_FLOAT_EQ(full->poise, 2.0f);
+    const auto three = EnemiesWanted(rules, true, 3, own);
+    ASSERT_TRUE(three.has_value());
+    EXPECT_FLOAT_EQ(three->hp, 1.5f) << "half way for 3 of 5";
+    // Auto without a strength: the standard (TeamScaledEnemies).
+    rules.enemies.reset();
+    EXPECT_FLOAT_EQ(EnemiesWanted(rules, true, TeamSlots, own)->hp, HarderDefaultHp);
+    // Fixed: the team's at all times, the standard when it has none.
+    rules.enemy_scaling = false;
+    rules.enemies = team;
+    ASSERT_TRUE(EnemiesWanted(rules, true, 1, own).has_value());
+    EXPECT_FLOAT_EQ(EnemiesWanted(rules, true, 1, own)->damage, 1.25f);
+    rules.enemies.reset();
+    EXPECT_FLOAT_EQ(EnemiesWanted(rules, true, 4, own)->poise, HarderDefaultPoise);
+    // Out of a team: the player's own launcher setting, as before.
+    EXPECT_FLOAT_EQ(EnemiesWanted(rules, false, 1, own)->hp, 9.0f);
+    EXPECT_FALSE(EnemiesWanted(rules, false, 1, std::nullopt).has_value());
+}
+
+TEST(BloodborneEnemyScaling, TheTeamsStrengthFromItsRules) {
+    EXPECT_FALSE(TeamStrength(0.0f, 0.0f, 0.0f).has_value()) << "none: the standard";
+    const auto set = TeamStrength(2.0f, 0.0f, 4.0f);
+    ASSERT_TRUE(set.has_value());
+    EXPECT_FLOAT_EQ(set->hp, 2.0f);
+    EXPECT_FLOAT_EQ(set->damage, HarderDefaultDamage);
+    EXPECT_FLOAT_EQ(set->poise, 4.0f);
+}
+
+// Kaniel 2026-11-05: what the team screen's leader sets goes to the game as one text.
+TEST(BloodborneHostRules, TheTeamScreensRulesAsOneText) {
+    HostRules rules;
+    rules.travel_together = true;
+    rules.travel_vote = true;
+    rules.enemy_scaling = true;
+    rules.boss_tempo = BossTempo::Relentless;
+    rules.enemies = HarderEnemies{2.5f, 1.25f, 3.0f};
+    const std::string text = ScreenRulesText(rules);
+    EXPECT_EQ(text, "0,1,1,1,2,2.5,1.25,3");
+    EXPECT_EQ(ParseScreenRules(text), rules);
+    HostRules standard;
+    EXPECT_EQ(ScreenRulesText(standard), "0,0,0,0,0,0,0,0");
+    EXPECT_EQ(ParseScreenRules("0,0,0,0,0,0,0,0"), standard);
+    EXPECT_FALSE(ParseScreenRules("0,0,0,0,3,0,0,0").has_value()) << "no such tempo";
+    EXPECT_FALSE(ParseScreenRules("0,0,0,0,0,0.5,0,0").has_value()) << "weaker than vanilla";
+    EXPECT_FALSE(ParseScreenRules("0,0,0,0,0,11,0,0").has_value());
+    EXPECT_FALSE(ParseScreenRules("0,0,0").has_value());
+    EXPECT_FALSE(ParseScreenRules("").has_value());
+}
+
 TEST(BloodborneEnemyScaling, CountsTheHuntersOnThisMap) {
     const std::vector<MemberMap> board{{"me", 0x15000000}, {"b", 0x15000000}, {"c", 0x18000000}};
     EXPECT_EQ(HuntersOnMap(board, "me", 0x15000000), 2u);

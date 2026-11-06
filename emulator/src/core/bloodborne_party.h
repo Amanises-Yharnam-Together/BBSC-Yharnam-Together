@@ -2546,6 +2546,7 @@ struct HarderEnemies {
     float hp = 1.0f;
     float damage = 1.0f;
     float poise = 1.0f;
+    bool operator==(const HarderEnemies&) const = default;
 };
 std::optional<HarderEnemies> ParseHarderEnemies(std::string_view setting);
 // NpcParam (NPC_PARAM_ST, 0x184-byte rows): hp (u32) and superArmorDurability (s16, poise).

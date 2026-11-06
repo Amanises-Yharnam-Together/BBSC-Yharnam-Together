@@ -53,8 +53,9 @@ DEFAULTS = {'game': '', 'update': '', 'role': 'guest', 'host_ip': '', 'account':
             'confirmed': '',
             # The PC the player id was made on (this_machine()): a copied install makes its own id.
             'machine': '',
-            # Kaniel 2026-10-25: the host rules ('1' on, all off by default): the leader's are its team's.
-            'rule_rot': '', 'rule_travel': '', 'rule_vote': '', 'rule_scale': '',
+            # Kaniel 2026-10-25: the host rules ('1' on): the leader's are its team's. Off by default but
+            # the enemies' Auto scaling (Kaniel 2026-11-05: "please default to auto").
+            'rule_rot': '', 'rule_travel': '', 'rule_vote': '', 'rule_scale': '1',
             # Kaniel 2026-11-01: '1' shows the game on Discord (off by default).
             'discord_status': '',
             # Kaniel 2026-11-01: 'local' (a host's own server, by its address: as ever) or 'global' (the
@@ -326,7 +327,7 @@ def missing(settings):
 # Kaniel 2026-11-04: password only (the server's own accounts, a name and a password: bbport_auth.py).
 
 # The public server's address, once it runs: https only, its directory or the server itself.
-GLOBAL_SERVER = ''
+GLOBAL_SERVER = 'https://seamlesshunt.com'
 GLOBAL_CLOSED_TEXT = 'The public server is not open yet.'
 # A new id on a Global server without a sign-in, or an old or signed-out secret (the server's
 # link_server.cpp AccountFirst).
@@ -486,7 +487,8 @@ def server_ids_of(saved):
 # ships here, by its name as typed (server_key): its operator reads it from shadNet's log or the admin
 # `key` command. Any other server's (a friend's home host) is trusted the first time, as the game's
 # log says it (p2p_sockets.cpp), and kept in coop.json's server_keys.
-KNOWN_SERVER_KEYS = {}
+# Kaniel's Fornex VPS (199.195.193.131), shadNet deployed 2026-11-05.
+KNOWN_SERVER_KEYS = {'https://seamlesshunt.com': 'e55f4f13d3845aa4eddeb0e12a9d143cb5f68af0a71e0dba111c688a1014c958'}
 LEARNED_KEY_LINE = "Server link: the server's key, trusted on first use: "
 OTHER_KEY_LINE = 'Server link: the server says another key than the one pinned'
 OTHER_KEY_TEXT = ("The server answered with another key than the one kept for it: someone else may be answering "
@@ -1133,9 +1135,20 @@ def events_current(install):
         return False
 
 
+# Files the game view must reach through its links. Kaniel 2026-11-05: a view left from an older
+# install still had its hard-linked eboot.bin while the sce_module and menu links no longer led to
+# the game, and PLAY failed ("prepare failed: ... sce_module\\libc.prx") instead of making it again.
+VIEW_CHECKS = (('eboot.bin',), ('sce_module', 'libc.prx'), ('dvdroot_ps4', 'event', 'common.emevd.dcx'))
+
+
+def view_complete(view):
+    """Whether the game view's key files resolve (its links still lead to the game)."""
+    return all(Path(view, *parts).is_file() for parts in VIEW_CHECKS)
+
+
 def needs_prepare(install, settings):
     root = view_root(install)
-    return (settings.get('prepared') != prepared_key(settings) or not is_game_folder(root / 'CUSA03173')
+    return (settings.get('prepared') != prepared_key(settings) or not view_complete(root / 'CUSA03173')
             or not events_current(install))
 
 
@@ -1350,17 +1363,28 @@ def game_environment(env, settings, install, root):
                 'BB_COMMUNITY_SERVER', 'SHADPS4_BLOODBORNE_HOST_RULES',
                 'SHADPS4_BLOODBORNE_NO_PHANTOM_GLOW'):
         env.pop(key, None)
-    if (rules := host_rules_value(settings)) != 'off':
-        env['SHADPS4_BLOODBORNE_HOST_RULES'] = rules
+    # Kaniel 2026-11-05: on the public server the team's rules and enemy strength are its leader's, set
+    # on the game's team screen (the server's default until then): none of this launcher's. On a local
+    # server this launcher's always go ('off' too): the team its player leads starts with them.
+    local = rule_steps(settings) != []
+    if local:
+        env['SHADPS4_BLOODBORNE_HOST_RULES'] = host_rules_value(settings)
+    # Each player's own look (#467), on any server.
     if settings.get('hide_glow') == '1':
         env['SHADPS4_BLOODBORNE_NO_PHANTOM_GLOW'] = '1'
     port = str(settings.get('p2p_port', 'auto'))
     if port not in ('auto', '', '51610', '51611'):
         env['SHADPS4_P2P_PORT'] = port
     harder = str(settings.get('harder', 'off'))
-    if harder != 'off' and valid_harder(harder):
+    if local and harder != 'off' and valid_harder(harder):
         env['SHADPS4_BLOODBORNE_HARDER_ENEMIES'] = harder
     return discord_environment(env, settings)
+
+
+def rule_steps(settings):
+    """The co-op page's steps with the team rules (2 Enemies, 3 Travel): a local server's only. On the
+    public server the team's leader sets them on the game's team screen (Kaniel 2026-11-05)."""
+    return [] if settings.get('server_type') == 'global' else [2, 3]
 
 
 REPORTS_SENT = 'reports-sent.json'
@@ -1514,15 +1538,38 @@ def start_servers(install, host_ip, wait_s=10.0):
     return said
 
 
+def console_text(data):
+    """A Windows tool's output as text, never None. netsh and route write in the console's (OEM) code
+    page: on a Russian Windows CP866, which the ANSI one (CP1251) cannot read, so text=True lost the
+    whole output (stdout None) and PLAY's firewall check failed on every start (play check 2026-11-05,
+    a Russian player: the spinner forever)."""
+    if not data:
+        return ''
+    if isinstance(data, str):
+        return data
+    try:
+        return data.decode('utf-8')
+    except UnicodeDecodeError:
+        pass
+    for codec in ('oem', 'mbcs'):  # Windows only; elsewhere the lookup fails and the next one is tried
+        try:
+            return data.decode(codec, 'replace')
+        except LookupError:
+            continue
+    return data.decode('latin-1')
+
+
 def our_processes(install):
     """(pid, name, command line) of this install's shadnet (its watchdog too) and backend."""
     install = str(Path(install).resolve()).lower()
-    script = ("Get-CimInstance Win32_Process -Filter \"Name='shadnet.exe' OR Name='BLauncher.exe' OR "
+    # UTF-8 out, so an install path in any language comes back as it is (not through the OEM code page).
+    script = ("[Console]::OutputEncoding = [Text.Encoding]::UTF8; "
+              "Get-CimInstance Win32_Process -Filter \"Name='shadnet.exe' OR Name='BLauncher.exe' OR "
               "Name='python.exe' OR Name='pythonw.exe'\" | ForEach-Object { \"$($_.ProcessId)|$($_.Name)|"
               "$($_.ExecutablePath)|$($_.CommandLine)\" }")
     try:
-        out = subprocess.run(['powershell', '-NoProfile', '-Command', script], capture_output=True, text=True,
-                             timeout=20, creationflags=NO_WINDOW).stdout
+        out = console_text(subprocess.run(['powershell', '-NoProfile', '-Command', script], capture_output=True,
+                                          timeout=20, creationflags=NO_WINDOW).stdout)
     except (OSError, subprocess.TimeoutExpired):
         return []
     found = []
@@ -1675,10 +1722,10 @@ def firewall_ready(install, host):
     for name in names:
         try:
             out = subprocess.run(['netsh', 'advfirewall', 'firewall', 'show', 'rule', f'name={name}', 'verbose'],
-                                 capture_output=True, text=True, timeout=15, creationflags=NO_WINDOW)
+                                 capture_output=True, timeout=15, creationflags=NO_WINDOW)
         except (OSError, subprocess.TimeoutExpired):
             return False
-        if out.returncode != 0 or (name == RULE_GAME and probe not in out.stdout.lower()):
+        if out.returncode != 0 or (name == RULE_GAME and probe not in console_text(out.stdout).lower()):
             return False
     return True
 

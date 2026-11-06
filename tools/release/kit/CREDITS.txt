@@ -11,12 +11,20 @@ MADE TOGETHER BY
   AMANISES (CLS_AMG)           https://github.com/CLSAMG22/BBSC
   Supermedo                    https://github.com/Supermedo/bloodborne_pc
 
+SUPPORTERS
+  Thank you for keeping this going:
+  Fett750, abood, Kotori长尺, Prohorov Ilja, and one supporter who stayed anonymous.
+
 TESTERS
-  fra98_ (framilano), Hardwater, Onesadeye, aboood888848, Fahad, Mob, lelial, J2mF, Kukar3x
+  fra98_ (framilano), Hardwater, Onesadeye, aboood888848, Fahad, Mob, lelial, J2mF, Kukar3x,
+  Kaniel, Prohorov Ilja, .ζ͜长𐌏𐌕𐌏ᚱ𐌆, Lisara
 
 SPECIAL THANKS
-  framilano (fra98_) for the Bloodborne Nucleus Co-op Handler, and Fahad (fhody125) for
-  No Dream For The Hunter.
+  framilano (fra98_) for the Bloodborne Nucleus Co-op Handler.
+  Fahad (fhody125) for No Dream For The Hunter: the game server and ss.info groundwork the
+  servers grew from, and the fixed Chalice Dungeon data (NoDreamForTheHunterBB, published by Mob,
+  https://github.com/Mob100percent/NoDreamForTheHunterBB).
+  The shadNet team for shadNet, the shadPS4 online service the co-op server is built from.
 
 THE PROJECTS THIS IS FORKED FROM
   shadPS4                  https://github.com/shadps4-emu/shadPS4 (GPL-2.0-or-later)
@@ -72,3 +80,6 @@ BUNDLED COMPONENTS (licenses in the licenses folder)
 
 The source code of everything here, and of the exact build in this release (VERSION.txt names
 the commit), is at https://github.com/Amanises-Yharnam-Together/BBSC-Yharnam-Together.
+
+Bloodborne is developed by FromSoftware and published by Sony Interactive Entertainment. This is a
+free fan-made project; you need your own copy of the game.

@@ -272,8 +272,11 @@ launcher updates itself from them and the website's download page offers the new
 [AMANISES](https://github.com/CLSAMG22/BBSC) (CLS_AMG) and
 [Supermedo](https://github.com/Supermedo/bloodborne_pc).
 
+**Supporters:** Fett750, abood, Kotori长尺, Prohorov Ilja, and one supporter who stayed anonymous.
+Thank you.
+
 **Testers:** fra98_ (framilano), Hardwater, Onesadeye, aboood888848, Fahad, Mob, lelial, J2mF,
-Kukar3x. **Special thanks** to framilano (fra98_) for the
+Kukar3x, Kaniel, Prohorov Ilja, .ζ͜长𐌏𐌕𐌏ᚱ𐌆, Lisara. **Special thanks** to framilano (fra98_) for the
 [Bloodborne Nucleus Co-op Handler](https://github.com/framilano/BloodborneNucleusCoopHandler) and
 Fahad (fhody125) for [No Dream For The Hunter](https://github.com/Mob100percent/NoDreamForTheHunterBB).
 

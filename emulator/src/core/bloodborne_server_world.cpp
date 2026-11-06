@@ -271,6 +271,10 @@ void WriteCharacterName(int slot, const std::string& name) {
 // for the game thread's every frame without the team's lock.
 std::atomic<u8> team_rules_bits{0};
 std::atomic<bool> in_team{false};
+// Kaniel 2026-11-05: the team's enemy strength (TeamRules enemy_hp/damage/poise; 0 the standard).
+std::atomic<float> team_enemy_hp{0.0f};
+std::atomic<float> team_enemy_damage{0.0f};
+std::atomic<float> team_enemy_poise{0.0f};
 // The team's rot for this player, as the server last had it (a game that came back takes it).
 std::mutex kept_rot_mutex;
 std::optional<std::vector<u32>> kept_rot;
@@ -309,11 +313,19 @@ void NoteTeamRules(const bbcoop::LobbyState& state, const std::string& me) {
                           .travel_together = r.travel_together(),
                           .travel_vote = r.travel_vote(),
                           .enemy_scaling = r.enemy_scaling(),
-                          .boss_tempo = BossTempoOf(r.boss_tempo())};
+                          .boss_tempo = BossTempoOf(r.boss_tempo()),
+                          .enemies = TeamStrength(r.enemy_hp(), r.enemy_damage(), r.enemy_poise())};
     const u8 bits = RulesBits(rules);
     const bool was_in = in_team.exchange(team);
-    if (team && (team_rules_bits.exchange(bits) != bits || !was_in)) {
-        LOG_INFO(Debug, "Co-op host rules: the team's rules are {}", HostRulesText(rules));
+    const bool strength_changed = team_enemy_hp.exchange(r.enemy_hp()) != r.enemy_hp() |
+                                  team_enemy_damage.exchange(r.enemy_damage()) != r.enemy_damage() |
+                                  team_enemy_poise.exchange(r.enemy_poise()) != r.enemy_poise();
+    if (team && (team_rules_bits.exchange(bits) != bits || strength_changed || !was_in)) {
+        LOG_NOTICE(Debug, "Co-op host rules: the team's rules are {}; enemies {} {}",
+                   HostRulesText(rules), rules.enemy_scaling ? "auto" : "fixed",
+                   rules.enemies ? fmt::format("{:g},{:g},{:g}", rules.enemies->hp,
+                                               rules.enemies->damage, rules.enemies->poise)
+                                 : std::string{"standard"});
     }
     if (team) {
         for (const bbcoop::TeamMember& m : state.team().members()) {
@@ -323,6 +335,39 @@ void NoteTeamRules(const bbcoop::LobbyState& state, const std::string& me) {
             }
         }
     }
+}
+
+// Kaniel 2026-11-05: the rules this game asks for its team: the ones its leader set on the team
+// screen (SetTeamRulesFromScreen), else its launcher's (SHADPS4_BLOODBORNE_HOST_RULES and the
+// enemies' strength, SHADPS4_BLOODBORNE_HARDER_ENEMIES), else none (the public server's launcher
+// sets none: the team starts with the server's default rules).
+std::mutex screen_rules_mutex;
+std::optional<bbcoop::TeamRules> screen_rules;
+
+std::optional<bbcoop::TeamRules> OwnTeamRules() {
+    {
+        std::scoped_lock lock{screen_rules_mutex};
+        if (screen_rules) {
+            return screen_rules;
+        }
+    }
+    if (std::getenv("SHADPS4_BLOODBORNE_HOST_RULES") == nullptr) {
+        return std::nullopt;
+    }
+    const HostRules& own = OwnHostRules();
+    bbcoop::TeamRules r;
+    r.set_rot(own.rot);
+    r.set_travel_together(own.travel_together);
+    r.set_travel_vote(own.travel_vote);
+    r.set_enemy_scaling(own.enemy_scaling);
+    r.set_boss_tempo(static_cast<bbcoop::BossTempo>(own.boss_tempo));
+    const char* harder = std::getenv("SHADPS4_BLOODBORNE_HARDER_ENEMIES");
+    if (const auto strength = ParseHarderEnemies(harder != nullptr ? harder : "")) {
+        r.set_enemy_hp(strength->hp);
+        r.set_enemy_damage(strength->damage);
+        r.set_enemy_poise(strength->poise);
+    }
+    return r;
 }
 
 bool TakeLobbyMessage(const bbcoop::Envelope& envelope) {
@@ -463,16 +508,15 @@ void SendLobby(s64 now_ms) {
         hello.mutable_lobby_hello()->set_playing(lobby_playing);
         stream->Send(EncodeEnvelope(hello), now_ms);
         // Kaniel 2026-10-25: this launcher's host rules, the team's if this player leads it.
-        const HostRules& own = OwnHostRules();
-        bbcoop::Envelope rules;
-        rules.mutable_team_request()->set_action(bbcoop::TeamRequest::RULES);
-        bbcoop::TeamRules& r = *rules.mutable_team_request()->mutable_rules();
-        r.set_rot(own.rot);
-        r.set_travel_together(own.travel_together);
-        r.set_travel_vote(own.travel_vote);
-        r.set_enemy_scaling(own.enemy_scaling);
-        r.set_boss_tempo(static_cast<bbcoop::BossTempo>(own.boss_tempo));
-        stream->Send(EncodeEnvelope(rules), now_ms);
+        // Kaniel 2026-11-05: none when the launcher set none (the public server's: the team
+        // starts with the server's default), and the ones its leader set on the team screen
+        // since (a hello again must not put the launcher's back).
+        if (const auto own = OwnTeamRules()) {
+            bbcoop::Envelope rules;
+            rules.mutable_team_request()->set_action(bbcoop::TeamRequest::RULES);
+            *rules.mutable_team_request()->mutable_rules() = *own;
+            stream->Send(EncodeEnvelope(rules), now_ms);
+        }
     }
     for (const bbcoop::Envelope& envelope : lobby_outbox) {
         stream->Send(EncodeEnvelope(envelope), now_ms);
@@ -2457,7 +2501,17 @@ const HostRules& OwnHostRules() {
 }
 
 HostRules ActiveHostRules() {
-    return in_team.load() ? RulesOf(team_rules_bits.load()) : OwnHostRules();
+    if (!in_team.load()) {
+        return OwnHostRules();
+    }
+    HostRules rules = RulesOf(team_rules_bits.load());
+    rules.enemies =
+        TeamStrength(team_enemy_hp.load(), team_enemy_damage.load(), team_enemy_poise.load());
+    return rules;
+}
+
+bool InTeamNow() {
+    return in_team.load();
 }
 
 std::optional<std::vector<u32>> TakeKeptRot() {
@@ -2479,6 +2533,35 @@ void ReportRot(std::span<const u32> rot) {
 
 void TeamLobbyRequest(bbcoop::TeamRequest::Action action, const std::string& id) {
     bbcoop::Envelope envelope;
+    // Kaniel 2026-11-05: the leader's rules from the team screen (ScreenRulesText): the team's
+    // from now on, and this game's own for its next hellos (OwnTeamRules).
+    if (action == bbcoop::TeamRequest::RULES) {
+        const auto parsed = ParseScreenRules(id);
+        if (!parsed) {
+            LOG_WARNING(Debug, "Co-op team lobby: the team screen's rules {} are not rules", id);
+            return;
+        }
+        bbcoop::TeamRules r;
+        r.set_rot(parsed->rot);
+        r.set_travel_together(parsed->travel_together);
+        r.set_travel_vote(parsed->travel_vote && parsed->travel_together);
+        r.set_enemy_scaling(parsed->enemy_scaling);
+        r.set_boss_tempo(static_cast<bbcoop::BossTempo>(parsed->boss_tempo));
+        if (parsed->enemies) {
+            r.set_enemy_hp(parsed->enemies->hp);
+            r.set_enemy_damage(parsed->enemies->damage);
+            r.set_enemy_poise(parsed->enemies->poise);
+        }
+        {
+            std::scoped_lock lock{screen_rules_mutex};
+            screen_rules = r;
+        }
+        envelope.mutable_team_request()->set_action(bbcoop::TeamRequest::RULES);
+        *envelope.mutable_team_request()->mutable_rules() = r;
+        LOG_NOTICE(Debug, "Co-op team lobby: the team screen sets the team's rules {}", id);
+        QueueLobby(std::move(envelope));
+        return;
+    }
     *envelope.mutable_team_request() = TeamMenuRequest(action, id);
     // Amanises 2026-10-25, quick match: the character's level while it plays (the server matches
     // near levels); at the title no character is loaded (0: any team fits).
@@ -3063,6 +3146,25 @@ bool RunTeamTitleVerb(const AutoplayCommand& command, bool begun, double elapsed
             envelope.mutable_team_request()->set_action(bbcoop::TeamRequest::OPEN);
             envelope.mutable_team_request()->set_join(mode);
             QueueLobby(std::move(envelope));
+        }
+    } else if ((command.verb == "team-rules" || command.verb == "team-wait-rules") &&
+               command.args.size() == 1) {
+        // Kaniel 2026-11-05: team-rules <rules> sets the team's rules as its leader's team screen
+        // does (ScreenRulesText's text); team-wait-rules <rules> waits for a member to have them.
+        const auto team_rules_text = [](const bbcoop::TeamRules& r) {
+            return ScreenRulesText(
+                {.rot = r.rot(),
+                 .travel_together = r.travel_together(),
+                 .travel_vote = r.travel_vote(),
+                 .enemy_scaling = r.enemy_scaling(),
+                 .boss_tempo = BossTempoOf(r.boss_tempo()),
+                 .enemies = TeamStrength(r.enemy_hp(), r.enemy_damage(), r.enemy_poise())});
+        };
+        done =
+            lobby && lobby->has_team() && team_rules_text(lobby->team().rules()) == command.args[0];
+        if (command.verb == "team-rules" && lobby && lobby->has_team() && !done &&
+            (!begun || elapsed > 5.0)) {
+            TeamLobbyRequest(bbcoop::TeamRequest::RULES, command.args[0]);
         }
     } else if (command.verb == "team-join-open") {
         // The first open team listed, as its row's Join.

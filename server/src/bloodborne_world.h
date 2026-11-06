@@ -213,6 +213,10 @@ public:
     };
 
     void SetHosted(const HostedRules& rules);
+    // Kaniel 2026-11-05: the rules of a team whose maker's game sent none (shadnet.cfg).
+    void SetDefaultRules(const bbcoop::TeamRules& rules) {
+        lobby.SetDefaultRules(rules);
+    }
     // A region: the directory's view for the lobby's lookups, and this shard's name.
     void SetRegion(BloodborneCoop::TeamLobby::Region region, std::string shard);
     // Invites from other shards' teams for players here (the heartbeat's inbox).
