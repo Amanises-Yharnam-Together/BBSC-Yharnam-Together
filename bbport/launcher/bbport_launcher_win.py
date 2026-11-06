@@ -4859,6 +4859,10 @@ class Launcher:
             return
         for key, v in self.coop_vars.items():
             self.coop[key] = v.get().strip()
+        # The map's page names the game folder too: it asks again when the folder changes.
+        if getattr(self, 'map_game_seen', None) != self.coop.get('game'):
+            self.map_game_seen = self.coop.get('game')
+            self.refresh_map()
         try:
             bbport_coop.save_settings(PORT_DIR, self.coop)
         except OSError:
