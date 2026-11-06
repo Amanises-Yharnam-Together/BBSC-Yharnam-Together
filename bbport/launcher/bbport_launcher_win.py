@@ -30,6 +30,7 @@ import sys
 import tempfile
 import threading
 import time
+import urllib.parse
 import urllib.request
 import webbrowser
 import zipfile
@@ -2926,6 +2927,8 @@ class Launcher:
         self.fit_window()
         if COOP_INSTALL and self.coop_needs_setup():
             self.open_coop(required=True)
+        if COOP_INSTALL:
+            self.coop_offer_public()
         root.protocol('WM_DELETE_WINDOW', self.close)
         root.after(100, self.drain_output)
         root.after(30, self.start_motion)
@@ -4171,6 +4174,7 @@ class Launcher:
         self.coop_go(0)
         if not self.coop_game_folder():
             self.coop_search(None, quiet=True)
+        self.coop_server_row_follows()
 
     def build_coop_server(self, page, var):
         """The first step: Local (a host's own server, as ever) or Global (the public server: its own accounts,
@@ -4803,6 +4807,8 @@ class Launcher:
         self.coop_cover.place(x=0, y=0, relwidth=1, relheight=1)
         self.coop_cover.lift()
         self.coop_go(0)
+        if getattr(self, 'public_offer', None) is not None:
+            self.public_offer.lift()  # the question stays on top until it is answered
 
     def close_coop(self):
         self.coop_custom_tidy()
@@ -4864,12 +4870,78 @@ class Launcher:
             self.coop_host_cell.grid_remove()
         else:
             self.coop_host_cell.grid()
+        self.coop_server_row_follows()
         if not self.coop_searching:
             self.coop_show_game()
         self.coop_show_step()
         if hasattr(self, 'checks'):
             self.refresh_status()
             self.refresh_game_line()
+
+    def coop_server_row_follows(self):
+        """Start server and Stop server are a Local host's: on the public server nobody runs one (Kaniel
+        2026-11-06), so the bottom bar shows them only while Local is chosen."""
+        row = getattr(self, 'server_row', None)
+        if row is None:
+            return
+        if self.coop.get('server_type') == 'global':
+            row.pack_forget()
+        elif not row.winfo_manager():
+            row.pack(side='left', padx=(self.px(14), 0))
+
+    # --- the public server, offered once to every player (Kaniel 2026-11-06) ----------------------
+
+    def coop_offer_public(self):
+        """Once per install: a player not on the public server is asked to make it their default. Yes picks
+        Global and opens the co-op settings on its sign-in; Keep Local leaves everything as it was. Either
+        answer is kept ('public_asked'), so the question never comes back; Co-op settings still switch."""
+        if (not COOP_INSTALL or self.coop.get('server_type') == 'global' or self.coop.get('public_asked') == '1'
+                or not bbport_coop.global_url(self.coop)):
+            return None
+        tk, px = self.tk, self.px
+        cover = self.public_offer = tk.Frame(self.root, bg=BG)
+        self.chrome.bind_drag(cover)
+        holder = tk.Frame(cover, bg=BG)
+        holder.place(relx=0.5, rely=0.45, anchor='center', width=px(640))
+        card = self.card(holder, _('Play on the public server?'), pad=32)
+        card.frame.pack_configure(padx=0, pady=0)
+        host = urllib.parse.urlsplit(bbport_coop.global_url(self.coop)).hostname or ''
+        self.label(card, _('The public server {} is open: hunters from everywhere, quick match, and your account on '
+                           'any PC. Nobody has to start a server or share an IP address. Make it your default? You '
+                           'can switch back to Local at any time in the Co-op settings.').format(host),
+                   'body', MUTED, wraplength=px(560), justify='left').grid(
+            row=1, column=0, columnspan=2, sticky='w', pady=(px(6), px(20)))
+        buttons = tk.Frame(card, bg=CARD)
+        buttons.grid(row=2, column=0, columnspan=2, sticky='e')
+        self.public_keep = self.button(buttons, _('Keep Local'), lambda: self.coop_answer_public(False))
+        self.public_keep.pack(side='right')
+        self.public_switch = self.button(buttons, _('Switch to the public server'),
+                                         lambda: self.coop_answer_public(True), 'primary')
+        self.public_switch.pack(side='right', padx=(0, px(10)))
+        cover.place(x=0, y=0, relwidth=1, relheight=1)
+        cover.lift()
+        return cover
+
+    def coop_answer_public(self, switch):
+        cover = getattr(self, 'public_offer', None)
+        if cover is None:
+            return
+        self.public_offer = None
+        cover.destroy()
+        self.coop['public_asked'] = '1'
+        if switch:
+            self.coop['server_type'] = 'global'
+            if 'server_type' in getattr(self, 'coop_vars', {}):
+                self.coop_vars['server_type'].set('global')  # the setup follows (coop_auth_follows)
+        try:
+            bbport_coop.save_settings(PORT_DIR, self.coop)
+        except OSError:
+            pass
+        if switch:
+            self.coop_changed()
+            self.open_coop(required=bool(self.coop_ready()))  # the first tab: sign in or make an account
+        if hasattr(self, 'checks'):
+            self.refresh_status()
 
     def coop_game_info(self):
         """(title, version) of the co-op card's game as co-op runs it: 01.09 when the update is next to it."""

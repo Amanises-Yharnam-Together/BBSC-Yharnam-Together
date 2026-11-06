@@ -137,6 +137,10 @@ LAUNCHER_KEYS = [
     "Set co-op up once, in two steps. Everyone uses this same release; the others see your character's name. Enemies and travel are the team leader's, on the game's team screen.",
     "Your co-op settings: pick a tab to change it. Enemies and travel are the team leader's, on the game's team screen.",
     'Game patches for version 1.09, applied at start.',
+    'Play on the public server?',
+    'The public server {} is open: hunters from everywhere, quick match, and your account on any PC. Nobody has to start a server or share an IP address. Make it your default? You can switch back to Local at any time in the Co-op settings.',
+    'Switch to the public server',
+    'Keep Local',
 ]
 
 LAUNCHER = {
@@ -274,6 +278,10 @@ LAUNCHER = {
         'Настройте кооператив один раз, в два шага. Все используют один релиз; другие видят имя вашего персонажа. Враги и путешествия выбирает лидер команды, на экране команды в игре.',
         'Ваши настройки кооператива: выберите вкладку, чтобы изменить. Враги и путешествия выбирает лидер команды, на экране команды в игре.',
         'Патчи игры для версии 1.09, применяются при запуске.',
+        'Играть на публичном сервере?',
+        'Публичный сервер {} открыт: охотники со всего мира, быстрый подбор и ваш аккаунт на любом ПК. Никому не нужно запускать сервер или делиться IP-адресом. Сделать его основным? Вернуться к локальному можно в любой момент в настройках кооператива.',
+        'Перейти на публичный сервер',
+        'Оставить локальный',
     ],
     'ar': [
         'يحتاج DLSS إلى {} في {}: الناقص {}. شغّل برنامج الإعداد مرة أخرى؛ وإن اختفت مجددًا فقد حذفها برنامج مكافحة الفيروسات. حتى ذلك الحين يُستخدم FSR 3.1.',
@@ -409,6 +417,10 @@ LAUNCHER = {
         'اضبط اللعب التعاوني مرة واحدة، في خطوتين. يستخدم الجميع الإصدار نفسه؛ ويرى الآخرون اسم شخصيتك. الأعداء والسفر يحددهما قائد الفريق، في شاشة الفريق داخل اللعبة.',
         'إعدادات اللعب التعاوني: اختر تبويبًا لتغييره. الأعداء والسفر يحددهما قائد الفريق، في شاشة الفريق داخل اللعبة.',
         'تصحيحات اللعبة للإصدار 1.09، تُطبَّق عند التشغيل.',
+        'هل تلعب على الخادم العام؟',
+        'الخادم العام {} مفتوح الآن: صيادون من كل مكان، ومطابقة سريعة، وحسابك على أي حاسوب. لا يحتاج أحد إلى تشغيل خادم أو مشاركة عنوان IP. هل تجعله الافتراضي؟ يمكنك العودة إلى المحلي في أي وقت من إعدادات اللعب الجماعي.',
+        'الانتقال إلى الخادم العام',
+        'البقاء على المحلي',
     ],
     'es': [
         'DLSS necesita {} en {}: faltan {}. Ejecuta de nuevo el instalador; si vuelven a desaparecer, tu antivirus los eliminó. Mientras tanto se usa FSR 3.1.',
@@ -544,6 +556,10 @@ LAUNCHER = {
         'Configura el cooperativo una vez, en dos pasos. Todos usan esta misma versión; los demás ven el nombre de tu personaje. Los enemigos y los viajes los elige el líder del equipo, en la pantalla de equipo del juego.',
         'Tus ajustes de cooperativo: elige una pestaña para cambiarla. Los enemigos y los viajes los elige el líder del equipo, en la pantalla de equipo del juego.',
         'Parches del juego para la versión 1.09, aplicados al iniciar.',
+        '¿Jugar en el servidor público?',
+        'El servidor público {} está abierto: cazadores de todas partes, emparejamiento rápido y tu cuenta en cualquier PC. Nadie tiene que iniciar un servidor ni compartir una dirección IP. ¿Lo usas por defecto? Puedes volver a Local cuando quieras en los ajustes de Cooperativo.',
+        'Cambiar al servidor público',
+        'Seguir en Local',
     ],
     'pt': [
         'O DLSS precisa de {} em {}: faltam {}. Execute o instalador de novo; se sumirem de novo, seu antivírus os removeu. Até lá, o FSR 3.1 é usado.',
@@ -679,6 +695,10 @@ LAUNCHER = {
         'Configura o cooperativo uma vez, em dois passos. Todos usam esta mesma versão; os outros veem o nome da tua personagem. Os inimigos e as viagens são do líder da equipa, no ecrã de equipa do jogo.',
         'As tuas definições de cooperativo: escolhe um separador para o alterar. Os inimigos e as viagens são do líder da equipa, no ecrã de equipa do jogo.',
         'Patches do jogo para a versão 1.09, aplicados ao iniciar.',
+        'Jogar no servidor público?',
+        'O servidor público {} está aberto: caçadores de todo lugar, partida rápida e sua conta em qualquer PC. Ninguém precisa iniciar um servidor nem compartilhar um endereço IP. Usar como padrão? Você pode voltar para Local a qualquer momento nas configurações de Co-op.',
+        'Mudar para o servidor público',
+        'Continuar no Local',
     ],
     'fr': [
         'DLSS a besoin de {} dans {} : {} manquant(s). Relancez l’installation ; s’ils disparaissent encore, votre antivirus les a supprimés. En attendant, FSR 3.1 est utilisé.',
@@ -814,6 +834,10 @@ LAUNCHER = {
         "Configurez la coopération une fois, en deux étapes. Tout le monde utilise cette même version ; les autres voient le nom de votre personnage. Les ennemis et les voyages sont au chef d'équipe, sur l'écran d'équipe du jeu.",
         "Vos réglages de coopération : choisissez un onglet pour le modifier. Les ennemis et les voyages sont au chef d'équipe, sur l'écran d'équipe du jeu.",
         'Correctifs du jeu pour la version 1.09, appliqués au démarrage.',
+        'Jouer sur le serveur public ?',
+        'Le serveur public {} est ouvert : des chasseurs du monde entier, la partie rapide et votre compte sur n’importe quel PC. Personne n’a besoin de lancer un serveur ni de partager une adresse IP. En faire votre choix par défaut ? Vous pouvez revenir à Local à tout moment dans les réglages Coop.',
+        'Passer au serveur public',
+        'Rester en Local',
     ],
     'de': [
         'DLSS braucht {} in {}: {} fehlen. Führe das Setup erneut aus; verschwinden sie wieder, hat dein Virenschutz sie entfernt. Bis dahin wird FSR 3.1 verwendet.',
@@ -949,6 +973,10 @@ LAUNCHER = {
         'Richte Koop einmal ein, in zwei Schritten. Alle nutzen dieselbe Version; die anderen sehen den Namen deines Charakters. Gegner und Reisen legt der Teamanführer fest, im Teambildschirm des Spiels.',
         'Deine Koop-Einstellungen: wähle einen Reiter, um ihn zu ändern. Gegner und Reisen legt der Teamanführer fest, im Teambildschirm des Spiels.',
         'Spielpatches für Version 1.09, beim Start angewendet.',
+        'Auf dem öffentlichen Server spielen?',
+        'Der öffentliche Server {} ist offen: Jäger von überall, Schnellsuche und dein Konto auf jedem PC. Niemand muss einen Server starten oder eine IP-Adresse teilen. Als Standard verwenden? In den Koop-Einstellungen kannst du jederzeit zu Lokal zurück.',
+        'Zum öffentlichen Server wechseln',
+        'Bei Lokal bleiben',
     ],
     'it': [
         'DLSS richiede {} in {}: mancano {}. Esegui di nuovo il setup; se spariscono ancora, li ha rimossi l’antivirus. Nel frattempo si usa FSR 3.1.',
@@ -1084,6 +1112,10 @@ LAUNCHER = {
         'Configura la cooperativa una volta, in due passi. Tutti usano questa stessa versione; gli altri vedono il nome del tuo personaggio. Nemici e viaggi li sceglie il capo della squadra, nella schermata della squadra del gioco.',
         'Le tue impostazioni cooperative: scegli una scheda per cambiarla. Nemici e viaggi li sceglie il capo della squadra, nella schermata della squadra del gioco.',
         "Patch del gioco per la versione 1.09, applicate all'avvio.",
+        'Giocare sul server pubblico?',
+        'Il server pubblico {} è aperto: cacciatori da ogni parte, partita rapida e il tuo account su qualsiasi PC. Nessuno deve avviare un server o condividere un indirizzo IP. Usarlo come predefinito? Puoi tornare a Locale in qualsiasi momento nelle impostazioni Co-op.',
+        'Passa al server pubblico',
+        'Resta su Locale',
     ],
     'pl': [
         'DLSS potrzebuje {} w {}: brakuje {}. Uruchom instalator ponownie; jeśli znowu znikną, usunął je antywirus. Do tego czasu używany jest FSR 3.1.',
@@ -1219,6 +1251,10 @@ LAUNCHER = {
         'Skonfiguruj tryb kooperacji raz, w dwóch krokach. Wszyscy używają tego samego wydania; inni widzą imię twojej postaci. Wrogów i podróże ustala lider drużyny, na ekranie drużyny w grze.',
         'Twoje ustawienia kooperacji: wybierz kartę, aby ją zmienić. Wrogów i podróże ustala lider drużyny, na ekranie drużyny w grze.',
         'Poprawki gry dla wersji 1.09, stosowane przy uruchomieniu.',
+        'Grać na serwerze publicznym?',
+        'Serwer publiczny {} jest otwarty: łowcy z całego świata, szybkie dobieranie i twoje konto na każdym PC. Nikt nie musi uruchamiać serwera ani podawać adresu IP. Ustawić go jako domyślny? W ustawieniach Co-op możesz w każdej chwili wrócić do Lokalnego.',
+        'Przejdź na serwer publiczny',
+        'Zostań przy Lokalnym',
     ],
     'tr': [
         'DLSS için {} dosyaları {} içinde gerekli: {} eksik. Kurulumu yeniden çalıştır; yine kaybolurlarsa antivirüsün silmiştir. O zamana kadar FSR 3.1 kullanılır.',
@@ -1354,6 +1390,10 @@ LAUNCHER = {
         'Ortak oyunu bir kez, iki adımda kur. Herkes aynı sürümü kullanır; diğerleri karakterinin adını görür. Düşmanları ve yolculuğu takım lideri, oyundaki takım ekranında belirler.',
         'Ortak oyun ayarların: değiştirmek için bir sekme seç. Düşmanları ve yolculuğu takım lideri, oyundaki takım ekranında belirler.',
         'Sürüm 1.09 için oyun yamaları, başlangıçta uygulanır.',
+        'Genel sunucuda oynansın mı?',
+        'Genel sunucu {} açık: her yerden avcılar, hızlı eşleşme ve her bilgisayarda hesabın. Kimsenin sunucu başlatması ya da IP adresi paylaşması gerekmez. Varsayılan yapılsın mı? Eşli oyun ayarlarından istediğin zaman Yerel’e dönebilirsin.',
+        'Genel sunucuya geç',
+        'Yerel kalsın',
     ],
     'zh': [
         'DLSS 需要 {}（位于 {}）：缺少 {}。请重新运行安装程序；如果它们再次消失，就是被杀毒软件删除了。在此之前使用 FSR 3.1。',
@@ -1489,6 +1529,10 @@ LAUNCHER = {
         '一次设置好联机，两个步骤。所有人使用同一个版本；其他人看到的是你角色的名字。敌人和旅行由队长在游戏的队伍界面中设定。',
         '你的联机设置：选择一个标签页来修改。敌人和旅行由队长在游戏的队伍界面中设定。',
         '适用于 1.09 版本的游戏补丁，在启动时应用。',
+        '在公共服务器上游玩？',
+        '公共服务器 {} 已开放：来自各地的猎人、快速匹配，在任何电脑上都能用你的账号。无需有人启动服务器或分享 IP 地址。要设为默认吗？你随时可以在联机设置中切回本地。',
+        '切换到公共服务器',
+        '保持本地',
     ],
     'ja': [
         'DLSS には {} が {} に必要です：{} が見つかりません。セットアップをもう一度実行してください。また消える場合はウイルス対策ソフトが削除しています。それまでは FSR 3.1 を使います。',
@@ -1624,6 +1668,10 @@ LAUNCHER = {
         '協力プレイを一度だけ、2ステップで設定します。全員が同じリリースを使い、ほかの人にはキャラクター名が表示されます。敵と移動はチームリーダーがゲームのチーム画面で決めます。',
         '協力プレイの設定: 変更するタブを選んでください。敵と移動はチームリーダーがゲームのチーム画面で決めます。',
         'バージョン 1.09 用のゲームパッチ。起動時に適用されます。',
+        '公開サーバーで遊びますか？',
+        '公開サーバー {} が開きました：世界中の狩人、クイックマッチ、どの PC でも使えるあなたのアカウント。誰もサーバーを起動したり IP アドレスを共有したりする必要はありません。既定にしますか？協力プレイの設定でいつでもローカルに戻せます。',
+        '公開サーバーに切り替える',
+        'ローカルのままにする',
     ],
     'ko': [
         'DLSS에는 {}의 {}가 필요합니다: {} 없음. 설치 프로그램을 다시 실행하세요. 또 사라지면 백신이 삭제한 것입니다. 그때까지는 FSR 3.1을 사용합니다.',
@@ -1759,5 +1807,9 @@ LAUNCHER = {
         '협동을 한 번, 두 단계로 설정합니다. 모두 같은 릴리스를 사용하며, 다른 사람에게는 캐릭터 이름이 보입니다. 적과 이동은 팀 리더가 게임의 팀 화면에서 정합니다.',
         '협동 설정: 바꿀 탭을 고르세요. 적과 이동은 팀 리더가 게임의 팀 화면에서 정합니다.',
         '버전 1.09용 게임 패치, 시작할 때 적용됩니다.',
+        '공용 서버에서 플레이할까요?',
+        '공용 서버 {}가 열렸습니다: 어디서나 모이는 사냥꾼, 빠른 매칭, 어느 PC에서나 쓰는 내 계정. 누구도 서버를 시작하거나 IP 주소를 공유할 필요가 없습니다. 기본으로 설정할까요? 협동 설정에서 언제든 로컬로 돌아갈 수 있습니다.',
+        '공용 서버로 전환',
+        '로컬 유지',
     ],
 }
