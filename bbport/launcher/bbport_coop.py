@@ -172,16 +172,12 @@ def use_system_certificates():
     while browsers work. Windows also trusts what antivirus HTTPS scanning or a company proxy installed.
     Certificates are still checked. True when installed; without truststore (a source run on Linux) the
     default stays."""
-    try:
-        import ssl
-        import truststore
-    except ImportError:
-        return False
-    # Amanises 2026-10-29: a frozen launcher where the SSL context cannot be made (FileNotFoundError from
-    # ssl.SSLContext) did not start at all, not even --script: it keeps the default.
-    try:
-        context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    except (OSError, ssl.SSLError):
+    # The same context as the Global server's sign-in (bbport_auth.truststore_context), which also keeps
+    # the default when the SSL context cannot be made (Amanises 2026-10-29: a frozen launcher where
+    # ssl.SSLContext raised FileNotFoundError did not start at all, not even --script).
+    import bbport_auth
+    context = bbport_auth.truststore_context()
+    if context is None:
         return False
     urllib.request.install_opener(urllib.request.build_opener(urllib.request.HTTPSHandler(context=context)))
     return True
