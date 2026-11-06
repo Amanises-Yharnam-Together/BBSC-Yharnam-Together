@@ -1367,7 +1367,7 @@ const architecture: DocPage = {
           type: "figure",
           figure: "architecture",
           caption: "Every game keeps one link to the co-op server on the host's PC.",
-          alt: "Up to four games (Bloodborne PC with the co-op hooks) each connect over UDP to one co-op server, which holds accounts, presence and the team lobby, the session with one enemy owner per map, the world log saved to disk, and the relay of game packets. The games never connect to each other.",
+          alt: "Up to five games (Bloodborne PC with the co-op hooks) each connect over UDP to one co-op server, which holds accounts, presence and the team lobby, the session with one enemy owner per map, the world log saved to disk, and the relay of game packets. The games never connect to each other.",
         },
         {
           type: "p",
@@ -1539,7 +1539,7 @@ const netcode: DocPage = {
           type: "figure",
           figure: "architecture",
           caption: "The server in the middle: what it keeps and what it relays.",
-          alt: "Up to four games each connect over one UDP link to the co-op server. The server holds accounts, presence and the team lobby; the session with members, places and one enemy owner per map; the world log, ordered and saved to disk, with snapshots for joiners; and the relay of game packets to the right members.",
+          alt: "Up to five games each connect over one UDP link to the co-op server. The server holds accounts, presence and the team lobby; the session with members, places and one enemy owner per map; the world log, ordered and saved to disk, with snapshots for joiners; and the relay of game packets to the right members.",
         },
         {
           type: "table",
@@ -1704,7 +1704,7 @@ const netcode: DocPage = {
             "A new team world starts from the leader's progress.",
             "Every save keeps its personal world. Loading into a team world puts the save's own world aside and applies the team's; playing solo again brings it back. The character is never touched by this.",
             "Bosses beaten solo stay in that save's personal world; in a team only the team world counts.",
-            "Up to four hunters per team: the game's remote player slots.",
+            "Up to five hunters per team: you, and four in the game's remote player slots.",
           ],
         },
       ],
