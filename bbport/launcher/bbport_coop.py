@@ -63,6 +63,8 @@ DEFAULTS = {'game': '', 'update': '', 'role': 'guest', 'host_ip': '', 'account':
             # signed in (never its password); another Global server's address than GLOBAL_SERVER (a test
             # server).
             'server_type': 'local', 'global_name': '', 'global_server': '',
+            # Kaniel 2026-11-06: '1' once the player answered the launcher's offer of the public server.
+            'public_asked': '',
             # Kaniel 2026-10-28: the boss tempo host rule, '' (Vanilla), 'aggressive' or 'relentless'.
             'rule_tempo': ''}
 BOSS_TEMPOS = ('', 'aggressive', 'relentless')

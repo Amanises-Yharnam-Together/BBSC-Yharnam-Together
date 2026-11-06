@@ -18,14 +18,18 @@ YOU NEED
     driver. Nothing else.
   - Bloodborne 1.09 (see above). Tested with CUSA03173 (the European Game of the Year edition);
     every player in a party should use the same edition.
-  - A way for everyone to reach the PC that runs the co-op server (the host's): the same VPN
-    (Radmin VPN, Tailscale, ZeroTier) or its public IP with ports forwarded: TCP 31313, 31315,
-    20443 and UDP 31314. UDP 31314 must be open: every game's co-op traffic goes through the
-    server on it.
+  - The internet. The public server (seamlesshunt.com) needs nothing else: no VPN, no ports.
+    Only for a Local server of your own: a way for everyone to reach the PC that runs it (the
+    host's): the same VPN (Radmin VPN, Tailscale, ZeroTier) or its public IP with ports
+    forwarded: TCP 31313, 31315, 20443 and UDP 31314. UDP 31314 must be open: every game's co-op
+    traffic goes through the server on it.
 
 STEPS (everyone)
   1. Run the setup .exe. Keep "Create a desktop shortcut" ticked if you want one.
-  2. Open "Bloodborne Seamless Co-op" (the desktop shortcut or the Start menu). On the Co-op card:
+  2. Open "Bloodborne Seamless Co-op" (the desktop shortcut or the Start menu). It offers the
+     public server once: Switch to the public server, then sign in or create an account (a name
+     and a password), pick your Bloodborne folder and go on to step 3. Nobody starts a server.
+     Keep Local plays on a server of your own instead. For Local, on the Co-op card:
        Your Bloodborne folder  the launcher looks for it by itself; else press Browse (it searches
                                inside and around the folder you pick) or Install from PKG
        You are                 one player is the Host (runs the co-op server on their PC),
@@ -36,7 +40,7 @@ STEPS (everyone)
        Enemies                 the same for every player
   3. Press PLAY. The first time, Windows asks once to let co-op through its firewall (say yes),
      and the launcher prepares the game from your copy (links to it, nothing is copied) and makes
-     the co-op map event files. The host's co-op server starts by itself with the host's PLAY.
+     the co-op map event files. On Local, the host presses Start server (bottom left) before PLAY.
   4. Continue, Load Game or New Game opens the team screen: create a team and invite the
      hunters online, or join a team you were invited to, then Ready. The leader's "Begin the
      hunt" starts everyone; the leader hosts the team's world. Load in and you are in one world

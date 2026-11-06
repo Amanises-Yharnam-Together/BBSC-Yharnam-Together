@@ -669,6 +669,52 @@ class CoopSettingsTests(unittest.TestCase):
             missing = self.app.coop_missing_by_step()
         self.assertEqual(missing[0], (0, 'Local (the public server is not open yet)'))
 
+    def test_every_player_is_offered_the_public_server_once(self):
+        """Kaniel 2026-11-06: a popup asks every player, new and old, to make the public server their default;
+        Keep Local declines, and the question is not asked again."""
+        app = self.app
+        offer = app.public_offer
+        self.assertIsNotNone(offer, 'asked at the start')
+        self.assertTrue(offer.winfo_ismapped())
+        app.public_keep.invoke()
+        self.settle(0.3)
+        self.assertIsNone(app.public_offer)
+        self.assertEqual(self.saved[-1]['public_asked'], '1')
+        self.assertEqual(self.saved[-1]['server_type'], 'local', 'declined: Local stays')
+        self.assertEqual(app.coop_vars['server_type'].get(), 'local')
+        self.assertIsNone(app.coop_offer_public(), 'not asked again')
+        # Asked again (another install): yes picks Global and opens the co-op settings on its sign-in.
+        app.coop['public_asked'] = ''
+        app.coop_offer_public()
+        self.settle(0.3)
+        app.public_switch.invoke()
+        self.settle(0.5)
+        self.assertIsNone(app.public_offer)
+        self.assertEqual(app.coop_vars['server_type'].get(), 'global')
+        self.assertEqual(self.saved[-1]['server_type'], 'global')
+        self.assertEqual(self.saved[-1]['public_asked'], '1')
+        self.assertTrue(app.coop_cover.winfo_ismapped())
+        self.assertEqual(app.coop_step, 0, 'the sign-in tab')
+        self.assertIsNone(app.coop_offer_public(), 'never asked on Global')
+
+    def test_no_offer_without_a_public_server(self):
+        with mock.patch.object(bbport_coop, 'GLOBAL_SERVER', ''):
+            self.app.coop['public_asked'] = ''
+            self.assertIsNone(self.app.coop_offer_public())
+
+    def test_start_and_stop_server_only_on_local(self):
+        """Kaniel 2026-11-06: on the public server nobody runs a server, so its buttons go."""
+        app = self.app
+        self.assertTrue(app.server_row.winfo_manager(), 'Local: the host starts the server')
+        app.coop_vars['server_type'].set('global')
+        app.coop_changed()
+        self.settle(0.3)
+        self.assertFalse(app.server_row.winfo_manager(), 'Global: no Start server or Stop server')
+        app.coop_vars['server_type'].set('local')
+        app.coop_changed()
+        self.settle(0.3)
+        self.assertTrue(app.server_row.winfo_manager())
+
     def test_the_upnp_button_asks_the_router_and_shows_the_answer(self):
         """Kaniel 2026-10-21 asked for a UPnP button in the help; Stop server closes what it opened."""
         with mock.patch.object(bbport_coop, 'vpn_addresses', return_value=[]):
