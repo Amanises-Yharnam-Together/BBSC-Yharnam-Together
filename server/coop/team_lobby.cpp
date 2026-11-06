@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <map>
 #include <random>
 #include <set>
@@ -95,6 +96,63 @@ bool LampResetClears(s32 flag) {
     }
     const s32 request = flag - LightRequestBase;
     return lamp_of(request) && request % 10000 < 20;
+}
+
+std::optional<bbcoop::TeamRules> ParseTeamRules(std::string_view setting) {
+    bbcoop::TeamRules rules;
+    rules.set_enemy_scaling(true);
+    const auto trimmed = [](std::string_view text) {
+        while (!text.empty() && (text.front() == ' ' || text.front() == '\t')) {
+            text.remove_prefix(1);
+        }
+        while (!text.empty() && (text.back() == ' ' || text.back() == '\t')) {
+            text.remove_suffix(1);
+        }
+        return text;
+    };
+    // A strength multiplier: 1 to 10 as the game takes them (ParseHarderEnemies), 0 the standard.
+    const auto rate = [](std::string_view text) -> std::optional<float> {
+        float value = 0.0f;
+        const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), value);
+        if (error != std::errc{} || end != text.data() + text.size() ||
+            !(value == 0.0f || (value >= 1.0f && value <= 10.0f))) {
+            return std::nullopt;
+        }
+        return value;
+    };
+    while (!setting.empty()) {
+        const size_t cut = setting.find(';');
+        const std::string_view part = trimmed(setting.substr(0, cut));
+        setting = cut == std::string_view::npos ? std::string_view{} : setting.substr(cut + 1);
+        if (part.empty()) {
+            continue;
+        }
+        const size_t equals = part.find('=');
+        const std::string_view key = trimmed(part.substr(0, equals));
+        const std::string_view value = equals == std::string_view::npos
+                                           ? std::string_view{}
+                                           : trimmed(part.substr(equals + 1));
+        if (key == "enemies" && (value == "auto" || value == "fixed")) {
+            rules.set_enemy_scaling(value == "auto");
+        } else if (key == "hp" || key == "damage" || key == "poise") {
+            const auto parsed = rate(value);
+            if (!parsed) {
+                return std::nullopt;
+            }
+            key == "hp"       ? rules.set_enemy_hp(*parsed)
+            : key == "damage" ? rules.set_enemy_damage(*parsed)
+                              : rules.set_enemy_poise(*parsed);
+        } else if ((key == "rot" || key == "travel" || key == "vote") && value.empty()) {
+            key == "rot"      ? rules.set_rot(true)
+            : key == "travel" ? rules.set_travel_together(true)
+                              : rules.set_travel_vote(true);
+        } else if (key == "tempo" && value.size() == 1 && value[0] >= '0' && value[0] <= '2') {
+            rules.set_boss_tempo(static_cast<bbcoop::BossTempo>(value[0] - '0'));
+        } else {
+            return std::nullopt;
+        }
+    }
+    return rules;
 }
 
 TeamLobby::TeamLobby(std::function<std::string()> make_id_)
@@ -702,7 +760,8 @@ TeamLobby::Outcome TeamLobby::Request(const std::string& member, const bbcoop::T
             !pick.empty() && FindWorld(pick) && !PlayedBy(pick, nullptr)) {
             PickWorld(team, pick);
         }
-        *team.mutable_rules() = players[member].rules; // Kaniel 2026-10-25: its host rules
+        // Kaniel 2026-10-25: its host rules; Kaniel 2026-11-05: the server's when it sent none.
+        *team.mutable_rules() = players[member].rules.value_or(default_rules);
         return {.changed = true};
     }
     case Action::INVITE: {

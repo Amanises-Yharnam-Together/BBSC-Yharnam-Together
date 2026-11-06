@@ -55,6 +55,7 @@ AUTH_KEYS = [
     'The new password is the old one.',
     "The server's certificate is not valid: not sent.",
     'The server refused it: try again.',
+    'Copied',
 ]
 
 AUTH = {
@@ -110,6 +111,7 @@ AUTH = {
         'Новый пароль совпадает со старым.',
         'Сертификат сервера недействителен: ничего не отправлено.',
         'Сервер отказал: попробуйте снова.',
+        'Скопировано',
     ],
     'ar': [
         'محلي: خادمك أو خادم صديق',
@@ -163,6 +165,7 @@ AUTH = {
         'كلمة المرور الجديدة هي القديمة نفسها.',
         'شهادة الخادم غير صالحة: لم يُرسَل شيء.',
         'رفض الخادم الطلب: حاول مرة أخرى.',
+        'تم النسخ',
     ],
     'es': [
         'Local: tu servidor o el de un amigo',
@@ -216,6 +219,7 @@ AUTH = {
         'La nueva contraseña es la antigua.',
         'El certificado del servidor no es válido: no se ha enviado nada.',
         'El servidor lo ha rechazado: inténtalo de nuevo.',
+        'Copiado',
     ],
     'pt': [
         'Local: seu servidor ou o de um amigo',
@@ -269,6 +273,7 @@ AUTH = {
         'A nova senha é igual à antiga.',
         'O certificado do servidor não é válido: nada foi enviado.',
         'O servidor recusou: tente de novo.',
+        'Copiado',
     ],
     'fr': [
         'Local : votre serveur ou celui d’un ami',
@@ -322,6 +327,7 @@ AUTH = {
         'Le nouveau mot de passe est l’ancien.',
         'Le certificat du serveur n’est pas valide : rien n’a été envoyé.',
         'Le serveur a refusé : réessayez.',
+        'Copié',
     ],
     'de': [
         'Lokal: dein eigener Server oder der eines Freundes',
@@ -375,6 +381,7 @@ AUTH = {
         'Das neue Passwort ist das alte.',
         'Das Zertifikat des Servers ist ungültig: Nichts wurde gesendet.',
         'Der Server hat abgelehnt: Versuch es noch einmal.',
+        'Kopiert',
     ],
     'it': [
         'Locale: il tuo server o quello di un amico',
@@ -428,6 +435,7 @@ AUTH = {
         'La nuova password è quella vecchia.',
         'Il certificato del server non è valido: non è stato inviato nulla.',
         'Il server ha rifiutato: riprova.',
+        'Copiato',
     ],
     'pl': [
         'Lokalny: twój serwer albo serwer znajomego',
@@ -481,6 +489,7 @@ AUTH = {
         'Nowe hasło jest takie samo jak stare.',
         'Certyfikat serwera jest nieważny: nic nie wysłano.',
         'Serwer odmówił: spróbuj ponownie.',
+        'Skopiowano',
     ],
     'tr': [
         'Yerel: kendi sunucun ya da bir arkadaşının',
@@ -534,6 +543,7 @@ AUTH = {
         'Yeni parola eskisiyle aynı.',
         'Sunucunun sertifikası geçersiz: hiçbir şey gönderilmedi.',
         'Sunucu reddetti: yeniden dene.',
+        'Kopyalandı',
     ],
     'zh': [
         '本地：你自己或朋友的服务器',
@@ -586,6 +596,7 @@ AUTH = {
         '新密码与旧密码相同。',
         '服务器的证书无效：没有发送任何内容。',
         '服务器拒绝了：请再试一次。',
+        '已复制',
     ],
     'ja': [
         'ローカル：自分や友人のサーバー',
@@ -639,6 +650,7 @@ AUTH = {
         '新しいパスワードが古いものと同じです。',
         'サーバーの証明書が無効です：何も送信していません。',
         'サーバーに拒否されました：もう一度お試しください。',
+        'コピーしました',
     ],
     'ko': [
         '로컬: 내 서버 또는 친구의 서버',
@@ -692,5 +704,6 @@ AUTH = {
         '새 비밀번호가 이전 비밀번호와 같습니다.',
         '서버 인증서가 유효하지 않습니다. 아무것도 보내지 않았습니다.',
         '서버가 거부했습니다. 다시 시도하세요.',
+        '복사됨',
     ],
 }

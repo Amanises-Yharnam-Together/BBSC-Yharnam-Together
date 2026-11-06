@@ -133,6 +133,14 @@ LinkServer::LinkServer(SharedState* shared, const QString& db_path, quint16 tcp_
         m_hosted = shared->config->GetHosted();
         const SignInConfig sign_in = shared->config->GetSignIn();
         m_signedSignIn = m_hosted.enabled && sign_in.passwords;
+        // Kaniel 2026-11-05: the team rules a team starts with when its maker set none.
+        const QString rules_setting = shared->config->GetTeamDefaultRules();
+        if (const auto rules = BloodborneCoop::ParseTeamRules(rules_setting.toStdString())) {
+            m_world.SetDefaultRules(*rules);
+        } else {
+            qWarning().noquote() << "TeamDefaultRules" << rules_setting
+                                 << "is not understood: Auto enemies of the standard strength";
+        }
     }
     if (m_hosted.enabled) {
         Admission::Limits limits;

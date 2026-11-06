@@ -3948,19 +3948,18 @@ class Launcher:
             self.coop_vars[key] = v
             return v
 
-        self.flow(card, _('Set co-op up once, in four steps. Everyone uses this same release; the others see '
-                          'your character\'s name.',
-                          'Настройте кооператив один раз, в четыре шага. Все используют один релиз; другие видят '
-                          'имя вашего персонажа.'), 'body', MUTED).grid(
-            row=1, column=0, columnspan=2, sticky='we', pady=(px(6), px(4)))
+        self.coop_intro = self.flow(card, '', 'body', MUTED)
+        self.coop_intro.grid(row=1, column=0, columnspan=2, sticky='we', pady=(px(6), px(4)))
         self.coop_step_names = [_('Server', 'Сервер'), _('Game and host', 'Игра и хост'), _('Enemies', 'Враги'),
                                 _('Travel', 'Путешествия')]
         bar = tk.Frame(card, bg=CARD)
         bar.grid(row=2, column=0, columnspan=2, sticky='we', pady=(px(14), px(2)))
-        self.coop_step_tabs = []
+        self.coop_step_tabs, self.coop_step_lines = [], [None]
         for index, name in enumerate(self.coop_step_names):
             if index:
-                tk.Frame(bar, bg=LINE, height=1, width=px(36)).pack(side='left', padx=px(12))
+                line = tk.Frame(bar, bg=LINE, height=1, width=px(36))
+                line.pack(side='left', padx=px(12))
+                self.coop_step_lines.append(line)
             tab = self.label(bar, f'{index + 1}   {spaced(name)}', 'small_bold', DIM)
             tab.pack(side='left')
             tab.bind('<Button-1>', lambda _e, index=index: self.coop_go(index))
@@ -4299,8 +4298,14 @@ class Launcher:
             self.coop_auth_strength.pack(fill='x', pady=(px(2), 0))
             self.coop_auth_strength_shown()
         if view == 'code':
-            self.coop_auth_code_text = self.label(host, self.coop_auth_code, 'body_bold', ACCENT_HI, anchor='w')
-            self.coop_auth_code_text.pack(fill='x', pady=(px(8), 0))
+            # A read-only entry, not a label, so the code can also be selected and copied by hand.
+            code = self.tk.StringVar(value=self.coop_auth_code)
+            self.coop_auth_code_text = self.tk.Entry(
+                host, textvariable=code, state='readonly', font=self.fonts['body_bold'], fg=ACCENT_HI,
+                readonlybackground=CARD, bg=CARD, relief='flat', bd=0, highlightthickness=0,
+                selectbackground=ACCENT_HI, selectforeground=CARD, width=len(self.coop_auth_code) + 2)
+            self.coop_auth_code_text.var = code
+            self.coop_auth_code_text.pack(anchor='w', pady=(px(8), 0))
             self.coop_auth_saved.set(False)
             saved = self.switch(host, self.coop_auth_saved, _('I saved it', 'Я сохранил(а) его'))
             saved.pack(anchor='w', pady=(px(8), 0))
@@ -4348,8 +4353,20 @@ class Launcher:
             self.coop_auth_action.configure(state='normal' if self.coop_auth_saved.get() else 'disabled')
 
     def coop_auth_copy(self):
+        """Copies the recovery code and says so on the button (Kaniel 2026-11-05: Copy seemed to do nothing)."""
         self.root.clipboard_clear()
         self.root.clipboard_append(self.coop_auth_code)
+        # Windows: hand the text to the system clipboard now, not at the next idle moment.
+        self.root.update()
+        button = self.coop_auth_other
+        if button is None:
+            return
+        button.configure(text=_('Copied', 'Скопировано'))
+
+        def back():
+            if button.canvas.winfo_exists():
+                button.configure(text=_('Copy', 'Копировать'))
+        self.root.after(2000, back)
 
     def coop_auth_pressed(self):
         """The view's main button."""
@@ -4471,9 +4488,14 @@ class Launcher:
         paint()
         return frame
 
+    def coop_visible_steps(self):
+        """The co-op page's steps for this server: Server and Game always, Enemies and Travel on a local
+        server only (Kaniel 2026-11-05: on the public server the team's leader sets them in the game)."""
+        return [0, 1] + bbport_coop.rule_steps(self.coop)
+
     def coop_go(self, step):
         """Shows a step of the co-op setup; a later one only once the ones before it lack nothing."""
-        step = max(0, min(step, len(self.coop_steps) - 1))
+        step = max(0, min(step, self.coop_visible_steps()[-1]))
         self.coop_custom_tidy()
         if getattr(self, 'coop_change_job', None):
             self.root.after_cancel(self.coop_change_job)
@@ -4487,7 +4509,52 @@ class Launcher:
 
     def coop_show_step(self):
         """The step bar, Back, and Next or Done, as the current step and what is missing allow."""
-        px, step, last = self.px, self.coop_step, len(self.coop_steps) - 1
+        px = self.px
+        # Kaniel 2026-11-05: on the public server no Enemies or Travel tabs (the team's leader sets them
+        # on the game's team screen); a step it has not is left for its last.
+        visible = self.coop_visible_steps()
+        last = visible[-1]
+        if self.coop_step > last:
+            self.coop_steps[self.coop_step].grid_forget()
+            self.coop_step = last
+            self.coop_steps[last].grid(row=self.coop_step_row, column=0, columnspan=2, sticky='we')
+        step = self.coop_step
+        for index, tab in enumerate(self.coop_step_tabs):
+            line = self.coop_step_lines[index]
+            if index in visible and not tab.winfo_manager():
+                if line is not None:
+                    line.pack(side='left', padx=px(12))
+                tab.pack(side='left')
+            elif index not in visible and tab.winfo_manager():
+                if line is not None:
+                    line.pack_forget()
+                tab.pack_forget()
+        # Kaniel 2026-11-05: the setup's steps (Back, Next) only until it was done once; after that the
+        # same pages are plain settings: any tab, and Done on each.
+        setup = self.coop_setup_mode()
+        on_global = not bbport_coop.rule_steps(self.coop)
+        if setup and on_global:
+            intro = _('Set co-op up once, in two steps. Everyone uses this same release; the others see your '
+                      'character\'s name. Enemies and travel are the team leader\'s, on the game\'s team screen.',
+                      'Настройте кооператив один раз, в два шага. Все используют один релиз; другие видят '
+                      'имя вашего персонажа. Враги и путешествия выбирает лидер команды, на экране команды '
+                      'в игре.')
+        elif setup:
+            intro = _('Set co-op up once, in four steps. Everyone uses this same release; the others see your '
+                      'character\'s name.',
+                      'Настройте кооператив один раз, в четыре шага. Все используют один релиз; другие видят '
+                      'имя вашего персонажа.')
+        elif on_global:
+            intro = _('Your co-op settings: pick a tab to change it. Enemies and travel are the team '
+                      'leader\'s, on the game\'s team screen.',
+                      'Ваши настройки кооператива: выберите вкладку, чтобы изменить. Враги и путешествия '
+                      'выбирает лидер команды, на экране команды в игре.')
+        else:
+            intro = _('Your co-op settings: pick a tab to change it. Everyone uses this same release; the '
+                      'others see your character\'s name.',
+                      'Ваши настройки кооператива: выберите вкладку, чтобы изменить. Все используют один '
+                      'релиз; другие видят имя вашего персонажа.')
+        self.coop_intro.configure(text=intro)
         missing = self.coop_missing_by_step()
         blocked = min((at for at, _text in missing), default=last + 1)
         for index, tab in enumerate(self.coop_step_tabs):
@@ -4495,10 +4562,10 @@ class Launcher:
                           cursor='hand2' if index != step and index <= blocked else '')
         for widget in (self.coop_back, self.coop_next, self.coop_done, self.coop_missing):
             widget.pack_forget()
-        if step:
+        if step and setup:
             self.coop_back.pack(side='left')
-        here = [text for at, text in missing if at <= step]
-        button = self.coop_done if step == last else self.coop_next
+        here = [text for at, text in missing if at <= step] if setup else [text for _at, text in missing]
+        button = self.coop_done if step == last or not setup else self.coop_next
         button.configure(state='disabled' if here else 'normal')
         button.pack(side='right')
         self.coop_missing.configure(text=_('Still needed: {}', 'Ещё нужно: {}').format(', '.join(here))
@@ -4714,8 +4781,10 @@ class Launcher:
             missing.append((1, _('the game folder', 'папка игры')))
         if not on_global and not bbport_coop.valid_host(self.coop.get('host_ip', '')):
             missing.append((1, _("the host's IP", 'IP хоста')))
-        # Auto scaling needs no level of its own (the game takes its own steps with the team's size).
-        if self.coop.get('rule_scale') != '1' and 'harder' not in getattr(self, 'coop_picked', {'harder'}):
+        # Auto scaling needs no level of its own (the game takes its own steps with the team's size); the
+        # public server has no Enemies step (Kaniel 2026-11-05).
+        if (not on_global and self.coop.get('rule_scale') != '1'
+                and 'harder' not in getattr(self, 'coop_picked', {'harder'})):
             missing.append((2, _('the enemies', 'враги')))
         return missing
 
@@ -4740,6 +4809,10 @@ class Launcher:
         self.coop_required = False
         self.coop_cover.place_forget()
         self.refresh_status()
+
+    def coop_setup_mode(self):
+        """The co-op page is the step-by-step setup until it was done once (Done saved 'confirmed')."""
+        return self.coop.get('confirmed') != '1'
 
     def coop_needs_setup(self):
         """At the start: the co-op settings open by themselves until they were done once and still hold."""

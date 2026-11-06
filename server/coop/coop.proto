@@ -768,6 +768,12 @@ message TeamRules {
     bool enemy_scaling = 4;
     // Kaniel 2026-10-28: bosses rest less between attacks and turn faster.
     BossTempo boss_tempo = 5;
+    // Kaniel 2026-11-05: the enemies' strength is the team's, not each player's: the multipliers
+    // of their HP, damage and poise, a full team's with enemy_scaling (Auto), everyone's at all
+    // times without it (Fixed). 0 is the standard (HarderDefault*: 3, 1.5, 3).
+    float enemy_hp = 6;
+    float enemy_damage = 7;
+    float enemy_poise = 8;
 }
 
 enum BossTempo {

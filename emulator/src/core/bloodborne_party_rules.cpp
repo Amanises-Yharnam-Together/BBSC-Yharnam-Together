@@ -347,10 +347,11 @@ bool ScaleParam(ScaledParam& kept, u64 address, std::span<u8> table,
 void MakeEnemiesHarder() {
     // Kaniel 2026-10-25: with the enemy scaling rule the team's size on this map picks the rate,
     // over the player's own setting.
+    // Kaniel 2026-11-05: in a team the team's strength (EnemiesWanted), never each player's own.
     const HostRules rules = ActiveHostRules();
     const std::size_t hunters = rules.enemy_scaling ? HuntersOnMyMap() : 0;
     const std::optional<HarderEnemies> wanted =
-        rules.enemy_scaling ? TeamScaledEnemies(hunters) : harder_enemies;
+        EnemiesWanted(rules, InTeamNow(), hunters, harder_enemies);
     // Kaniel 2026-10-28: the boss tempo rule's turn speed for the boss rows.
     const float turn = ActiveBossTempoTuning().turn;
     static ScaledParam npc_kept;

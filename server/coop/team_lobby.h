@@ -14,6 +14,7 @@
 
 #include <functional>
 #include <map>
+#include <optional>
 #include <set>
 #include <span>
 #include <string>
@@ -67,6 +68,11 @@ u32 LampsLit(std::span<const s32> on);
 // Hunter's Dream's lamp is always there).
 bool LampResetClears(s32 flag);
 
+// Kaniel 2026-11-05: the server's default team rules (shadnet.cfg TeamDefaultRules), ";
+// "-separated: enemies=auto|fixed, hp=, damage=, poise= (1 to 10; 0 or absent: the standard 3, 1.5,
+// 3), rot, travel, vote, tempo=0|1|2. Empty: Auto and nothing else. Anything else: nullopt.
+std::optional<bbcoop::TeamRules> ParseTeamRules(std::string_view setting);
+
 class TeamLobby {
 public:
     // `make_id` names a new team or world (random on the server, counted in the tests).
@@ -84,6 +90,13 @@ public:
     }
     bool Hosted() const {
         return hosted;
+    }
+
+    // Kaniel 2026-11-05: the rules of a team whose maker's game sent none (the public server's
+    // launcher has no rule steps; its leader sets them in the game's team screen). Auto enemies of
+    // the standard strength unless the server's config says otherwise.
+    void SetDefaultRules(const bbcoop::TeamRules& rules) {
+        default_rules = rules;
     }
 
     // A friend the lobby does not list joins by its team's code or is invited by its name. Wrong
@@ -220,8 +233,9 @@ private:
         std::string world;
         // Amanises 2026-10-25: its character's level, as its last quick match said (0: unknown).
         u32 level = 0;
-        // Kaniel 2026-10-25: its launcher's host rules (the team it makes takes them).
-        bbcoop::TeamRules rules;
+        // Kaniel 2026-10-25: its launcher's host rules (the team it makes takes them); none sent
+        // (Kaniel 2026-11-05: the public server's launcher has no rule steps), the server's.
+        std::optional<bbcoop::TeamRules> rules;
     };
 
     bbcoop::Team* FindTeam(const std::string& id);
@@ -266,6 +280,11 @@ private:
     }
 
     bool hosted = false;
+    bbcoop::TeamRules default_rules = [] {
+        bbcoop::TeamRules rules;
+        rules.set_enemy_scaling(true); // Kaniel 2026-11-05: Auto by default
+        return rules;
+    }();
     Region region;
     std::string shard_name;
     size_t lobby_players = 0;

@@ -234,6 +234,9 @@ GUEST_JOINS = (r"(?:auto-rejoin started search effect=9005|"
                r"Bloodborne team join: joining the host's session .* joined=true)")
 # The session must hold: a game that leaves the room (LeaveRoom) broke it.
 SESSION_HOLDS = [r"sceNpMatching2LeaveRoom: called"]
+# Kaniel 2026-11-05: the team screen's rules text (ScreenRulesText): no Rot, travel or boss tempo,
+# Fixed enemies of x2 HP, x1.25 damage, x2 poise.
+TEAM_RULES_FIXED = "0,0,0,0,0,2,1.25,2"
 # The party boards' member ids of the rig's accounts (their names in hex).
 RIG_HOST_ID = "rig_host".encode().hex()
 RIG_GUEST_ID = "rig_guest".encode().hex()
@@ -1462,7 +1465,7 @@ SCENARIOS = {
         "timeout": 300,
     },
     # Enemy scaling: two hunters on the map scale its enemies one step up from the normal game
-    # (x1.67 HP), back to it once the guest leaves for the Dream.
+    # (x1.50 HP of a team of five, 2026-10-29), back to it once the guest leaves for the Dream.
     "scale-team-size": {
         "about": "the enemy scaling rule: a second hunter on the map raises the enemies, its leaving "
                  "brings back the normal game",
@@ -1473,12 +1476,12 @@ SCENARIOS = {
             "guest": [START, "godmode", "wait-session 2 300", "wait-members 2 120", "wait 10",
                       f"travel {HUNTERS_DREAM}", "wait-map 0x15000000 120", "wait 10"],
         },
-        "expect": {"host": [r"Bloodborne enemy scaling: 2 hunter\(s\) on this map: x1\.67 HP, "
-                            r"x1\.17 damage, x1\.67 poise",
-                            r"Bloodborne harder enemies: \d+ NpcParam rows, x1\.67 HP",
+        "expect": {"host": [r"Bloodborne enemy scaling: 2 hunter\(s\) on this map: x1\.50 HP, "
+                            r"x1\.12 damage, x1\.50 poise",
+                            r"Bloodborne harder enemies: \d+ NpcParam rows, x1\.50 HP",
                             r"Bloodborne enemy scaling: 1 hunter\(s\) on this map: the normal game",
                             r"Bloodborne harder enemies: \d+ NpcParam rows, the normal game"],
-                   "guest": [r"Bloodborne enemy scaling: 2 hunter\(s\) on this map: x1\.67 HP"]},
+                   "guest": [r"Bloodborne enemy scaling: 2 hunter\(s\) on this map: x1\.50 HP"]},
         "forbid": {"host": SESSION_HOLDS},
         "timeout": 300,
     },
@@ -2011,6 +2014,28 @@ SCENARIOS = {
         "syncs": {name: {"chapter": "join-by-code", "roles": ["host", "guest"]}
                   for name in ("joined",)},
         "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
+        "timeout": 300,
+    },
+    # Kaniel 2026-11-05: the team rules are the team's, set by its leader on the team screen: the
+    # enemies' strength (Fixed 2, 1.25, 2 here) is the same in every member's game, whatever their
+    # launchers say (the guest's would be the standard 3, 1.5, 3).
+    "team-rules": {
+        "about": "the leader sets the team's rules on the team screen (Fixed enemies x2 HP, x1.25 "
+                 "damage, x2 poise); both games scale the enemies by the team's, not their own",
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_FIXED}", "team-start", START, "wait-session 2 300",
+                     "wait 10", "sync rules-seen", "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_FIXED}", "team-ready", START,
+                      "wait-session 2 300", "wait 10", "sync rules-seen", "snapshot"],
+        },
+        "syncs": {"rules-seen": {"chapter": "team-rules", "roles": ["host", "guest"]}},
+        "expect": {role: [r"Co-op host rules: the team's rules are off; enemies fixed 2,1.25,2",
+                          r"Bloodborne harder enemies: \d+ NpcParam rows, x2\.00 HP, x1\.25 damage, "
+                          r"x2\.00 poise"]
+                   for role in ("host", "guest")},
+        "forbid": {role: [*SESSION_HOLDS, r"harder enemies: \d+ NpcParam rows, x3\.00 HP"]
+                   for role in ("host", "guest")},
         "timeout": 300,
     },
     "join-open-team": {
