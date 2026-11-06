@@ -162,6 +162,30 @@ def cpu_busy(read=cpu_times, sleep=time.sleep, seconds: float = 2.0) -> float | 
     return 100.0 * (1 - idle / total) if total > 0 else 0.0
 
 
+class BusyWatch:
+    """The busiest the whole PC was (every process, the rig's games too) over windows of
+    `every` seconds while a run plays: sample() from the run's loop, `busiest` after it (None
+    off Windows). Rig 2026-11-02: frames over 2 s came only while other threads' games or
+    builds ran beside the run; on a quiet PC the same scenarios had none over 1 s."""
+
+    def __init__(self, read=cpu_times, every: float = 10.0):
+        self.read, self.every = read, every
+        self.last: tuple[int, int] | None = None
+        self.last_at = 0.0
+        self.busiest: float | None = None
+
+    def sample(self, now: float) -> None:
+        if self.last is not None and now - self.last_at < self.every:
+            return
+        current = self.read()
+        if current is not None and self.last is not None:
+            idle, total = current[0] - self.last[0], current[1] - self.last[1]
+            if total > 0:
+                busy = 100.0 * (1 - idle / total)
+                self.busiest = busy if self.busiest is None else max(self.busiest, busy)
+        self.last, self.last_at = current, now
+
+
 def max_cpu_busy() -> float:
     return gigabytes("BB_MAX_CPU_BUSY", 70)
 

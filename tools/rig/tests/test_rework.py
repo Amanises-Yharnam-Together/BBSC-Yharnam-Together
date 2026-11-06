@@ -89,6 +89,36 @@ class CpuGuardTest(unittest.TestCase):
             build_lock.wait_for_cpu("smoke", busy=lambda: self.fail("measured"))
 
 
+class BusyWatchTest(unittest.TestCase):
+    def test_the_busiest_window_of_a_run(self):
+        samples = iter([(0, 0), (50, 100), (60, 200), (160, 300)])  # 50%, 90%, 0% busy
+        watch = build_lock.BusyWatch(read=lambda: next(samples), every=10)
+        for now in (0, 5, 10, 20, 30):  # 5 is inside the first window: not read
+            watch.sample(now)
+        self.assertAlmostEqual(watch.busiest, 90.0)
+
+    def test_off_windows_nothing_is_known(self):
+        watch = build_lock.BusyWatch(read=lambda: None)
+        watch.sample(0)
+        watch.sample(20)
+        self.assertIsNone(watch.busiest)
+
+
+class FrameCheckTest(unittest.TestCase):
+    CONSOLES = {"host": "Perf: 27.8 FPS over 30 s, 1% low 28.9 FPS, worst frame 2328.6 ms"}
+
+    def test_a_long_frame_on_a_busy_pc_is_said_not_failed(self):
+        with unittest.mock.patch.dict(os.environ, {"BB_MAX_CPU_BUSY": "70"}):
+            self.assertEqual(run_scenario.console_problems({}, self.CONSOLES, 85.0), [])
+            self.assertEqual(len(run_scenario.console_problems({}, self.CONSOLES, 40.0)), 1)
+            self.assertEqual(len(run_scenario.console_problems({}, self.CONSOLES)), 1)
+
+    def test_a_freeze_fails_however_busy(self):
+        consoles = {"host": "Perf: 1 FPS over 30 s, worst frame 24600.0 ms"}
+        with unittest.mock.patch.dict(os.environ, {"BB_MAX_CPU_BUSY": "70"}):
+            self.assertEqual(len(run_scenario.console_problems({}, consoles, 99.0)), 1)
+
+
 class PriorityTest(unittest.TestCase):
     def test_rig_processes_start_below_normal_on_windows(self):
         with unittest.mock.patch.object(build_lock.os, "name", "nt"), \
@@ -152,3 +182,82 @@ class LaneServerPidsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DownByEnemyForgetTest(unittest.TestCase):
+    """party-death/down-by-enemy: the game running the enemy logs the forget line, and with the
+    nearest-player runner that can be the guest's (rig 2026-11-02)."""
+
+    def chapter(self):
+        import suites
+        compiled = suites.compile_suite(suites.SUITES["party-death"])
+        return next(c for c in compiled["chapters"] if c["name"] == "down-by-enemy")
+
+    def test_the_forget_line_may_come_from_either_game(self):
+        import run_scenario
+        spec = self.chapter()
+        self.assertNotIn("host", spec.get("expect", {}))
+        line = ("Bloodborne party death: enemies forgot 1 target(s) on downed players "
+                "(self down=true, others down=0)")
+        texts = {"host": "", "guest": line + "\nBloodborne party death: giving up ends down"}
+        self.assertEqual([p for p in run_scenario.judge(spec, texts) if "forgot" in p], [])
+        host_line = line.replace("self down=true, others down=0", "self down=false, others down=1")
+        texts = {"host": host_line, "guest": "Bloodborne party death: giving up ends down"}
+        self.assertEqual([p for p in run_scenario.judge(spec, texts) if "forgot" in p], [])
+        texts = {"host": "", "guest": "Bloodborne party death: giving up ends down"}
+        self.assertTrue([p for p in run_scenario.judge(spec, texts) if "forgot" in p])
+
+
+class OwnerCrashFightTargetsTest(unittest.TestCase):
+    """crashes/owner-crash-fight: after the takeover the guest's own game has the enemy going
+    for the guest (rig 2026-11-02: it stood still, and a step back alone could pass without)."""
+
+    TAKEOVER = "Bloodborne enemy owner: this game runs map 0x18010000's enemies\n"
+    TARGETS = ("Bloodborne enemy targets (map 0x18010000, 2 in the AI list): [player 0x10044000 "
+               "type 0 team 1 info18 0x0: a target] [enemy 0x1001400b: {}]\n")
+
+    def problems(self, text):
+        import suites
+        compiled = suites.compile_suite(suites.SUITES["crashes"])
+        spec = next(c for c in compiled["chapters"] if c["name"] == "owner-crash-fight")
+        return [p for p in run_scenario.judge(spec, {"guest": text, "host": ""})
+                if "enemy targets" in p]
+
+    def test_the_enemy_going_for_the_guest_after_the_takeover_passes(self):
+        self.assertEqual(self.problems(self.TAKEOVER + self.TARGETS.format("0x10044000")), [])
+
+    def test_the_enemy_going_for_someone_else_fails(self):
+        self.assertTrue(self.problems(self.TAKEOVER + self.TARGETS.format("0x10044100")))
+
+    def test_targets_only_before_the_takeover_fail(self):
+        self.assertTrue(self.problems(self.TARGETS.format("0x10044000") + self.TAKEOVER))
+
+
+class RestartAfterTest(unittest.TestCase):
+    """restart_after: a game stopped by a chapter starts again only once the other games reached
+    a sync (rig 2026-11-03: owner-crash-fight's host came back beside the enemy mid-check)."""
+
+    def test_a_suite_holds_the_restart_until_the_sync(self):
+        import suites
+        suite = {"about": "", "roles": {"host": {}, "guest": {}}, "chapters": [
+            suites.chapter("c", "", {"host": ["wait 1", suites.restart_after("moved"),
+                                              "sync moved"],
+                                     "guest": ["wait 1", "sync moved"]})]}
+        compiled = suites.compile_suite(suite)
+        self.assertEqual(compiled["stage_after"], {"host": {1: "moved"}})
+        self.assertEqual(len(compiled["roles"]["host"]), 2)
+
+    def test_the_gate_opens_once_every_other_game_reached_it(self):
+        scenario = {"stage_after": {"host": {1: "moved"}},
+                    "syncs": {"moved": {"chapter": "c", "roles": ["guest", "host"]}}}
+        self.assertFalse(run_scenario.stage_gate_open(scenario, "host", 1, {"guest": set()},
+                                                      set(), set()))
+        self.assertTrue(run_scenario.stage_gate_open(scenario, "host", 1, {"guest": {"moved"}},
+                                                     set(), set()))
+        # The chapter given up, or the other game done: nothing to wait for.
+        self.assertTrue(run_scenario.stage_gate_open(scenario, "host", 1, {"guest": set()},
+                                                     {"c"}, set()))
+        self.assertTrue(run_scenario.stage_gate_open(scenario, "host", 1, {"guest": set()},
+                                                     set(), {"guest"}))
+        # No gate on that stage.
+        self.assertTrue(run_scenario.stage_gate_open(scenario, "host", 2, {}, set(), set()))

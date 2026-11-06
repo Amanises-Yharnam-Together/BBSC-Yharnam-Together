@@ -21,6 +21,8 @@ turns it into one script per game:
   it means anything without it) runs with keep-going off and ends the suite when it fails.
 - RESTART in a game's steps stops that game there (as a crash would) and starts it again with
   the steps after it (a scenario's stages).
+- restart_after(sync) is RESTART that starts the game again only once the other games reached
+  that sync.
 
 run_scenario.py <suite> --chapter <name> runs only those chapters (and the "setup" ones they
 need, the join).
@@ -53,9 +55,15 @@ HOSTS_MESSENGERS = (r"characters switched like the host has them on map 0x150000
 
 # #403 (Kaniel 2026-10-25): a host's game that dies hands the team to a guest, and comes back
 # as that guest's guest.
-# owner-crash-fight: the enemy stood 1.1 m from the guest at GUEST_ALONE_SPOT, too close to walk
-# the 1.5 m "moves" needs (rig 2026-11-02); the guest steps 4 m back so it has to come for it.
-OCF_STEP_BACK = "-214.0 -54.5 181.0"
+# party3 (Kaniel 2026-11-02: known for now).
+REJOIN_RACE = ("the old host rejoining races its greeting (candidate fix on branch "
+               "fix/rejoin-greeting-1.3.2; a rarer form leaves a hidden copy)")
+# owner-crash-fight: after the takeover the guest's own game runs the enemy, and it goes for the
+# guest: LogEnemyTargets lists this player first, then each enemy's targets (rig 2026-11-02: in
+# the failing runs it had none, and "moves" alone could pass on an enemy walking home).
+GUEST_TARGETED_AFTER_TAKEOVER = (
+    r"(?s)enemy owner: this game runs map 0x18010000's enemies.*Bloodborne enemy targets "
+    r"\(map [^)\n]*\): \[player (0x[0-9a-f]+) [^\n]*\[enemy 0x1001400b:[^\]\n]*\b\1\b")
 GUEST_LEADS = (r"Co-op team play: this guest leads the team now: it hosts|Co-op team join: the "
                r"session host moved to this game")
 OLD_HOST_IS_GUEST = r"Co-op team lobby: the save plays in team \w+ as its guest"
@@ -64,12 +72,20 @@ RESTART = "<restart>"
 # Steps a game runs on its title screen, before it is in the world (the lobby's, the title's).
 TITLE_STEPS = ("team-", "title-")
 RESTART_WITH = "<restart with "
+RESTART_AFTER = "<restart after "
 
 
 def restart_with(saves: str) -> str:
     """RESTART with other saves put in first (rig/saves/<saves>, as a scenario's "saves"): a
     brand-new character, as a player who starts one."""
     return f"{RESTART_WITH}{saves}>"
+
+
+def restart_after(sync: str) -> str:
+    """RESTART, but the game starts again only once the other games in that sync reached it
+    (owner-crash-fight, rig 2026-11-03: the host's game came back beside the enemy and took it
+    while the guest's check still ran). The new stage's steps should hold that sync too."""
+    return f"{RESTART_AFTER}{sync}>"
 
 # How players play (the robustness review, 2026-10-12): party death on. At 30 FPS: at the kit's
 # uncapped frame rate the third player is never summoned (rig 2026-10-12, 3 runs of 3; scenario
@@ -514,7 +530,11 @@ SUITES = {
                      "guest": ["sync ah-go", "sync ah-apart", "godmode off",
                                # Away at the first hit: 25 s there sometimes downed the guest
                                # with nobody to revive it (rig 2026-10-22).
-                               f"teleport {GUEST_ALONE_SPOT}", "wait-hp self < 594 25",
+                               # The guest's hit starts the fight: where apart-collision left
+                               # the enemy varies, and unhit it never targeted the guest (rig
+                               # 2026-11-02: "hp is 594 after 25 s").
+                               f"teleport {GUEST_ALONE_SPOT}", "wait 2", f"approach {ENEMY}",
+                               f"hit {ENEMY} 30", "wait-hp self < 594 25",
                                "godmode", "sync ah-done",
                                f"teleport {AT_THE_LAMP}", "wait 3"]},
                     forbid=holds(PARTY2)),
@@ -831,10 +851,12 @@ SUITES = {
                                "wait-vital down 90", "wait 20", "expect-hp self == 1",
                                "press circle 3600", "wait-vital dead 15", "wait-vital up 90",
                                "godmode"]},
-                    # Phase 8: the map's owner runs the enemy, so its game forgets the target.
-                    expect={"host": [r"party death: enemies forgot \d+ target\(s\) on downed "
-                                     r"players \(self down=false, others down=1"],
-                            "guest": [r"party death: giving up ends down"]},
+                    # Phase 8: the game running the enemy forgets the target. With the
+                    # nearest-player runner that can be the downed guest's own game (rig
+                    # 2026-11-02: the line was in the guest's log).
+                    expect_any=[r"party death: enemies forgot \d+ target\(s\) on downed "
+                                r"players \(self down=(false, others down=1|true, others down=0)"],
+                    expect={"guest": [r"party death: giving up ends down"]},
                     # known_bug dropped: not seen in the rig run of 2026-11-02.
                     forbid={"host": SESSION_HOLDS,
                             "guest": SESSION_HOLDS + [r"party death: killed while down"]}),
@@ -1151,7 +1173,11 @@ SUITES = {
                                          "hurt as it was, and it keeps coming for the guest",
                     {"host": ["wait-members 2 300", "sync ocf-go", f"teleport {GUEST_ALONE_SPOT}",
                               "wait 3", "sync ocf-hit",
-                              f"hurt {ENEMY} 200", "wait 3", "sync ocf-hurt", RESTART, START,
+                              f"hurt {ENEMY} 200", "wait 3", "sync ocf-hurt",
+                              # Back only once the guest's check is done (rig 2026-11-03: its
+                              # game came back beside the enemy 2 s after the guest's step back,
+                              # took it, and fought it where it stood).
+                              restart_after("ocf-moved"), "sync ocf-moved", START,
                               "godmode", "wait-session 2 420", "wait 5", "expect-session 2",
                               "sync ocf-back"],
                      # godmode: its game came back in leave without it (rig 2026-11-02: the
@@ -1165,13 +1191,17 @@ SUITES = {
                                f"teleport {GUEST_ALONE_SPOT}", "wait 2", f"approach {ENEMY}",
                                f"hit {ENEMY} 30", "sync ocf-hit", "sync ocf-hurt",
                                "wait-solo 180", "wait 3", f"expect-hp {ENEMY} <= 200",
-                               "census 40", f"teleport {OCF_STEP_BACK}", "wait 10", "census 40",
-                               f"expect-hp {ENEMY} <= 200", "sync ocf-back"]},
+                               # Back to the lamp, known ground 14-25 m from where the fight
+                               # leaves the enemy, so a chasing enemy walks the 1.5 m "moves"
+                               # needs (rig 2026-11-02: a spot 4 m off was often where it stood
+                               # already, and 5 m from the enemy itself was over the drop).
+                               "census 40", f"teleport {AT_THE_LAMP}", "wait 10", "census 40",
+                               f"expect-hp {ENEMY} <= 200", "sync ocf-moved", "sync ocf-back"]},
                     # The old owner-crash scenario's check: the guest's game runs the map now. Its
                     # game leads the team from here on (#403): the line comes in this chapter, not
                     # in host-crash-apart (rig 2026-11-02).
                     expect={"guest": [r"enemy owner: this game runs map 0x18010000's enemies",
-                                      GUEST_LEADS]},
+                                      GUEST_LEADS, GUEST_TARGETED_AFTER_TAKEOVER]},
                     # known_bug dropped (rig 2026-11-02): no crash in its run; it failed because
                     # it ran after host-crash-apart.
                     moves={"guest": ENEMY}, allow=CRASH_CLEANUP),
@@ -1456,7 +1486,8 @@ SUITES = {
                     # (patch site "matching check"); the crash at eboot+0x13cffba went with the
                     # flag block guard.
                     forbid={"host": [r"StopRequest from the game"]},
-                    allow=CRASH_CLEANUP),
+                    allow=CRASH_CLEANUP,
+                    known_bug=REJOIN_RACE),
             # Kaniel's playtest 2026-10-22 (v1.1.5): back after its crash, the host played a minute
             # in the guest's session, then left and joined again five times (a reload each), and
             # came in unseen and unable to move; the guest hosting tore its world down.
@@ -1467,7 +1498,8 @@ SUITES = {
                         for guest in ("guest", "guest2")}},
                     forbid={role: SESSION_HOLDS + [r"Co-op lifecycle: (leave|join)",
                                                    r"world teardown"]
-                            for role in PARTY3}),
+                            for role in PARTY3},
+                    known_bug=REJOIN_RACE),
         ],
     },
     # The rig rework (Kaniel 2026-11-01): the four trade scenarios in one boot. Each chapter sets
@@ -1622,6 +1654,7 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
                 if only is None or c["name"] in only or c.get("setup")]
     stages: dict[str, list[list[str]]] = {role: [[START]] for role in roles}
     stage_saves: dict[str, dict[int, str]] = {}
+    stage_after: dict[str, dict[int, str]] = {}
     syncs: dict[str, dict] = {}
     outages: dict[str, float] = {}
     server_restarts: list[str] = []
@@ -1635,14 +1668,17 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
             stages[role][-1] += [mark, keep_going, f"sync {c['name']}"]
             marks_due = False  # a restarted game's chapter mark, after its title's steps
             for step in c["steps"].get(role, []):
-                if step == RESTART or step.startswith(RESTART_WITH):
+                if step == RESTART or step.startswith((RESTART_WITH, RESTART_AFTER)):
                     # Started again: the same chapter, from the title screen (with other saves
-                    # put in first for restart_with).
+                    # put in first for restart_with, once a sync is reached for restart_after).
                     stages[role].append([])
                     marks_due = True
-                    if step != RESTART:
+                    if step.startswith(RESTART_WITH):
                         saves = step[len(RESTART_WITH):-1]
                         stage_saves.setdefault(role, {})[len(stages[role]) - 1] = saves
+                    elif step.startswith(RESTART_AFTER):
+                        sync = step[len(RESTART_AFTER):-1]
+                        stage_after.setdefault(role, {})[len(stages[role]) - 1] = sync
                     continue
                 if marks_due and not step.startswith(TITLE_STEPS):
                     # The title runs only its own steps (team-*, title-*): they go first.
@@ -1655,8 +1691,8 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
                     syncs[name]["roles"].append(role)
             if marks_due:
                 stages[role][-1] += [mark, keep_going]
-    checks = ("about", "expect", "forbid", "allow", "same_hp", "same_hp_census", "hp_sums_hits",
-              "max_hp_lag", "max_hp_lag_each", "killed", "max_kill_lag", "max_join_s", "moves",
+    checks = ("about", "expect", "expect_any", "forbid", "allow", "same_hp", "same_hp_census",
+              "hp_sums_hits", "max_hp_lag", "max_hp_lag_each", "killed", "max_kill_lag", "max_join_s", "moves",
               "grounded", "overlay_textures", "console_expect", "known_bug", "known_problems",
               "files_present",
               "files_absent")
@@ -1674,6 +1710,7 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
         "outages": outages,
         "server_restarts": server_restarts,
         "stage_saves": stage_saves,
+        "stage_after": stage_after,
         **({"saves": suite["saves"]} if "saves" in suite else {}),
     }
 
