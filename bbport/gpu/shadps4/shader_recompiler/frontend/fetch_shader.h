@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <cstdlib>
+
 #include "common/small_vector.h"
 #include "common/types.h"
 #include "shader_recompiler/info.h"
@@ -69,5 +71,45 @@ struct FetchShaderData {
 const u32* GetFetchShaderCode(const Info& info, u32 sgpr_base);
 
 bool ParseFetchShader(const Shader::Info& info, FetchShaderData& out_fetch_data);
+
+/// bbport: a V# without records fetches zeros through a float input. Described to Vulkan from
+/// its own fields, a zeroed V# is a VK_FORMAT_UNDEFINED vertex attribute; an NVIDIA driver lost
+/// the device ("WriteInvalid at 0x0") on the first submit after a draw with one. The
+/// specialization keeps none of such a V#'s fields (number class Float, swizzle zero), so the
+/// shader declares a float input and writes zeros to its registers. BB_NULL_VERTEX_INPUT=0
+/// describes the V#'s own format, stride and swizzle as before.
+inline bool NullVertexInputEnabled() noexcept {
+    static const bool enabled = [] {
+        const char* value = std::getenv("BB_NULL_VERTEX_INPUT");
+        return !value || value[0] != '0';
+    }();
+    return enabled;
+}
+
+inline bool IsNullVertexInput(const AmdGpu::Buffer& sharp, bool enabled) noexcept {
+    return enabled && !sharp;
+}
+
+inline bool IsNullVertexInput(const AmdGpu::Buffer& sharp) noexcept {
+    return IsNullVertexInput(sharp, NullVertexInputEnabled());
+}
+
+struct VertexInputFormat {
+    AmdGpu::DataFormat data_format;
+    AmdGpu::NumberFormat num_format;
+    u32 stride;
+};
+
+/// The host vertex input of an attribute: a null one fetches a float4 from no buffer.
+inline VertexInputFormat GetVertexInputFormat(const AmdGpu::Buffer& sharp, bool null) noexcept {
+    if (null) {
+        return {AmdGpu::DataFormat::Format32_32_32_32, AmdGpu::NumberFormat::Float, 0};
+    }
+    return {sharp.GetDataFmt(), sharp.GetNumberFmt(), sharp.GetStride()};
+}
+
+inline VertexInputFormat GetVertexInputFormat(const AmdGpu::Buffer& sharp) noexcept {
+    return GetVertexInputFormat(sharp, IsNullVertexInput(sharp));
+}
 
 } // namespace Shader::Gcn

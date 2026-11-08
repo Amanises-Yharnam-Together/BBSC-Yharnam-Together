@@ -1551,26 +1551,27 @@ bool PipelineCache::RefreshGraphicsStages(PipelineSelection& sel) {
         // Stride will still be handled outside the pipeline using dynamic state.
         u32 vertex_binding = 0;
         for (const auto& attrib : sel.fetch_shader->attributes) {
-            const auto& buffer = attrib.GetSharp(*vs_info);
+            // bbport: a V# without records is a float4 from no buffer (fetch_shader.h).
+            const auto input = Shader::Gcn::GetVertexInputFormat(attrib.GetSharp(*vs_info));
             ASSERT_MSG(vertex_binding < MaxVertexBufferCount,
                        "Vertex attribute binding count exceeded limit: {} >= {}", vertex_binding,
                        MaxVertexBufferCount);
             // bbport: these V#s are read from guest memory the game may be rewriting. One whose
             // formats name no format (data_format=15 and num_format=7 stopped a player's RX 580
             // at "Begin the hunt") skips the draw instead of stopping the game.
-            if (!Vulkan::LiverpoolToVK::IsKnownSurfaceFormat(buffer.GetDataFmt(),
-                                                             buffer.GetNumberFmt())) {
+            if (!Vulkan::LiverpoolToVK::IsKnownSurfaceFormat(input.data_format,
+                                                             input.num_format)) {
                 static std::atomic<u32> reported{0};
                 if (reported.fetch_add(1, std::memory_order_relaxed) < 5) {
                     std::printf("GPU: draw skipped: a vertex stream has no format (data_format=%u, "
                                 "num_format=%u)\n",
-                                static_cast<u32>(buffer.GetDataFmt()),
-                                static_cast<u32>(buffer.GetNumberFmt()));
+                                static_cast<u32>(input.data_format),
+                                static_cast<u32>(input.num_format));
                 }
                 return false;
             }
             key.vertex_buffer_formats[vertex_binding++] =
-                Vulkan::LiverpoolToVK::TrySurfaceFormat(buffer.GetDataFmt(), buffer.GetNumberFmt());
+                Vulkan::LiverpoolToVK::TrySurfaceFormat(input.data_format, input.num_format);
         }
     }
 

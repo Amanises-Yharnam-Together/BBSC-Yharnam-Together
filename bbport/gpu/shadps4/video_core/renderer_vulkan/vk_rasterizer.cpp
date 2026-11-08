@@ -21,6 +21,7 @@
 #include "core/emulator_settings.h"
 #include "core/memory.h"
 #include "shader_recompiler/resource.h"
+#include "shader_recompiler/frontend/fetch_shader.h"
 #include "shader_recompiler/runtime_info.h"
 #include "video_core/amdgpu/liverpool.h"
 #include "video_core/amdgpu/pm4_cmds.h"
@@ -2612,6 +2613,48 @@ void Rasterizer::EmitVertexBuffers() {
     });
 }
 
+// bbport: the first draws whose vertex attributes have a V# without records. Such an attribute
+// is a float4 read from no buffer now (fetch_shader.h); described from the V#'s own zeroed
+// fields it was a VK_FORMAT_UNDEFINED attribute, and an NVIDIA driver lost the device
+// ("WriteInvalid at 0x0") after the first submit of a draw with one.
+static void NoteNullVertexInputs(const GraphicsPipeline* pipeline,
+                                 std::span<const AmdGpu::Buffer> buffers) {
+    static std::atomic<u32> reports{0};
+    if (reports.load(std::memory_order_relaxed) >= 8 || buffers.empty()) {
+        return;
+    }
+    bool any_null = false;
+    for (const auto& buffer : buffers) {
+        any_null |= Shader::Gcn::IsNullVertexInput(buffer);
+        if (any_null) {
+            break;
+        }
+    }
+    if (!any_null || reports.fetch_add(1, std::memory_order_relaxed) >= 8) {
+        return;
+    }
+    std::string list;
+    for (u32 i = 0; i < buffers.size(); ++i) {
+        const auto& buffer = buffers[i];
+        if (!Shader::Gcn::IsNullVertexInput(buffer)) {
+            continue;
+        }
+        const auto input = Shader::Gcn::GetVertexInputFormat(buffer, false);
+        list += fmt::format(" [{}: address {:#x} stride {} format {}/{} -> {}]", i,
+                            u64(buffer.base_address), u32(buffer.stride),
+                            u32(buffer.data_format), u32(buffer.num_format),
+                            vk::to_string(LiverpoolToVK::TrySurfaceFormat(input.data_format,
+                                                                          input.num_format)));
+    }
+    std::printf("Vertex input: vs %#llx draws %zu attributes, null V#s (no records):%s; %s\n",
+                static_cast<unsigned long long>(
+                    pipeline->GetStage(Shader::SwStage::Vertex).pgm_hash),
+                buffers.size(), list.c_str(),
+                Shader::Gcn::NullVertexInputEnabled()
+                    ? "bound as zero float4 from no buffer"
+                    : "bound with their own format (BB_NULL_VERTEX_INPUT=0)");
+}
+
 void Rasterizer::ResolveVertexBuffers(const GraphicsPipeline* pipeline,
                                       const PreparedDraw* prepared) {
     BB_SECTION(ResolveVertexBuffers);
@@ -2769,8 +2812,12 @@ void Rasterizer::ResolveVertexBuffers(const GraphicsPipeline* pipeline,
             host_offsets.push_back(0);
         }
         host_sizes.push_back(buffer.GetSize());
-        host_strides.push_back(buffer.GetStride());
+        // bbport: a V# without records binds no buffer with stride 0 (fetch_shader.h); its own
+        // leftover stride is not a stride a null vertex buffer may have.
+        host_strides.push_back(Shader::Gcn::GetVertexInputFormat(buffer).stride);
     }
+
+    NoteNullVertexInputs(pipeline, {guest_buffers.data(), guest_buffers.size()});
 
     v.num_buffers = static_cast<u32>(guest_buffers.size());
 }
