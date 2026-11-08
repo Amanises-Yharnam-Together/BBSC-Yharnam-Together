@@ -94,6 +94,31 @@ asm(".section .rodata\n"
 #endif
 extern "C" const unsigned char bb_serif_ttf[];
 extern "C" const unsigned char bb_serif_ttf_end[];
+// Noto Sans Thai (SIL OFL 1.1), its marks placed for a renderer without shaping
+// (scripts/thai_font.py; the Thai texts are written for it by scripts/thai_shaping.py).
+#ifdef _WIN32
+asm(".section .rdata,\"dr\"\n"
+    ".balign 16\n"
+    ".global bb_thai_ttf\n"
+    "bb_thai_ttf:\n"
+    ".incbin \"" BB_THAI_FONT_PATH "\"\n"
+    ".global bb_thai_ttf_end\n"
+    "bb_thai_ttf_end:\n"
+    ".text\n");
+#else
+asm(".section .rodata\n"
+    ".balign 16\n"
+    ".hidden bb_thai_ttf\n"
+    ".global bb_thai_ttf\n"
+    "bb_thai_ttf:\n"
+    ".incbin \"" BB_THAI_FONT_PATH "\"\n"
+    ".hidden bb_thai_ttf_end\n"
+    ".global bb_thai_ttf_end\n"
+    "bb_thai_ttf_end:\n"
+    ".previous\n");
+#endif
+extern "C" const unsigned char bb_thai_ttf[];
+extern "C" const unsigned char bb_thai_ttf_end[];
 // Party death's icons (art/party_icons.bin, drawn for the port: shim/bbport_party_icons.h).
 #ifdef _WIN32
 asm(".section .rdata,\"dr\"\n"
@@ -788,6 +813,9 @@ const char* GameFontFolder(BbSettings::MenuLanguage language) {
         return "zhocn";
     case BbSettings::MenuLanguage::ZhTw:
         return "zhotw";
+    case BbSettings::MenuLanguage::Th:
+        // Not a language of the game: its Latin, then the port's Thai font (LoadLanguage).
+        return "engus";
     default:
         return nullptr;
     }
@@ -850,6 +878,11 @@ void LoadLanguage() {
         }
     }
     sources.emplace_back(bb_serif_ttf, bb_serif_ttf_end);
+    // Thai: the port's own font, its marks already placed (the texts are written for it).
+    const bool thai = language == BbSettings::MenuLanguage::Th;
+    if (thai) {
+        sources.emplace_back(bb_thai_ttf, bb_thai_ttf_end);
+    }
     const auto system = SystemFont(language);
     if (system) {
         if (FILE* f = std::fopen(system->first.c_str(), "rb")) {
@@ -881,7 +914,8 @@ void LoadLanguage() {
     for (ImFont* plain : {sans_font, serif_font}) {
         for (std::size_t i = 0; plain && i < sources.size(); ++i) {
             const bool system_face = system && i + 1 == sources.size();
-            if (i != 0 && !system_face) {
+            const bool thai_face = thai && i + 1 == sources.size() - (system ? 1 : 0);
+            if (i != 0 && !system_face && !thai_face) {
                 continue;
             }
             void* data = IM_ALLOC(sources[i].size());

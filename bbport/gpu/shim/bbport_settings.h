@@ -55,7 +55,7 @@ enum class MenuLanguage {
 #include "bbport_menu_texts.inc"
 #undef BB_MENU_LANG
 };
-inline constexpr int MenuLanguageCount = int(MenuLanguage::Tr) + 1;
+inline constexpr int MenuLanguageCount = int(MenuLanguage::Th) + 1;
 
 /// Game effects switched by the community patches at start (patches.py EFFECTS): ini key,
 /// menu label, default (the game's own behaviour).
