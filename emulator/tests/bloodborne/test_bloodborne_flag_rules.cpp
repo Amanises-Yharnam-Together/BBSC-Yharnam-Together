@@ -644,29 +644,50 @@ TEST(BloodborneFlagRules, TheLevellersOwnBlessingStepsGoThrough) {
 // Kaniel 2026-11-03: a second "Level Up" in the same Dream visit opened no menu. Her talk sets
 // 6700 as her level-up menu opens and skips the menu while it is on; nothing in the game cleared
 // it before the next map load (rig on Kaniel's PC, a lone player too). It goes off once her
-// blessing is over: this game's own 72100100 back off after it was on, 6700 still on.
+// blessing is over: this game's own 72100100 back off after it was on, her blessing's steps
+// (72100101, 72100102) off too, 6700 still on.
 TEST(BloodborneFlagRules, TheDollsLevelUpFlagGoesOffOnceHerBlessingIsOver) {
     DollLevelUpClear clear;
-    EXPECT_FALSE(clear.Tick(true, true, false)) << "her menu open";
-    EXPECT_FALSE(clear.Tick(true, true, true)) << "her blessing";
-    EXPECT_FALSE(clear.Tick(true, true, true));
-    EXPECT_TRUE(clear.Tick(true, true, false)) << "her blessing over";
-    EXPECT_FALSE(clear.Tick(true, false, false)) << "once";
+    EXPECT_FALSE(clear.Tick(true, true, false, false)) << "her menu open";
+    EXPECT_FALSE(clear.Tick(true, true, true, false)) << "her blessing";
+    EXPECT_FALSE(clear.Tick(true, true, true, true));
+    EXPECT_TRUE(clear.Tick(true, true, false, false)) << "her blessing over";
+    EXPECT_FALSE(clear.Tick(true, false, false, false)) << "once";
     // The menu again: the same once more.
-    EXPECT_FALSE(clear.Tick(true, true, false));
-    EXPECT_FALSE(clear.Tick(true, true, true));
-    EXPECT_TRUE(clear.Tick(true, true, false));
+    EXPECT_FALSE(clear.Tick(true, true, false, false));
+    EXPECT_FALSE(clear.Tick(true, true, true, true));
+    EXPECT_TRUE(clear.Tick(true, true, false, false));
+}
+
+// Discord 2026-11-06 (1.4.0, Moab): backing out of her level up with Circle left the player
+// kneeling for good. m21_00 12100112 stands the player up (2003:18 101272) only once 72100100 is
+// off, up to 54 frames after its kneel, and its animations run only while 6700 is on
+// (OWN_ANIMATION_EVENTS): 6700 cleared the frame 72100100 went off, the stand-up was skipped.
+// 12100112 clears its step 72100101 after the stand-up, 12100113 its 72100102 after her turn
+// back: 6700 stays on until both are off.
+TEST(BloodborneFlagRules, TheDollsLevelUpFlagStaysOnUntilThePlayerStoodUp) {
+    DollLevelUpClear clear;
+    EXPECT_FALSE(clear.Tick(true, true, true, false)) << "her blessing";
+    EXPECT_FALSE(clear.Tick(true, true, true, true)) << "kneeling";
+    EXPECT_FALSE(clear.Tick(true, true, false, true)) << "her menu closed, still kneeling";
+    EXPECT_FALSE(clear.Tick(true, true, false, true));
+    EXPECT_TRUE(clear.Tick(true, true, false, false)) << "stood up";
+    EXPECT_FALSE(clear.Tick(true, true, false, false)) << "once";
 }
 
 TEST(BloodborneFlagRules, TheDollsLevelUpFlagStaysWithoutABlessingOrOutOfCoop) {
     DollLevelUpClear clear;
-    EXPECT_FALSE(clear.Tick(true, true, false));
-    EXPECT_FALSE(clear.Tick(true, true, false)) << "no blessing yet";
-    EXPECT_FALSE(clear.Tick(true, false, true));
-    EXPECT_FALSE(clear.Tick(true, false, false)) << "6700 already off";
+    EXPECT_FALSE(clear.Tick(true, true, false, false));
+    EXPECT_FALSE(clear.Tick(true, true, false, false)) << "no blessing yet";
+    EXPECT_FALSE(clear.Tick(true, true, false, true)) << "a step alone is no blessing";
+    EXPECT_FALSE(clear.Tick(true, true, false, false));
+    EXPECT_FALSE(clear.Tick(true, false, true, false));
+    EXPECT_FALSE(clear.Tick(true, false, false, false)) << "6700 already off";
+    EXPECT_FALSE(clear.Tick(true, true, false, false)) << "that blessing is done with";
     DollLevelUpClear solo;
-    EXPECT_FALSE(solo.Tick(false, true, true));
-    EXPECT_FALSE(solo.Tick(false, true, false)) << "the co-op mode only";
+    EXPECT_FALSE(solo.Tick(false, true, true, false));
+    EXPECT_FALSE(solo.Tick(false, true, false, false)) << "the co-op mode only";
+    EXPECT_FALSE(solo.Tick(true, true, false, false)) << "a blessing out of it is forgotten";
 }
 
 // m21_00 12105020-12105024 (01.09): on while any of the headstone's lamps is lit.

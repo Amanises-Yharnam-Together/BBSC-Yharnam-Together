@@ -1132,16 +1132,31 @@ bool TakesDollBlessingStep(s32 flag, bool sent_on, bool own_blessing_on);
 // 6700 as her level-up menu opens and skips the menu while it is on, and in the co-op mode nothing
 // cleared it before the next map load (rig: a lone player too). Tick (each frame) says when to
 // clear it: her blessing over, this game's own 72100100 off again after it was on, 6700 still on.
+// Not before her blessing's steps are off too (`steps_on`: 72100101 or 72100102). m21_00 12100112
+// stands the player up only once 72100100 is off, up to 54 frames after the kneel, and plays the
+// player's animations only while 6700 is on (OWN_ANIMATION_EVENTS in party_boss_events.py); it
+// clears 72100101 after the stand-up. 6700 cleared with 72100100 skipped the stand-up and left
+// the player kneeling for good (Discord 2026-11-06, 1.4.0: her level up closed with Circle).
 class DollLevelUpClear {
 public:
-    bool Tick(bool coop_mode, bool level_up_on, bool blessing_on) {
-        const bool was_on = blessing_was_on;
-        blessing_was_on = coop_mode && blessing_on;
-        return coop_mode && level_up_on && was_on && !blessing_on;
+    bool Tick(bool coop_mode, bool level_up_on, bool blessing_on, bool steps_on) {
+        if (!coop_mode) {
+            blessing_seen = false;
+            return false;
+        }
+        if (blessing_on) {
+            blessing_seen = true;
+            return false;
+        }
+        if (!blessing_seen || steps_on) {
+            return false;
+        }
+        blessing_seen = false;
+        return level_up_on;
     }
 
 private:
-    bool blessing_was_on = false;
+    bool blessing_seen = false;
 };
 // The other player's "set this event flag" (0x017C0570) and "event ended" (0x017C0901) messages
 // leave these flags and events alone in a party: what one player received is not given to the
