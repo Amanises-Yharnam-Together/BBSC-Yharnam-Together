@@ -5360,5 +5360,8 @@ PROBE_NAMES = (
     "join3-uncap",
     # A10 boss retries: where Rom and Ludwig stand
     "a10-rom-look", "a10-ludwig-look",
+    # A10: a guest through Gascoigne's fog after the others. No valid run yet (its setup was
+    # fixed twice, 2026-11-10); in no tier until one run on main says what it shows
+    "gascoigne-late-guest",
 )
 PROBES = {name: SCENARIOS.pop(name) for name in PROBE_NAMES}

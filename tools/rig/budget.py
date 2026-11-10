@@ -60,7 +60,6 @@ LONG = {
     "boss-hp-after-wipe": "the 10-19 playtest case #272: a wipe and a wake",
     "boss-hp-staggered-wipe": "the 10-25 playtest case: three games, deaths one by one and a wake",
     "paarl-after-wipe": "Kaniel's playtest 2026-10-22: three games, a wipe, a wake and a walk back",
-    "gascoigne-late-guest": "Discord audit A10: three games, two through a boss fog, the third 30 s later",
     "rom-retry-guest-alone": "Discord audit A10: a lake dive, a boss's later phase, a give-up, a wake and a dive back",
     "rom-retry": "Discord audit A10: a lake dive, a boss's later phase, a wipe, a wake and a dive back",
     "ludwig-retry": "Discord audit A10: a trip, a boss phase change, a wipe, a wake and a walk back",
