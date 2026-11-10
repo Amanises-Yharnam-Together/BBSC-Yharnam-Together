@@ -313,6 +313,12 @@ void LogNearbyEnemyControl() {
             if (ReadValue<u8>(character, 0x28) == 0) {
                 WatchEnemyHp(character + 0x28, ReadValue<u32>(character, 0x08));
             }
+        } else if (std::string_view{trace_enemy} == "max") {
+            // Bug audit 24: who makes a handed-out enemy's max again (data +0x104) again after the
+            // scaling's rescale (rig enemy-max-hp-handed-out 2026-11-10).
+            if (data >= 0x10000) {
+                WatchEnemyHp(data + EnemyMaxHpAgainAt, ReadValue<u32>(character, 0x08));
+            }
         } else if (std::string_view{trace_enemy} == "ctrl") {
             if (control >= 0x10000) {
                 WatchEnemyHp(control + 0x14, ReadValue<u32>(character, 0x08));

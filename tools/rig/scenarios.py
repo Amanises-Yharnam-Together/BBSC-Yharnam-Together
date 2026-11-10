@@ -5979,9 +5979,10 @@ SCENARIOS["enemy-max-hp-same"] = {
 
 
 # The same check for the enemies the owner hands out for the guest's game to run (rig
-# enemy-max-hp-same 2026-11-10: "enemy hand-out from the owner: 282e 282f 2841 ..."): after the
-# rescale they read 179/179 on the host and 179/268 on the guest; something on the hand-out path
-# makes their stats again. Known: it turns green once that is followed up.
+# enemy-max-hp-same 2026-11-10: "enemy hand-out from the owner: 282e 282f 2841 ..."): a hand-out
+# makes their max again from their base (data +0x100; rig handed-out-max-watch found the writer,
+# 0x01A0D7D0), so the rescale's own write of the max went back to 179 on the host. Now the base
+# takes the rate too.
 HANDED_OUT = ("0x1001402e", "0x1001402f", "0x10014041", "0x10014042", "0x10014043", "0x10014044")
 SCENARIOS["enemy-max-hp-handed-out"] = {
     "about": "the enemies the host's game hands out to the guest's read whole (hp == its own max) "
@@ -5990,8 +5991,6 @@ SCENARIOS["enemy-max-hp-handed-out"] = {
                      *_whole(HANDED_OUT), "sync emho-checked", "expect-session 2"]
               for role in ("host", "guest")},
     "syncs": {"emho-checked": {"chapter": "enemy-max-hp-handed-out", "roles": ["host", "guest"]}},
-    "known_bug": "handed-out enemies keep the unscaled max on the host (179/179) and 179/268 on the "
-                 "guest after the rescale; the hand-out path makes their stats again (bug audit 24)",
     "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
     "timeout": 300,
 }
@@ -6020,6 +6019,25 @@ SCENARIOS["a10-gascoigne-fog-look"] = {
                        "object 2411810",
                        *_fog_tries()]},
     "timeout": 420,
+}
+
+
+# Bug audit 24 probe: a write watch on 0x1001402e's base max (data +0x104) in the host's game,
+# armed while the host stands by it before the guest arrives; the log names what makes it again
+# after the rescale (LogWatchedWrites: the instruction and the image return addresses).
+SCENARIOS["handed-out-max-watch"] = {
+    "about": "probe: the host stands by a handed-out enemy (0x1001402e) with a write watch on its "
+             "base max; the guest arrives; the log names whatever writes it",
+    "settings": {"SHADPS4_BLOODBORNE_TRACE_ENEMY_HP": "max"},
+    "roles": {
+        "host": [START, "godmode", "approach 0x1001402e 0 3", "wait 10", "census 10",
+                 "wait-session 2 300", "wait 25", "census 10", "dump 0x1001402e", "wait 5",
+                 "expect-session 2"],
+        "guest": [START, "godmode", "wait-session 2 300", "wait 25", "census 60", "wait 5",
+                  "expect-session 2"],
+    },
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300,
 }
 
 
@@ -6108,5 +6126,7 @@ PROBE_NAMES = (
     "gascoigne-late-guest",
     # bug audit 24: a guest's frenzy on the host's screen
     "frenzy-guest-look",
+    # bug audit 24: who makes a handed-out enemy's max again
+    "handed-out-max-watch",
 )
 PROBES = {name: SCENARIOS.pop(name) for name in PROBE_NAMES}

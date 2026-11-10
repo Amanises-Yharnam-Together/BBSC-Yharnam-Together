@@ -399,17 +399,21 @@ std::size_t RescaleLoadedEnemies(float old_rate, float new_rate) {
         const u64 modules = ReadValue<u64>(character, 0x3B0);
         const u64 data = modules >= 0x10000 ? ReadValue<u64>(modules, 0x20) : 0;
         if (data < 0x10000 ||
-            !HasMemoryAccess(data + 0xF8, EnemyBaseMaxHpAt + 4 - 0xF8, MemoryProt::CpuWrite)) {
+            !HasMemoryAccess(data + 0xF8, EnemyMaxHpAgainAt + 4 - 0xF8, MemoryProt::CpuWrite)) {
             return;
         }
         const auto hp =
-            RescaleLoadedHp(ReadValue<s32>(data, EnemyBaseMaxHpAt), ReadValue<s32>(data, 0xFC),
-                            ReadValue<s32>(data, 0xF8), old_rate, new_rate);
+            RescaleLoadedHp(ReadValue<s32>(data, EnemyBaseHpAt), ReadValue<s32>(data, 0xFC),
+                            ReadValue<s32>(data, EnemyMaxHpAgainAt), ReadValue<s32>(data, 0xF8),
+                            old_rate, new_rate);
         if (!hp) {
             return;
         }
-        WriteValue(data, EnemyBaseMaxHpAt, hp->base);
+        WriteValue(data, EnemyBaseHpAt, hp->base);
         WriteValue(data, 0xFC, hp->max);
+        if (hp->max_again > 0) {
+            WriteValue(data, EnemyMaxHpAgainAt, hp->max_again);
+        }
         WriteValue(data, 0xF8, hp->hp);
         ++rescaled;
     });
