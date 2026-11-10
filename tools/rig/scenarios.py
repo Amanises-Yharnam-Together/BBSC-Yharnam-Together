@@ -5525,13 +5525,14 @@ SCENARIOS["rom-retry"] = {
 # teammates were already inside and was alone in the arena. m24_01: his fog o240308 (entity
 # 2411810, -50.2 -40.8 70.8; he waits at -37.1 -40.9 89.4): the host's walk through it
 # (12414810) sets 12414800 and starts him (12414802), a phantom's (12414811, patched to accept a
-# party guest) walks it through. The fog is up only once he was met (12411802; the rig's saves
-# never met him, so a first visit's walk into region 2412815 plays his cutscene instead): on, then
-# a lamp trip loads the map with it.
-# His fog part is turned -134.5 degrees (Ludwig's, at 0, took a walk from 2.7 m on its +z side,
-# facing it): 2.7 m out on the side away from him, facing it. (1.5 m out at -0.614 brought no
-# walk, rig 2026-11-10.)
-THROUGH_GASCOIGNE_FOG = ["teleport -52.1 -40.8 68.9 -0.794", "wait 3", "press cross 300",
+# party guest) walks it through. Teammates are checked within 60 m: he chases one across his
+# arena (46 m off in a rig run 2026-11-10). The fog is up only once he was met (12411802; the
+# rig's saves never met him, so a first visit's walk into region 2412815 plays his cutscene
+# instead): on, then a lamp trip loads the map with it.
+# His fog part is turned -134.5 degrees; its action button (2410041) is a box 1.2 m deep on the
+# fog model's dummy poly: X walks through from 1.0 m out on the side away from him, facing it
+# (rig probe a10-gascoigne-fog-look 2026-11-10: 0.5 and 1.0 m did, 2.0 m and farther did not).
+THROUGH_GASCOIGNE_FOG = ["teleport -50.91 -40.8 70.10 -0.794", "wait 3", "press cross 300",
                          "wait 10"]
 GASCOIGNE_IN = [START, f"set-flag {GASCOIGNE_DEFEATED} 0", "set-flag 12411802 1", "godmode",
                 "wait-session 3 420", "wait 5", f"travel {CENTRAL_YHARNAM_LAMP_2}",
@@ -5544,15 +5545,15 @@ SCENARIOS["gascoigne-late-guest"] = {
         "host": [*GASCOIGNE_IN, *THROUGH_GASCOIGNE_FOG, "sync gl-host-in",
                  "wait-flag 12414800 1 30", f"approach {GASCOIGNE} 4 0", f"hit {GASCOIGNE} 30",
                  "wait 3", f"hurt {GASCOIGNE} 1500", "wait 5", "census 60", "sync gl-fight",
-                 "sync gl-late-in", "wait 10", "census 60", "expect-others-near 2 40",
+                 "sync gl-late-in", "wait 10", "census 60", "expect-others-near 2 60",
                  "sync gl-done", "expect-session 3"],
         "guest": [*GASCOIGNE_IN, "sync gl-host-in", "wait 3", *THROUGH_GASCOIGNE_FOG,
                   f"approach {GASCOIGNE} 5 3.14", "sync gl-fight", "sync gl-late-in", "wait 10",
-                  "census 60", "expect-others-near 2 40", "sync gl-done", "expect-session 3"],
+                  "census 60", "expect-others-near 2 60", "sync gl-done", "expect-session 3"],
         "guest2": [*GASCOIGNE_IN, "sync gl-host-in", "sync gl-fight", "wait 30",
                    *THROUGH_GASCOIGNE_FOG, "wait 5", "sync gl-late-in", "wait 10",
                    "flags 12414800 12414801 12414223", "census 60",
-                   f"expect-hp {GASCOIGNE} < 4000", "expect-others-near 2 40", "sync gl-done",
+                   f"expect-hp {GASCOIGNE} < 4000", "expect-others-near 2 60", "sync gl-done",
                    "expect-session 3"],
     },
     "syncs": {sync: {"chapter": "gascoigne-late-guest", "roles": ["host", "guest", "guest2"]}
@@ -5852,6 +5853,32 @@ SCENARIOS["pickup-after-guest-crash"] = {
 }
 
 
+# A10 2026-11-10: where X at Gascoigne's fog walks the host through. Its action button
+# (2410041) is a box 1.2 m deep, 3.2 m wide on the fog model's dummy poly 191, so the spot
+# depends on that model: X from 3.5 m to 0.5 m on the side away from him (the fog part turned
+# -134.5 degrees), then from his side; 12414800 logged after each.
+def _fog_tries() -> list[str]:
+    steps = []
+    nx, nz = -0.7133, -0.7009  # the fog part's outward normal (rot -134.5 degrees)
+    for side, heading in ((1, -0.794), (-1, 2.348)):
+        for d in (3.5, 3.0, 2.0, 1.0, 0.5):
+            x, z = -50.2 + side * d * nx, 70.8 + side * d * nz
+            steps += [f"log fog try side {side} at {d} m",
+                      f"teleport {x:.2f} -40.8 {z:.2f} {heading}", "wait 2", "press cross 300",
+                      "wait 6", "flags 12414800 12414812"]
+    return steps
+
+
+SCENARIOS["a10-gascoigne-fog-look"] = {
+    "about": "probe: where X at Gascoigne's fog walks the host through (12414800)",
+    "roles": {"host": [START, f"set-flag {GASCOIGNE_DEFEATED} 0", "set-flag 12411802 1",
+                       "godmode", f"travel {CENTRAL_YHARNAM_LAMP_2}", "wait 10",
+                       "object 2411810",
+                       *_fog_tries()]},
+    "timeout": 420,
+}
+
+
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
 # look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
 # --play <name>) and in no tier.
@@ -5875,9 +5902,10 @@ PROBE_NAMES = (
     # known failure kept for the uncapped-FPS summon bug
     "join3-uncap",
     # A10 boss retries: where Rom and Ludwig stand
-    "a10-rom-look", "a10-ludwig-look",
-    # A10: a guest through Gascoigne's fog after the others. No valid run yet (its setup was
-    # fixed twice, 2026-11-10); in no tier until one run on main says what it shows
+    "a10-rom-look", "a10-ludwig-look", "a10-gascoigne-fog-look",
+    # A10: a guest through Gascoigne's fog after the others. Valid run on main 0edace82
+    # (2026-11-10): the late guest was in the same fight (his bar up, his hurt HP, teammates
+    # near); the rig's frame guard tripped on a busy PC, so no clean green yet: in no tier
     "gascoigne-late-guest",
     # bug audit 24: a guest's frenzy on the host's screen
     "frenzy-guest-look",
