@@ -66,3 +66,25 @@ TEST(NetDelay, PacketsKeepTheirOrder) {
     }
     EXPECT_TRUE(varied); // jitter, not one fixed delay
 }
+
+// Bug audit 24 (Redichoti 2026-10-30: enemy HP differed per player over a laggy link): the rig's
+// test network loses packets too (SHADPS4_P2P_LOSS_PERCENT, a whole percent from 1 to 50).
+TEST(NetDelay, ParsesALossPercent) {
+    EXPECT_EQ(ParseLossPercent("5"), 5u);
+    EXPECT_EQ(ParseLossPercent("50"), 50u);
+    EXPECT_FALSE(ParseLossPercent("").has_value());
+    EXPECT_FALSE(ParseLossPercent("0").has_value());
+    EXPECT_FALSE(ParseLossPercent("51").has_value());
+    EXPECT_FALSE(ParseLossPercent("5%").has_value());
+    EXPECT_FALSE(ParseLossPercent("-1").has_value());
+}
+
+TEST(NetDelay, ALossLineDropsAboutItsShare) {
+    LossLine line(10, 3);
+    int dropped = 0;
+    for (int i = 0; i < 10'000; ++i) {
+        dropped += line.Drops() ? 1 : 0;
+    }
+    EXPECT_GT(dropped, 800);
+    EXPECT_LT(dropped, 1'200);
+}

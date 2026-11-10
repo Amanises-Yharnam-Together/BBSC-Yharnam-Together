@@ -5540,6 +5540,39 @@ SCENARIOS["frenzy-guest-look"] = {
 }
 
 
+# Bug audit 24 (Redichoti 2026-10-30, heavy connection lag): enemy and boss HP differed per player
+# and his kills took a while to die for his friends. Over a lossy link (5% of every game's packets
+# lost; run it with a long ping, --ping 150-300) the guest kills an enemy the host's game runs with
+# real hits (its hits go to the owner), the host one of its own; a census a second on both games
+# gives the HP each shows over time (compare the two logs). Both kills land on both games.
+# (Rig 2026-11-10: "hurt" on a guest only rewrites its own copy, which the owner's HP puts back:
+# it is no hit there.)
+LOSSY_LINK = {"SHADPS4_P2P_LOSS_PERCENT": "5"}
+SCENARIOS["hp-lossy-link"] = {
+    "about": "over a lossy link (5% loss, long ping) the guest kills an enemy the host's game runs "
+             "and the host kills another, with real hits; both kills land on both games (census "
+             "a second for the HP each game shows)",
+    "settings": LOSSY_LINK,
+    "roles": {
+        "host": [START, "godmode", "wait-session 2 300", "wait 10", "census 60", "sync hpl-ready",
+                 *[step for _ in range(10) for step in ("wait 1", "census 60")],
+                 *attack(SECOND_ENEMY), "sync hpl-done",
+                 *[step for _ in range(15) for step in ("wait 1", "census 60")],
+                 f"expect-hp {ENEMY} <= 0", f"expect-hp {SECOND_ENEMY} <= 0", "sync hpl-checked",
+                 "expect-session 2"],
+        "guest": [START, "godmode", "wait-session 2 300", "wait 10", "census 60", "sync hpl-ready",
+                  *attack(ENEMY), "sync hpl-done",
+                  *[step for _ in range(15) for step in ("wait 1", "census 60")],
+                  f"expect-hp {ENEMY} <= 0", f"expect-hp {SECOND_ENEMY} <= 0",
+                  "sync hpl-checked", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "hp-lossy-link", "roles": ["host", "guest"]}
+              for name in ("hpl-ready", "hpl-done", "hpl-checked")},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300,
+}
+
+
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
 # look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
 # --play <name>) and in no tier.
