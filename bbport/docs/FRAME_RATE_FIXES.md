@@ -28,3 +28,33 @@ commits 3b99b54 and c8f68fc (effects), 7a39487, 03094a7 and 0d38fc9 (cloth), e0b
 a83f591 (jumps), GPL-2.0-or-later. Their caves keep the same addresses here. The parts of that page
 their port uses for its own features (Quit to Desktop, crash guards, Rebirth, PC Settings) stay
 unused here. `probe.c`'s `patchable` comes from the same release. Thanks to Supermedo.
+
+## Late frames in the game's own modes
+
+In the 30, 60 and 90 FPS modes the screen's vblank ticks at the mode's rate (60, 60, 90 Hz).
+Flips used to go on vblank ticks only, so a frame that missed its tick waited for the next one.
+A frame that is ready after its tick is now shown at once (`BbFrameSlots::FlipPace`,
+`VideoOutDriver::PresentThread`); flips still keep a period between them, so the game never runs
+above its mode's rate. `BB_LATE_FLIPS=0`: on ticks only, as before.
+
+Measured on the rig (2026-11-10, RTX 4070 Ti, drawn, co-op's 60 FPS mode, `slow-frames-60` with
+`BB_RIG_TICK_BURN_MS=N`: the game's main thread spins N ms once a frame at the co-op tick, as on
+a slower CPU): up to 6 ms the game stays at 59.4 FPS either way. At 12 ms it falls gradually: to
+47-55 FPS with flips on ticks only (p99 frame 34-51 ms) and to 55-56 FPS with late flips (p99
+20-21 ms). No load gave a hard 30, so late flips smooth an overloaded PC; they do not explain
+the players' 30 FPS "the moment someone joins" (Discord, 2026-10-26 to 11-06). The game's speed
+does not change with the frame rate (the same distance walked at 50-72 FPS). A headless game
+never waits for its flips: run `slow-frames-60` drawn.
+
+## The display's own V-Sync (present mode)
+
+The launcher's Presentation default is Mailbox: a finished frame never waits for the display.
+AMD's Windows driver does not offer Mailbox, and the fallback used to be FIFO, which is V-Sync: a
+frame that misses the display's refresh waits for the next one, so on a 60 Hz monitor the game
+drops to 30 FPS as soon as a frame takes over 16.7 ms. An AMD player's log (2026-10-27) has
+"Requested present mode Mailbox is not supported, falling back to Fifo" in every session. The
+stand-ins for a mode the driver lacks are now chosen by `BbPresentMode::Choose`
+(`shim/bbport_present_mode.h`): for Mailbox it is FIFO Relaxed (V-Sync while frames are on time, a
+late frame at once), then Immediate, and FIFO only when nothing else is offered. A player who
+picks FIFO keeps it. The launcher's FIFO Relaxed choice, which the game did not know, now works.
+The console says which mode the swapchain took ("Swapchain: present mode ...").

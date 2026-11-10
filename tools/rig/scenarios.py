@@ -5337,6 +5337,32 @@ SCENARIOS["doll-level-up-host"] = {
     "timeout": 300,
 }
 
+# A host whose CPU cannot keep 60 FPS in co-op's 60 FPS mode (players 2026-10-26..11-06: 60 FPS
+# alone, 30 "the moment someone joins"). The rig's tick burn (BB_RIG_TICK_BURN_MS: the game's
+# main thread spins that long once a frame, at the co-op tick) stands in for the slower CPU. Run
+# it drawn (not --headless): a headless game never waits for its flips. Measured 2026-11-10
+# (RTX 4070 Ti, drawn, 5 s windows): up to 6 ms of burn the game stays at 59.4 FPS with or without
+# late flips; at 12 ms it falls gradually, to 47-55 FPS with flips on vblank ticks only
+# (BB_LATE_FLIPS=0, p99 34-51 ms) and to 55-56 FPS with late flips (p99 20-21 ms). No burn gave a
+# hard 30. So this is a smoothing check, not the players' 30. The walk's two snapshots tell the
+# game's speed against the wall clock (the stick is held 1500 ms): 5.2-5.4 m at 50-72 FPS.
+SCENARIOS["slow-frames-60"] = {
+    "about": "a slower CPU (the main thread spins 12 ms a frame) in co-op's 60 FPS mode: late "
+             "frames keep it at 53-59 FPS (flips on vblank ticks only gave 47-55, p99 34-51 ms)",
+    "roles": {
+        "host": [START, "wait 5", "snapshot", "stick 128 0 1500", "wait 1", "snapshot",
+                 "stick 128 255 1500", "wait 20", "snapshot"],
+    },
+    # BB_FRAME_STATS: the frame rate every 5 s (the "Perf:" line comes every 30 s).
+    "settings": {"BB_FPS": "60", "BB_RIG_TICK_BURN_MS": "12", "BB_FRAME_STATS": "1"},
+    "draws": True,  # a headless game never waits for its flips
+    "console_expect": {"host": [r"VideoOut: vblank 60 Hz, frame limit 0 FPS, late frames shown",
+                                r"Rig tick burn: 12\.0 ms a frame",
+                                r"Frame stats: 5[3-9]\.\d FPS, worst frame [\d.]+ ms "
+                                r"\(vblank 60 Hz\)"]},
+    "timeout": 300,
+}
+
 # A10 probes (2026-11-10): where Rom and Ludwig stand and what their fights set.
 BYRGENWERTH = "0x20000000"
 BYRGENWERTH_LAMP = 3202950
