@@ -85,7 +85,6 @@ FRESH_ENEMY = "0x1001402e"
 # It stands 1 m from FRESH_ENEMY (both at -212,201): a weapon swing at one can kill both (rig
 # 2026-10-22, dog: 179 -> 0 in the same hit), and the host then rightly finds both dead.
 FRESH_ENEMY_BESIDE = "0x1001402f"
-ENEMY_MAX_HP = 484
 GUESTS = ("guest", "guest2")
 
 # The rig refresh's tests of recent bugs (Kaniel 2026-10-15). A test of a bug whose fix has not
@@ -147,6 +146,13 @@ def with_expect(chapter_: dict, role: str, *patterns: str) -> dict:
     return {**chapter_, "expect": expect}
 
 
+def whole(roles, *handles: str) -> list[dict]:
+    """hp_state checks: each of `handles` at its full HP in every role's last census. Its max is
+    the game's own there (the enemy strength rule raises it with the hunters on the map: 484,
+    726, 968 for ENEMY), so no chapter names a number."""
+    return [{"handle": handle, "is": "whole", "roles": list(roles)} for handle in handles]
+
+
 def map_reset(roles, name: str = "everyone-leaves") -> dict:
     """Every game goes to the Dream and back: kills held while one stayed come back once
     everyone left (Kaniel 2026-10-11: half the location reset after a trip), and the next
@@ -155,11 +161,10 @@ def map_reset(roles, name: str = "everyone-leaves") -> dict:
     steps = {role: [f"travel {HUNTERS_DREAM}", f"sync {name}-all-away", "wait 5",
                     f"travel {CENTRAL_YHARNAM_LAMP}", f"wait-members {players} 300",
                     f"sync {name}-all-back", "wait 15", "census 60",
-                    f"expect-hp {ENEMY} == {ENEMY_MAX_HP}", f"expect-hidden {ENEMY} 0",
-                    f"expect-hp {DOG} == {DOG_MAX_HP}", f"expect-session {players}"]
+                    f"expect-hidden {ENEMY} 0", f"expect-session {players}"]
              for role in roles}
     return chapter(name, "everyone leaves the map and comes back: every enemy is back, whole",
-                   steps, forbid=holds(roles))
+                   steps, hp_state=whole(roles, ENEMY, DOG), forbid=holds(roles))
 
 
 # Open sky, on the lower ground west of the first lamp (rig 2026-10-18: the old spots were
@@ -206,8 +211,7 @@ def wipe(roles, name: str = "wipe", guests_point: int | None = None,
     if hurt_first:
         # Godmode until the guests are down: the hurt enemy comes for the host.
         steps["host"] = [f"hit {ENEMY} 30", "wait 3", f"sync {name}-hurt", "wait 5",
-                         "census 40", f"expect-hp {ENEMY} < {ENEMY_MAX_HP}",
-                         f"sync {name}-guests-down", "godmode off", *steps["host"][2:]]
+                         "census 40", f"sync {name}-guests-down", "godmode off", *steps["host"][2:]]
     for guest in roles[1:]:
         # `guests_point`: the guests rest elsewhere first (a return point that stood 10 s,
         # ReturnPointSettleMs), so the wipe shows where they wake: where the host does.
@@ -216,21 +220,22 @@ def wipe(roles, name: str = "wipe", guests_point: int | None = None,
                         "wait-vital down 30", f"sync {name}-guests-down", "wait-vital dead 90",
                         "wait-vital up 150"]
         if hurt_first:
-            steps[guest] = [f"sync {name}-hurt", "wait 5", "census 40",
-                            f"expect-hp {ENEMY} < {ENEMY_MAX_HP}", *steps[guest]]
+            steps[guest] = [f"sync {name}-hurt", "wait 5", "census 40", *steps[guest]]
     for role in roles:
         steps[role] += [f"wait-members {players} 300", f"sync {name}-woken", "wait 15",
-                        "census 60", f"expect-hp {ENEMY} == {ENEMY_MAX_HP}",
-                        f"expect-hidden {ENEMY} 0", f"expect-hp {DOG} == {DOG_MAX_HP}",
-                        f"expect-session {players}"]
+                        "census 60", f"expect-hidden {ENEMY} 0", f"expect-session {players}"]
         if guests_point:
             steps[role].append(f"expect-others-near {players - 1} 30")
     woke_at_host = rf"respawn at the host's point {guests_point} \(own {CENTRAL_YHARNAM_LAMP}\)" \
         if guest_leads else rf"respawn at the host's point {CENTRAL_YHARNAM_LAMP} \(own {guests_point}\)"
     # The dog's +0x28 reads 1 at full HP in every game after a wipe (rig 2026-10-12, smoke): the
     # map's own state, not a kill hiding it (its HP is checked).
+    # Whole and hurt by each game's own census (the first one: the hurt enemy; the last: after
+    # the wipe), never a number: the enemy strength rule moves the max.
+    hurt = [{"handle": ENEMY, "is": "hurt", "census": 0, "roles": list(roles)}] if hurt_first else []
     return chapter(
         name, "a party wipe resets the map for everyone, the same in every game", steps,
+        hp_state=[*hurt, *whole(roles, ENEMY, DOG)],
         expect={"host": [r"party death: died for real on map 0x18010000 \(reset=true\)",
                          r"travelling there \(reset=true, void fall=false\)", BLOODSTAIN_DROPPED, WIPE_RAN,
                          *([woke_at_host] if guest_leads else [])],
@@ -1205,11 +1210,10 @@ SUITES = {
                                         "stays whole in the host's; the session forming kills "
                                         "nothing",
                     {"host": ["godmode", "wait 20", f"expect-hp {DOG} == {DOG_MAX_HP}",
-                              "wait-session 2 300", "wait 30", "census 60",
-                              f"expect-hp {DOG} == {DOG_MAX_HP}", "expect-session 2"],
+                              "wait-session 2 300", "wait 30", "census 60", "expect-session 2"],
                      "guest": ["godmode", f"hurt {DOG} 5", "wait-session 2 300", "wait 30",
                                "census 60", f"expect-hp {DOG} > 300", "expect-session 2"]},
-                    fatal=True, setup=True,
+                    fatal=True, setup=True, hp_state=whole(["host"], DOG),
                     forbid={"host": SESSION_HOLDS + [r"Bloodborne echoes: \+\d+"],
                             "guest": SESSION_HOLDS}),
             chapter("join-after-trip", "a guest that travelled on its own before any session (to "
@@ -1653,6 +1657,7 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
     checks = ("about", "expect", "forbid", "allow", "same_hp", "same_hp_census", "hp_sums_hits",
               "max_hp_lag", "max_hp_lag_each", "killed", "max_kill_lag", "max_join_s", "moves",
               "grounded", "overlay_textures", "console_expect", "console_forbid", "known_bug", "known_problems",
+              "hp_state",
               "files_present",
               "files_absent")
     return {

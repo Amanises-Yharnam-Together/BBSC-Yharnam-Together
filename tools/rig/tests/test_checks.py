@@ -236,6 +236,22 @@ class GroundAndJoinTest(unittest.TestCase):
                          ["guest: took 0x1001400b's position never times a second at best "
                           "(at least 6.0 wanted)"])
 
+    def test_an_enemys_hp_is_judged_against_its_own_max(self):
+        # 2026-11-10: the enemy strength rule (Auto by default since 1.4.0) raises an enemy's max HP
+        # with the hunters on its map (484, 726, 968), so "whole" and "hurt" are never a fixed number.
+        census = "Bloodborne autoplay census: 0x1001400b hp {}/{} at\n"
+        spec = {"hp_state": [{"handle": "0x1001400b", "is": "whole", "roles": ["host", "guest"]}]}
+        whole = {"host": census.format(968, 968), "guest": census.format(700, 968) + census.format(968, 968)}
+        self.assertEqual(run_scenario.judge(spec, whole), [])
+        self.assertEqual(run_scenario.judge(spec, {**whole, "guest": census.format(484, 726)}),
+                         ["guest: 0x1001400b is not whole in its last census: 484/726"])
+        self.assertEqual(run_scenario.judge(spec, {**whole, "guest": ""}),
+                         ["guest: no census of 0x1001400b"])
+        hurt = {"hp_state": [{"handle": "0x1001400b", "is": "hurt", "census": 0, "roles": ["guest"]}]}
+        self.assertEqual(run_scenario.judge(hurt, whole), [])
+        self.assertEqual(run_scenario.judge(hurt, {"guest": census.format(726, 726)}),
+                         ["guest: 0x1001400b is not hurt in its census 1: 726/726"])
+
     def test_a_restarted_game_joins_within_its_budget(self):
         before = ("Bloodborne autoplay: chapter join-time\n"
                   "Bloodborne autoplay: step 3/9 sync jt ok (t=10.0)\n")
