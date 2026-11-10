@@ -1148,6 +1148,10 @@ std::optional<bool> HeldItemFlagFix(bool party_configured, bool flag_on, bool ho
     return holds;
 }
 
+std::optional<bool> DollGiveFix(bool party_configured, bool flag_on, bool holds) {
+    return HeldItemFlagFix(party_configured, flag_on, holds);
+}
+
 std::optional<bool> GestureFlagFix(bool party_configured, bool flag_on, bool learned) {
     if (!party_configured || !flag_on || learned) {
         return std::nullopt;
@@ -4901,7 +4905,8 @@ bool RespawnsInWorldRespawn(WorldRespawnKind kind, const RespawnCandidate& chara
 
 std::vector<u32> BroughtBackByTheHost(std::span<const CharacterShown> host,
                                       std::span<const DeadCopy> dead_here,
-                                      const std::unordered_set<u32>& party_kills, s64 now_ms) {
+                                      const std::unordered_set<u32>& party_kills,
+                                      const std::unordered_map<u32, s64>& host_dead, s64 now_ms) {
     std::unordered_set<u32> alive_at_host;
     for (const CharacterShown& character : host) {
         if (!character.hidden && !character.disabled && !character.distant && !character.dead) {
@@ -4910,8 +4915,11 @@ std::vector<u32> BroughtBackByTheHost(std::span<const CharacterShown> host,
     }
     std::vector<u32> back;
     for (const DeadCopy& copy : dead_here) {
+        const auto dead_there = host_dead.find(copy.handle);
         if (!copy.boss && alive_at_host.contains(copy.handle) &&
-            !party_kills.contains(copy.handle) && now_ms - copy.dead_since_ms >= BringBackAfterMs) {
+            !party_kills.contains(copy.handle) && now_ms - copy.dead_since_ms >= BringBackAfterMs &&
+            dead_there != host_dead.end() &&
+            dead_there->second >= copy.dead_since_ms - HostDeadBeforeCopyMs) {
             back.push_back(copy.handle);
         }
     }
@@ -5595,28 +5603,12 @@ std::string GameHudString(std::span<const u8, GameHudStringSize> raw,
     return text;
 }
 
-std::string GameStringUtf8(std::span<const u8, GameHudStringSize> raw,
-                           const std::function<std::vector<char16_t>(u64, size_t)>& read) {
-    constexpr size_t MaxChars = 16;
-    u64 capacity = 0;
-    std::memcpy(&capacity, raw.data() + 0x20, sizeof(capacity));
-    std::vector<char16_t> chars;
-    if (capacity < 8) {
-        chars.resize(8);
-        std::memcpy(chars.data(), raw.data() + 0x08, 16);
-    } else {
-        u64 pointer = 0;
-        std::memcpy(&pointer, raw.data() + 0x08, sizeof(pointer));
-        chars = read(pointer, MaxChars + 1);
-    }
-    const auto end = std::ranges::find(chars, u'\0');
-    if (end == chars.end() || end - chars.begin() > static_cast<std::ptrdiff_t>(MaxChars)) {
-        return {}; // no end within a name's length: not a name
-    }
+std::string Utf8OfUtf16(std::u16string_view chars) {
     std::string text;
-    for (auto it = chars.begin(); it != end; ++it) {
+    for (auto it = chars.begin(); it != chars.end(); ++it) {
         u32 c = *it;
-        if (c >= 0xD800 && c < 0xDC00 && it + 1 != end && it[1] >= 0xDC00 && it[1] < 0xE000) {
+        if (c >= 0xD800 && c < 0xDC00 && it + 1 != chars.end() && it[1] >= 0xDC00 &&
+            it[1] < 0xE000) {
             c = 0x10000 + ((c - 0xD800) << 10) + (*++it - 0xDC00);
         }
         if (c < 0x80) {
@@ -5636,6 +5628,27 @@ std::string GameStringUtf8(std::span<const u8, GameHudStringSize> raw,
         }
     }
     return text;
+}
+
+std::string GameStringUtf8(std::span<const u8, GameHudStringSize> raw,
+                           const std::function<std::vector<char16_t>(u64, size_t)>& read) {
+    constexpr size_t MaxChars = 16;
+    u64 capacity = 0;
+    std::memcpy(&capacity, raw.data() + 0x20, sizeof(capacity));
+    std::vector<char16_t> chars;
+    if (capacity < 8) {
+        chars.resize(8);
+        std::memcpy(chars.data(), raw.data() + 0x08, 16);
+    } else {
+        u64 pointer = 0;
+        std::memcpy(&pointer, raw.data() + 0x08, sizeof(pointer));
+        chars = read(pointer, MaxChars + 1);
+    }
+    const auto end = std::ranges::find(chars, u'\0');
+    if (end == chars.end() || end - chars.begin() > static_cast<std::ptrdiff_t>(MaxChars)) {
+        return {}; // no end within a name's length: not a name
+    }
+    return Utf8OfUtf16({chars.data(), static_cast<size_t>(end - chars.begin())});
 }
 
 std::string HtmlText(std::string_view text) {
@@ -5688,6 +5701,32 @@ std::optional<std::string> NameplateRoleLine(const PartyPanel& panel, std::strin
         }
     }
     return std::nullopt;
+}
+
+std::optional<NameplateRole> NameplateRoleOf(const PartyPanel& panel, std::string_view name,
+                                             bool hosting, std::string_view host) {
+    if (name.empty() || (!hosting && host.empty())) {
+        return std::nullopt;
+    }
+    for (const PanelMember& member : panel.members) {
+        const std::string_view id = member.name.empty() ? member.member : member.name;
+        if (id == name || member.shown == name) {
+            return !hosting &&
+                           (member.member == host || (!member.name.empty() && member.name == host))
+                       ? NameplateRole::Host
+                       : NameplateRole::Guest;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<std::string> NameplateRoleText(NameplateRole role, std::u16string_view host_text,
+                                             std::u16string_view guest_text) {
+    const std::u16string_view text = role == NameplateRole::Host ? host_text : guest_text;
+    if (text.empty()) {
+        return std::nullopt;
+    }
+    return HtmlText(Utf8OfUtf16(text));
 }
 
 namespace {

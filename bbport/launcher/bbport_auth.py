@@ -31,7 +31,9 @@ LONG_TEXT = 'A password has at most 128 characters.'
 COMMON_TEXT = 'That password is too common: choose another.'
 HAS_NAME_TEXT = 'The password must not contain your name.'
 SAME_TEXT = 'The new password is the old one.'
-CERTIFICATE_TEXT = 'The server\'s certificate is not valid: not sent.'
+# 2026-11-06 (1.4.0 sign-in): the reason the TLS layer gave goes into the {} (English, for a report).
+CERTIFICATE_TEXT = "This PC does not trust the server's certificate: not sent. ({})"
+CONNECTION_TEXT = 'The secure connection to the server failed: not sent. ({})'
 REFUSED_TEXT = 'The server refused it: try again.'
 
 PROBLEMS = {('name', 'length'): NAME_LENGTH_TEXT, ('name', 'characters'): NAME_CHARACTERS_TEXT,
@@ -62,10 +64,34 @@ class _NoRedirects(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def truststore_context():
+    """An SSL context that checks certificates through Windows itself (truststore), None without it.
+    Windows fetches a root it does not hold yet when a chain needs one; Python's own store
+    (ssl.create_default_context) only reads the roots already on the PC. 1.4.0 sign-in said the
+    certificate was not valid on PCs whose store had no ISRG Root X1 yet (seamlesshunt.com's chain ends
+    there), while use_system_certificates had already fixed the same for Check for updates. Both use
+    this, so they cannot drift apart. The certificate and the host name are still checked."""
+    try:
+        import truststore
+    except ImportError:
+        return None
+    # Amanises 2026-10-29: a frozen launcher where the SSL context cannot be made (FileNotFoundError
+    # from ssl.SSLContext): None, the caller keeps the default.
+    try:
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    except (OSError, ssl.SSLError):
+        return None
+
+
+def system_context():
+    """Windows' certificate checks (truststore), else the system's roots as Python reads them."""
+    return truststore_context() or ssl.create_default_context()
+
+
 def _opener(context):
-    # The system's certificates and host name checks (ssl.create_default_context): a server whose
-    # certificate does not hold is never sent a password.
-    context = context or ssl.create_default_context()
+    # Certificates and host names checked (system_context): a server whose certificate does not hold
+    # is never sent a password.
+    context = context or system_context()
     return urllib.request.build_opener(urllib.request.HTTPSHandler(context=context), _NoRedirects,
                                        urllib.request.ProxyHandler({}))
 
@@ -86,12 +112,22 @@ def _call(url, path, body=None, context=None, opener=None):
             return error.code, {}
     except urllib.error.URLError as error:
         if isinstance(error.reason, ssl.SSLError):
-            raise AuthError(CERTIFICATE_TEXT) from None
+            raise _tls_error(error.reason) from None
         raise AuthError(NO_SERVER_TEXT) from None
-    except ssl.SSLError:
-        raise AuthError(CERTIFICATE_TEXT) from None
+    except ssl.SSLError as error:
+        raise _tls_error(error) from None
     except (OSError, ValueError):
         raise AuthError(NO_SERVER_TEXT) from None
+
+
+def _tls_error(error):
+    """The AuthError for a TLS failure, with the reason in it: a certificate this PC does not trust is
+    not the same as a connection that broke (an alert, a protocol, antivirus in between)."""
+    if isinstance(error, ssl.SSLCertVerificationError):
+        return AuthError(CERTIFICATE_TEXT, getattr(error, 'verify_message', None) or getattr(error, 'reason', None)
+                         or 'certificate')
+    # Not every SSLError has a reason (an SSLEOFError made by Python itself).
+    return AuthError(CONNECTION_TEXT, getattr(error, 'reason', None) or error.__class__.__name__)
 
 
 def _refusal(status, answer, wrong=WRONG_TEXT):

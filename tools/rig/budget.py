@@ -62,6 +62,8 @@ LONG = {
     "boss-hp-staggered-wipe": "the 10-25 playtest case: three games, deaths one by one and a wake",
     "paarl-after-wipe": "Kaniel's playtest 2026-10-22: three games, a wipe, a wake and a walk back",
     "kill-reaches-arrival": "the 10-19 playtest case #278: three games, two trips",
+    "host-death-kills": "bug audit 24: kills, a death, a give-up and 40 s of checks",
+    "host-death-kills-far": "bug audit 24: kills, a fall death far from the lamp, 40 s of checks",
     "soak": "a long session by design",
     "teams-apart": "Kaniel 2026-10-31: four games in three worlds, two trips each",
     "teams-apart3": "Kaniel 2026-10-31: three games in three worlds, two trips each",

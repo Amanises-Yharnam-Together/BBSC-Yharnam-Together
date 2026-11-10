@@ -2469,6 +2469,11 @@ std::optional<bbcoop::LobbyState> TeamLobbyState() {
     return team_gate.Lobby();
 }
 
+std::string TeamSessionHost() {
+    std::scoped_lock lock{team_mutex};
+    return team_session ? team_session->host() : std::string{};
+}
+
 std::string TeamLobbyMember() {
     std::scoped_lock lock{team_mutex};
     return lobby_member;

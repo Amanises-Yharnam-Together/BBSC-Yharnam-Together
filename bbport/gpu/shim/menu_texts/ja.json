@@ -549,5 +549,12 @@
  "A real death (not a down a teammate revives) adds a penalty, until a lamp rest, a level up or a boss kill takes it away.": "本当の死（仲間に起こしてもらえるダウンではない）でペナルティが付き、灯りでの休息、レベルアップ、ボス撃破で消えます。",
  "A lamp or headstone trip asks the team to come along; with the vote one No stops it.": "灯りや墓石での移動にチームを誘います。投票ありでは1人の「いいえ」で中止されます。",
  "Bosses rest less between attacks and turn faster.": "ボスは攻撃の合間の休みが短くなり、振り向きが速くなります。",
- "Vanilla": "ゲーム本来"
+ "Vanilla": "ゲーム本来",
+ "Update the game and the server to the same release, then start the game again.": "ゲームとサーバーを同じバージョンに更新してから、ゲームを起動し直してください。",
+ "Can't reach the co-op server at %s": "協力サーバー %s に接続できません",
+ "The server may not be started, a firewall may be blocking it, or the address is wrong. Fix it, then start the game again.": "サーバーが起動していない、ファイアウォールにブロックされている、またはアドレスが間違っている可能性があります。修正してから、ゲームを起動し直してください。",
+ "The co-op server at %s did not accept your login or password": "協力サーバー %s がログイン名またはパスワードを受け付けませんでした",
+ "Check them in the launcher's co-op settings, then start the game again.": "ランチャーの協力プレイ設定で確認してから、ゲームを起動し直してください。",
+ "Could not sign in to the co-op server at %s": "協力サーバー %s にサインインできませんでした",
+ "Start the game again. If it stays, update the game and the server to the same release.": "ゲームを起動し直してください。解決しない場合は、ゲームとサーバーを同じバージョンに更新してください。"
 }
