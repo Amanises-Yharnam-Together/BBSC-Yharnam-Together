@@ -81,6 +81,24 @@ class EngineTest(unittest.TestCase):
         self.assertNotIn("BB_SHOT_TRIGGER", self.emulator.environment("guest"),
                          "the emulator draws no party HUD: its scripts skip their shots")
 
+    def test_a_port_game_view_that_lost_folders_is_named_before_any_game_starts(self):
+        # 2026-11-10: a cleanup of another game copy removed 247 folder links of the shared view
+        # (through a link into it); every port game then crashed 40 s after its start, on every
+        # lane, and read like a game bug.
+        with tempfile.TemporaryDirectory() as folder:
+            port = engines.Port(pathlib.Path(folder))
+            for path in (port.exe, port.home / "run.py", port.game_dir / "eboot.bin",
+                         port.game_dir / "dvdroot_ps4" / "chr" / "c0000.bnd"):
+                GameViewTest.write(path, "")
+            source = port.game.parent / "dvdroot_ps4"
+            GameViewTest.write(source / "chr" / "c0000.bnd", "")
+            self.assertIsNone(port.missing())
+            GameViewTest.write(source / "menu" / "fe.gfx", "")
+            GameViewTest.write(source / "sfx" / "a.ffx", "")
+            problem = port.missing()
+            self.assertIn("lost 2 of its 3 dvdroot_ps4 entries (menu, sfx)", problem)
+            self.assertIn("--setup", problem)
+
     def test_the_port_is_made_ready_to_play_on_the_rig(self):
         with tempfile.TemporaryDirectory() as folder,                 unittest.mock.patch.object(engines, "refresh_events") as refresh,                 unittest.mock.patch.dict(os.environ):
             os.environ.pop("BB_RIG_MODS", None)

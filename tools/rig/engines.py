@@ -207,6 +207,19 @@ class Port(Emulator):
         if not (self.game_dir / "eboot.bin").is_file():
             return (f"no game for the port at {self.game_dir} "
                     "(tools/rig/run_scenario.py --engine port --setup)")
+        # The view is links over the rig's game: a folder link gone from it is a folder the game
+        # never finds (2026-11-10: 247 were removed by another copy's cleanup; every game crashed
+        # 40 s in, on every lane). Never make a game copy that links INTO this view, and never
+        # clean one with a listing that follows links (dir /AL /S).
+        source, view = self.game.parent / "dvdroot_ps4", self.game_dir / "dvdroot_ps4"
+        if source.is_dir():
+            names = sorted(entry.name for entry in source.iterdir())
+            lost = [name for name in names if not (view / name).exists()]
+            if lost:
+                return (f"the port's game view at {self.game_dir} lost {len(lost)} of its "
+                        f"{len(names)} dvdroot_ps4 entries ({', '.join(lost[:12])}); with no port "
+                        "game running make it again (tools/rig/run_scenario.py --engine port "
+                        "--setup)")
         return None
 
     def prepare(self, role: str, backend_port: int = BACKEND_PORT, ini: dict[str, str] | None = None):
