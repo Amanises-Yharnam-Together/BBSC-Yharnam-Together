@@ -6,7 +6,10 @@
 static int32_t guest_errno;
 int32_t *runtime_errno(void) { return &guest_errno; }
 int32_t runtime_guest_errno(int e) { return e; }
-void runtime_quit_on_open(const char *guest) { (void)guest; }
+/* Co-op (gpu/bbcoop) hears of every path the game opens, and reads into guest memory tell the
+ * GPU side (runtime_memory.c): nothing to tell here. */
+void bbcoop_file_opened(const char *guest_path) { (void)guest_path; }
+void runtime_memory_note_write(uintptr_t address, uint64_t size) { (void)address; (void)size; }
 uintptr_t runtime_lookup(const RuntimeExport *table,size_t n,const char *name) {
     for (size_t i=0;i<n;++i) if (!strcmp(table[i].name,name)) return (uintptr_t)table[i].function;
     return 0;
