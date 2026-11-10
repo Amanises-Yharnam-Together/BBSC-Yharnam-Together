@@ -171,6 +171,47 @@ class AnswersTests(unittest.TestCase):
         self.assertGreaterEqual(len(fresh['password']), 32)
         self.assertNotEqual(coop.virtual_address(fresh['account']), coop.virtual_address(settings['account']))
 
+    def test_an_id_another_player_has_is_made_again_too(self):
+        # Discord 2026-11-05 ("the server refused this game: sign-in refused: another player has this id",
+        # nothing in the launcher, the player had to ask): the server has this id with another secret (two
+        # friends with one typed name from an old install, a copied or reset install), or another account's
+        # game holds its address (server_link.cpp). Neither passes by waiting: a new id for that server does.
+        head = "GPU [Lib.Net] <Error> p2p_sockets.cpp:1054 OnWelcome: Server link: the server refused this game: "
+        other_secret = head + "sign-in refused: another player has this id (p0123456789abcd)\n"
+        held = head + "another account has this game's address (kaniel): use another account name\n"
+        for line in (other_secret, held):
+            self.assertTrue(coop.address_taken(line), line)
+            self.assertEqual(coop.id_retry(line, 0), 'retry')
+            self.assertEqual(coop.id_retry(line, coop.NEW_ID_TRIES), 'give_up')
+            self.assertIsNone(coop.refusal_reason(line), 'the launcher acts on it: no second message')
+        self.assertFalse(coop.address_taken('sign-in refused: another player has this id (x)\n'),
+                         'only the game\'s own refusal line')
+        self.assertFalse(coop.needs_sign_in(other_secret))
+
+    def test_any_other_refusal_is_said_in_the_launcher(self):
+        # Until now only the game's team screen said why the server refused it (one short line, gone with
+        # the window): the launcher's status line says the server's own reason, its first line.
+        head = "GPU [Lib.Net] <Error> p2p_sockets.cpp:1054 OnWelcome: Server link: the server refused this game: "
+        version = head + "Co-op refused: your game is version 1.3.2, the server's is 1.4.0. Update the game.\n"
+        self.assertEqual(coop.refusal_reason('[Render] frame\n' + version),
+                         "Co-op refused: your game is version 1.3.2, the server's is 1.4.0. Update the game.")
+        self.assertEqual(coop.refusal_reason(head + '  this server is full  \n'), 'this server is full')
+        # The launcher has its own words and deeds for these.
+        self.assertIsNone(coop.refusal_reason(head + 'account: sign in in the launcher first\n'))
+        self.assertIsNone(coop.refusal_reason(head + "address taken: another account's game has this id's "
+                                                     'virtual address; the launcher needs a new id\n'))
+        self.assertIsNone(coop.refusal_reason(head + '\n'))
+        self.assertIsNone(coop.refusal_reason("[Lib.Net] Server link: the server took this game's hello\n"))
+        self.assertEqual(coop.REFUSED_TEXT.count('{}'), 1)
+        import bbport_lang
+        launcher = (Path(__file__).resolve().parents[1] / 'launcher' / 'bbport_launcher_win.py').read_text(encoding='utf-8')
+        self.assertIn('_(bbport_coop.REFUSED_TEXT)', launcher)
+        self.assertIn('bbport_coop.refusal_reason(line)', launcher)
+        for language in ('ru', 'ar', 'es', 'pt', 'fr', 'de', 'it', 'pl', 'tr', 'zh', 'ja', 'ko'):
+            said = bbport_lang.table(language).get(coop.REFUSED_TEXT)
+            self.assertTrue(said, language)
+            self.assertEqual(said.count('{}'), 1, language)
+
     def test_a_new_id_is_only_for_the_server_that_refused_the_old_one(self):
         # A public server refusing the id's address must not change the id the player's friends' home
         # host knows (their teams and worlds there): the new id is kept for that server only.

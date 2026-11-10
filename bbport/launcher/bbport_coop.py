@@ -548,7 +548,13 @@ def other_key(line):
 # so in console.txt, which the launcher follows), and the refusal of a new id whose virtual address
 # another account has (server link_server.cpp RefusalOf).
 REFUSED_LINE = 'Server link: the server refused this game: '
-ADDRESS_TAKEN = 'address taken:'
+# Refusals a new id for that server ends: its address is another account's (RefusalOf), the server has
+# the id with another secret (two friends with one typed name from an old install, a copied or reset
+# install; Discord 2026-11-05), or another account's game holds its address (server_link.cpp).
+ADDRESS_TAKEN = ('address taken:', 'sign-in refused: another player has this id',
+                 "another account has this game's address")
+# Any other refusal: the launcher's status line says the server's own reason.
+REFUSED_TEXT = 'The co-op server refused this game: {}'
 # New ids made after such refusals before the launcher gives up and says so.
 NEW_ID_TRIES = 3
 NEW_ID_TEXT = 'The server already has a player at your id\'s address: making a new id and starting again…'
@@ -564,6 +570,18 @@ def address_taken(text):
         if found and reason.lstrip().startswith(ADDRESS_TAKEN):
             return True
     return False
+
+
+def refusal_reason(text):
+    """The server's reason (its first line) when the game's log has it refusing this game for something
+    the launcher does nothing about by itself, else None: a new id (address_taken) and a sign-in
+    (needs_sign_in) have their own words."""
+    for line in text.splitlines():
+        _before, found, reason = line.partition(REFUSED_LINE)
+        reason = reason.strip()
+        if found and reason and not reason.startswith(ADDRESS_TAKEN + SIGN_IN_FIRST):
+            return reason
+    return None
 
 
 def id_retry(line, tries):
