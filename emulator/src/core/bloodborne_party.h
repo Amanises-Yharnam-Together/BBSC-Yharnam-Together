@@ -3754,6 +3754,22 @@ bool PanelHasDowned(const struct PartyPanel& panel);
 // The role line of the nameplate over `name` (an online id, or a board name without one): its
 // revive, in red html, while that member is down; nothing for anyone else (the game's line stays).
 std::optional<std::string> NameplateRoleLine(const struct PartyPanel& panel, std::string_view name);
+// Bug audit 24 (I_Eat_Toast 2026-10-30: both nameplates said "Host"): the role line is the party's,
+// not the game's (the role each game sends, which a guest's game got wrong after its own reload).
+// Host over the member hosting the team's session (`host`: its board name or online id), Guest
+// over every other member the panel knows (all of them in the host's own game, `hosting`);
+// nothing for a name it does not know, or in a guest's game that knows no host.
+enum class NameplateRole : u8 { Host, Guest };
+std::optional<NameplateRole> NameplateRoleOf(const struct PartyPanel& panel, std::string_view name,
+                                             bool hosting, std::string_view host);
+// The role line's html: the game's own text for the role (messages 107000 and 107100, polished
+// to Host and Guest in English, the player's language else); nothing when the game has none.
+std::optional<std::string> NameplateRoleText(NameplateRole role, std::u16string_view host_text,
+                                             std::u16string_view guest_text);
+constexpr s32 NameplateHostMessage = 107000;
+constexpr s32 NameplateGuestMessage = 107100;
+// UTF-16 game text as UTF-8.
+std::string Utf8OfUtf16(std::u16string_view chars);
 // Which remote player's tag (0 to 6) a TagData address is, from FeData's address.
 std::optional<int> RemoteTagIndex(u64 tag_data, u64 fe_data);
 
