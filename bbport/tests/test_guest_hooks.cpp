@@ -38,6 +38,9 @@ constexpr u64 AllocReturn = 0x26aa255, HeapReturn = 0x11e6629, CopyCall = 0x216d
 // The GX occlusion queries: begin and end, the creation (its exit) and the release.
 constexpr u64 GxQueryBegin = 0xe2f130, GxQueryEnd = 0xe2f160, GxQueryCreate = 0xe2f080,
               GxQueryRelease = 0xe2f020, GxQueryCreateExit = 0x21675b0;
+// The null table probes: the game's setPointerInUserData (Gnm's, inlined into the eboot) and the
+// GX chunk allocator's branch where its heap refused a chunk.
+constexpr u64 SetUdPointer = 0x1076390, GxChunkRefused = 0xe455f7;
 constexpr u64 CameraStore = 0x1436c2c, MarkerSite = 0x1644379, MarkerScale = 0x48f9a00,
               MarkerBias = 0x48f9a10, SetViewport = 0x1f510, HudFrame = 0x1bf9e10;
 using v4 = float __attribute__((vector_size(16)));
@@ -191,6 +194,27 @@ u64 WriteEntryFunction(u64 offset) {
     Put(offset, {0x55, 0x48, 0x89, 0xe5, 0x41, 0x57, 0x41, 0x5f, 0x5d, 0xc3});
     return ImageBase + offset;
 }
+/// setPointerInUserData(cb, stage, sgpr, pointer) at SetUdPointer, as the game's (push rbp;
+/// mov rbp, rsp; push r15 first): here it stores the pointer at [cb] and the sgpr at [cb + 8].
+u64 WriteSetUdPointerFunction() {
+    // push rbp; mov rbp, rsp; push r15; mov [rdi], rcx; mov [rdi + 8], rdx; pop r15; pop rbp; ret
+    Put(SetUdPointer, {0x55, 0x48, 0x89, 0xe5, 0x41, 0x57, 0x48, 0x89, 0x0f, 0x48, 0x89, 0x57, 0x08,
+                       0x41, 0x5f, 0x5d, 0xc3});
+    return ImageBase + SetUdPointer;
+}
+
+/// The chunk allocator (rdi: it, rsi: the bytes asked) at its refused branch: `add rbx, 0x20;
+/// mov qword [rbx + 8], 0` at GxChunkRefused, then `mov qword [rbx], 0` and a null result.
+u64 WriteGxChunkFunction() {
+    const u64 entry = GxChunkRefused - 9;
+    // push rbx; push r14; mov rbx, rdi; mov r14, rsi
+    Put(entry, {0x53, 0x41, 0x56, 0x48, 0x89, 0xfb, 0x49, 0x89, 0xf6});
+    // add rbx, 0x20; mov qword [rbx + 8], 0; mov qword [rbx], 0; xor eax, eax; pop r14; pop rbx; ret
+    Put(GxChunkRefused, {0x48, 0x83, 0xc3, 0x20, 0x48, 0xc7, 0x43, 0x08, 0x00, 0x00, 0x00, 0x00,
+                         0x48, 0xc7, 0x03, 0x00, 0x00, 0x00, 0x00, 0x31, 0xc0, 0x41, 0x5e, 0x5b,
+                         0xc3});
+    return ImageBase + entry;
+}
 } // namespace
 
 extern "C" void runtime_memory_note_write(uintptr_t address, uint64_t size) {
@@ -257,6 +281,11 @@ int main(int argc, char** argv) {
     const auto viewport_fn = reinterpret_cast<Viewport>(WriteEntryFunction(SetViewport));
     using Screen = GUEST_ABI void (*)(u64 screen);
     const auto screen_fn = reinterpret_cast<Screen>(WriteEntryFunction(HudFrame));
+    using SetUdPointerCall = GUEST_ABI void (*)(u64* cb, std::uint32_t stage, std::uint32_t sgpr,
+                                                u64 pointer);
+    const auto set_ud_pointer = reinterpret_cast<SetUdPointerCall>(WriteSetUdPointerFunction());
+    using GxChunk = GUEST_ABI u64 (*)(u64* allocator, u64 bytes);
+    const auto gx_chunk = reinterpret_cast<GxChunk>(WriteGxChunkFunction());
     static u64 gx_handle_data[3] = {};
     static u64 gx_next_handle[1] = {reinterpret_cast<u64>(gx_handle_data)};
     WriteGxQueryFunctions();
@@ -328,6 +357,32 @@ int main(int argc, char** argv) {
         u64 released[6] = {};
         assert(gx_begin(released) == 1 && released[0] == 0 && std::uint32_t(released[1]) == 0);
         assert(gx_end(released) == 1 && std::uint32_t(released[1]) == 0);
+    }
+    // The null table probes (detours only): the game's code runs as before; a pointer below
+    // 64 KiB handed to the GPU, and the GX heap refusing a chunk, are counted with the caller.
+    {
+        const auto before = BbGuestHooks::NullTables();
+        assert(before.pointer_probe == !traps && before.heap_probe == !traps);
+        u64 cb[2] = {};
+        set_ud_pointer(cb, 0, 2, 0x7700000);
+        assert(cb[0] == 0x7700000 && cb[1] == 2);
+        assert(BbGuestHooks::NullTables().pointers == 0);
+        set_ud_pointer(cb, 1, 4, 0);
+        set_ud_pointer(cb, 1, 6, 0xffff00000000053cull); // tag bits above 48: still near null
+        assert(cb[0] == 0xffff00000000053cull && cb[1] == 6);
+        const auto nulls = BbGuestHooks::NullTables();
+        if (!traps) {
+            assert(nulls.pointers == 2 && nulls.last_sgpr == 6);
+            assert(nulls.last_caller != 0); // the return address (here: in this test)
+        }
+        u64 allocator[6] = {0, 0x40000, 0, 0, 0x1111, 0x2222};
+        assert(gx_chunk(allocator, 0x80000) == 0);
+        assert(allocator[4] == 0 && allocator[5] == 0); // the game's own clears ran
+        const auto refused = BbGuestHooks::NullTables();
+        if (!traps) {
+            assert(refused.heap_refusals == 1 && refused.last_refused == 0x80000);
+            assert(code[SetUdPointer] == 0xe9 && code[GxChunkRefused] == 0xe9);
+        }
     }
     // The output's aspect ratio (detours only; traps: not installed, the output keeps 16:9).
     assert(BbGuestHooks::AspectSupported() == !traps);

@@ -121,6 +121,23 @@ SKIP_NETWORK_CHOICE='Skip Online/Offline Choice'
 GX_COMMAND_HEAP='Larger GX Per-Frame Command Heap'
 
 
+# Brazilian Portuguese and Latin American Spanish (PS4 system languages 17 and 20, the launcher's
+# BB_LANGUAGE): the game picks its text and voice by sell region (GetSellRegion 0x1fb9190: 0 Japan,
+# 1 North America, 2 Europe, 3 Asia, 4 UK). Europe turns 17 into Portugal Portuguese and 20 into
+# Spain's Spanish, with English voice for Portuguese; North America has both with their own voice
+# (every copy holds the files). So with one of the two chosen the game runs as the American
+# release. Only then: North America has no German, Italian, Russian... text. The confirm button
+# (X) and the save folder are the same; the co-op servers serve every region. A copy that already
+# is American is unchanged. BB_LANGUAGE_REGION=0 leaves the region alone.
+LANGUAGE_REGION='North American Region (Brazilian Portuguese, Latin American Spanish)'
+AMERICAN_LANGUAGES=('17','20')
+
+
+def language_region(env=os.environ):
+    return (env.get('BB_LANGUAGE','').strip() in AMERICAN_LANGUAGES
+            and env.get('BB_LANGUAGE_REGION','1').strip()!='0')
+
+
 def gx_command_heap(env=os.environ):
     return env.get('BB_GX_COMMAND_HEAP','1')!='0'
 
@@ -787,6 +804,8 @@ def main():
     names=list(fps_names)
     if whole:  # other patches' code is not fingerprinted
         names+=[n.strip() for n in a.extra.split(';') if n.strip()]
+    if whole and language_region() and LANGUAGE_REGION not in names:
+        names.append(LANGUAGE_REGION)
     names+=[n for n in effect_patches(read_settings(a.settings)) if n not in names and GROUP_OF.get(n) in groups]
     if 'fixes' in groups:
         if intel_tonemap_fix() and INTEL_TONEMAP not in names:

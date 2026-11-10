@@ -47,6 +47,49 @@ int main() {
     }
     std::printf("shortest interval %.2f ms\n", shortest.count() / 1e6);
     assert(shortest >= period - period / 16);
+
+    // The game's own 60 FPS mode (co-op's): vblank 60 Hz, no frame limit. A model where every
+    // frame is drawn only once the last one is flipped: on vblank ticks only, frames of 18 ms wait
+    // for every second tick (30 FPS); with late flips (the pace is the vblank's rate) about 55.
+    // (The real game keeps more than one frame in flight: on the rig it falls gradually instead.)
+    const auto frames_per_second = [](milliseconds work, bool late_flips) {
+        const nanoseconds vblank{1000000000 / 60};
+        const unsigned pace = BbFrameSlots::FlipPace(0, 60, false, late_flips);
+        const Clock::time_point begin{};
+        Clock::time_point slot = begin, flipped = begin, last{};
+        nanoseconds closest = hours(1);
+        int flips = 0;
+        while (flipped < begin + seconds(10)) {
+            const auto queued = flipped + work;
+            flipped = BbFrameSlots::FlipTime(queued, slot, pace != 0, begin, vblank);
+            if (pace != 0) {
+                slot = BbFrameSlots::NextSlot(slot, flipped, nanoseconds{1000000000 / pace});
+            }
+            if (flips++ > 0) {
+                closest = std::min(closest, duration_cast<nanoseconds>(flipped - last));
+            }
+            last = flipped;
+        }
+        assert(closest >= vblank - vblank / 16 && "never above the mode's rate");
+        return flips / 10.0;
+    };
+    assert(BbFrameSlots::FlipPace(0, 60, false, false) == 0);
+    assert(BbFrameSlots::FlipPace(0, 60, false, true) == 60);
+    assert(BbFrameSlots::FlipPace(0, 90, false, true) == 90);
+    assert(BbFrameSlots::FlipPace(0, 480, true, true) == 0 && "unlocked: as before");
+    assert(BbFrameSlots::FlipPace(120, 480, true, true) == 120);
+    const double on_ticks = frames_per_second(milliseconds(18), false);
+    const double with_late = frames_per_second(milliseconds(18), true);
+    std::printf("18 ms frames at 60 Hz: %.1f FPS on ticks, %.1f FPS with late flips\n", on_ticks,
+                with_late);
+    assert(on_ticks > 29.5 && on_ticks < 30.5);
+    assert(with_late > 54.0 && with_late < 56.5);
+    // A PC that keeps up stays at 60, late flips or not; one far behind is not held back more.
+    assert(frames_per_second(milliseconds(10), true) > 59.5);
+    assert(frames_per_second(milliseconds(10), true) < 60.5);
+    assert(frames_per_second(milliseconds(10), false) > 59.5);
+    assert(frames_per_second(milliseconds(40), true) > 24.5);
+    assert(frames_per_second(milliseconds(40), false) < 20.5);
     std::printf("frame slots: ok\n");
     return 0;
 }

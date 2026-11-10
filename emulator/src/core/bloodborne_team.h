@@ -254,6 +254,61 @@ std::vector<s32> TeamLampFlagsToSet(const WorldFlags& team, const std::function<
 std::string FormatWorldFlags(const WorldFlags& world);
 std::optional<WorldFlags> ParseWorldFlags(std::string_view text);
 WorldFlags WorldFlagsOf(const bbcoop::TeamWorld& world);
+// Players 2026-10-24 to 2026-11-07 ("my save rolled back": luisguareschi, seixas' host,
+// cominforyachips, BigPeloConcha): a save playing alone took back the world it had before its first
+// team, also when the team's world was made from this very save (its host started a new world and
+// the team played on in it), so its lamps, bosses and NPCs went back by weeks; a new world made
+// from that save after (the public server's) started as far back. The worlds a save made are its
+// home worlds (a file per save slot, "home_world"): among them the save's own world is the
+// team's. Nothing is kept aside as it takes one, nothing comes back over it alone, and what it
+// did alone goes on in the team (HowToTakeTeamWorld).
+struct HomeWorlds {
+    struct World {
+        std::string id;  // TeamWorldInfo.id
+        u64 version = 0; // the server's copy as this save's game last had it as its host; 0 none
+        bool operator==(const World&) const = default;
+    };
+    std::vector<World> worlds; // the oldest first, MaxHomeWorlds at most
+    // The save was loaded alone since its last load in a team: what it holds may be ahead of the
+    // server's copy (what it did alone), never only behind it.
+    bool alone = false;
+    bool operator==(const HomeWorlds&) const = default;
+
+    bool Has(std::string_view id) const;
+    u64 Version(std::string_view id) const;
+    // Whether the list changed. An id that is no single short word is never kept (it is a line of
+    // the file).
+    bool Add(std::string_view id);
+    bool NoteVersion(std::string_view id, u64 version);
+};
+constexpr size_t MaxHomeWorlds = 16;
+// The file ("worlds", an id and its version a line, "alone" when so, "end"); a cut or broken one
+// is none.
+std::string FormatHomeWorlds(const HomeWorlds& home);
+std::optional<HomeWorlds> ParseHomeWorlds(std::string_view text);
+// The world of a team's party key ("world:<id>"), "" for another key.
+std::string_view WorldIdOfParty(std::string_view party);
+// How a save's loads take the team's world `world` as the server has it (`server_version`):
+//   Aside      another save's world: this save's own goes aside first and comes back alone
+//   Home       its home world: the server's goes in, nothing aside (its own world is this one)
+//   SaveLeads  its home world, this game its host, the save played alone since its last team
+//              load, and the server's copy the one this save's game last had as its host: the
+//              save's world is the team's as it is (its host's reports take it to the server),
+//              with what it did alone. A copy another host moved on is taken instead (Home): the
+//              team played on without this save. So is the server's by a save that did not play
+//              alone: the server's copy is then the newer one whenever the game closed before
+//              it saved (rig team-world 2026-11-10: the host's flag of the session before was
+//              only on the server, and its save leading took it back for the whole team).
+enum class TeamWorldTake : u8 { Aside, Home, SaveLeads };
+TeamWorldTake HowToTakeTeamWorld(const HomeWorlds& home, std::string_view world, bool host,
+                                 u64 server_version);
+// A save from before the list, its own world kept aside: whether the world it last played
+// (`hint`, its slot's "team_world" file) is one it made. The server's list says each world's host
+// character: this one's (`character`) made or hosted it; another's: it visited; a world not
+// listed (another server's), no name yet or no lobby: not known, and the save is left as it was.
+enum class OldSaveWorld : u8 { Unknown, Made, Visited };
+OldSaveWorld OldSavesWorld(const bbcoop::LobbyState* lobby, std::string_view hint,
+                           std::string_view character);
 // The time of day (9800 evening, 9801 night, 9802 blood moon: the maps' events pick their sky and
 // enemies by them as they load) the team's world has and this game's (`on`) lacks: a guest away
 // from the host's cutscene that brought it (Vicar Amelia's skull, Kaniel's playtest 2026-10-17)

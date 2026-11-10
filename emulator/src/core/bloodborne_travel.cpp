@@ -269,7 +269,10 @@ namespace {
 std::optional<std::chrono::steady_clock::time_point> guest_trip_fixup_at;
 std::optional<std::chrono::steady_clock::time_point> guest_lamp_touch_at;
 // The lamp the trip in flight was placed at (see ArrivalNeedsMove), if any.
-const LampPoint* guest_trip_planned{};
+std::optional<LampPoint> guest_trip_planned;
+// The arrival's move tries left (ArrivalMoveTries: the lamp may resolve only once the dungeon's
+// blocks loaded).
+int guest_trip_fixup_tries = 0;
 
 } // namespace
 
@@ -290,17 +293,24 @@ void TickGuestLampTrip() {
                  "Bloodborne party guest trip: position after arrival known={} ({}, {}, {}) "
                  "planned at the lamp={}",
                  at.has_value(), at ? (*at)[0] : 0.0f, at ? (*at)[1] : 0.0f, at ? (*at)[2] : 0.0f,
-                 guest_trip_planned != nullptr);
-        if (ArrivalNeedsMove(guest_trip_planned, at)) {
-            MoveToRespawnPoint(true);
+                 guest_trip_planned.has_value());
+        if (ArrivalNeedsMove(guest_trip_planned ? &*guest_trip_planned : nullptr, at) &&
+            !MoveToRespawnPoint(true) && ++guest_trip_fixup_tries < ArrivalMoveTries) {
+            LOG_INFO(Debug,
+                     "Bloodborne party guest trip: the lamp is not loaded yet; again in a "
+                     "second (try {} of {})",
+                     guest_trip_fixup_tries + 1, ArrivalMoveTries);
+            guest_trip_fixup_at = now + std::chrono::seconds{1};
+            return;
         }
+        guest_trip_fixup_tries = 0;
         // The summon warp byte the lamp's placement set is spent (the pre-match warp waits on it).
         if (const u64 global = GetGlobalState();
             guest_trip_planned && global >= 0x10000 && ReadValue<u8>(global, 0x1520) != 0) {
             LOG_INFO(Debug, "Bloodborne party guest trip: summon warp byte still set; cleared");
             WriteValue(global, 0x1520, u8{0});
         }
-        guest_trip_planned = nullptr;
+        guest_trip_planned.reset();
     }
     if (guest_lamp_touch_at && now >= *guest_lamp_touch_at) {
         guest_lamp_touch_at.reset();
@@ -1776,18 +1786,57 @@ void KeepHeadstoneFlagsOwn() {
 }
 
 // See DollLevelUpClear: each frame in the co-op mode, the Doll's level-up flag off once her
-// blessing is over, so her next "Level Up" opens the menu again.
+// blessing is over and the player has stood up, so her next "Level Up" opens the menu again.
 void ClearDollLevelUpFlagAfterHerBlessing() {
     static DollLevelUpClear clear;
     const bool playing = party_controller && GetLocalPlayer() >= 0x10000;
+    const bool steps_on =
+        playing && (EventFlagOn(DollBlessingFlag + 1) || EventFlagOn(DollBlessingFlag + 2));
     if (!clear.Tick(playing, playing && EventFlagOn(DollLevelUpFlag),
-                    playing && EventFlagOn(DollBlessingFlag))) {
+                    playing && EventFlagOn(DollBlessingFlag), steps_on)) {
         return;
     }
     reinterpret_cast<bool PS4_SYSV_ABI (*)(u64, s32, bool)>(
         image_base + PartyGhostSetEventFlagOffset)(0, DollLevelUpFlag, false);
     LOG_INFO(Debug, "Bloodborne party: the Doll's level-up flag {} cleared, her blessing over",
              DollLevelUpFlag);
+}
+
+// See DollHitEndsBlessing: each frame in the co-op mode, this game's blessing ended when the
+// Doll is hit during it, so m21_00 12100112 stands the player up.
+void EndDollBlessingWhenSheIsHit() {
+    static DollHitEndsBlessing hit;
+    const bool playing = party_controller && GetLocalPlayer() >= 0x10000;
+    const bool blessing_on = playing && EventFlagOn(DollBlessingFlag);
+    if (!hit.Tick(playing, blessing_on, blessing_on ? DollHp() : std::nullopt)) {
+        return;
+    }
+    reinterpret_cast<bool PS4_SYSV_ABI (*)(u64, s32, bool)>(
+        image_base + PartyGhostSetEventFlagOffset)(0, DollBlessingFlag, false);
+    LOG_INFO(Debug, "Bloodborne party: the Doll was hit during her blessing; flag {} cleared",
+             DollBlessingFlag);
+}
+
+// See DollGiveFix: every second in a party, the Doll's "Give" follows this player's Small Hair
+// Ornament (in a session its own event's set reaches it only over a flag message).
+void KeepDollGiveFlagOwn() {
+    static s64 checked_ms = 0;
+    const s64 now_ms = SteadyMilliseconds();
+    if (!party_controller || now_ms - checked_ms < 1'000 || GetLocalPlayer() < 0x10000 ||
+        !PlayerItemsReadable()) {
+        return;
+    }
+    checked_ms = now_ms;
+    const bool holds =
+        TradeHeld({BloodborneCoop::TradeItemKind::Goods, SmallHairOrnamentGoods, 0}) > 0;
+    const auto fix = DollGiveFix(true, EventFlagOn(DollGiveFlag), holds);
+    if (!fix) {
+        return;
+    }
+    reinterpret_cast<bool PS4_SYSV_ABI (*)(u64, s32, bool)>(
+        image_base + PartyGhostSetEventFlagOffset)(0, DollGiveFlag, *fix);
+    LOG_INFO(Debug, "Bloodborne party: the Doll's \"Give\" flag {} {}: this player {} the ornament",
+             DollGiveFlag, *fix ? "set" : "cleared", holds ? "holds" : "has no");
 }
 
 // See ImpurityBonusChange: every second, the Impurity rune's HP bonus put on (through the
@@ -2044,7 +2093,9 @@ void TickPlayersOnThisMap() {
     KeepGiftTalkFlagsOwn();
     KeepOwnedWeaponFlagsOwn();
     KeepHeadstoneFlagsOwn();
+    EndDollBlessingWhenSheIsHit();
     ClearDollLevelUpFlagAfterHerBlessing();
+    KeepDollGiveFlagOwn();
     static RecreateAfterJoin recreate_after_join;
     if (recreate_after_join.Tick(IsPartyGuestRole(), in_session,
                                  in_session ? OtherSessionMembers().size() : 0,
@@ -2193,6 +2244,7 @@ void TickPartyTrip() {
         if (guest_trip_in_flight) {
             guest_trip_in_flight = false;
             guest_trip_fixup_at = std::chrono::steady_clock::now() + std::chrono::seconds{1};
+            guest_trip_fixup_tries = 0;
         }
         ScheduleWipeRespawn();
     }

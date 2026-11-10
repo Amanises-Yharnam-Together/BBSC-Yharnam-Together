@@ -25,9 +25,12 @@ int main() {
     dispatch.init(instance.GetDevice());
     Scheduler scheduler(instance);
     Runtime runtime(instance, scheduler);
-    Common::SlotVector<VideoCore::ImageView> views;
-    Common::SlotVector<VideoCore::Image> images;
-    VideoCore::ImageInfo ci;
+    // Sized as the texture cache sizes its own (a default SlotVector has no room: "Run out of space").
+    Common::SlotVector<VideoCore::ImageView> views{256};
+    Common::SlotVector<VideoCore::Image> images{64};
+    // Zeroed, one sample: num_samples has no default (an unset one is RawNumSamples' UNREACHABLE).
+    VideoCore::ImageInfo ci{};
+    ci.num_samples = 1;
     ci.size = {1920,1080,1};
     ci.resources = {1,1};
     ci.type = AmdGpu::ImageType::Color2D;

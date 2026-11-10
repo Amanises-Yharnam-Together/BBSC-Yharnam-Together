@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: Copyright 2024-2026 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <algorithm>
 #include <atomic>
+#include <cstring>
 #include <mutex>
 #include <unordered_map>
 #include <boost/container/flat_map.hpp>
@@ -24,7 +26,9 @@
 #include "shader_recompiler/ir/reg.h"
 #include "shader_recompiler/ir/srt_gvn_table.h"
 #include "shader_recompiler/ir/value.h"
+#include "bbport_null_tables.h"
 #include "bbport_srt_fault.h"
+#include "bbport_srt_roots.h"
 #include "bbport_toggles.h"
 
 #ifdef ARCH_X86_64
@@ -54,7 +58,97 @@ struct NoSpeculativeExit {
 
 namespace {
 void EnsureSrtFaultHandler();
+
+// bbport: each walker's roots (the user data registers it loads its tables from) sit in the 16
+// bytes before its code in the buffer, for RunSrtWalker to check before the walk
+// (bbport_srt_roots.h). Not in the pipeline cache: its walker records stay as they were (their
+// size is the code's), and cached walkers get theirs from their code (DecodeWalkerRoots).
+constexpr u32 WalkerRootsMagic = 0x54524242; // "BBRT"
+struct WalkerRootsHeader {
+    u32 magic;
+    u8 count;
+    u8 known;
+    u8 sgpr[BbSrtRoots::MaxRoots];
+    u8 pad[2];
+};
+static_assert(sizeof(WalkerRootsHeader) == 16);
+
+void EmitWalkerRoots(const BbSrtRoots::Roots& roots) {
+    WalkerRootsHeader header{};
+    header.magic = WalkerRootsMagic;
+    header.count = roots.count;
+    header.known = roots.known ? 1 : 0;
+    std::memcpy(header.sgpr, roots.sgpr, sizeof(header.sgpr));
+    g_srt_codegen.db(reinterpret_cast<const u8*>(&header), sizeof(header));
 }
+
+/// The roots of a walker the generator wrote (flatten_extended_userdata_pass.cpp's PushPtr at
+/// the top level: `push rdi; mov rdi, [rdi + 4 * sgpr]`), followed from its code. Straight-line
+/// code only (the generator writes no jumps): anything else, and the roots are not known (the
+/// walk goes as before, a fault for each load under a null root).
+BbSrtRoots::Roots DecodeWalkerRoots(const u8* code, size_t size) {
+    BbSrtRoots::Roots roots{};
+    ZydisDecodedInstruction inst;
+    ZydisDecodedOperand ops[ZYDIS_MAX_OPERAND_COUNT];
+    int depth = 0;
+    bool root_next = false;
+    size_t at = 0;
+    while (at < size) {
+        if (!ZYAN_SUCCESS(Common::Decoder::Instance()->decodeInstruction(
+                inst, ops, const_cast<u8*>(code + at), std::min<size_t>(15, size - at)))) {
+            return {};
+        }
+        const bool rdi = inst.operand_count_visible >= 1 &&
+                         ops[0].type == ZYDIS_OPERAND_TYPE_REGISTER &&
+                         ops[0].reg.value == ZYDIS_REGISTER_RDI;
+        at += inst.length;
+        if (root_next) {
+            root_next = false;
+            if (inst.mnemonic != ZYDIS_MNEMONIC_MOV || !rdi || inst.operand_count_visible != 2 ||
+                ops[1].type != ZYDIS_OPERAND_TYPE_MEMORY || ops[1].mem.base != ZYDIS_REGISTER_RDI ||
+                ops[1].mem.index != ZYDIS_REGISTER_NONE) {
+                return {};
+            }
+            const s64 disp = ops[1].mem.disp.value;
+            if (disp < 0 || disp % 4 != 0 || disp / 4 + 2 > BbSrtRoots::UserDataRegs ||
+                roots.count == BbSrtRoots::MaxRoots) {
+                return {};
+            }
+            roots.sgpr[roots.count++] = u8(disp / 4);
+        } else if (inst.mnemonic == ZYDIS_MNEMONIC_PUSH && rdi) {
+            root_next = depth++ == 0;
+        } else if (inst.mnemonic == ZYDIS_MNEMONIC_POP && rdi) {
+            if (--depth < 0) {
+                return {};
+            }
+        } else if (inst.mnemonic == ZYDIS_MNEMONIC_RET) {
+            break;
+        } else if (inst.meta.category == ZYDIS_CATEGORY_COND_BR ||
+                   inst.meta.category == ZYDIS_CATEGORY_UNCOND_BR ||
+                   inst.meta.category == ZYDIS_CATEGORY_CALL) {
+            return {};
+        }
+    }
+    roots.known = depth == 0 && roots.count > 0 && at == size;
+    return roots;
+}
+
+bool WalkerRoots(Shader::PFN_SrtWalker walker, BbSrtRoots::Roots& roots) {
+    const auto* code = reinterpret_cast<const u8*>(walker);
+    if (!g_srt_codegen_start || code < g_srt_codegen_start + sizeof(WalkerRootsHeader)) {
+        return false;
+    }
+    WalkerRootsHeader header;
+    std::memcpy(&header, code - sizeof(header), sizeof(header));
+    if (header.magic != WalkerRootsMagic) {
+        return false;
+    }
+    roots.count = header.count;
+    roots.known = header.known != 0;
+    std::memcpy(roots.sgpr, header.sgpr, sizeof(roots.sgpr));
+    return true;
+}
+} // namespace
 
 namespace Shader {
 
@@ -62,10 +156,39 @@ PFN_SrtWalker RegisterWalkerCode(const u8* ptr, size_t size) {
     NoSpeculativeExit no_exit;
     std::scoped_lock lock{g_srt_codegen_mutex};
     EnsureSrtFaultHandler();
+    EmitWalkerRoots(DecodeWalkerRoots(ptr, size));
     const auto func_addr = (PFN_SrtWalker)g_srt_codegen.getCurr();
     g_srt_codegen.db(ptr, size);
     g_srt_codegen.ready();
     return func_addr;
+}
+
+u32 RunSrtWalker(PFN_SrtWalker walker, const u32* user_data, u32 user_data_size, u32* flat,
+                 u32 flat_size) {
+    BbSrtRoots::Roots roots{};
+    u32 walk_ud[BbSrtRoots::UserDataRegs];
+    u32 null_roots = 0;
+    const auto walk = WalkerRoots(walker, roots)
+                          ? BbSrtRoots::Prepare(roots, user_data, user_data_size, walk_ud,
+                                                null_roots)
+                          : BbSrtRoots::Walk::Tables;
+    switch (walk) {
+    case BbSrtRoots::Walk::Tables:
+        walker(user_data, flat);
+        break;
+    case BbSrtRoots::Walk::SomeNull:
+        walker(walk_ud, flat);
+        break;
+    case BbSrtRoots::Walk::AllNull:
+        BbSrtRoots::ZeroWalkerWords(flat, NUM_USER_DATA_REGS, flat_size);
+        break;
+    }
+    // Speculative walks (draw preparation, the recording thread's check) are walked again by the
+    // GPU thread: counted there only.
+    if (null_roots != 0 && !runtime_fault_recover) {
+        BbNullTables::NoteNullRootWalk();
+    }
+    return null_roots;
 }
 
 } // namespace Shader
@@ -673,6 +796,19 @@ static void GenerateSrtProgram(Info& info, PassInfo& pass_info) {
     // Register the signal handler for SRT walker, if not already registered
     EnsureSrtFaultHandler();
 
+    // bbport: the roots go in front of the walker (RunSrtWalker checks them before each walk).
+    BbSrtRoots::Roots roots{};
+    for (const auto& [sgpr_base, root] : pass_info.srt_roots) {
+        if (roots.count == BbSrtRoots::MaxRoots ||
+            static_cast<u32>(sgpr_base) + 2 > BbSrtRoots::UserDataRegs) {
+            roots.known = false;
+            roots.count = 0;
+            break;
+        }
+        roots.sgpr[roots.count++] = static_cast<u8>(sgpr_base);
+        roots.known = true;
+    }
+    EmitWalkerRoots(roots);
     info.srt_info.walker_func = c.getCurr<PFN_SrtWalker>();
     pass_info.dst_off_dw = NUM_USER_DATA_REGS;
     ASSERT(pass_info.dst_off_dw == info.srt_info.flattened_bufsize_dw);
@@ -686,6 +822,22 @@ static void GenerateSrtProgram(Info& info, PassInfo& pass_info) {
 
     info.srt_info.walker_func_size =
         c.getCurr() - reinterpret_cast<const u8*>(info.srt_info.walker_func);
+    // The decoder that gives cached walkers their roots must read the same from this one.
+    if (roots.known) {
+        const auto decoded = DecodeWalkerRoots(reinterpret_cast<const u8*>(info.srt_info.walker_func),
+                                               info.srt_info.walker_func_size);
+        bool same = decoded.known && decoded.count == roots.count;
+        for (u32 i = 0; same && i < roots.count; ++i) {
+            same = decoded.sgpr[i] == roots.sgpr[i];
+        }
+        static std::atomic<u32> mismatches{0};
+        if (!same && mismatches.fetch_add(1, std::memory_order_relaxed) < 4) {
+            LOG_WARNING(Render_Recompiler,
+                        "SRT walker of {:#018x}: its roots read from its code ({} of them, "
+                        "known {}) differ from the generator's ({})",
+                        info.pgm_hash, decoded.count, decoded.known, roots.count);
+        }
+    }
 
     if (EmulatorSettings.IsDumpShaders()) {
         DumpSrtProgram(info, reinterpret_cast<const u8*>(info.srt_info.walker_func),

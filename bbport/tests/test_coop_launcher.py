@@ -171,6 +171,47 @@ class AnswersTests(unittest.TestCase):
         self.assertGreaterEqual(len(fresh['password']), 32)
         self.assertNotEqual(coop.virtual_address(fresh['account']), coop.virtual_address(settings['account']))
 
+    def test_an_id_another_player_has_is_made_again_too(self):
+        # Discord 2026-11-05 ("the server refused this game: sign-in refused: another player has this id",
+        # nothing in the launcher, the player had to ask): the server has this id with another secret (two
+        # friends with one typed name from an old install, a copied or reset install), or another account's
+        # game holds its address (server_link.cpp). Neither passes by waiting: a new id for that server does.
+        head = "GPU [Lib.Net] <Error> p2p_sockets.cpp:1054 OnWelcome: Server link: the server refused this game: "
+        other_secret = head + "sign-in refused: another player has this id (p0123456789abcd)\n"
+        held = head + "another account has this game's address (kaniel): use another account name\n"
+        for line in (other_secret, held):
+            self.assertTrue(coop.address_taken(line), line)
+            self.assertEqual(coop.id_retry(line, 0), 'retry')
+            self.assertEqual(coop.id_retry(line, coop.NEW_ID_TRIES), 'give_up')
+            self.assertIsNone(coop.refusal_reason(line), 'the launcher acts on it: no second message')
+        self.assertFalse(coop.address_taken('sign-in refused: another player has this id (x)\n'),
+                         'only the game\'s own refusal line')
+        self.assertFalse(coop.needs_sign_in(other_secret))
+
+    def test_any_other_refusal_is_said_in_the_launcher(self):
+        # Until now only the game's team screen said why the server refused it (one short line, gone with
+        # the window): the launcher's status line says the server's own reason, its first line.
+        head = "GPU [Lib.Net] <Error> p2p_sockets.cpp:1054 OnWelcome: Server link: the server refused this game: "
+        version = head + "Co-op refused: your game is version 1.3.2, the server's is 1.4.0. Update the game.\n"
+        self.assertEqual(coop.refusal_reason('[Render] frame\n' + version),
+                         "Co-op refused: your game is version 1.3.2, the server's is 1.4.0. Update the game.")
+        self.assertEqual(coop.refusal_reason(head + '  this server is full  \n'), 'this server is full')
+        # The launcher has its own words and deeds for these.
+        self.assertIsNone(coop.refusal_reason(head + 'account: sign in in the launcher first\n'))
+        self.assertIsNone(coop.refusal_reason(head + "address taken: another account's game has this id's "
+                                                     'virtual address; the launcher needs a new id\n'))
+        self.assertIsNone(coop.refusal_reason(head + '\n'))
+        self.assertIsNone(coop.refusal_reason("[Lib.Net] Server link: the server took this game's hello\n"))
+        self.assertEqual(coop.REFUSED_TEXT.count('{}'), 1)
+        import bbport_lang
+        launcher = (Path(__file__).resolve().parents[1] / 'launcher' / 'bbport_launcher_win.py').read_text(encoding='utf-8')
+        self.assertIn('_(bbport_coop.REFUSED_TEXT)', launcher)
+        self.assertIn('bbport_coop.refusal_reason(line)', launcher)
+        for language in ('ru', 'ar', 'es', 'pt', 'fr', 'de', 'it', 'pl', 'tr', 'zh', 'ja', 'ko'):
+            said = bbport_lang.table(language).get(coop.REFUSED_TEXT)
+            self.assertTrue(said, language)
+            self.assertEqual(said.count('{}'), 1, language)
+
     def test_a_new_id_is_only_for_the_server_that_refused_the_old_one(self):
         # A public server refusing the id's address must not change the id the player's friends' home
         # host knows (their teams and worlds there): the new id is kept for that server only.
@@ -441,7 +482,10 @@ class FindGameTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             make_game(root / 'drive' / 'CUSA00001', title='CUSA00001')
-            self.assertIsNone(coop.search_game(root / 'install', drives=[root / 'drive'], homes=[]))
+            # The install two folders deep: the search also looks beside the install's parent, which
+            # was the PC's own %TEMP% here (a real CUSA03173 left there by another test run was found).
+            install = root / 'Programs' / 'Yharnam Together'
+            self.assertIsNone(coop.search_game(install, drives=[root / 'drive'], homes=[]))
 
 
 @unittest.skipUnless(sys.platform == 'win32', 'folder links (junctions) are Windows')
@@ -678,6 +722,17 @@ class PlayTests(unittest.TestCase):
         self.assertEqual(env['BB_ONLINE_UNLOCKED_FPS'], '1')
         env = coop.game_environment({'BB_ONLINE_UNLOCKED_FPS': '1', **launcher}, settings, install, install)
         self.assertEqual(env['BB_FPS'], '60')
+        self.assertNotIn('BB_FPS_LIMIT', env)
+        self.assertNotIn('BB_ONLINE_UNLOCKED_FPS', env)
+
+    def test_the_30_fps_choice_is_kept_in_co_op(self):
+        # Discord 2026-10-26 (Serge, three more players): 30 FPS picked in the launcher did nothing in
+        # co-op, the game ran at 60. A PC that cannot hold 60 runs the fixed 60 FPS step slow, so the
+        # PS4's own 30 FPS mode stays (run.py's frame_mode keeps it online); no frame cap goes with it.
+        install = Path('C:/Co-op')
+        settings = dict(coop.DEFAULTS, host_ip='26.1.2.3', account='Lisara', password='pw')
+        env = coop.game_environment({'BB_FPS': '30', 'BB_FPS_LIMIT': '144'}, settings, install, install)
+        self.assertEqual(env['BB_FPS'], '30')
         self.assertNotIn('BB_FPS_LIMIT', env)
         self.assertNotIn('BB_ONLINE_UNLOCKED_FPS', env)
 
@@ -1053,6 +1108,23 @@ class UpdateTests(unittest.TestCase):
         command = coop.setup_command(Path('C:/Temp/Setup.exe'), Path('C:/Games/Co-op'))
         self.assertIn('/CLOSEAPPLICATIONS', command)
         self.assertIn(f'/DIR={Path("C:/Games/Co-op")}', command)
+
+    def test_the_update_backs_the_saves_up_first(self):
+        # red, 2026-11-06: "I updated with the installer and lost our save files": the launcher's update
+        # keeps the saves as they were in the Restore saves list before the setup runs
+        source = (Path(__file__).resolve().parents[1] / 'launcher' / 'bbport_launcher_win.py').read_text(encoding='utf-8')
+        update = source.split('def coop_update_failed', 1)[0].rsplit('def work():', 1)[1]
+        self.assertIn('bbport_coop.download_update(', update)
+        backup = update.index("bbport_coop.back_up_saves(PORT_DIR, 'before an update'")
+        self.assertLess(backup, update.index('self.coop_run_setup(setup)'))
+        with tempfile.TemporaryDirectory() as folder:
+            install = Path(folder)
+            save = install / 'user' / 'savedata' / '1' / 'CUSA03173' / 'SPRJ0005' / 'userdata0000'
+            save.parent.mkdir(parents=True)
+            save.write_bytes(b'a save')
+            kept = coop.back_up_saves(install, 'before an update', prune=False)
+            self.assertIsNotNone(kept)
+            self.assertEqual(coop.save_backups(install)[0]['note'], 'before an update')
 
     def test_a_portable_folder_stays_portable(self):
         # Provi 2026-10-30: the portable zip updates with the setup, which then makes no uninstaller or shortcuts
