@@ -700,8 +700,7 @@ SUITES = {
             chapter("dream-shops", "a guest in the Dream during the session: its messengers and "
                                    "doors open as in its own game (Kaniel 2026-10-11: no insight "
                                    "shop, no Hunter Chief Emblem for guests) and the shop's badge "
-                                   "check holds (every weapon opened by mistake). Flag 9401 "
-                                   "(workshop doors) is to be confirmed on the first run",
+                                   "check holds (every weapon opened by mistake)",
                     {"guest": [f"travel {HUNTERS_DREAM}", "wait 20", "expect-flag 9401 1",
                                f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240",
                                "sync shops-back"],
@@ -822,8 +821,7 @@ SUITES = {
                     forbid={role: SESSION_HOLDS + [KNEEL] for role in PARTY2}),
             chapter("down-by-enemy", "the guest with 1 HP next to an enemy, locked on to it, goes "
                                      "down: the lock-on is let go (PR #69), the enemy leaves it "
-                                     "alone, and the host revives it. Whether the rig's R3 locks "
-                                     "on there is to be confirmed on the first run",
+                                     "alone, and the host revives it",
                     # Its end is a give-up, not a revive: a revive takes 50-70 s of swings (rig
                     # 2026-10-15), revives have chapters of their own.
                     {"host": ["wait-member-vital down 150", "wait-member-vital up 150"],
@@ -838,16 +836,17 @@ SUITES = {
                     # known_bug dropped: not seen in the rig run of 2026-11-02.
                     forbid={"host": SESSION_HOLDS,
                             "guest": SESSION_HOLDS + [r"party death: killed while down"]}),
-            chapter("give-up", "the downed guest holds Circle and dies; it gets up at its lamp "
+            chapter("give-up", "the death mode nobody picked is party death (down, not spectating): "
+                               "the downed guest holds Circle and dies; it gets up at its lamp "
                                "without a reload and the session holds",
-                    {"guest": ["godmode off", *GUEST_FALL, "wait-vital down 30",
+                    {"guest": ["wait-death-mode down 5", "godmode off", *GUEST_FALL, "wait-vital down 30",
                                "press circle 3600", "wait-vital dead 15", "wait-vital up 90",
                                "wait-members 2 240", "godmode"],
                      "host": ["wait-member-vital down 120"]},
                     expect={"guest": [r"party death: giving up ends down \d+; dies \(reset=false",
                                       r"party guest died; revived"]},
                     forbid={"host": SESSION_HOLDS,
-                            "guest": SESSION_HOLDS + [r"reset=true"]}),
+                            "guest": SESSION_HOLDS + [r"reset=true", r"spectate:"]}),
             chapter("stain-after-rejoin", "the guest's game dies after it died for real (give-up "
                                           "left its bloodstain); back in the host's world it "
                                           "sees its own stain with its echoes (Kaniel "
@@ -984,8 +983,7 @@ SUITES = {
                     allow=CRASH_CLEANUP),
             chapter("cutscene", "Father Gascoigne dies in the host's world with the guest there: "
                                 "his death's time-of-day cutscene reloads the host's world (a "
-                                "trip), and both are back together after it. Whether this kill "
-                                "plays the cutscene again is to be confirmed on the first run",
+                                "trip), and both are back together after it",
                     # The cutscene's reload starts within seconds of the kill; then both wait for
                     # the other on the map (no fixed minute: the rig's budget, 2026-10-15).
                     {"host": [f"set-flag {GASCOIGNE_DEFEATED} 0",
@@ -1048,8 +1046,10 @@ SUITES = {
                                "wait-session 2 420", "wait 5", "expect-session 2",
                                f"expect-map {CENTRAL_YHARNAM}", "sync resume-back"],
                      "host": ["sync resume-back"]},
-                    expect={"guest": [r"guest resumed at \(-21\d(\.\d+)?, -5\d(\.\d+)?, "
-                                      r"17\d(\.\d+)?\) on map 0x18010000"]},
+                    # Within about 10 m of where it stood (-215.0 -54.5 178.0): the point kept is
+                    # its last settled one (rig 2026-11-04: it came back at -209.61, 178.82).
+                    expect={"guest": [r"guest resumed at \(-2(?:0[5-9]|1\d|2[0-5])(\.\d+)?, "
+                                      r"-5\d(\.\d+)?, 17\d(\.\d+)?\) on map 0x18010000"]},
                     allow=CRASH_CLEANUP),
             chapter("after-resume", "after its resume the lamp the guest lit is still lit in both "
                                     "worlds, the host's hit reaches its copy, and both pick up "
@@ -1255,12 +1255,15 @@ SUITES = {
             chapter("restart-keeps", "the guest's game starts again in the session: it is the "
                                      "same character, so its kept pickups stay and nothing is "
                                      "backed up (Kaniel 2026-10-11: Brom's pickups wiped by "
-                                     "a restart; the review: never wipe on a bad read)",
+                                     "a restart; the review: never wipe on a bad read), and "
+                                     "from its load's end to its join takes no more than the "
+                                     "budget (phase 7: a join costs only the guest's own load)",
                     {"guest": [RESTART, START, "godmode", "wait-session 2 420", "wait 10",
                                "sync rk-back", "expect-session 2"],
                      "host": ["sync rk-back", "expect-session 2"]},
                     forbid={"guest": [r"new character in save slot"]},
                     files_absent={"guest": ["bloodborne_party_*.bak-*"]},
+                    max_join_s={"guest": JOIN_AFTER_LOAD_S},
                     allow=CRASH_CLEANUP),
             # The team's load screen is in the world since the join's reload (#212): title-keys
             # did nothing there (rig 2026-10-22: no "menu keys toggle"). Pressed in the world from
@@ -1285,14 +1288,6 @@ SUITES = {
                      "host": ["sync gsm-done", "expect-session 2"]},
                     expect={"guest": [r"menu keys right"]},
                     forbid=holds(PARTY2)),
-            chapter("join-time", "the guest's game starts again: from its load's end to its "
-                                 "join takes no more than the budget (phase 7: a join costs only "
-                                 "the guest's own load)",
-                    {"guest": [RESTART, START, "godmode", "wait-session 2 420",
-                               "sync jt-back", "expect-session 2"],
-                     "host": ["sync jt-back", "expect-session 2"]},
-                    max_join_s={"guest": JOIN_AFTER_LOAD_S},
-                    allow=CRASH_CLEANUP),
             chapter("new-character", "a guest on a brand-new character (rig/saves/new-character) "
                                      "joins where it stands: its kept lists start clean once, "
                                      "the old ones backed up first",
