@@ -19,6 +19,11 @@ if sys.platform == 'win32':
     import bbport_launcher_win as launcher
 
 
+# start_game writes this first line itself (Kaniel 2026-11-01: which overlays a run loads); the
+# tests stub the PC's layers to none so the output does not depend on what this PC has installed.
+OVERLAY_LINE = 'Launcher: Vulkan overlay layers: none\n'
+
+
 def stand_in(directory, body):
     path = Path(directory) / 'stand_in.py'
     path.write_text('import sys, time\n\ndef say(text):\n    print(text, flush=True)\n\n' + textwrap.dedent(body),
@@ -32,6 +37,14 @@ class LauncherCloseTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.dir = Path(self.tmp.name)
         self.log = self.dir / 'user' / 'last_run.log'
+        layers = mock.patch.object(launcher.bbport_support, 'vulkan_layers', return_value=[])
+        layers.start()
+        self.addCleanup(layers.stop)
+
+    def game_output(self, text):
+        """The game's own output: what follows the launcher's overlay line."""
+        self.assertTrue(text.startswith(OVERLAY_LINE), text[:120])
+        return text[len(OVERLAY_LINE):]
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -44,12 +57,12 @@ class LauncherCloseTests(unittest.TestCase):
         process = self.start("say('one'); say('two')\n")
         self.assertIsNone(process.stdout)
         self.assertEqual(process.wait(timeout=30), 0)
-        self.assertEqual(self.log.read_text(encoding='utf-8').split(), ['one', 'two'])
+        self.assertEqual(self.game_output(self.log.read_text(encoding='utf-8')).split(), ['one', 'two'])
 
     def test_stderr_lands_in_the_same_file_in_order(self):
         process = self.start("say('out'); sys.stderr.write('err\\n'); sys.stderr.flush(); say('after')\n")
         process.wait(timeout=30)
-        self.assertEqual(self.log.read_text(encoding='utf-8').split(), ['out', 'err', 'after'])
+        self.assertEqual(self.game_output(self.log.read_text(encoding='utf-8')).split(), ['out', 'err', 'after'])
 
     def test_nobody_reads_and_the_game_still_logs_everything(self):
         # The launcher has closed: nothing reads. The preparation prints after a pause (it died with
@@ -61,7 +74,7 @@ class LauncherCloseTests(unittest.TestCase):
                 say(f'frame {n}'); time.sleep(0.2)
             """)
         self.assertEqual(process.wait(timeout=60), 0)
-        lines = self.log.read_text(encoding='utf-8').splitlines()
+        lines = self.game_output(self.log.read_text(encoding='utf-8')).splitlines()
         self.assertEqual(lines, ['Mods: preparing', 'Mods: ready', 'GPU: window and Vulkan presenter ready',
                                  'frame 0', 'frame 1', 'frame 2'])
 
@@ -75,7 +88,7 @@ class LauncherCloseTests(unittest.TestCase):
         launcher.follow_log(self.log, lambda: launcher.game_over(process, job), got.append, interval=0.02)
         job.close()
         text = ''.join(got)
-        self.assertEqual(text.splitlines(), ['Zażółć gęślą jaźń · 日本語', 'second', 'no newline'])
+        self.assertEqual(self.game_output(text).splitlines(), ['Zażółć gęślą jaźń · 日本語', 'second', 'no newline'])
         self.assertEqual(text, self.log.read_bytes().decode('utf-8'))
 
     def test_the_run_lasts_until_the_restarted_launch_is_over(self):
@@ -95,7 +108,7 @@ class LauncherCloseTests(unittest.TestCase):
         launcher.follow_log(self.log, lambda: launcher.game_over(process, job), got.append, interval=0.02)
         self.assertFalse(job.running())
         job.close()
-        self.assertEqual(''.join(got).splitlines(), ['restarting through run.py', 'restarted'])
+        self.assertEqual(self.game_output(''.join(got)).splitlines(), ['restarting through run.py', 'restarted'])
 
     def test_a_log_that_is_locked_for_a_moment_is_followed_once_it_opens(self):
         # antivirus holds the new file, or it is created a little late: the first opens fail
@@ -177,7 +190,7 @@ class LauncherCloseTests(unittest.TestCase):
             got = []
             launcher.follow_log(self.log, lambda: launcher.game_over(process, job), got.append, interval=0.02)
         job.close()
-        self.assertEqual(''.join(got).splitlines(), ['restarting through run.py', 'restarted'])
+        self.assertEqual(self.game_output(''.join(got)).splitlines(), ['restarting through run.py', 'restarted'])
         self.assertEqual(len(notes), 1)  # said once, not on every poll
         self.assertIn('restart', notes[0])
 
