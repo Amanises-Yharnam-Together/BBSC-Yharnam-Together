@@ -3428,6 +3428,10 @@ SCENARIOS["wipe-one-map"] = {
     "timeout": 900,
 }
 
+# After the wipe each wakes at the lamp, about 147 m from the enemy: a census there never lists it,
+# and hp_state read the host's census from before the wipe (rig 2026-11-10: "not whole 900/1917",
+# "no census"). Both walk back to it (godmode again: the wipe turned it off) and count it there.
+BIG_CHECKED_AGAIN = ["godmode", f"approach {BIG_BY_THE_LAMP} 4 0", "wait 3", "census 40"]
 SCENARIOS["boss-hp-after-wipe"] = {
     "about": "#272: the host hurts the boss-sized enemy by the first lamp, then the party wipes: "
              "it is back at full HP in both games",
@@ -3437,12 +3441,12 @@ SCENARIOS["boss-hp-after-wipe"] = {
                  "wait 3", f"hurt {BIG_BY_THE_LAMP} 900", "wait 5", "census 40", "sync bw-hurt",
                  "sync bw-guest-down", "godmode off", f"teleport {WIPE3_SPOT['host']}", "wait 2",
                  *LETHAL_FALL, "wait-vital dead 30", "wait-vital up 150", "wait-members 2 300",
-                 "wait 20", "census 80",
+                 "wait 20", *BIG_CHECKED_AGAIN,
                  "sync bw-checked", "expect-session 2"],
         "guest": [START, "godmode", "wait-session 2 300", "sync bw-hurt", "wait 3", "census 60",
                   "godmode off", f"teleport {WIPE3_SPOT['guest']}", "wait 2", *LETHAL_FALL,
                   "wait-vital down 30", "sync bw-guest-down", "wait-vital dead 90",
-                  "wait-vital up 150", "wait-members 2 300", "wait 20", "census 80",
+                  "wait-vital up 150", "wait-members 2 300", "wait 20", *BIG_CHECKED_AGAIN,
                   "sync bw-checked", "expect-session 2"],
     },
     "syncs": {name: {"chapter": "boss-hp-after-wipe", "roles": ["host", "guest"]}
