@@ -5139,7 +5139,9 @@ def _host_death_kills(name: str, far: bool) -> dict:
             f"sync {tag}-killed", "wait 5", "census 60", *_party_kills_down(3)]
     if far:
         host += [f"teleport {HOST_DEATH_FAR_SPOT}", "wait 5"]
-    death = [*LETHAL_FALL, "wait-vital dead 30"] if far else GIVE_UP
+    # 60 s: on a loaded PC (rig 2026-11-10, 12 FPS and 7 s frames) the death came 35 s after the
+    # fall.
+    death = [*LETHAL_FALL, "wait-vital dead 60"] if far else GIVE_UP
     host += ["godmode off", *death, "log host died", "wait-vital up 90", "wait 10",
              "census 60", *_party_kills_down(30), "census 60", f"sync {tag}-checked",
              "expect-session 2"]
