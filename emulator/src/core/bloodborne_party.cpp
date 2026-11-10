@@ -3494,18 +3494,19 @@ void SetCoopBossHpRates(std::span<u8> sp_effect_param,
     }
 }
 
-std::optional<RescaledHp> RescaleLoadedHp(s32 base, s32 max, s32 hp, float old_rate,
+std::optional<RescaledHp> RescaleLoadedHp(s32 base, s32 max, s32 max_again, s32 hp, float old_rate,
                                           float new_rate) {
     if (max <= 0 || base <= 0 || old_rate <= 0.0f || new_rate <= 0.0f || old_rate == new_rate) {
         return std::nullopt;
     }
     const double factor = static_cast<double>(new_rate) / old_rate;
+    // Truncated, as the game's own maths (vcvttss2si) makes the max from the base.
     const auto scaled = [&](s32 value) {
-        return static_cast<s32>(std::lround(static_cast<double>(value) * factor));
+        return std::max(static_cast<s32>(static_cast<double>(value) * factor + 1e-6), 1);
     };
-    const s32 new_max = std::max(scaled(max), 1);
+    const s32 new_max = scaled(max);
     const s32 new_hp = hp <= 0 ? 0 : hp >= max ? new_max : std::clamp(scaled(hp), 1, new_max);
-    return RescaledHp{std::max(scaled(base), 1), new_max, new_hp};
+    return RescaledHp{scaled(base), new_max, max_again > 0 ? scaled(max_again) : 0, new_hp};
 }
 
 std::size_t MakeNpcAttacksHarder(std::span<u8> param, float damage) {
