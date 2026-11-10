@@ -924,8 +924,9 @@ std::string SlotFileName(std::string_view list, int slot);
 // in the slot (ForgetsSlotLists): its pickups, world changes, confirmed pickups and where it
 // resumes (Ada 2026-10-12: a new character resumed at the old one's spot).
 // Kaniel 2026-10-16: and the team world it last played ("team_world": its id in its team).
-inline constexpr std::array<std::string_view, 5> CharacterSlotFiles{
-    "progress", "world", "confirmed", "resume", "team_world"};
+// And the key items it gained as a phantom and is still owed ("phantom_keys", OwedKeyItem).
+inline constexpr std::array<std::string_view, 6> CharacterSlotFiles{
+    "progress", "world", "confirmed", "resume", "team_world", "phantom_keys"};
 // Whether the character loaded now is another one than the one a slot's lists were kept for
 // (`progress_kept`, its own world's set event flags then; 0 not known): far fewer set now.
 bool IsOtherCharacter(s32 progress_now, s32 progress_kept);
