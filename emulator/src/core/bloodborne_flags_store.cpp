@@ -1908,6 +1908,15 @@ void KeepGuestProgress(bool in_session) {
     if (in_session) {
         home_since = {};
         set_at_home = false;
+        // Bug audit 24 (DXZao 2026-10-23; rig pickup-after-guest-crash 2026-11-10): a guest whose
+        // game died rejoins straight into the session, whose world has its own pickups off (they
+        // are each character's own, never the team's), so it took the item by the lamp again.
+        // Its kept pickups are set here too, not only at home; first, so the baseline has them.
+        if (const size_t set = SetGuestPickedFlags(); set > 0) {
+            LOG_INFO(Debug,
+                     "Bloodborne party: set {} of the guest's own pickup flags in the session",
+                     set);
+        }
         if (!have_baseline) {
             seen_on.clear();
             for (const s32 flag : watched) {

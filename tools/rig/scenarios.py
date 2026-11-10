@@ -5573,6 +5573,33 @@ SCENARIOS["hp-lossy-link"] = {
 }
 
 
+# Bug audit 24 (DXZao 2026-10-23, 1.0.x): after a crash and rejoin, world items already taken
+# could be picked up again. A map item pickup is each character's own (#229, team-world-pickups).
+# The guest takes the item by the first lamp (goods 1500, item flag 52410140), its game dies (the
+# rig stops it as a crash would) and starts again, straight into the session: the item stays
+# taken for it (rig 2026-11-10 on main: the flag was off again and the guest took it twice; its
+# kept pickups were only set in its own world at home).
+LAMP_ITEM_FLAG = 52410140
+SCENARIOS["pickup-after-guest-crash"] = {
+    "about": "the guest picks up the item by the lamp, its game dies and rejoins the session: "
+             "the item stays taken for it",
+    "roles": {
+        "host": [START, "godmode", "wait-session 2 300", "sync pac-picked", "wait-solo 200",
+                 "wait-session 2 420", "sync pac-checked", "expect-session 2"],
+        "guest": [[START, "godmode", "wait-session 2 300", "wait 5",
+                   f"expect-flag {LAMP_ITEM_FLAG} 0", "pickup 20", "wait 5",
+                   f"expect-flag {LAMP_ITEM_FLAG} 1", "wait 15", "sync pac-picked", "done"],
+                  [START, "godmode", "wait-session 2 420", f"wait-flag {LAMP_ITEM_FLAG} 1 30",
+                   "wait 5", "snapshot", "sync pac-checked", "expect-session 2"]],
+    },
+    "syncs": {name: {"chapter": "pickup-after-guest-crash", "roles": ["host", "guest"]}
+              for name in ("pac-picked", "pac-checked")},
+    "expect": {"guest": [r"guest picked up item flag 52410140"]},
+    "allow": CRASH_CLEANUP,
+    "timeout": 300,
+}
+
+
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
 # look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
 # --play <name>) and in no tier.
