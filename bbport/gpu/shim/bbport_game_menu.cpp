@@ -758,9 +758,36 @@ LookupFn lookup_original = nullptr;
 AddFn add_original = nullptr;
 std::atomic<const void*> screen_sound_text{nullptr};
 
+/// The co-op server's reason in place of the game's "not signed in to PlayStation Network" (the
+/// game only knows it is signed out), or null while the sign-in did not fail. A text made once
+/// stays where it is: the game keeps the pointer.
+const char16_t* SignInDialogText() {
+    SignInWords words;
+    if (!SignInNotice(words, true)) {
+        return nullptr;
+    }
+    const std::string text = words.what + "\n" + words.check;
+    static std::mutex made_mutex;
+    static std::map<std::string, std::u16string> made;
+    std::scoped_lock lock{made_mutex};
+    auto [it, added] = made.try_emplace(text);
+    if (added) {
+        it->second = Utf16(text.c_str());
+        std::printf("Game menu: the sign-in dialog says: %s | %s\n", words.what.c_str(),
+                    words.check.c_str());
+        std::fflush(stdout);
+    }
+    return it->second.c_str();
+}
+
 GAME_ABI const char16_t* LookupHook(void* repository, u32 table, u32 category, u32 id) {
     if (id >= DynamicIdBase && id < DynamicIdBase + DynamicSlots) {
         return dynamic_texts[id - DynamicIdBase].c_str();
+    }
+    if (bbcoop_is_psn_sign_in_text(category, id)) {
+        if (const char16_t* reason = SignInDialogText()) {
+            return reason;
+        }
     }
     if (id >= IdBase && id < IdBase + texts.size()) {
         // BB_GAME_MENU_TRACE=1: how often the game asks for our texts (per 2 s).
@@ -928,6 +955,53 @@ u8* MapNear(unsigned char* image, u64 image_size, std::size_t size) {
 
 std::uint64_t ImageBase() {
     return image_base;
+}
+
+bool SignInNotice(SignInWords& words, bool game_language) {
+    char server[96] = {};
+    char reason[128] = {};
+    const int problem = bbcoop_sign_in_problem(server, sizeof(server), reason, sizeof(reason));
+    if (problem == BBCOOP_SIGN_IN_OK) {
+        return false;
+    }
+    const BbSettings::MenuLanguage game = BbSettings::GameLanguage();
+    const auto T = [&](const char* english, const char* russian) {
+        return game_language ? BbSettings::Translate(game, english, russian)
+                             : BbSettings::MenuText(english, russian);
+    };
+    const char* what = nullptr;
+    const char* check = nullptr;
+    switch (problem) {
+    case BBCOOP_SIGN_IN_REFUSED:
+        // The server's own line (the build check on join), as the team screen shows it.
+        words.what = reason;
+        words.check = T("Update the game and the server to the same release, then start the game again.",
+                        "Обновите игру и сервер до одной версии и запустите игру снова.");
+        return true;
+    case BBCOOP_SIGN_IN_NO_ANSWER:
+        what = T("Can't reach the co-op server at %s", "Нет связи с кооп-сервером %s");
+        check = T("The server may not be started, a firewall may be blocking it, or the address is wrong. "
+                  "Fix it, then start the game again.",
+                  "Возможно, сервер не запущен, его блокирует брандмауэр или адрес неверен. "
+                  "Исправьте это и запустите игру снова.");
+        break;
+    case BBCOOP_SIGN_IN_WRONG_LOGIN:
+        what = T("The co-op server at %s did not accept your login or password",
+                 "Кооп-сервер %s не принял ваш логин или пароль");
+        check = T("Check them in the launcher's co-op settings, then start the game again.",
+                  "Проверьте их в настройках кооператива в лаунчере и запустите игру снова.");
+        break;
+    default:
+        what = T("Could not sign in to the co-op server at %s", "Не удалось войти на кооп-сервер %s");
+        check = T("Start the game again. If it stays, update the game and the server to the same release.",
+                  "Запустите игру снова. Если не поможет, обновите игру и сервер до одной версии.");
+        break;
+    }
+    char line[256];
+    std::snprintf(line, sizeof(line), what, server);
+    words.what = line;
+    words.check = check;
+    return true;
 }
 
 std::uint32_t AddGameText(const char* english, const char* russian) {

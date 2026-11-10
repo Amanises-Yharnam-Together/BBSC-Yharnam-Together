@@ -26,6 +26,7 @@
 #include "../bbcoop.h"
 #include "../bbgpu.h"
 #include "bbport_game_art.h"
+#include "bbport_game_menu.h"
 #include "bbport_prompts.h"
 #include "bbport_coop_art.h"
 #include "bbport_key_guide.h"
@@ -4332,7 +4333,16 @@ void Screen() {
     }
     ImGui::PushFont(MenuArt::Font(), 20.0f);
     std::string status;
-    if (!lobby.signed_in) {
+    // Players' reports (Discord, 1.0.0 to 1.3.x): with the server out of reach this line said
+    // "Reaching..." for ever (and the game "not signed in to PlayStation Network"). The reason
+    // the sign-in failed, with the server's address, and under it what to check.
+    BbGameMenu::SignInWords sign_in;
+    // (The server's own refusal is the notice line's already.)
+    const bool sign_in_failed =
+        !lobby.signed_in && !lobby.notice[0] && BbGameMenu::SignInNotice(sign_in, false);
+    if (sign_in_failed) {
+        status = sign_in.what;
+    } else if (!lobby.signed_in) {
         status = T("Reaching the co-op server...", "Подключение к кооп-серверу...");
     } else if (!lobby.in_team) {
         status = T("Not in a team: create one or accept an invitation",
@@ -4346,9 +4356,17 @@ void Screen() {
         }
     }
     ts = ImGui::CalcTextSize(status.c_str());
-    draw->AddText(ImVec2(win.x + (size.x - ts.x) * 0.5f, win.y + S(MenuArt::Has(MenuArt::HeaderOrnament) ? 102.0f : 84.0f)),
-                  Gold(0.85f), status.c_str());
+    const float status_y = win.y + S(MenuArt::Has(MenuArt::HeaderOrnament) ? 102.0f : 84.0f);
+    draw->AddText(ImVec2(win.x + (size.x - ts.x) * 0.5f, status_y),
+                  sign_in_failed ? ImU32(IM_COL32(220, 150, 110, 255)) : Gold(0.85f), status.c_str());
     ImGui::PopFont();
+    if (sign_in_failed) {
+        ImGui::PushFont(MenuArt::Font(), 17.0f);
+        const ImVec2 cs = ImGui::CalcTextSize(sign_in.check.c_str());
+        draw->AddText(ImVec2(win.x + (size.x - cs.x) * 0.5f, status_y + S(24.0f)), Plain(0.8f),
+                      sign_in.check.c_str());
+        ImGui::PopFont();
+    }
 
     // The five places (four before teams of five).
     const float card_w = S(BbPartyLayout::TeamCardWidth), card_h = S(270.0f), gap = S(BbPartyLayout::TeamGap);

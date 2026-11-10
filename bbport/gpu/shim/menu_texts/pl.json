@@ -549,5 +549,12 @@
  "A real death (not a down a teammate revives) adds a penalty, until a lamp rest, a level up or a boss kill takes it away.": "Prawdziwa śmierć (nie upadek, z którego podnosi towarzysz) dodaje karę, dopóki odpoczynek przy latarni, nowy poziom lub pokonany boss jej nie usunie.",
  "A lamp or headstone trip asks the team to come along; with the vote one No stops it.": "Podróż przez latarnię lub nagrobek zaprasza drużynę; z głosowaniem jedno Nie ją wstrzymuje.",
  "Bosses rest less between attacks and turn faster.": "Bossowie mniej odpoczywają między atakami i szybciej się obracają.",
- "Vanilla": "Jak w grze"
+ "Vanilla": "Jak w grze",
+ "Update the game and the server to the same release, then start the game again.": "Zaktualizuj grę i serwer do tej samej wersji, a potem uruchom grę ponownie.",
+ "Can't reach the co-op server at %s": "Nie można połączyć się z serwerem co-op pod adresem %s",
+ "The server may not be started, a firewall may be blocking it, or the address is wrong. Fix it, then start the game again.": "Serwer może nie być uruchomiony, może go blokować zapora albo adres jest błędny. Napraw to, a potem uruchom grę ponownie.",
+ "The co-op server at %s did not accept your login or password": "Serwer co-op pod adresem %s nie przyjął twojego loginu lub hasła",
+ "Check them in the launcher's co-op settings, then start the game again.": "Sprawdź je w ustawieniach co-op w launcherze, a potem uruchom grę ponownie.",
+ "Could not sign in to the co-op server at %s": "Nie udało się zalogować do serwera co-op pod adresem %s",
+ "Start the game again. If it stays, update the game and the server to the same release.": "Uruchom grę ponownie. Jeśli problem pozostanie, zaktualizuj grę i serwer do tej samej wersji."
 }

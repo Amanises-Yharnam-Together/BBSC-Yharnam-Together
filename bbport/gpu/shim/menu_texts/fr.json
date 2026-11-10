@@ -549,5 +549,12 @@
  "A real death (not a down a teammate revives) adds a penalty, until a lamp rest, a level up or a boss kill takes it away.": "Une vraie mort (pas une chute dont un coéquipier vous relève) ajoute une pénalité, jusqu'à ce qu'un repos à une lanterne, un niveau gagné ou un boss vaincu l'efface.",
  "A lamp or headstone trip asks the team to come along; with the vote one No stops it.": "Un voyage par lanterne ou par pierre tombale invite l'équipe à suivre ; avec le vote, un seul Non l'arrête.",
  "Bosses rest less between attacks and turn faster.": "Les boss se reposent moins entre leurs attaques et tournent plus vite.",
- "Vanilla": "Comme le jeu"
+ "Vanilla": "Comme le jeu",
+ "Update the game and the server to the same release, then start the game again.": "Mettez le jeu et le serveur à jour vers la même version, puis relancez le jeu.",
+ "Can't reach the co-op server at %s": "Impossible de joindre le serveur coop à l'adresse %s",
+ "The server may not be started, a firewall may be blocking it, or the address is wrong. Fix it, then start the game again.": "Le serveur n'est peut-être pas démarré, un pare-feu le bloque peut-être, ou l'adresse est incorrecte. Corrigez cela, puis relancez le jeu.",
+ "The co-op server at %s did not accept your login or password": "Le serveur coop à l'adresse %s n'a pas accepté votre identifiant ou votre mot de passe",
+ "Check them in the launcher's co-op settings, then start the game again.": "Vérifiez-les dans les paramètres coop du lanceur, puis relancez le jeu.",
+ "Could not sign in to the co-op server at %s": "Impossible de se connecter au serveur coop à l'adresse %s",
+ "Start the game again. If it stays, update the game and the server to the same release.": "Relancez le jeu. Si le problème persiste, mettez le jeu et le serveur à jour vers la même version."
 }

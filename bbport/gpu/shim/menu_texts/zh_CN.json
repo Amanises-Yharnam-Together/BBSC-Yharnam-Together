@@ -549,5 +549,12 @@
  "A real death (not a down a teammate revives) adds a penalty, until a lamp rest, a level up or a boss kill takes it away.": "真正的死亡（不是可由队友扶起的倒地）会附加一项惩罚，直到在灯旁休息、升级或击败首领时消除。",
  "A lamp or headstone trip asks the team to come along; with the vote one No stops it.": "通过灯或墓碑出行时邀请队伍同行；开启投票后，一个“否”即可阻止。",
  "Bosses rest less between attacks and turn faster.": "首领在攻击之间休息更少，转身更快。",
- "Vanilla": "游戏原样"
+ "Vanilla": "游戏原样",
+ "Update the game and the server to the same release, then start the game again.": "请将游戏和服务器更新到相同版本，然后重新启动游戏。",
+ "Can't reach the co-op server at %s": "无法连接到合作服务器 %s",
+ "The server may not be started, a firewall may be blocking it, or the address is wrong. Fix it, then start the game again.": "服务器可能尚未启动、被防火墙拦截，或地址有误。请修正后重新启动游戏。",
+ "The co-op server at %s did not accept your login or password": "合作服务器 %s 未接受你的账号或密码",
+ "Check them in the launcher's co-op settings, then start the game again.": "请在启动器的合作设置中检查，然后重新启动游戏。",
+ "Could not sign in to the co-op server at %s": "无法登录合作服务器 %s",
+ "Start the game again. If it stays, update the game and the server to the same release.": "请重新启动游戏。如果问题仍然存在，请将游戏和服务器更新到相同版本。"
 }
