@@ -1035,7 +1035,7 @@ TEST(BloodborneFlagRules, AChaliceMapsFlagsAreTheCurrentAltarsView) {
             EXPECT_TRUE(IsWorldFlag(flag)) << flag;
             EXPECT_TRUE(CarriesToGuestWorld(flag)) << flag;
         }
-        for (const s32 flag : {base, base + 1800, base + 7210, base + 7812, base + 9999}) {
+        for (const s32 flag : {base, base + 1810, base + 7210, base + 7812, base + 9999}) {
             EXPECT_EQ(RuleFor(flag).owner, FlagOwner::Host) << flag;
             EXPECT_TRUE(IsWorldFlag(flag)) << flag;
             EXPECT_TRUE(CarriesToGuestWorld(flag)) << flag;
@@ -1076,9 +1076,16 @@ TEST(BloodborneFlagRules, AChaliceDungeonsDoorsAreSharedAsTheirAltarKeepsThem) {
             EXPECT_TRUE(CarriesToGuestWorld(base + offset)) << base + offset;
             EXPECT_FALSE(SharedWithParty(12900000 + offset)) << "the view stays each game's own";
         }
-        // A flag an event turns back off in some layout (a switch: 12900004, 12900516), the
-        // layers' bosses, the load-reset part (12904700) and one past the doors' part.
-        for (const s32 flag : {base, base + 4, base + 516, base + 1800, base + 4700, base + 5000}) {
+        // The layers' bosses beaten (12901800 + layer, ChaliceLayerBossFlags; A6 item 4: a
+        // layer a teammate beat stays beaten after a trip, a guest's own is not put back off).
+        for (const s32 offset : {1800, 1802, 1809}) {
+            EXPECT_TRUE(SharedWithParty(base + offset)) << base + offset;
+            EXPECT_TRUE(IsWorldFlag(base + offset)) << base + offset;
+            EXPECT_FALSE(SharedWithParty(12900000 + offset)) << "the view stays each game's own";
+        }
+        // A flag an event turns back off in some layout (a switch: 12900004, 12900516), past the
+        // layers' bosses (12901810), the load-reset part (12904700) and past the shared part.
+        for (const s32 flag : {base, base + 4, base + 516, base + 1810, base + 4700, base + 5000}) {
             EXPECT_FALSE(SharedWithParty(flag)) << flag;
         }
     }
