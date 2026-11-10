@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <vector>
 #include <chrono>
@@ -378,6 +379,9 @@ static void PrintMemory() {
                 (unsigned long long)BbStats::gc_kept_images.exchange(0));
 }
 #endif
+
+/// When the last flip was made (steady clock, ns), 0 before the first: WaitOutRigFrameWork.
+static std::atomic<s64> g_last_flip_ns{0};
 
 void VideoOutDriver::Flip(const Request& req) {
     // Update HDR status before presenting, then present the frame (bbport: on the swap thread).
@@ -768,6 +772,8 @@ void VideoOutDriver::Flip(const Request& req) {
         presenter->WaitRendered(req.frame);
     }
 
+    g_last_flip_ns = std::chrono::steady_clock::now().time_since_epoch().count();
+
     // Update flip status.
     auto* port = req.port;
     {
@@ -847,7 +853,24 @@ bool VideoOutDriver::SubmitFlip(VideoOutPort* port, s32 index, s64 flip_arg,
     return true;
 }
 
+// bbport, the rig only (BB_RIG_FRAME_WORK_MS=18): a frame is queued no sooner than this long
+// after the last flip, as on a PC whose frames take that long. The game draws its next frame once
+// the last one is flipped, so this is its frame time (rig scenario slow-frames-60).
+static void WaitOutRigFrameWork() {
+    static const s64 work_ns = [] {
+        const char* env = std::getenv("BB_RIG_FRAME_WORK_MS");
+        return env ? s64(std::max(std::atof(env), 0.0) * 1e6) : s64(0);
+    }();
+    if (const s64 last = g_last_flip_ns.load(); work_ns > 0 && last != 0) {
+        Common::PreciseSleepUntil(std::chrono::steady_clock::time_point(
+            std::chrono::nanoseconds(last + work_ns)));
+    }
+}
+
 void VideoOutDriver::SubmitFlipInternal(VideoOutPort* port, s32 index, s64 flip_arg, bool is_eop) {
+    if (index != -1) {
+        WaitOutRigFrameWork();
+    }
     Vulkan::Frame* frame;
     if (index == -1) {
         frame = presenter->PrepareBlankFrame(false);
@@ -886,8 +909,20 @@ void VideoOutDriver::PresentThread(std::stop_token token) {
     // flip made (BbFrameSlots::NextSlot).
     u32 frame_limit = EmulatorSettings.GetFrameLimit();
     auto next_flip = std::chrono::steady_clock::now();
-    std::printf("VideoOut: vblank %u Hz, frame limit %u FPS\n",
-                EmulatorSettings.GetVblankFrequency(), frame_limit);
+    // bbport: late flips (BbFrameSlots::FlipPace): in the game's own 30/60/90 modes a frame that
+    // is ready after its vblank tick is shown at once. On ticks only, frames of 17 ms waited for
+    // every second tick: a hard 30 FPS in co-op's 60 FPS mode. BB_LATE_FLIPS=0: on ticks only.
+    static const bool late_flips = [] {
+        const char* env = std::getenv("BB_LATE_FLIPS");
+        return !(env && env[0] == '0');
+    }();
+    std::printf("VideoOut: vblank %u Hz, frame limit %u FPS%s\n",
+                EmulatorSettings.GetVblankFrequency(), frame_limit,
+                BbFrameSlots::FlipPace(frame_limit, EmulatorSettings.GetVblankFrequency(),
+                                       EmulatorSettings.IsUncappedVblank(), late_flips) &&
+                        !frame_limit
+                    ? ", late frames shown between vblanks"
+                    : "");
 
     const auto receive_request = [this] -> Request {
         std::scoped_lock lk{mutex};
@@ -904,14 +939,23 @@ void VideoOutDriver::PresentThread(std::stop_token token) {
             frame_limit = limit;
             std::printf("VideoOut: frame limit %u FPS\n", frame_limit);
         }
-        const auto frame_period = frame_limit ? std::chrono::nanoseconds(1000000000 / frame_limit)
-                                              : std::chrono::nanoseconds(0);
+        const u32 pace = BbFrameSlots::FlipPace(frame_limit, EmulatorSettings.GetVblankFrequency(),
+                                                EmulatorSettings.IsUncappedVblank(), late_flips);
+        const auto frame_period = pace ? std::chrono::nanoseconds(1000000000 / pace)
+                                       : std::chrono::nanoseconds(0);
         // bbport: with a frame limit or the uncapped presets a queued flip is presented as soon
         // as it arrives and its slot allows (no limit: at once), between vblanks, instead of on
-        // the next vblank tick.
-        const bool immediate_flips = frame_limit != 0 || EmulatorSettings.IsUncappedVblank();
+        // the next vblank tick. So is a late frame of the game's own modes (late flips).
+        const bool immediate_flips = pace != 0 || EmulatorSettings.IsUncappedVblank();
+        // Late flips of the game's own modes: the vblank ticks keep the timer's steady rate. The
+        // wait for a late frame ends a little before the tick, which the timer then waits out.
+        const bool timed_ticks = pace != 0 && frame_limit == 0;
         timer.Start();
-        const auto tick_deadline = std::chrono::steady_clock::now() + vblank_period;
+        const auto tick_deadline =
+            std::chrono::steady_clock::now() + vblank_period -
+            (timed_ticks ? std::min<std::chrono::nanoseconds>(std::chrono::milliseconds(1),
+                                                              vblank_period / 8)
+                         : std::chrono::nanoseconds(0));
 
         if (DebugState.IsGuestThreadsPaused()) {
             DrawLastFrame();
@@ -922,10 +966,10 @@ void VideoOutDriver::PresentThread(std::stop_token token) {
         // Check if it's time to take a request.
         auto& vblank_status = main_port.vblank_status;
         const auto now = std::chrono::steady_clock::now();
-        const bool flip_slot = !frame_limit || now >= next_flip;
+        const bool flip_slot = !pace || now >= next_flip;
         if (flip_slot && vblank_status.count % (main_port.flip_rate + 1) == 0) {
             const auto request = receive_request();
-            if (request && frame_limit) {
+            if (request && pace) {
                 next_flip = BbFrameSlots::NextSlot(next_flip, std::chrono::steady_clock::now(),
                                                    frame_period);
             }
@@ -993,7 +1037,11 @@ void VideoOutDriver::PresentThread(std::stop_token token) {
                 FRAME_END;
             }
         }
-        std::this_thread::sleep_until(tick_deadline);
+        if (timed_ticks) {
+            timer.End();
+        } else {
+            std::this_thread::sleep_until(tick_deadline);
+        }
     }
 }
 

@@ -28,3 +28,14 @@ commits 3b99b54 and c8f68fc (effects), 7a39487, 03094a7 and 0d38fc9 (cloth), e0b
 a83f591 (jumps), GPL-2.0-or-later. Their caves keep the same addresses here. The parts of that page
 their port uses for its own features (Quit to Desktop, crash guards, Rebirth, PC Settings) stay
 unused here. `probe.c`'s `patchable` comes from the same release. Thanks to Supermedo.
+
+## Late frames in the game's own modes
+
+In the 30, 60 and 90 FPS modes the screen's vblank ticks at the mode's rate (60, 60, 90 Hz) and
+the game draws its next frame once the last one is flipped. Flips used to go on vblank ticks only:
+a frame that took 17 ms in the 60 FPS mode waited for the second tick, and the game ran at a hard
+30 FPS. Co-op always plays in the 60 FPS mode, so players saw 60 FPS alone and 30 "the moment
+someone joins" (Discord, 2026-10-26 to 11-06). A frame that is ready after its tick is now shown
+at once (`BbFrameSlots::FlipPace`, `VideoOutDriver::PresentThread`); flips still keep a period
+between them, so the game never runs above its mode's rate. `BB_LATE_FLIPS=0`: on ticks only, as
+before. Rig: `slow-frames-60` (`BB_RIG_FRAME_WORK_MS` makes every frame take that long).

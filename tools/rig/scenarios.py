@@ -5039,6 +5039,28 @@ SCENARIOS["doll-level-up-host"] = {
     "timeout": 300,
 }
 
+# Players 2026-10-26..11-06 (Discord, 1.2.x to 1.4.0): 60 FPS alone, a hard 30 "the moment
+# someone joins". Co-op is the game's 60 FPS mode, flips on 60 Hz vblank ticks, and the game
+# draws its next frame once the last one is flipped: frames of 17 ms waited for every second tick.
+# The rig's frame work (BB_RIG_FRAME_WORK_MS: a frame is queued no sooner than 18 ms after the last
+# flip, as on a PC that needs that long with a teammate in the world) at 60 FPS: flips on ticks
+# only give 30 FPS in every 5 s window, late flips about 55. The walk's two snapshots tell the game's
+# speed (the same distance as without the frame work).
+SCENARIOS["slow-frames-60"] = {
+    "about": "frames of 18 ms in co-op's 60 FPS mode run at about 55 FPS, not a hard 30 "
+             "(players 2026-10-26..11-06: 60 FPS alone, 30 the moment someone joins)",
+    "roles": {
+        "host": [START, "wait 5", "snapshot", "stick 128 0 1500", "wait 1", "snapshot",
+                 "stick 128 255 1500", "wait 20", "snapshot"],
+    },
+    # BB_FRAME_STATS: the frame rate every 5 s (the "Perf:" line comes every 30 s).
+    "settings": {"BB_FPS": "60", "BB_RIG_FRAME_WORK_MS": "18", "BB_FRAME_STATS": "1"},
+    "console_expect": {"host": [r"VideoOut: vblank 60 Hz, frame limit 0 FPS, late frames shown",
+                                r"Frame stats: (4[6-9]|5\d)\.\d FPS, worst frame [\d.]+ ms "
+                                r"\(vblank 60 Hz\)"]},
+    "timeout": 300,
+}
+
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
 # look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
 # --play <name>) and in no tier.
