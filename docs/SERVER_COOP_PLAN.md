@@ -34,6 +34,11 @@ only (bbport is the target; every player and the server run one build).
   loading into a team world stores the save's own world part aside (in the save folder) and applies
   the team world; leaving the team (back to the title, or playing solo) puts the personal world
   back. The character part is never touched by this.
+- **The world a save made is its home world** (players' "rolled-back" saves, 2026-10-24 to
+  2026-11-07): the leader's save that started a team world has no other personal world: that
+  world goes on from it. In it nothing is stored aside, playing solo keeps the team's progress, and
+  what the save did solo is the team's at its next hunt as host. A new world on another server
+  (the public one) made with the same character goes on from the same progress.
 - **Bosses:** inside a team world only the team world counts; bosses beaten solo stay in that
   save's personal world (this replaces the "separate boss progress" rule for teams).
 - **NPC gifts are per player** (Kaniel, 2026-10-13, "Networking stack question" thread): an NPC's
@@ -74,7 +79,7 @@ only (bbport is the target; every player and the server run one build).
   First step done: rituals work online again. A standard chalice's ritual asks the server for
   that chalice's dungeon (ChannelSearch FixedOrGeneral 2, then ChannelGetDetailsInfo); the
   server makes it (backend `StandardDungeon`), and two members who both conduct it meet in the
-  one dungeon (rig `chalice-team`).
+  one dungeon (rig `chalice-altar-team`).
   Second step: joining without a ritual. A dungeon's FormData is the 140-byte record the game
   uploads (format 5; layout in the backend's `StandardDungeon`), and a join through the altar's
   Chalice Dungeon Search builds the dungeon from it alone, free. That search
@@ -412,6 +417,18 @@ Each phase: red-green tests first, all CI checks, rig scenarios named below, mer
      to `user\bloodborne_party_personal_world_slot<N>.txt` (blocks already in the file keep what it
      says: a save that played a team before). A save loaded alone gets them back block by block
      as its loads bring them, and the file goes when all are back.
+   - **Home worlds.** `user\bloodborne_party_home_world_slot<N>.txt` lists the worlds this save
+     made (the host's load of a team with no world yet adds it) and, for each, the version of the
+     server's copy its game last had as that world's host. `HowToTakeTeamWorld`: another save's
+     world goes in with the save's own aside, as above; a home world goes in with nothing aside
+     (a world kept aside while the save visited another's is put back first); and the host of its
+     home world that was loaded alone since its last team load (`alone` in the file), whose
+     server copy is still at the version it noted, leads with its save (no
+     block is taken; its reports take the save's world to the server), so solo progress is the
+     team's. A copy another host moved on is taken instead. A save from before the list (its own
+     world aside, no list) makes its last world its home world when the server's list names its
+     character as that world's host (`OldSavesWorld`; also when it hosts it), and the stale
+     world kept aside is moved to `..._personal_world_before_home_slot<N>.txt`. Rig: `home-world`.
    - Rig: `team-world` (host's flag in the team's world, the guest's save takes it in the next
      session and loses it again alone), title verb `team-leave`.
    - Not yet: the NG cycle per team (the leader's own), chalice dungeons, several teams per save

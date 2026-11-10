@@ -311,7 +311,12 @@ void ApplyPreMatchCrossMapGuestWarp();
 bool WarpGuestToLampPoint(const LampPoint& point);
 // A trip to a warp point (a guest's own, the rig's): at the lamp's own point when it is known
 // (returned), else the lamp lookup's trip.
-const LampPoint* StartTripToLamp(s32 warp_point);
+// The lamp the trip is placed at (a copy: the trip's own), if any.
+std::optional<LampPoint> StartTripToLamp(s32 warp_point);
+// The lamp a death respawn's trip within a chalice dungeon is placed at (ChaliceTripLamp), set
+// by MoveToRespawnPoint for that trip's StartTripToLamp: the next trip takes it, whatever its
+// point (TakeChaliceTripLamp); game thread.
+extern std::optional<LampPoint> chalice_trip_lamp;
 bool StartPlayerSummonSearch(u64 player, s32 effect_id);
 void ResumePreMatchCrossMapResponder();
 extern std::optional<PartyController> party_controller;
@@ -405,6 +410,8 @@ std::optional<LampPosition> LocalPlayerPosition();
 std::optional<float> CameraHeadingNow();
 
 s32 CharacterHp(u64 character);
+// The Hunter's Dream Doll's HP in this game (HuntersDreamDoll), nothing while she is not here.
+std::optional<s32> DollHp();
 
 // The other players' characters in this world (WorldChrMan +0x30 count, +0x38 entries of 0x38
 // bytes; the local player is one of them), with HP (+0x128 of their data) and position.
@@ -429,7 +436,9 @@ bool BringBackWhatTheHostBroughtBack(std::span<const u32> handles);
 // When the session host last moved to another game (SteadyMilliseconds, 0: never): see
 // HoldsBringBacks.
 extern std::atomic<s64> session_host_moved_ms;
-void MoveToRespawnPoint(bool arriving_from_trip);
+// False when a trip's arrival found its lamp in no loaded block yet (TickGuestLampTrip tries
+// again).
+bool MoveToRespawnPoint(bool arriving_from_trip);
 // The respawn load's restock of vials and bullets from the storage box, for the deaths and trips
 // that skip it. The game's thread only.
 bool RestockFromStorage(std::string_view why);
@@ -1056,6 +1065,10 @@ void EndTeamResume();
 // The team's host as its Start named it ("" playing alone).
 std::string TeamStartHost();
 std::string TeamLobbyMember();
+// Who hosts the team's session as the server last said (its lobby name), "" when none is known.
+std::string TeamSessionHost();
+// The nameplate role line's html in the game's own words (see NameplateRoleText).
+std::optional<std::string> PartyNameplateRoleText(NameplateRole role);
 // Phase 11: a member's character name (its board name), as the server's lobby last said it; ""
 // when the lobby does not know it.
 std::string CharacterNameOf(std::string_view member);

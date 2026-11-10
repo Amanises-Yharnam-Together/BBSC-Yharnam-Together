@@ -374,6 +374,22 @@ typedef struct bbcoop_lobby {
 enum { BBCOOP_DEATH_DOWN = 0, BBCOOP_DEATH_SPECTATE = 1 };
 /* Fills `lobby`; 0 when the team lobby is off. */
 int bbcoop_lobby_view(bbcoop_lobby *lobby);
+/* Players' reports (Discord, 1.0.0 to 1.3.x): with the co-op server out of reach the game said
+ * "not signed in to PlayStation Network". Why this game's sign-in to the co-op server failed
+ * (BBCOOP_SIGN_IN_*; 0 while it is signed in, still signing in, or plays offline), with the
+ * server's address as the launcher gave it ("26.1.2.3:31313") and, for REFUSED, the server's own
+ * line (the build check on join). The game's dialog and the team screen say it. */
+enum {
+    BBCOOP_SIGN_IN_OK = 0,
+    BBCOOP_SIGN_IN_NO_ANSWER = 1,   /* nothing answers there: not started, a firewall, the address */
+    BBCOOP_SIGN_IN_WRONG_LOGIN = 2, /* the server refused the login or its password */
+    BBCOOP_SIGN_IN_OTHER = 3,
+    BBCOOP_SIGN_IN_REFUSED = 4,     /* the server refused this game: `reason` */
+};
+int bbcoop_sign_in_problem(char *server, size_t server_size, char *reason, size_t reason_size);
+/* 1 for the game's own "not signed in to PlayStation Network" texts (its message category and
+ * id): the ones the port's lookup hook answers with the co-op server's reason. */
+int bbcoop_is_psn_sign_in_text(uint32_t category, uint32_t id);
 /* Kaniel 2026-10-25, the Rot host rule: this player's rot for the party HUD, each penalty's kind
  * (BBCOOP_ROT_*), the oldest first; 0 while the rule is off or there is none. */
 enum {

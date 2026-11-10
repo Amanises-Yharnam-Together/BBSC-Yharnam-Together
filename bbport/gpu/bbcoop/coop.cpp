@@ -34,6 +34,7 @@
 #include "core/bloodborne_portrait.h"
 #include "core/bloodborne_re.h"
 #include "core/bloodborne_re_internal.h"
+#include "core/bloodborne_sign_in.h"
 #include "core/bloodborne_team.h"
 #include "core/cpu_patches.h"
 #include "core/file_format/psf.h"
@@ -553,6 +554,43 @@ void CopyPlayers(bbcoop_lobby_entry (&out)[N], int& count, const List& list,
 }
 
 } // namespace
+
+static_assert(BBCOOP_SIGN_IN_OK == static_cast<int>(Core::Bloodborne::SignInProblem::None) &&
+              BBCOOP_SIGN_IN_NO_ANSWER == static_cast<int>(Core::Bloodborne::SignInProblem::NoAnswer) &&
+              BBCOOP_SIGN_IN_WRONG_LOGIN ==
+                  static_cast<int>(Core::Bloodborne::SignInProblem::WrongLogin) &&
+              BBCOOP_SIGN_IN_OTHER == static_cast<int>(Core::Bloodborne::SignInProblem::Other) &&
+              BBCOOP_SIGN_IN_REFUSED == static_cast<int>(Core::Bloodborne::SignInProblem::Refused));
+
+extern "C" int bbcoop_sign_in_problem(char* server, size_t server_size, char* reason,
+                                      size_t reason_size) {
+    if (server_size != 0) {
+        server[0] = '\0';
+    }
+    if (reason_size != 0) {
+        reason[0] = '\0';
+    }
+    const Core::Bloodborne::SignInFailure failure =
+        Core::Bloodborne::SignInNotesOfThisGame().Last();
+    const std::string refusal = Libraries::Net::ServerLinkRefusal();
+    const auto problem = Core::Bloodborne::ShownSignInProblem(failure.problem, refusal);
+    if (problem == Core::Bloodborne::SignInProblem::None) {
+        return BBCOOP_SIGN_IN_OK;
+    }
+    if (server_size != 0) {
+        CopyName(server, server_size, failure.server);
+    }
+    // A refusal (of this release, or of the account: then a wrong login) is said in the server's
+    // own words.
+    if (reason_size != 0 && !refusal.empty()) {
+        CopyName(reason, reason_size, Core::Bloodborne::LinkRefusalNotice(refusal));
+    }
+    return static_cast<int>(problem);
+}
+
+extern "C" int bbcoop_is_psn_sign_in_text(uint32_t category, uint32_t id) {
+    return Core::Bloodborne::IsPsnSignInText(category, id) ? 1 : 0;
+}
 
 extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
     namespace Coop = Core::Bloodborne::Coop;

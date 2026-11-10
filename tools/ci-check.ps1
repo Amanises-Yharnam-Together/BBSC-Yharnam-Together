@@ -49,6 +49,12 @@ if ($Component -eq "bbport") {
     if ($SkipBuild) { Write-Host "CI CHECK PASSED (nothing to lint)"; exit 0 }
     & "$PSScriptRoot\build-bbport.ps1" -Src $Src -Test
     if ($LASTEXITCODE -ne 0) { Write-Host "CI CHECK FAILED: bbport build or tests"; exit 1 }
+    # The launcher's and the port tools' Python tests (the test audit, 2026-11-10: no check ran them).
+    Push-Location $Src
+    py -3.12 -m unittest discover -s tests 2>&1 | Select-Object -Last 4
+    $pythonTests = $LASTEXITCODE
+    Pop-Location
+    if ($pythonTests -ne 0) { Write-Host "CI CHECK FAILED: bbport Python tests"; exit 1 }
     Write-Host "CI CHECK PASSED"
     exit 0
 }

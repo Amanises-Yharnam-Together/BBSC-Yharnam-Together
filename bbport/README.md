@@ -318,6 +318,8 @@ Without shadPS4 there would be no bbport: its renderer and shader recompiler are
 
 **Third-party patches.** shadPS4-format XML patch files in the data directory's `patches/`, switched on and off in the launcher. See [mods and patches](docs/MODS.md).
 
+**Game language.** The launcher's Game language list has every language the game has text in. Brazilian Portuguese and Latin American Spanish, with their own voice, belong to the North American release: while one of them is chosen the game runs as that release on any copy (`BB_LANGUAGE_REGION=0` leaves the copy's region alone).
+
 **Launcher language.** The Windows launcher has 13 languages (see [Features](#features)). The Linux GTK4 launcher offers Russian, English or Brazilian Portuguese and follows the system language by default.
 
 **Free camera and game debug menu** (v1.09). Enable the corresponding switches in the launcher or in-game menu and restart. Free camera uses Lance McDonald's [GoldHEN patch](https://github.com/GoldHEN/GoldHEN_Patch_Repository/blob/main/patches/xml/Bloodborne-Orbis.xml). Hold Cross and press L3 to cycle modes (keyboard: hold Space and press Z). It needs no fonts and conflicts with *Enemy Control*.
