@@ -5678,7 +5678,9 @@ def _host_death_kills(name: str, far: bool) -> dict:
             f"sync {tag}-killed", "wait 5", "census 60", *_party_kills_down(3)]
     if far:
         host += [f"teleport {HOST_DEATH_FAR_SPOT}", "wait 5"]
-    death = [*LETHAL_FALL, "wait-vital dead 30"] if far else GIVE_UP
+    # 60 s: on a loaded PC (rig 2026-11-10, 12 FPS and 7 s frames) the death came 35 s after the
+    # fall.
+    death = [*LETHAL_FALL, "wait-vital dead 60"] if far else GIVE_UP
     host += ["godmode off", *death, "log host died", "wait-vital up 90", "wait 10",
              "census 60", *_party_kills_down(30), "census 60", f"sync {tag}-checked",
              "expect-session 2"]
@@ -5738,6 +5740,92 @@ SCENARIOS["nameplate-roles"] = {
 }
 
 
+# Bug audit 24 (Provi 2026-10-29): a guest's frenzy build-up in the Nightmare areas showed its
+# effect, damage and sound over and over on the host's screen. SpEffect 5299 is a frenzy build-up
+# aura (registCurse 5 every 2 s, as a Winter Lantern's gaze gives); the guest stands in it for
+# 20 s, the host watches its copy of the guest (effects added and removed, HP) the whole time.
+FRENZY_AURA = 5299
+FRENZY_FULL = 6421
+SCENARIOS["frenzy-guest-look"] = {
+    "about": "probe: the guest builds up frenzy (SpEffect 5299 for 20 s); both games log the "
+             "guest's effects: what the host's copy of it adds again and again",
+    "roles": {
+        "host": [START, "godmode", "wait-session 2 300", "wait 10", "sync fz-ready",
+                 "watch-effects player 60", "sync fz-done", "wait 5", "expect-session 2"],
+        "guest": [START, "wait-session 2 300", "wait 10", "sync fz-ready",
+                  "watch-effects self 60",
+                  *[step for _ in range(10) for step in (f"add-effect {FRENZY_AURA}", "wait 2")],
+                  # Rig 2026-11-10: 5299 changed neither game's effect list; 6421 is a full
+                  # build-up at once (registCurse 99999) with frenzy's 70% HP damage.
+                  f"add-effect {FRENZY_FULL}", "wait 20", "sync fz-done", "wait 5", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "frenzy-guest-look", "roles": ["host", "guest"]}
+              for name in ("fz-ready", "fz-done")},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300,
+}
+
+
+# Bug audit 24 (Redichoti 2026-10-30, heavy connection lag): enemy and boss HP differed per player
+# and his kills took a while to die for his friends. Over a lossy link (5% of every game's packets
+# lost; run it with a long ping, --ping 150-300) the guest kills an enemy the host's game runs with
+# real hits (its hits go to the owner), the host one of its own; a census a second on both games
+# gives the HP each shows over time (compare the two logs). Both kills land on both games.
+# (Rig 2026-11-10: "hurt" on a guest only rewrites its own copy, which the owner's HP puts back:
+# it is no hit there.)
+LOSSY_LINK = {"SHADPS4_P2P_LOSS_PERCENT": "5"}
+SCENARIOS["hp-lossy-link"] = {
+    "about": "over a lossy link (5% loss, long ping) the guest kills an enemy the host's game runs "
+             "and the host kills another, with real hits; both kills land on both games (census "
+             "a second for the HP each game shows)",
+    "settings": LOSSY_LINK,
+    "roles": {
+        "host": [START, "godmode", "wait-session 2 300", "wait 10", "census 60", "sync hpl-ready",
+                 *[step for _ in range(10) for step in ("wait 1", "census 60")],
+                 *attack(SECOND_ENEMY), "sync hpl-done",
+                 *[step for _ in range(15) for step in ("wait 1", "census 60")],
+                 f"expect-hp {ENEMY} <= 0", f"expect-hp {SECOND_ENEMY} <= 0", "sync hpl-checked",
+                 "expect-session 2"],
+        "guest": [START, "godmode", "wait-session 2 300", "wait 10", "census 60", "sync hpl-ready",
+                  *attack(ENEMY), "sync hpl-done",
+                  *[step for _ in range(15) for step in ("wait 1", "census 60")],
+                  f"expect-hp {ENEMY} <= 0", f"expect-hp {SECOND_ENEMY} <= 0",
+                  "sync hpl-checked", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "hp-lossy-link", "roles": ["host", "guest"]}
+              for name in ("hpl-ready", "hpl-done", "hpl-checked")},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300,
+}
+
+
+# Bug audit 24 (DXZao 2026-10-23, 1.0.x): after a crash and rejoin, world items already taken
+# could be picked up again. A map item pickup is each character's own (#229, team-world-pickups).
+# The guest takes the item by the first lamp (goods 1500, item flag 52410140), its game dies (the
+# rig stops it as a crash would) and starts again, straight into the session: the item stays
+# taken for it (rig 2026-11-10 on main: the flag was off again and the guest took it twice; its
+# kept pickups were only set in its own world at home).
+LAMP_ITEM_FLAG = 52410140
+SCENARIOS["pickup-after-guest-crash"] = {
+    "about": "the guest picks up the item by the lamp, its game dies and rejoins the session: "
+             "the item stays taken for it",
+    "roles": {
+        "host": [START, "godmode", "wait-session 2 300", "sync pac-picked", "wait-solo 200",
+                 "wait-session 2 420", "sync pac-checked", "expect-session 2"],
+        "guest": [[START, "godmode", "wait-session 2 300", "wait 5",
+                   f"expect-flag {LAMP_ITEM_FLAG} 0", "pickup 20", "wait 5",
+                   f"expect-flag {LAMP_ITEM_FLAG} 1", "wait 15", "sync pac-picked", "done"],
+                  [START, "godmode", "wait-session 2 420", f"wait-flag {LAMP_ITEM_FLAG} 1 30",
+                   "wait 5", "snapshot", "sync pac-checked", "expect-session 2"]],
+    },
+    "syncs": {name: {"chapter": "pickup-after-guest-crash", "roles": ["host", "guest"]}
+              for name in ("pac-picked", "pac-checked")},
+    "expect": {"guest": [r"guest picked up item flag 52410140"]},
+    "allow": CRASH_CLEANUP,
+    "timeout": 300,
+}
+
+
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
 # look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
 # --play <name>) and in no tier.
@@ -5765,5 +5853,7 @@ PROBE_NAMES = (
     # A10: a guest through Gascoigne's fog after the others. No valid run yet (its setup was
     # fixed twice, 2026-11-10); in no tier until one run on main says what it shows
     "gascoigne-late-guest",
+    # bug audit 24: a guest's frenzy on the host's screen
+    "frenzy-guest-look",
 )
 PROBES = {name: SCENARIOS.pop(name) for name in PROBE_NAMES}
