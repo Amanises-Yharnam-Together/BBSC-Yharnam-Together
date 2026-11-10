@@ -135,10 +135,6 @@ USER_FILES = ('user', 'out', 'mods', 'bbport.ini', 'mods.json', 'patches.json', 
 # variables, see game_environment().
 RESHADE_DIR = PORT_DIR / 'bin' / 'reshade'
 RESHADE_LAYER = 'VK_LAYER_bbport_reshade'
-# HudSight (a crosshair overlay) crashes the game while it makes its Vulkan device (VK_LAYER_HudSight2 in
-# vulkan-1.dll+0x45a10 under hudsightvk64.dll, and XeSS's device setup through it): a player's game closed on
-# every start (2026-10-25). The loader takes a glob, so any HudSight version is skipped.
-CRASHING_VK_LAYERS = ('*HudSight*',)
 RESHADE_PRESET_PREFIX = 'Bloodborne - '  # the shipped presets; the dropdowns show the rest of the name
 
 
@@ -1256,9 +1252,9 @@ def game_environment(s, frame_generation=None):
         env.pop('BB_FSR4VK', None)  # the switch decides: an inherited 0 would leave the dropdown on and the game off
     # Overlay layers that crash the game while it makes its Vulkan device, before the first frame: the
     # loader skips them for this run only (extra_env can set VK_LOADER_LAYERS_DISABLE back).
-    disabled = [item for item in env.get('VK_LOADER_LAYERS_DISABLE', '').split(',') if item]
-    env['VK_LOADER_LAYERS_DISABLE'] = ','.join(disabled + [layer for layer in CRASHING_VK_LAYERS
-                                                           if layer not in disabled])
+    # The list is bbport_support.CRASHING_OVERLAYS.
+    env['VK_LOADER_LAYERS_DISABLE'] = bbport_support.layers_to_skip(env.get('VK_LOADER_LAYERS_DISABLE', ''),
+                                                                    bbport_support.vulkan_layers())
     for item in str(s['extra_env']).split():
         if '=' in item:
             key, value = item.split('=', 1)
@@ -6559,8 +6555,13 @@ class Launcher:
             return
         self.set_log('')
         log_path = Path(self.app.get('user_dir') or DATA_DIR / 'user') / 'last_run.log'
+        env = game_environment(self.app)
+        # What a game that closes while starting may blame (drain_output): see start_crash_suspects.
+        self.run_started, self.run_up, self.run_stopped = False, False, False
+        self.run_layers_disabled = env.get('VK_LOADER_LAYERS_DISABLE', '')
+        self.run_reshade = RESHADE_LAYER in env.get('VK_INSTANCE_LAYERS', '')
         try:
-            self.process = start_game(run_command(), game_environment(self.app), log_path)
+            self.process = start_game(run_command(), env, log_path)
         except OSError as error:
             self.append(_('Could not start: {}', 'Не удалось запустить: {}').format(error) + '\n')
             self.status.configure(text=_('Could not start: {}', 'Не удалось запустить: {}').format(error), fg=BAD)
@@ -6609,9 +6610,13 @@ class Launcher:
                     self.set_running(False)
                     self.refresh_status()
                     self.coop_game_ended()
+                    self.say_start_crash(item[0])
                 else:
                     self.coop_watch_line(item)
+                    if bbport_support.GAME_STARTING_LINE in item:
+                        self.run_started = True
                     if game_is_up(item):  # mods, patches and shaders are prepared; the window exists
+                        self.run_up = True
                         self.set_running(True)
                         self.status.configure(text=_('The game is running.', 'Игра запущена.'), fg=GOLD)
                         if self.app.get('close_on_play') and not self.close_scheduled:  # both GAME_UP_LINES arrive
@@ -6631,7 +6636,26 @@ class Launcher:
             if self.install_proc and self.install_proc.poll() is None:
                 self.install_proc.kill()
         elif self.job:
+            self.run_stopped = True
             self.job.terminate()
+
+    def say_start_crash(self, code):
+        """A game that closed by itself before its window was ready: the overlay and capture tools still
+        hooked into it are named (Discord: Bandicam, HudSight, FPS Monitor... closed the game on every start
+        and nothing told the player which tool to close)."""
+        suspects = bbport_support.start_crash_suspects(
+            code, getattr(self, 'run_started', False), getattr(self, 'run_up', True),
+            getattr(self, 'run_stopped', False), bbport_support.vulkan_layers(),
+            getattr(self, 'run_layers_disabled', ''), getattr(self, 'run_reshade', False))
+        if not suspects:
+            return
+        text = _('The game closed while starting. These overlay or capture tools were hooked into it and may '
+                 'be the cause: {}. Close them or turn them off, then press Play again.',
+                 'Игра закрылась при запуске. К ней были подключены эти оверлеи или программы записи, причина '
+                 'может быть в них: {}. Закройте или отключите их и нажмите «Играть» ещё раз.'
+                 ).format(', '.join(suspects))
+        self.append(text + '\n')
+        self.root.after_idle(lambda: self.messagebox.showwarning('Bloodborne', text))
 
     def append(self, text):
         self.log.configure(state='normal')

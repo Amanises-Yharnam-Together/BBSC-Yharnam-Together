@@ -141,6 +141,7 @@ LAUNCHER_KEYS = [
     'The public server {} is open: hunters from everywhere, quick match, and your account on any PC. Nobody has to start a server or share an IP address. Make it your default? You can switch back to Local at any time in the Co-op settings.',
     'Switch to the public server',
     'Keep Local',
+    'The game closed while starting. These overlay or capture tools were hooked into it and may be the cause: {}. Close them or turn them off, then press Play again.',
 ]
 
 LAUNCHER = {
@@ -282,6 +283,7 @@ LAUNCHER = {
         'Публичный сервер {} открыт: охотники со всего мира, быстрый подбор и ваш аккаунт на любом ПК. Никому не нужно запускать сервер или делиться IP-адресом. Сделать его основным? Вернуться к локальному можно в любой момент в настройках кооператива.',
         'Перейти на публичный сервер',
         'Оставить локальный',
+        'Игра закрылась при запуске. К ней были подключены эти оверлеи или программы записи, причина может быть в них: {}. Закройте или отключите их и нажмите «Играть» ещё раз.',
     ],
     'ar': [
         'يحتاج DLSS إلى {} في {}: الناقص {}. شغّل برنامج الإعداد مرة أخرى؛ وإن اختفت مجددًا فقد حذفها برنامج مكافحة الفيروسات. حتى ذلك الحين يُستخدم FSR 3.1.',
@@ -421,6 +423,7 @@ LAUNCHER = {
         'الخادم العام {} مفتوح الآن: صيادون من كل مكان، ومطابقة سريعة، وحسابك على أي حاسوب. لا يحتاج أحد إلى تشغيل خادم أو مشاركة عنوان IP. هل تجعله الافتراضي؟ يمكنك العودة إلى المحلي في أي وقت من إعدادات اللعب الجماعي.',
         'الانتقال إلى الخادم العام',
         'البقاء على المحلي',
+        'أُغلقت اللعبة أثناء بدء التشغيل. كانت أدوات العرض فوق اللعبة أو التسجيل التالية مرتبطة بها وقد تكون هي السبب: {}. أغلقها أو عطّلها ثم اضغط «العب» مرة أخرى.',
     ],
     'es': [
         'DLSS necesita {} en {}: faltan {}. Ejecuta de nuevo el instalador; si vuelven a desaparecer, tu antivirus los eliminó. Mientras tanto se usa FSR 3.1.',
@@ -560,6 +563,7 @@ LAUNCHER = {
         'El servidor público {} está abierto: cazadores de todas partes, emparejamiento rápido y tu cuenta en cualquier PC. Nadie tiene que iniciar un servidor ni compartir una dirección IP. ¿Lo usas por defecto? Puedes volver a Local cuando quieras en los ajustes de Cooperativo.',
         'Cambiar al servidor público',
         'Seguir en Local',
+        'El juego se cerró al iniciarse. Estas herramientas de superposición o captura estaban enganchadas a él y pueden ser la causa: {}. Ciérralas o desactívalas y pulsa Jugar de nuevo.',
     ],
     'pt': [
         'O DLSS precisa de {} em {}: faltam {}. Execute o instalador de novo; se sumirem de novo, seu antivírus os removeu. Até lá, o FSR 3.1 é usado.',
@@ -699,6 +703,7 @@ LAUNCHER = {
         'O servidor público {} está aberto: caçadores de todo lugar, partida rápida e sua conta em qualquer PC. Ninguém precisa iniciar um servidor nem compartilhar um endereço IP. Usar como padrão? Você pode voltar para Local a qualquer momento nas configurações de Co-op.',
         'Mudar para o servidor público',
         'Continuar no Local',
+        'O jogo fechou ao iniciar. Estas ferramentas de sobreposição ou captura estavam conectadas a ele e podem ser a causa: {}. Feche-as ou desative-as e pressione Jogar novamente.',
     ],
     'fr': [
         'DLSS a besoin de {} dans {} : {} manquant(s). Relancez l’installation ; s’ils disparaissent encore, votre antivirus les a supprimés. En attendant, FSR 3.1 est utilisé.',
@@ -838,6 +843,7 @@ LAUNCHER = {
         'Le serveur public {} est ouvert : des chasseurs du monde entier, la partie rapide et votre compte sur n’importe quel PC. Personne n’a besoin de lancer un serveur ni de partager une adresse IP. En faire votre choix par défaut ? Vous pouvez revenir à Local à tout moment dans les réglages Coop.',
         'Passer au serveur public',
         'Rester en Local',
+        'Le jeu s’est fermé au démarrage. Ces outils de superposition ou de capture y étaient accrochés et peuvent en être la cause : {}. Fermez-les ou désactivez-les, puis appuyez de nouveau sur Jouer.',
     ],
     'de': [
         'DLSS braucht {} in {}: {} fehlen. Führe das Setup erneut aus; verschwinden sie wieder, hat dein Virenschutz sie entfernt. Bis dahin wird FSR 3.1 verwendet.',
@@ -977,6 +983,7 @@ LAUNCHER = {
         'Der öffentliche Server {} ist offen: Jäger von überall, Schnellsuche und dein Konto auf jedem PC. Niemand muss einen Server starten oder eine IP-Adresse teilen. Als Standard verwenden? In den Koop-Einstellungen kannst du jederzeit zu Lokal zurück.',
         'Zum öffentlichen Server wechseln',
         'Bei Lokal bleiben',
+        'Das Spiel hat sich beim Start geschlossen. Diese Overlay- oder Aufnahmeprogramme waren eingeklinkt und können die Ursache sein: {}. Schließe oder deaktiviere sie und drücke erneut auf Spielen.',
     ],
     'it': [
         'DLSS richiede {} in {}: mancano {}. Esegui di nuovo il setup; se spariscono ancora, li ha rimossi l’antivirus. Nel frattempo si usa FSR 3.1.',
@@ -1116,6 +1123,7 @@ LAUNCHER = {
         'Il server pubblico {} è aperto: cacciatori da ogni parte, partita rapida e il tuo account su qualsiasi PC. Nessuno deve avviare un server o condividere un indirizzo IP. Usarlo come predefinito? Puoi tornare a Locale in qualsiasi momento nelle impostazioni Co-op.',
         'Passa al server pubblico',
         'Resta su Locale',
+        'Il gioco si è chiuso all’avvio. Questi strumenti di overlay o di cattura erano agganciati al gioco e possono esserne la causa: {}. Chiudili o disattivali, poi premi di nuovo Gioca.',
     ],
     'pl': [
         'DLSS potrzebuje {} w {}: brakuje {}. Uruchom instalator ponownie; jeśli znowu znikną, usunął je antywirus. Do tego czasu używany jest FSR 3.1.',
@@ -1255,6 +1263,7 @@ LAUNCHER = {
         'Serwer publiczny {} jest otwarty: łowcy z całego świata, szybkie dobieranie i twoje konto na każdym PC. Nikt nie musi uruchamiać serwera ani podawać adresu IP. Ustawić go jako domyślny? W ustawieniach Co-op możesz w każdej chwili wrócić do Lokalnego.',
         'Przejdź na serwer publiczny',
         'Zostań przy Lokalnym',
+        'Gra zamknęła się podczas uruchamiania. Te nakładki lub programy do nagrywania były do niej podpięte i mogą być przyczyną: {}. Zamknij je lub wyłącz, a potem ponownie naciśnij Graj.',
     ],
     'tr': [
         'DLSS için {} dosyaları {} içinde gerekli: {} eksik. Kurulumu yeniden çalıştır; yine kaybolurlarsa antivirüsün silmiştir. O zamana kadar FSR 3.1 kullanılır.',
@@ -1394,6 +1403,7 @@ LAUNCHER = {
         'Genel sunucu {} açık: her yerden avcılar, hızlı eşleşme ve her bilgisayarda hesabın. Kimsenin sunucu başlatması ya da IP adresi paylaşması gerekmez. Varsayılan yapılsın mı? Eşli oyun ayarlarından istediğin zaman Yerel’e dönebilirsin.',
         'Genel sunucuya geç',
         'Yerel kalsın',
+        'Oyun başlarken kapandı. Şu arayüz katmanı veya kayıt araçları oyuna bağlıydı ve nedeni olabilir: {}. Onları kapatın veya devre dışı bırakın, sonra yeniden Oyna’ya basın.',
     ],
     'zh': [
         'DLSS 需要 {}（位于 {}）：缺少 {}。请重新运行安装程序；如果它们再次消失，就是被杀毒软件删除了。在此之前使用 FSR 3.1。',
@@ -1533,6 +1543,7 @@ LAUNCHER = {
         '公共服务器 {} 已开放：来自各地的猎人、快速匹配，在任何电脑上都能用你的账号。无需有人启动服务器或分享 IP 地址。要设为默认吗？你随时可以在联机设置中切回本地。',
         '切换到公共服务器',
         '保持本地',
+        '游戏在启动时关闭了。以下叠加层或录屏工具挂接到了游戏中，可能是原因：{}。请关闭或停用它们，然后再次点击“开始游戏”。',
     ],
     'ja': [
         'DLSS には {} が {} に必要です：{} が見つかりません。セットアップをもう一度実行してください。また消える場合はウイルス対策ソフトが削除しています。それまでは FSR 3.1 を使います。',
@@ -1672,6 +1683,7 @@ LAUNCHER = {
         '公開サーバー {} が開きました：世界中の狩人、クイックマッチ、どの PC でも使えるあなたのアカウント。誰もサーバーを起動したり IP アドレスを共有したりする必要はありません。既定にしますか？協力プレイの設定でいつでもローカルに戻せます。',
         '公開サーバーに切り替える',
         'ローカルのままにする',
+        'ゲームが起動中に終了しました。次のオーバーレイまたは録画ツールがゲームにフックされており、原因の可能性があります: {}。それらを終了または無効にしてから、もう一度プレイを押してください。',
     ],
     'ko': [
         'DLSS에는 {}의 {}가 필요합니다: {} 없음. 설치 프로그램을 다시 실행하세요. 또 사라지면 백신이 삭제한 것입니다. 그때까지는 FSR 3.1을 사용합니다.',
@@ -1811,5 +1823,6 @@ LAUNCHER = {
         '공용 서버 {}가 열렸습니다: 어디서나 모이는 사냥꾼, 빠른 매칭, 어느 PC에서나 쓰는 내 계정. 누구도 서버를 시작하거나 IP 주소를 공유할 필요가 없습니다. 기본으로 설정할까요? 협동 설정에서 언제든 로컬로 돌아갈 수 있습니다.',
         '공용 서버로 전환',
         '로컬 유지',
+        '게임이 시작 중에 종료되었습니다. 다음 오버레이 또는 캡처 도구가 게임에 연결되어 있었으며 원인일 수 있습니다: {}. 해당 도구를 닫거나 끈 뒤 다시 플레이를 누르세요.',
     ],
 }
