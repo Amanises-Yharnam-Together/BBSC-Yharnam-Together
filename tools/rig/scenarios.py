@@ -5039,6 +5039,93 @@ SCENARIOS["doll-level-up-host"] = {
     "timeout": 300,
 }
 
+# Player report 2026-11-08 (v1.4.0): in Byrgenwerth on the way to Rom one of two players could not
+# get through, a fog wall stood in the way. Rom's fog (m32_00 wall 3201800, o320300, at -452.9
+# -175.0 392.6 on the Lunarium's balcony; 3202809, "past the host's fog", is 2 m west of it, the
+# lake's drop 3202800 35 m west) is hidden until his entrance has run, except for a client (13204830
+# skips the hiding for multiplayer state 1). A guest in the host's world (joined there) is one; a
+# guest on its own trip is not. Each player stands 4 m east of the fog facing west and walks 8 m.
+# m32's multiplayer wall 3201999 (event 7600) is read too.
+BYRGENWERTH_LAMP = 3202950
+BYRGENWERTH_LAMP_LIT = 13207810
+ROM_FOG = "3201800 3201999"
+
+
+def rom_fog_walk(z: float) -> list[str]:
+    return [f"teleport -448.9 -175.0 {z} 1.5708", "wait 5", f"object {ROM_FOG}", "peek self 78",
+            "snapshot", "expect-walks 8 12", "snapshot"]
+
+
+SCENARIOS["rom-fog-guest-joins"] = {
+    "about": "the host in Byrgenwerth, the guest joins it there (a client in the host's world): "
+             "both walk west through the place of Rom's fog on the Lunarium's balcony",
+    "roles": {
+        "host": [START, "godmode", f"set-flag {BYRGENWERTH_LAMP_LIT} 1",
+                 f"travel {BYRGENWERTH_LAMP}", "wait-session 2 420", "wait-members 2 180",
+                 "wait 10", "sync rom-fog-guest", "sync rom-fog-guest-walked",
+                 *rom_fog_walk(394.6), "expect-session 2"],
+        "guest": [START, "godmode", "wait-session 2 420", "wait-members 2 180", "wait 10",
+                  "sync rom-fog-guest", *rom_fog_walk(390.6), "sync rom-fog-guest-walked",
+                  "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "rom-fog-guest-joins", "roles": ["host", "guest"]}
+              for name in ("rom-fog-guest", "rom-fog-guest-walked")},
+    "expect": {role: [r"autoplay object 3201800: enabled 0 ", r"autoplay: walked"]
+               for role in ("host", "guest")},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 600,
+}
+SCENARIOS["rom-fog-both-travel"] = {
+    "about": "a session in Central Yharnam, each player travels to Byrgenwerth's lamp: both walk "
+             "west through the place of Rom's fog on the Lunarium's balcony, the host first",
+    "roles": {
+        "host": [START, "godmode", f"set-flag {BYRGENWERTH_LAMP_LIT} 1", "wait-session 2 300",
+                 f"travel {BYRGENWERTH_LAMP}", "wait-members 2 240", "wait 10",
+                 "sync rom-fog-travel", *rom_fog_walk(394.6), "sync rom-fog-travel-walked",
+                 "expect-session 2"],
+        "guest": [START, "godmode", f"set-flag {BYRGENWERTH_LAMP_LIT} 1", "wait-session 2 300",
+                  f"travel {BYRGENWERTH_LAMP}", "wait-members 2 240", "wait 10",
+                  "sync rom-fog-travel", "sync rom-fog-travel-walked", *rom_fog_walk(390.6),
+                  "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "rom-fog-both-travel", "roles": ["host", "guest"]}
+              for name in ("rom-fog-travel", "rom-fog-travel-walked")},
+    "expect": {role: [r"autoplay object 3201800: enabled 0 ", r"autoplay: walked"]
+               for role in ("host", "guest")},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 600,
+}
+
+# Discord 2026-11-05 and 2026-11-08 (v1.4.0): hosting a chalice dungeon with a friend, a fog gate
+# stood at the spawn room, and fog walls stayed after the friend left the dungeon. m29's fog
+# events 12906796/12906800/12906789 (nearly every chalice block starts one with its wall and fog)
+# hide the wall until their flag, except for a client. Each game reads the block objects
+# 2901000-2901199 (the walls those events and 12907600 get) in the spawn room; the guest goes
+# back to the Dream and the host reads them again.
+CHALICE_BLOCK_OBJECTS = "object " + " ".join(str(2901000 + n) for n in range(200))
+SCENARIOS["chalice-fog-guest"] = {
+    "about": "a team in the host's chalice dungeon: no fog wall in the spawn room for either "
+             "player, nor for the host once the guest has left the dungeon",
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 10", *CHALICE_ENTER("host"),
+                 "wait-members 2 400", "wait 20", "sync chalice-fog-in", CHALICE_BLOCK_OBJECTS,
+                 "snapshot", "sync chalice-fog-read", "sync chalice-fog-left", "wait 20",
+                 CHALICE_BLOCK_OBJECTS, "snapshot", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                  *["wait 30"] * 5, *CHALICE_FROM_OWN_ALTAR("guest"), "wait-members 2 300",
+                  "wait 20", "sync chalice-fog-in", CHALICE_BLOCK_OBJECTS, "snapshot",
+                  "sync chalice-fog-read", f"travel {HUNTERS_DREAM}", "wait-map 0x15000000 180",
+                  "wait 5", "sync chalice-fog-left", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "chalice-fog-guest", "roles": ["host", "guest"]}
+              for name in ("chalice-fog-in", "chalice-fog-read", "chalice-fog-left")},
+    "expect": {"host": [r"host in the dungeon"], "guest": [r"guest in the dungeon"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "allow": CRASH_CLEANUP,
+    "timeout": 1200,
+}
+
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
 # look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
 # --play <name>) and in no tier.
