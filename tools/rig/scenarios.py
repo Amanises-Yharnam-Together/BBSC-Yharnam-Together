@@ -5039,6 +5039,81 @@ SCENARIOS["doll-level-up-host"] = {
     "timeout": 300,
 }
 
+# Discord 2026-11-06 (1.4.0, Moab): backing out of the Doll's level up with Circle left the player
+# kneeling for good. m21_00 12100112 stands the player up once 72100100 is off again, at the
+# earliest 54 frames after its kneel (72100101 on), and only while 6700 is on; 6700 was cleared
+# the frame 72100100 went off, so a level-up screen closed inside those 54 frames skipped the
+# stand-up. Circle from 0.4 s after the kneel, four times: the first that the level-up screen
+# takes closes it.
+QUICK_BACK = [step for _ in range(4) for step in ("wait 0.4", "press circle 150")]
+SCENARIOS["doll-level-up-quick-back"] = {
+    "about": "the host opens the Doll's level up with a team guest in the Dream and backs out of "
+             "it with Circle at once: it stands up and walks away",
+    "roles": {
+        "host": [*TEAM_HOST, f"travel {HUNTERS_DREAM}", "wait-members 2 120", "wait 3",
+                 "sync dq-here", *OPEN_DOLL_MENU, "press cross 200", "wait-flag 72100101 1 20",
+                 *QUICK_BACK, DOLL_FLAGS, f"wait-flag {DOLL_BLESSING} 0 15",
+                 "wait-flag 72100101 0 15", DOLL_FLAGS, *LEAVE_THE_DOLL, "sync dq-done",
+                 "expect-session 2"],
+        "guest": [*TEAM_GUEST, "wait 5", f"travel {HUNTERS_DREAM}", "wait 8", "sync dq-here",
+                  "sync dq-done", "expect-walks 2 10", "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-level-up-quick-back", "roles": ["host", "guest"]}
+              for sync in ("dq-here", "dq-done")},
+    "expect": {"host": [r"autoplay: walked"], "guest": [r"autoplay: walked"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": [*SESSION_HOLDS, *NO_BLESSING_HERE]},
+    "timeout": 300,
+}
+# Discord 2026-11-06 (vPeppy): "stuck interacting with the doll if your friend attacks her".
+SCENARIOS["doll-hit-during-level-up"] = {
+    "about": "a team guest hits the Doll while the host is in her level up: the host leaves her "
+             "and walks away",
+    "roles": {
+        "host": [*TEAM_HOST, f"travel {HUNTERS_DREAM}", "wait-members 2 120", "wait 3",
+                 "sync dx-here", *OPEN_DOLL_MENU, "press cross 200", "wait-flag 72100101 1 20",
+                 "wait 4", DOLL_FLAGS, "sync dx-open", "sync dx-hit", "wait 3", DOLL_FLAGS,
+                 *LEAVE_THE_DOLL, DOLL_FLAGS, "sync dx-done", "expect-session 2"],
+        "guest": [*TEAM_GUEST, "wait 5", f"travel {HUNTERS_DREAM}", "wait 8", "sync dx-here",
+                  "sync dx-open", f"hit {DOLL} 20", "sync dx-hit", "sync dx-done",
+                  "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-hit-during-level-up", "roles": ["host", "guest"]}
+              for sync in ("dx-here", "dx-open", "dx-hit", "dx-done")},
+    "expect": {"host": [r"autoplay: walked"], "guest": [r"autoplay: hit "]},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300,
+}
+# Discord 2026-11-06 (1.4.0, markmon93): with the Small Hair Ornament (goods 4300) the Doll had
+# nothing new to say, for the host and the guests. m21_00 12100121 sets 12100122 while the player
+# holds it, and her talk offers "Give" (its third choice) while 12100122 is on; "Give" sets
+# 72100114, then 72100112 after her words.
+# Rig 2026-11-10: the host's give works on its own. The guest's does not prove its own "Give" yet:
+# 72100114 and 72100112 are the host's story steps and reach the guest (FollowTeamStory), so its
+# 12100123 gives the Tear Stone and takes its ornament before its own pick.
+SMALL_HAIR_ORNAMENT = "goods:4300"
+DOLL_GIVE = 12100122
+GIVE_THE_ORNAMENT = [f"wait-flag {DOLL_GIVE} 1 20", f"approach {DOLL} 1.0 0 1.5708", "wait 2",
+                     "press cross 200", "wait 24", "press cross 200", "wait 8", "press down 200",
+                     "wait 1", "press down 200", "wait 1", "press cross 200",
+                     "wait-flag 72100114 1 15", "flags 12100122 72100114 72100112 12100123"]
+SCENARIOS["doll-ornament-give"] = {
+    "about": "the host and a team guest each come to the Dream holding the Small Hair Ornament: "
+             "the Doll offers each of them \"Give\" and takes it",
+    "roles": {
+        "host": [*TEAM_HOST, f"trade-stock {SMALL_HAIR_ORNAMENT} 1", f"travel {HUNTERS_DREAM}",
+                 "wait-members 2 120", "wait 3", "sync do-here", *GIVE_THE_ORNAMENT,
+                 "sync do-host-gave", "sync do-done", "expect-session 2"],
+        "guest": [*TEAM_GUEST, f"trade-stock {SMALL_HAIR_ORNAMENT} 1", "wait 5",
+                  f"travel {HUNTERS_DREAM}", "wait 8", "sync do-here",
+                  f"wait-flag {DOLL_GIVE} 1 20", "sync do-host-gave", *GIVE_THE_ORNAMENT,
+                  "sync do-done", "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-ornament-give", "roles": ["host", "guest"]}
+              for sync in ("do-here", "do-host-gave", "do-done")},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300,
+}
+
 # Bug audit 24 (Lisara 2026-11-04, STEVE 2026-11-03, Provi 2026-10-29; 1.3.1 on): when the host,
 # whose game runs the enemies, dies for real, enemies the party killed come back for one player
 # ("the whole area may get respawned"), and the host's death respawn kills them again, paying

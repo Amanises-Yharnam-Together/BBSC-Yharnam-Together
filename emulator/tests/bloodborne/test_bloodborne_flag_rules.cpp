@@ -644,29 +644,95 @@ TEST(BloodborneFlagRules, TheLevellersOwnBlessingStepsGoThrough) {
 // Kaniel 2026-11-03: a second "Level Up" in the same Dream visit opened no menu. Her talk sets
 // 6700 as her level-up menu opens and skips the menu while it is on; nothing in the game cleared
 // it before the next map load (rig on Kaniel's PC, a lone player too). It goes off once her
-// blessing is over: this game's own 72100100 back off after it was on, 6700 still on.
+// blessing is over: this game's own 72100100 back off after it was on, her blessing's steps
+// (72100101, 72100102) off too, 6700 still on.
 TEST(BloodborneFlagRules, TheDollsLevelUpFlagGoesOffOnceHerBlessingIsOver) {
     DollLevelUpClear clear;
-    EXPECT_FALSE(clear.Tick(true, true, false)) << "her menu open";
-    EXPECT_FALSE(clear.Tick(true, true, true)) << "her blessing";
-    EXPECT_FALSE(clear.Tick(true, true, true));
-    EXPECT_TRUE(clear.Tick(true, true, false)) << "her blessing over";
-    EXPECT_FALSE(clear.Tick(true, false, false)) << "once";
+    EXPECT_FALSE(clear.Tick(true, true, false, false)) << "her menu open";
+    EXPECT_FALSE(clear.Tick(true, true, true, false)) << "her blessing";
+    EXPECT_FALSE(clear.Tick(true, true, true, true));
+    EXPECT_TRUE(clear.Tick(true, true, false, false)) << "her blessing over";
+    EXPECT_FALSE(clear.Tick(true, false, false, false)) << "once";
     // The menu again: the same once more.
-    EXPECT_FALSE(clear.Tick(true, true, false));
-    EXPECT_FALSE(clear.Tick(true, true, true));
-    EXPECT_TRUE(clear.Tick(true, true, false));
+    EXPECT_FALSE(clear.Tick(true, true, false, false));
+    EXPECT_FALSE(clear.Tick(true, true, true, true));
+    EXPECT_TRUE(clear.Tick(true, true, false, false));
+}
+
+// Discord 2026-11-06 (1.4.0, Moab): backing out of her level up with Circle left the player
+// kneeling for good. m21_00 12100112 stands the player up (2003:18 101272) only once 72100100 is
+// off, up to 54 frames after its kneel, and its animations run only while 6700 is on
+// (OWN_ANIMATION_EVENTS): 6700 cleared the frame 72100100 went off, the stand-up was skipped.
+// 12100112 clears its step 72100101 after the stand-up, 12100113 its 72100102 after her turn
+// back: 6700 stays on until both are off.
+TEST(BloodborneFlagRules, TheDollsLevelUpFlagStaysOnUntilThePlayerStoodUp) {
+    DollLevelUpClear clear;
+    EXPECT_FALSE(clear.Tick(true, true, true, false)) << "her blessing";
+    EXPECT_FALSE(clear.Tick(true, true, true, true)) << "kneeling";
+    EXPECT_FALSE(clear.Tick(true, true, false, true)) << "her menu closed, still kneeling";
+    EXPECT_FALSE(clear.Tick(true, true, false, true));
+    EXPECT_TRUE(clear.Tick(true, true, false, false)) << "stood up";
+    EXPECT_FALSE(clear.Tick(true, true, false, false)) << "once";
 }
 
 TEST(BloodborneFlagRules, TheDollsLevelUpFlagStaysWithoutABlessingOrOutOfCoop) {
     DollLevelUpClear clear;
-    EXPECT_FALSE(clear.Tick(true, true, false));
-    EXPECT_FALSE(clear.Tick(true, true, false)) << "no blessing yet";
-    EXPECT_FALSE(clear.Tick(true, false, true));
-    EXPECT_FALSE(clear.Tick(true, false, false)) << "6700 already off";
+    EXPECT_FALSE(clear.Tick(true, true, false, false));
+    EXPECT_FALSE(clear.Tick(true, true, false, false)) << "no blessing yet";
+    EXPECT_FALSE(clear.Tick(true, true, false, true)) << "a step alone is no blessing";
+    EXPECT_FALSE(clear.Tick(true, true, false, false));
+    EXPECT_FALSE(clear.Tick(true, false, true, false));
+    EXPECT_FALSE(clear.Tick(true, false, false, false)) << "6700 already off";
+    EXPECT_FALSE(clear.Tick(true, true, false, false)) << "that blessing is done with";
     DollLevelUpClear solo;
-    EXPECT_FALSE(solo.Tick(false, true, true));
-    EXPECT_FALSE(solo.Tick(false, true, false)) << "the co-op mode only";
+    EXPECT_FALSE(solo.Tick(false, true, true, false));
+    EXPECT_FALSE(solo.Tick(false, true, false, false)) << "the co-op mode only";
+    EXPECT_FALSE(solo.Tick(true, true, false, false)) << "a blessing out of it is forgotten";
+}
+
+// Discord 2026-11-06 (vPeppy): "stuck interacting with the doll if your friend attacks her". A hit
+// on the Doll ends her talk where it stands (rig doll-hit-during-level-up: 72100100, 72100101 and
+// 72100102 all stayed on, the player knelt for good): her talk's "72100100 off" never runs. A
+// drop of her HP while this game's blessing is on ends the blessing here.
+TEST(BloodborneFlagRules, AHitOnTheDollEndsHerBlessing) {
+    DollHitEndsBlessing hit;
+    EXPECT_FALSE(hit.Tick(true, true, 900)) << "her HP first seen";
+    EXPECT_FALSE(hit.Tick(true, true, 900));
+    EXPECT_TRUE(hit.Tick(true, true, 586)) << "hit during her blessing";
+    EXPECT_FALSE(hit.Tick(true, true, 586)) << "once a hit";
+    EXPECT_FALSE(hit.Tick(true, true, 900)) << "healed";
+    EXPECT_TRUE(hit.Tick(true, true, 0)) << "killed";
+}
+
+TEST(BloodborneFlagRules, AHitOnTheDollOutsideHerBlessingChangesNothing) {
+    DollHitEndsBlessing hit;
+    EXPECT_FALSE(hit.Tick(true, false, 900));
+    EXPECT_FALSE(hit.Tick(true, false, 586)) << "no blessing";
+    EXPECT_FALSE(hit.Tick(true, true, 586)) << "hit before her blessing";
+    EXPECT_FALSE(hit.Tick(true, true, std::nullopt)) << "no Doll here";
+    EXPECT_FALSE(hit.Tick(true, true, 300)) << "another map's Doll is not a hit";
+    EXPECT_TRUE(hit.Tick(true, true, 200));
+    DollHitEndsBlessing solo;
+    EXPECT_FALSE(solo.Tick(false, true, 900));
+    EXPECT_FALSE(solo.Tick(false, true, 586)) << "the co-op mode only";
+    EXPECT_FALSE(solo.Tick(true, true, 400)) << "nothing kept from outside it";
+}
+
+// Discord 2026-11-06 (1.4.0, markmon93): with the Small Hair Ornament the Doll offered no "Give",
+// host and guests alike. m21_00 12100121 sets 12100122 while the player holds the ornament (goods
+// 4300); in a session that set reaches the game as a flag message, which keeps a per-player flag
+// as it was (rig doll-ornament-give: "kept flag 12100122 off against the other player's"). It
+// follows what this player holds, as the held-item flags do.
+TEST(BloodborneFlagRules, TheDollsGiveFollowsThePlayersOrnament) {
+    EXPECT_EQ(DollGiveFlag, 12100122);
+    EXPECT_EQ(SmallHairOrnamentGoods, 4300u);
+    EXPECT_EQ(RuleFor(DollGiveFlag).owner, FlagOwner::PerPlayer);
+    EXPECT_TRUE(KeepsLocalFlag(true, DollGiveFlag));
+    EXPECT_EQ(DollGiveFix(true, false, true), std::optional<bool>{true});
+    EXPECT_EQ(DollGiveFix(true, true, false), std::optional<bool>{false});
+    EXPECT_EQ(DollGiveFix(true, true, true), std::nullopt);
+    EXPECT_EQ(DollGiveFix(true, false, false), std::nullopt);
+    EXPECT_EQ(DollGiveFix(false, false, true), std::nullopt) << "the co-op mode only";
 }
 
 // m21_00 12105020-12105024 (01.09): on while any of the headstone's lamps is lit.

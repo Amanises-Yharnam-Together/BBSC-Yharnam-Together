@@ -1140,17 +1140,59 @@ bool TakesDollBlessingStep(s32 flag, bool sent_on, bool own_blessing_on);
 // 6700 as her level-up menu opens and skips the menu while it is on, and in the co-op mode nothing
 // cleared it before the next map load (rig: a lone player too). Tick (each frame) says when to
 // clear it: her blessing over, this game's own 72100100 off again after it was on, 6700 still on.
+// Not before her blessing's steps are off too (`steps_on`: 72100101 or 72100102). m21_00 12100112
+// stands the player up only once 72100100 is off, up to 54 frames after the kneel, and plays the
+// player's animations only while 6700 is on (OWN_ANIMATION_EVENTS in party_boss_events.py); it
+// clears 72100101 after the stand-up. 6700 cleared with 72100100 skipped the stand-up and left
+// the player kneeling for good (Discord 2026-11-06, 1.4.0: her level up closed with Circle).
 class DollLevelUpClear {
 public:
-    bool Tick(bool coop_mode, bool level_up_on, bool blessing_on) {
-        const bool was_on = blessing_was_on;
-        blessing_was_on = coop_mode && blessing_on;
-        return coop_mode && level_up_on && was_on && !blessing_on;
+    bool Tick(bool coop_mode, bool level_up_on, bool blessing_on, bool steps_on) {
+        if (!coop_mode) {
+            blessing_seen = false;
+            return false;
+        }
+        if (blessing_on) {
+            blessing_seen = true;
+            return false;
+        }
+        if (!blessing_seen || steps_on) {
+            return false;
+        }
+        blessing_seen = false;
+        return level_up_on;
     }
 
 private:
+    bool blessing_seen = false;
+};
+// Discord 2026-11-06: a teammate's hit on the Doll while a player was in her level up left that
+// player kneeling for good. The hit ends her talk where it stands, so its "72100100 off" never
+// runs (rig doll-hit-during-level-up: 72100100, 72100101 and 72100102 stayed on) and m21_00
+// 12100112 never stands the player up. Tick (each frame, her HP or none while she is not here)
+// says when to end this game's blessing: her HP dropped while 72100100 is on.
+class DollHitEndsBlessing {
+public:
+    bool Tick(bool coop_mode, bool blessing_on, std::optional<s32> doll_hp) {
+        const std::optional<s32> before = last_hp;
+        const bool was_on = blessing_was_on;
+        last_hp = coop_mode ? doll_hp : std::nullopt;
+        blessing_was_on = coop_mode && blessing_on;
+        return was_on && blessing_was_on && before && last_hp && *last_hp < *before;
+    }
+
+private:
+    std::optional<s32> last_hp;
     bool blessing_was_on = false;
 };
+// The Doll's "Give" (12100122, each player's own): m21_00 12100121 sets it while the player
+// holds the Small Hair Ornament, and in a session that set comes back as the other player's set
+// message, which keeps a per-player flag as it was: nobody was offered "Give" (Discord
+// 2026-11-06, 1.4.0). In a party it follows what this player holds: the value it must take when
+// it differs, else nothing (as HeldItemFlagFix).
+constexpr s32 DollGiveFlag = 12100122;
+constexpr u32 SmallHairOrnamentGoods = 4300;
+std::optional<bool> DollGiveFix(bool party_configured, bool flag_on, bool holds);
 // The other player's "set this event flag" (0x017C0570) and "event ended" (0x017C0901) messages
 // leave these flags and events alone in a party: what one player received is not given to the
 // other (the Hunter's Dream messengers' gift events and flags, 12101020-12101029, and the
