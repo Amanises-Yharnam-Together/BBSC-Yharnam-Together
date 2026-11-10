@@ -48,9 +48,15 @@ QByteArray Database::HashPassword(const QString& password, const QByteArray& sal
     QByteArray passwordUtf8 = password.toUtf8();
     QByteArray hash = passwordUtf8 + salt;
 
-    // Apply multiple iterations of SHA-256
+    // Apply multiple iterations of SHA-256, with one hasher for every round: the static
+    // QCryptographicHash::hash() looks SHA-256 up again on each call, and where Qt hashes through
+    // OpenSSL 3 or newer (Linux) that lookup made the 100k rounds of one sign-in take longer than
+    // the watchdog's 15 s (the server hung at every game's first hello). Same bytes as before.
+    QCryptographicHash hasher(QCryptographicHash::Sha256);
     for (int i = 0; i < iterations; ++i) {
-        hash = QCryptographicHash::hash(hash, QCryptographicHash::Sha256);
+        hasher.reset();
+        hasher.addData(hash);
+        hash = hasher.result();
     }
 
     return hash;
