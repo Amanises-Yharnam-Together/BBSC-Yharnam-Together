@@ -49,6 +49,13 @@ class ConsoleTest(unittest.TestCase):
             spec, {"guest": "Runtime: sound back after 0 silent buffers\n"}),
             ["guest: the console never said /sound back after [1-9]\\d* silent/"])
 
+    def test_the_console_does_not_say_what_is_forbidden(self):
+        spec = {"roles": {}, "console_forbid": {"host": [r"the sign-in dialog says: "]}}
+        self.assertEqual(run_scenario.console_problems(spec, {"host": "Game menu: shows\n"}), [])
+        self.assertEqual(run_scenario.console_problems(
+            spec, {"host": "Game menu: the sign-in dialog says: Can't reach\n"}),
+            ["host: the console must not say, said: the sign-in dialog says: "])
+
     def test_a_suites_consoles_join_its_stages(self):
         import tempfile
         with tempfile.TemporaryDirectory() as folder:

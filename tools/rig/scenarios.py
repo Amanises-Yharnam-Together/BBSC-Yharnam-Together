@@ -4270,6 +4270,46 @@ SCENARIOS["wrong-server-key"] = {
     "timeout": 300,
 }
 
+# Players' reports (Discord, 1.0.0 to 1.3.x): with the co-op server out of reach the game said
+# "not signed in to PlayStation Network" (SP_Dialog 204/401203). Its dialog and the team screen
+# say why the sign-in failed instead (core/bloodborne_sign_in.h). The address is one nothing
+# answers at (the rig's firewall drops what goes there, as a real one would). The game's dialogs
+# are traced (BB_GAME_MENU_TRACE_IDS): a headless game draws nothing to look at.
+SIGN_IN_DIALOG = r"Game menu: the sign-in dialog says: "
+SIGN_IN_TRACE = {"BB_GAME_MENU_TRACE_IDS": "4000-5999,110000-110100,401000-401999"}
+SIGN_IN_TITLE = ["title-wait 20", "title-shot title", "title-press cross", "title-wait 5",
+                 "title-shot after-cross", "title-press cross", "title-wait 5",
+                 "title-shot after-cross-2", "team-screen", "title-wait 3", "title-shot team"]
+SCENARIOS["sign-in-no-server"] = {
+    "about": "the co-op server's address answers nothing: the game's PSN sign-in dialog and the "
+             "team screen say the server cannot be reached, with its address",
+    "settings": SIGN_IN_TRACE,
+    "role_settings": {"host": {"BB_SHADNET_SERVER": "127.0.0.1:9"}},
+    "roles": {"host": [*SIGN_IN_TITLE, "team-alone", START, "wait 5", "done"]},
+    "console_expect": {"host": [SIGN_IN_DIALOG + r"Can't reach the co-op server at "
+                                r"127\.0\.0\.1:9 \| "]},
+    "forbid": {"host": [LINKED]},
+    "allow": [r"reached past the server"],
+    "timeout": 300,
+}
+SCENARIOS["sign-in-wrong-password"] = {
+    "about": "the server answers and refuses the password: what the dialog and team screen say",
+    "settings": SIGN_IN_TRACE,
+    "role_settings": {"host": {"BB_SHADNET_PASSWORD": "not-the-rig-password-1"}},
+    "roles": {"host": [*SIGN_IN_TITLE, "team-alone", START, "wait 5", "done"]},
+    "console_expect": {"host": [SIGN_IN_DIALOG]},
+    "forbid": {"host": [LINKED]},
+    "timeout": 300,
+}
+SCENARIOS["sign-in-ok"] = {
+    "about": "a game that signs in shows the game's own texts: no sign-in reason anywhere",
+    "settings": SIGN_IN_TRACE,
+    "roles": {"host": [*SIGN_IN_TITLE, "team-alone", START, "wait 5", "done"]},
+    "expect": {"host": [LINKED]},
+    "console_forbid": {"host": [SIGN_IN_DIALOG, r"Game menu: shows 0xcc/401203"]},
+    "timeout": 300,
+}
+
 
 SCENARIOS["build-check-version"] = {
     "about": "the guest says another Seamless Co-op release (BB_RELEASE_VERSION 0.0.1, the host "
