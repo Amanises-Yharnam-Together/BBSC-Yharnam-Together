@@ -1756,6 +1756,10 @@ def console_problems(spec: dict, consoles: dict[str, str]) -> list[str]:
         for pattern in patterns:
             if not re.search(pattern, consoles.get(role, "")):
                 problems.append(f"{role}: the console never said /{pattern}/")
+    for role, patterns in spec.get("console_forbid", {}).items():
+        for pattern in patterns:
+            if found := re.search(pattern, consoles.get(role, "")):
+                problems.append(f"{role}: the console must not say, said: {found.group(0)[:160]}")
     return problems
 
 

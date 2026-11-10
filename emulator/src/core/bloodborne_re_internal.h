@@ -405,6 +405,8 @@ std::optional<LampPosition> LocalPlayerPosition();
 std::optional<float> CameraHeadingNow();
 
 s32 CharacterHp(u64 character);
+// The Hunter's Dream Doll's HP in this game (HuntersDreamDoll), nothing while she is not here.
+std::optional<s32> DollHp();
 
 // The other players' characters in this world (WorldChrMan +0x30 count, +0x38 entries of 0x38
 // bytes; the local player is one of them), with HP (+0x128 of their data) and position.
@@ -1056,6 +1058,10 @@ void EndTeamResume();
 // The team's host as its Start named it ("" playing alone).
 std::string TeamStartHost();
 std::string TeamLobbyMember();
+// Who hosts the team's session as the server last said (its lobby name), "" when none is known.
+std::string TeamSessionHost();
+// The nameplate role line's html in the game's own words (see NameplateRoleText).
+std::optional<std::string> PartyNameplateRoleText(NameplateRole role);
 // Phase 11: a member's character name (its board name), as the server's lobby last said it; ""
 // when the lobby does not know it.
 std::string CharacterNameOf(std::string_view member);

@@ -444,8 +444,34 @@ int main() {
     s.frame_gen_provider = BbSettings::FrameGenDlss;
     BbSettings::Load();
     assert(s.frame_gen_provider == BbSettings::FrameGenFsr3);
+    // Discord 2026-10-21..11-01 (toggling it crashed the game, it did nothing at co-op's 60 FPS):
+    // frame generation is hidden until it works. The launcher says so (BB_FRAME_GEN_HIDDEN=1,
+    // unless its Experimental features switch is on): a saved frame_generation=1 then stays off,
+    // also over a script's BB_FRAME_GEN, and the menu shows no row for it.
+    assert(BbSettings::FrameGenHidden("1"));
+    assert(!BbSettings::FrameGenHidden("0"));
+    assert(!BbSettings::FrameGenHidden(""));
+    assert(!BbSettings::FrameGenHidden(nullptr));
+    {
+        std::FILE* file = std::fopen(sixth, "w");
+        std::fputs("frame_generation=1\n", file);
+        std::fclose(file);
+    }
+    BbSettings::Load();
+    assert(s.frame_generation && "offered: the saved choice");
+    setenv("BB_FRAME_GEN_HIDDEN", "1", 1);
+    BbSettings::Load();
+    assert(!s.frame_generation && "hidden: off whatever was saved");
+    setenv("BB_FRAME_GEN", "1", 1);
+    BbSettings::Load();
+    assert(!s.frame_generation);
+    unsetenv("BB_FRAME_GEN");
+    unsetenv("BB_FRAME_GEN_HIDDEN");
+    BbSettings::Load();
+    assert(s.frame_generation);
+    s.frame_generation = false;
     unlink(sixth);
-    std::puts("PASS: frame generation provider, multiplier, fit to display");
+    std::puts("PASS: frame generation provider, multiplier, fit to display, hidden by the launcher");
 
     // The menus speak the game's language (the launcher's BB_LANGUAGE, the PS4 system language
     // the game reads), every one the game has, until one is chosen in the Insert menu

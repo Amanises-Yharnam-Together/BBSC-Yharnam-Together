@@ -1,0 +1,5 @@
+# Never commit the bot token or the downloaded messages.
+.env
+token.txt
+data/
+out/

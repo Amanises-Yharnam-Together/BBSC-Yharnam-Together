@@ -26,6 +26,7 @@
 #include "../bbcoop.h"
 #include "../bbgpu.h"
 #include "bbport_game_art.h"
+#include "bbport_game_menu.h"
 #include "bbport_prompts.h"
 #include "bbport_coop_art.h"
 #include "bbport_key_guide.h"
@@ -1940,15 +1941,17 @@ void UpscalerTab() {
              "Точное движение анимированных объектов: одежда и оружие меньше рассыпаются в "
              "движении. Применяется после перезапуска игры."),
            upscaler_on);
-    Toggle("frame_generation", T("Frame generation", "Генерация кадров"), s.frame_generation,
-           T("Frames made between the game's own: FSR 3.1 doubles the frame rate on any GPU, DLSS "
-             "makes up to three on a GeForce RTX 50 (4x). Adds a little input lag and uses some "
-             "video memory; best from 60 FPS. Off by default.",
-             "Кадры между кадрами игры: FSR 3.1 удваивает частоту кадров на любой видеокарте, DLSS "
-             "делает до трёх на GeForce RTX 50 (4x). Немного добавляет задержки ввода и занимает "
-             "видеопамять; лучше от 60 FPS. По умолчанию выключено."),
-           upscaler_on);
-    FrameGenRows(upscaler_on && s.frame_generation);
+    if (!BbSettings::FrameGenHidden()) { // hidden until it works, unless the launcher offers it
+        Toggle("frame_generation", T("Frame generation", "Генерация кадров"), s.frame_generation,
+               T("Frames made between the game's own: FSR 3.1 doubles the frame rate on any GPU, "
+                 "DLSS makes up to three on a GeForce RTX 50 (4x). Adds a little input lag and "
+                 "uses some video memory; best from 60 FPS. Off by default.",
+                 "Кадры между кадрами игры: FSR 3.1 удваивает частоту кадров на любой видеокарте, "
+                 "DLSS делает до трёх на GeForce RTX 50 (4x). Немного добавляет задержки ввода и "
+                 "занимает видеопамять; лучше от 60 FPS. По умолчанию выключено."),
+               upscaler_on);
+        FrameGenRows(upscaler_on && s.frame_generation);
+    }
     if (BbSettings::IsFsr4(s.upscaler)) {
         Toggle("fsr4_exposure", T("FSR 4: auto exposure", "FSR 4: автоэкспозиция"), s.fsr4_auto_exposure,
                T("The FSR 4 network normalises colour by exposure and uses it to decide when to "
@@ -4332,7 +4335,19 @@ void Screen() {
     }
     ImGui::PushFont(MenuArt::Font(), 20.0f);
     std::string status;
-    if (!lobby.signed_in) {
+    // Players' reports (Discord, 1.0.0 to 1.3.x): with the server out of reach this line said
+    // "Reaching..." for ever (and the game "not signed in to PlayStation Network"). The reason
+    // the sign-in failed, with the server's address, and under it what to check.
+    BbGameMenu::SignInWords sign_in;
+    const bool sign_in_failed = !lobby.signed_in && BbGameMenu::SignInNotice(sign_in, false);
+    // A server's refusal is the notice line's already (at the bottom): up here only what to check,
+    // not "Reaching..." for ever.
+    const bool reason_below = sign_in_failed && lobby.notice[0];
+    if (sign_in_failed && !reason_below) {
+        status = sign_in.what;
+    } else if (reason_below) {
+        status.clear();
+    } else if (!lobby.signed_in) {
         status = T("Reaching the co-op server...", "Подключение к кооп-серверу...");
     } else if (!lobby.in_team) {
         status = T("Not in a team: create one or accept an invitation",
@@ -4346,9 +4361,24 @@ void Screen() {
         }
     }
     ts = ImGui::CalcTextSize(status.c_str());
-    draw->AddText(ImVec2(win.x + (size.x - ts.x) * 0.5f, win.y + S(MenuArt::Has(MenuArt::HeaderOrnament) ? 102.0f : 84.0f)),
-                  Gold(0.85f), status.c_str());
+    const float status_y = win.y + S(MenuArt::Has(MenuArt::HeaderOrnament) ? 102.0f : 84.0f);
+    draw->AddText(ImVec2(win.x + (size.x - ts.x) * 0.5f, status_y),
+                  sign_in_failed ? ImU32(IM_COL32(220, 150, 110, 255)) : Gold(0.85f), status.c_str());
     ImGui::PopFont();
+    if (sign_in_failed) {
+        // The longest languages' line (Italian, Spanish: 145 letters) on a narrow window (4:3):
+        // smaller, never wider than the window.
+        ImGui::PushFont(MenuArt::Font(), 17.0f);
+        ImVec2 cs = ImGui::CalcTextSize(sign_in.check.c_str());
+        if (const float room = size.x - S(48.0f); cs.x > room && cs.x > 0.0f) {
+            ImGui::PopFont();
+            ImGui::PushFont(MenuArt::Font(), 17.0f * room / cs.x);
+            cs = ImGui::CalcTextSize(sign_in.check.c_str());
+        }
+        draw->AddText(ImVec2(win.x + (size.x - cs.x) * 0.5f, status_y + (reason_below ? 0.0f : S(24.0f))),
+                      Plain(0.8f), sign_in.check.c_str());
+        ImGui::PopFont();
+    }
 
     // The five places (four before teams of five).
     const float card_w = S(BbPartyLayout::TeamCardWidth), card_h = S(270.0f), gap = S(BbPartyLayout::TeamGap);

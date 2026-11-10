@@ -752,3 +752,12 @@ target_link_libraries(map-art-test PRIVATE miniz::miniz)
 add_executable(map-art-tool EXCLUDE_FROM_ALL tools/map_art_tool.cpp shim/bbport_map_art.cpp shim/bbport_map_collision.cpp
     shim/bbport_game_art.cpp)
 target_link_libraries(map-art-tool PRIVATE miniz::miniz)
+
+# bbport: one file read from two threads, pread next to seek + read: ninja -C out/gpu
+# file-positions-test, then run it in the source tree (it writes under out/). No GPU, no game.
+if (WIN32)
+    add_executable(file-positions-test EXCLUDE_FROM_ALL ../tests/test_file_positions.c ../src/compat_win.c)
+    target_include_directories(file-positions-test PRIVATE ../src ..)
+    target_compile_options(file-positions-test PRIVATE -UNDEBUG)
+    target_link_libraries(file-positions-test PRIVATE bcrypt -pthread)
+endif()

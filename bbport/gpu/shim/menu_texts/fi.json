@@ -549,5 +549,12 @@
  "A real death (not a down a teammate revives) adds a penalty, until a lamp rest, a level up or a boss kill takes it away.": "Oikea kuolema (ei kaatuminen, josta tiimiläinen nostaa) tuo rangaistuksen, kunnes lyhdyllä lepääminen, tason nousu tai voitettu pomo poistaa sen.",
  "A lamp or headstone trip asks the team to come along; with the vote one No stops it.": "Matka lyhdyn tai hautakiven kautta kutsuu tiimin mukaan; äänestyksellä yksi Ei pysäyttää sen.",
  "Bosses rest less between attacks and turn faster.": "Pomot lepäävät vähemmän hyökkäysten välillä ja kääntyvät nopeammin.",
- "Vanilla": "Pelin oma"
+ "Vanilla": "Pelin oma",
+ "Update the game and the server to the same release, then start the game again.": "Päivitä peli ja palvelin samaan versioon ja käynnistä peli sitten uudelleen.",
+ "Can't reach the co-op server at %s": "Yhteispelipalvelimeen osoitteessa %s ei saada yhteyttä",
+ "The server may not be started, a firewall may be blocking it, or the address is wrong. Fix it, then start the game again.": "Palvelinta ei ehkä ole käynnistetty, palomuuri voi estää sen tai osoite on väärä. Korjaa asia ja käynnistä peli sitten uudelleen.",
+ "The co-op server at %s did not accept your login or password": "Yhteispelipalvelin osoitteessa %s ei hyväksynyt käyttäjätunnustasi tai salasanaasi",
+ "Check them in the launcher's co-op settings, then start the game again.": "Tarkista ne käynnistimen yhteispeliasetuksista ja käynnistä peli sitten uudelleen.",
+ "Could not sign in to the co-op server at %s": "Kirjautuminen yhteispelipalvelimeen osoitteessa %s epäonnistui",
+ "Start the game again. If it stays, update the game and the server to the same release.": "Käynnistä peli uudelleen. Jos ongelma jatkuu, päivitä peli ja palvelin samaan versioon."
 }
