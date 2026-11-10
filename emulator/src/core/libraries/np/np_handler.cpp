@@ -321,13 +321,16 @@ bool NpHandler::ConnectUser(s32 user_id, const std::string& host, u16 port, cons
     }
 
     ShadNet::ShadNetState auth_state = client->WaitForAuthenticated();
-    // The session of the game this one replaces (the in-game restart) can still be open on the
-    // server for a moment; its login is then refused as already logged in. Asked again a few
-    // times before the game plays offline for the whole session (Supermedo's 44ca939).
-    for (int retry = 1; auth_state == ShadNet::ShadNetState::FailureAlreadyIn && retry <= 4;
+    // The session of the game this one replaces (the in-game restart), or one whose connection
+    // died on the way, can still be open on the server; its login is then refused as already
+    // logged in. Asked again for a minute before the game plays offline for the whole session
+    // (Supermedo's 44ca939 and f45b5f6).
+    constexpr int AlreadyInRetries = 12;
+    for (int retry = 1;
+         auth_state == ShadNet::ShadNetState::FailureAlreadyIn && retry <= AlreadyInRetries;
          ++retry) {
-        LOG_WARNING(NpHandler, "user_id={} already signed in elsewhere; asking again in 5 s ({}/4)",
-                    user_id, retry);
+        LOG_WARNING(NpHandler, "user_id={} already signed in elsewhere; asking again in 5 s ({}/{})",
+                    user_id, retry, AlreadyInRetries);
         client->Stop();
         std::this_thread::sleep_for(std::chrono::seconds(5));
         client = make_client();
