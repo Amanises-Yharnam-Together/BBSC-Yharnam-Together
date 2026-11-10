@@ -371,6 +371,15 @@ inline constexpr std::array FirstRows{
     Range(5500, 5521, FlagOwner::PerPlayer, FlagCarriesHome,
           "had an Uncanny or Lost DLC weapon (OwnedWeaponFlags, common event 5500 + slot): the "
           "Bath shop sells it to this player only"),
+    Range(6011, 6025, FlagOwner::PerPlayer, FlagCarriesHome,
+          "the Bath messengers' attire they wear (Messenger Top Hat, Head Bandage, Urn "
+          "Dance...: m21_00 12105060/12105070, each game's own events, put it to the Dream "
+          "stump talk's pick): this player's own, as the host's a teammate's pick dressed "
+          "this player's messengers and the team's world put it in every guest's save "
+          "(Supermedo's 1.9.8.3: \"Bath Messengers' hat flags are per player\")"),
+    Range(6071, 6085, FlagOwner::PerPlayer, FlagCarriesHome,
+          "the Bath messengers' attire this player received (m21_00 12100020 from its goods "
+          "4900-4914, 12105064's gifts): the stump's talk lists it, each player's own"),
     Range(6630, 6633, FlagOwner::PerPlayer, FlagCarriesHome,
           "holds a workshop tool (HeldItemFlags, the Dream's 12100450): what this player holds"),
     Range(6640, 6649, FlagOwner::PerPlayer, FlagCarriesHome,
@@ -522,6 +531,10 @@ inline constexpr std::array LastRows{
           "12100113 turns her to the player and sets 72100102): this game's own. As the host's "
           "story steps and the game's own flag messages, the host's level up made every guest "
           "in the Dream kneel (Kaniel 2026-10-30, again 2026-11-03)"),
+    Range(72100140, 72100155, FlagOwner::PerPlayer, 0,
+          "the Dream stump's attire pick (its talk sets 72100141 + attire, 72100140 \"take "
+          "it off\"; m21_00 12105070/12105060 clear it as they dress the messengers): this "
+          "player's request, as the host's it changed the other player's attire"),
     Range(72100300, 72100309, FlagOwner::Session, 0,
           "a ritual altar's layer pick (72100300 + layer, for the Dream's warp event "
           "12107100): a request, not progress; as the host's, a guest's game took it and "

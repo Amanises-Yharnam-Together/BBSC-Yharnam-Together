@@ -3795,6 +3795,33 @@ SCENARIOS["story-hostless"] = {
     "timeout": 600,
 }
 
+# Supermedo's bloodborne_pc 1.9.8.3 ("the host's world written into a guest is no longer kept as
+# the guest's own progress"): the host's story step reaches the team's guest live, so its game
+# keeps it as a session change (KeepWorldChanges); the guest then goes to the title, leaves the
+# team and loads its save alone in the same run. Its own world is back, and the kept change stays
+# with the team's world (KeptChangeStaysWithTeam): the step stays off in the save alone.
+SCENARIOS["team-world-kept-alone"] = {
+    "about": "a team guest's kept session change (the host's story step it followed live) stays "
+             "out of its save loaded alone in the same run",
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "sync tka-in", f"set-flag {STORY_FLAG} 1",
+                 f"expect-flag {STORY_FLAG} 1", "sync tka-set", "sync tka-done", "done"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                  f"expect-flag {STORY_FLAG} 0", "sync tka-in", "sync tka-set",
+                  f"wait-flag {STORY_FLAG} 1 60", "wait 20", "quit-title", "title-wait 10",
+                  "team-leave", "team-alone", START, "wait 15", f"expect-flag {STORY_FLAG} 0",
+                  "sync tka-done", "done"],
+    },
+    "syncs": {name: {"chapter": "team-world-kept-alone", "roles": ["host", "guest"]}
+              for name in ("tka-in", "tka-set", "tka-done")},
+    "expect": {"guest": [r"the host's story steps followed here[^\n]* 1399\b",
+                         r"this save plays alone: \d+ of the session's world changes stay with "
+                         r"the team's world"]},
+    "allow": CRASH_CLEANUP,
+    "timeout": 900,
+}
+
 
 # #289 (Kaniel 2026-10-20: summoned enemies, the chalice bell woman's skeletons and the Witch of
 # Hemwick's Mad Ones): a kill is taken back when a map generator brings the same enemy back. The
