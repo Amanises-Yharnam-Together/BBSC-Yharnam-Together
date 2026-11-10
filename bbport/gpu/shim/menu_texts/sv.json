@@ -549,5 +549,12 @@
  "A real death (not a down a teammate revives) adds a penalty, until a lamp rest, a level up or a boss kill takes it away.": "En riktig död (inte ett fall som en lagkamrat hjälper dig upp ur) ger ett straff, tills vila vid en lykta, en ny nivå eller en besegrad boss tar bort det.",
  "A lamp or headstone trip asks the team to come along; with the vote one No stops it.": "En resa via lykta eller gravsten bjuder med laget; med omröstningen stoppar ett Nej den.",
  "Bosses rest less between attacks and turn faster.": "Bossar vilar mindre mellan attackerna och vänder sig snabbare.",
- "Vanilla": "Spelets egen"
+ "Vanilla": "Spelets egen",
+ "Update the game and the server to the same release, then start the game again.": "Uppdatera spelet och servern till samma version och starta sedan spelet igen.",
+ "Can't reach the co-op server at %s": "Det går inte att nå co-op-servern på %s",
+ "The server may not be started, a firewall may be blocking it, or the address is wrong. Fix it, then start the game again.": "Servern kanske inte är startad, en brandvägg kan blockera den eller så är adressen fel. Åtgärda det och starta sedan spelet igen.",
+ "The co-op server at %s did not accept your login or password": "Co-op-servern på %s godtog inte ditt användarnamn eller lösenord",
+ "Check them in the launcher's co-op settings, then start the game again.": "Kontrollera dem i startprogrammets co-op-inställningar och starta sedan spelet igen.",
+ "Could not sign in to the co-op server at %s": "Det gick inte att logga in på co-op-servern på %s",
+ "Start the game again. If it stays, update the game and the server to the same release.": "Starta spelet igen. Om felet kvarstår, uppdatera spelet och servern till samma version."
 }

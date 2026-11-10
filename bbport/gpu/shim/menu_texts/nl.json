@@ -549,5 +549,12 @@
  "A real death (not a down a teammate revives) adds a penalty, until a lamp rest, a level up or a boss kill takes it away.": "Een echte dood (geen val waar een teamgenoot je uit opricht) geeft een straf, tot rust bij een lantaarn, een hoger niveau of een verslagen baas die wegneemt.",
  "A lamp or headstone trip asks the team to come along; with the vote one No stops it.": "Een reis via lantaarn of grafsteen vraagt het team mee te gaan; met de stemming houdt één Nee hem tegen.",
  "Bosses rest less between attacks and turn faster.": "Bazen rusten minder tussen aanvallen en draaien sneller.",
- "Vanilla": "Zoals het spel"
+ "Vanilla": "Zoals het spel",
+ "Update the game and the server to the same release, then start the game again.": "Werk de game en de server bij naar dezelfde versie en start de game daarna opnieuw.",
+ "Can't reach the co-op server at %s": "Kan de co-opserver op %s niet bereiken",
+ "The server may not be started, a firewall may be blocking it, or the address is wrong. Fix it, then start the game again.": "Misschien is de server niet gestart, blokkeert een firewall hem of klopt het adres niet. Los dit op en start de game daarna opnieuw.",
+ "The co-op server at %s did not accept your login or password": "De co-opserver op %s heeft je login of wachtwoord niet geaccepteerd",
+ "Check them in the launcher's co-op settings, then start the game again.": "Controleer ze in de co-opinstellingen van de launcher en start de game daarna opnieuw.",
+ "Could not sign in to the co-op server at %s": "Aanmelden bij de co-opserver op %s is mislukt",
+ "Start the game again. If it stays, update the game and the server to the same release.": "Start de game opnieuw. Blijft het zo, werk dan de game en de server bij naar dezelfde versie."
 }

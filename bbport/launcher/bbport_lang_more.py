@@ -106,6 +106,7 @@ MORE_KEYS = [
     'Before a restore',
     'Before PLAY',
     'Show teammates without the blue phantom glow (on your screen only)',
+    'The co-op server refused this game: {}',
 ]
 
 MORE = {
@@ -213,6 +214,7 @@ MORE = {
         'Перед восстановлением',
         'Перед PLAY',
         'Показывать союзников без синего свечения фантома (только на вашем экране)',
+        'Сервер кооператива отказал этой игре: {}',
     ],
     'ar': [
         'اللعب التعاوني عبر الإنترنت',
@@ -318,6 +320,7 @@ MORE = {
         'قبل استعادة',
         'قبل PLAY',
         'إظهار رفاق الفريق بدون التوهج الأزرق للشبح (على شاشتك فقط)',
+        'رفض خادم اللعب التعاوني هذه اللعبة: {}',
     ],
     'es': [
         'Cooperativo en línea',
@@ -423,6 +426,7 @@ MORE = {
         'Antes de restaurar',
         'Antes de PLAY',
         'Mostrar a los compañeros sin el brillo azul de fantasma (solo en tu pantalla)',
+        'El servidor cooperativo rechazó este juego: {}',
     ],
     'pt': [
         'Cooperativo online',
@@ -528,6 +532,7 @@ MORE = {
         'Antes de restaurar',
         'Antes do PLAY',
         'Mostrar os companheiros sem o brilho azul de fantasma (só na sua tela)',
+        'O servidor cooperativo recusou este jogo: {}',
     ],
     'fr': [
         'Coopération en ligne',
@@ -633,6 +638,7 @@ MORE = {
         'Avant une restauration',
         'Avant PLAY',
         'Afficher les coéquipiers sans la lueur bleue de fantôme (sur votre écran seulement)',
+        'Le serveur coop a refusé ce jeu : {}',
     ],
     'de': [
         'Online-Koop',
@@ -738,6 +744,7 @@ MORE = {
         'Vor einer Wiederherstellung',
         'Vor PLAY',
         'Mitspieler ohne das blaue Phantomleuchten zeigen (nur auf deinem Bildschirm)',
+        'Der Koop-Server hat dieses Spiel abgelehnt: {}',
     ],
     'it': [
         'Cooperativa online',
@@ -843,6 +850,7 @@ MORE = {
         'Prima di un ripristino',
         'Prima di PLAY',
         'Mostra i compagni senza il bagliore blu da fantasma (solo sul tuo schermo)',
+        'Il server co-op ha rifiutato questo gioco: {}',
     ],
     'pl': [
         'Kooperacja online',
@@ -948,6 +956,7 @@ MORE = {
         'Przed przywróceniem',
         'Przed PLAY',
         'Pokazuj towarzyszy bez niebieskiej poświaty fantoma (tylko na twoim ekranie)',
+        'Serwer co-op odrzucił tę grę: {}',
     ],
     'tr': [
         'Çevrim içi ortak oyun',
@@ -1053,6 +1062,7 @@ MORE = {
         'Geri yüklemeden önce',
         'PLAY öncesi',
         'Takım arkadaşlarını mavi hayalet parıltısı olmadan göster (yalnızca senin ekranında)',
+        'Co-op sunucusu bu oyunu reddetti: {}',
     ],
     'zh': [
         '在线合作',
@@ -1158,6 +1168,7 @@ MORE = {
         '恢复之前',
         'PLAY 之前',
         '显示队友时去掉蓝色幽灵光晕（仅在你的屏幕上）',
+        '合作服务器拒绝了此游戏：{}',
     ],
     'ja': [
         'オンライン協力プレイ',
@@ -1263,6 +1274,7 @@ MORE = {
         '復元の前',
         'PLAY の前',
         '仲間を青い霊体の光なしで表示する（自分の画面のみ）',
+        '協力サーバーがこのゲームを拒否しました: {}',
     ],
     'ko': [
         '온라인 협동',
@@ -1368,5 +1380,6 @@ MORE = {
         '복원 전',
         'PLAY 전',
         '팀원을 푸른 유령 빛 없이 표시 (내 화면에서만)',
+        '협동 서버가 이 게임을 거부했습니다: {}',
     ],
 }
