@@ -2633,6 +2633,23 @@ u16 HarderEnemyAttack(u16 attack, float rate);
 // (for attacks, also for AtkParam_Pc).
 std::size_t MakeNpcParamHarder(std::span<u8> param, const HarderEnemies& harder);
 std::size_t MakeNpcAttacksHarder(std::span<u8> param, float damage);
+// Bug audit 24 (Redichoti 2026-10-30; rig hp-lossy-link 2026-11-10): the scaling changes the
+// tables only, so copies loaded before a second hunter came kept their old stats (the host's
+// 484/484 against the guest's 484/726 for one enemy), and the game's own HP sync (the owner's HP as
+// it is) showed the same enemy full to one and at two thirds to the other. When this game's HP
+// rate changes, the copies already loaded take it too: their base max (data +0x104, which the game
+// makes the max from again; a write of the max alone went back within a tick), max and HP, the HP
+// share kept (a living copy never below 1, a dead one stays dead). Nothing when the rate is the
+// same or the copy has no HP.
+constexpr u64 EnemyBaseMaxHpAt = 0x104;
+struct RescaledHp {
+    s32 base = 0;
+    s32 max = 0;
+    s32 hp = 0;
+    bool operator==(const RescaledHp&) const = default;
+};
+std::optional<RescaledHp> RescaleLoadedHp(s32 base, s32 max, s32 hp, float old_rate,
+                                          float new_rate);
 // The game's co-op boss HP bonus (SpEffect 7500-7503, max HP x1.5/x2/x2.5/x3, given at a boss
 // start) would stack on the HP multiplier, so with harder enemies its max HP rate becomes 1 and
 // the HP multiplier is the only one. The rows' status resistance bonus stays. Returns the rows

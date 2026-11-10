@@ -17,7 +17,7 @@ hit <target> [<timeout>] (light attacks until one lands),
 press <button> [<ms>], cutscene-options <s> (Options once the next cutscene has played that
 long: the script stands still under one), stick <x> <y> [<ms>], pickup [<meters>] [<timeout>] (onto the
 nearest usable map item, then X until it is gone), snapshot, log <text>,
-expect-hp <handle|self> <op> <value>, wait-hp <handle|self> <op> <value> [<timeout>] (until it
+expect-hp <handle|self> <op> <value|max>, wait-hp <handle|self> <op> <value> [<timeout>] (until it
 holds), expect-session <n>, expect-map <map>,
 set-flag <flag> <0|1>, expect-flag <flag> <0|1>, wait-flag <flag> <0|1> [<timeout>],
 wait-solo [<timeout>] (until the session is gone), note-max-hp (the player's, for
@@ -5822,6 +5822,75 @@ SCENARIOS["pickup-after-guest-crash"] = {
               for name in ("pac-picked", "pac-checked")},
     "expect": {"guest": [r"guest picked up item flag 52410140"]},
     "allow": CRASH_CLEANUP,
+    "timeout": 300,
+}
+
+
+# Bug audit 24 (Redichoti 2026-10-30: HP near zero for his friends, full for him): enemy scaling
+# raises only the copies loaded after a second hunter came, so the host (on the map first) had
+# 0x1001400b at 484/484 and the guest at 484/726, the boss-sized one by the lamp at 1917 against
+# 2875 (rig hp-lossy-link 2026-11-10); the game's own HP sync then wrote the owner's 484 into the
+# guest's 726. Now the copies already loaded take a scaling change too (RescaleLoadedHp), so every
+# game makes the same max and an untouched enemy reads whole (hp == its own max) on every game
+# after the join, after the guest's reload (a lamp trip) and after a party wipe, and the guest's
+# kill with real hits lands on both.
+MAX_HP_SAME = (ENEMY, BIG_BY_THE_LAMP)  # ones the host's game (the owner) runs itself
+
+
+def _whole(handles=MAX_HP_SAME) -> list[str]:
+    return ["census 60", *(f"expect-hp {handle} == max" for handle in handles)]
+
+
+SCENARIOS["enemy-max-hp-same"] = {
+    "about": "the host is on the map before the guest arrives (its copies unscaled, the guest's "
+             "scaled): the host's loaded copies take the scaling too, so untouched enemies read whole on "
+             "both after the join, the guest's reload and a party wipe; the guest's real kill "
+             "lands on both",
+    "settings": PARTY_DEATH,
+    "roles": {
+        "host": [START, "godmode", "wait-session 2 300", "wait 15", *_whole(),
+                 "sync emh-joined", "sync emh-reloaded", "wait 5", *_whole(),
+                 "sync emh-checked", "sync emh-killed", "wait 5", "census 60",
+                 f"expect-hp {ENEMY} <= 0",
+                 # The wipe: the guest goes down first, then the host falls with nobody standing.
+                 "godmode off", "sync emh-guest-down", f"teleport {WIPE3_SPOT['host']}", "wait 2",
+                 *LETHAL_FALL, "wait-vital dead 30", "wait-vital up 150", "wait-members 2 300",
+                 "sync emh-woken", "wait 15", *_whole(), "sync emh-done", "expect-session 2"],
+        "guest": [START, "godmode", "wait-session 2 300", "wait 15", *_whole(),
+                  "sync emh-joined", f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 120",
+                  "wait 15", *_whole(), "sync emh-reloaded", "sync emh-checked",
+                  *attack(ENEMY), "sync emh-killed", "wait 5", "census 60",
+                  f"expect-hp {ENEMY} <= 0",
+                  "godmode off", f"teleport {WIPE3_SPOT['guest']}", "wait 2", *LETHAL_FALL,
+                  "wait-vital down 30", "sync emh-guest-down", "wait-vital dead 90",
+                  "wait-vital up 150", "wait-members 2 300", "sync emh-woken", "wait 15",
+                  *_whole(), "sync emh-done", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "enemy-max-hp-same", "roles": ["host", "guest"]}
+              for name in ("emh-joined", "emh-reloaded", "emh-checked", "emh-killed",
+                           "emh-guest-down", "emh-woken", "emh-done")},
+    # The host's copies, loaded before the guest came, take the scaling the guest's arrival brings.
+    "expect": {"host": [r"[1-9]\d* enemies already on this map rescaled x1\.00 -> x1\.50"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 600,
+}
+
+
+# The same check for the enemies the owner hands out for the guest's game to run (rig
+# enemy-max-hp-same 2026-11-10: "enemy hand-out from the owner: 282e 282f 2841 ..."): after the
+# rescale they read 179/179 on the host and 179/268 on the guest; something on the hand-out path
+# makes their stats again. Known: it turns green once that is followed up.
+HANDED_OUT = ("0x1001402e", "0x1001402f", "0x10014041", "0x10014042", "0x10014043", "0x10014044")
+SCENARIOS["enemy-max-hp-handed-out"] = {
+    "about": "the enemies the host's game hands out to the guest's read whole (hp == its own max) "
+             "on both games after the join, as the ones the host runs do",
+    "roles": {role: [START, "godmode", "wait-session 2 300", "wait 15",
+                     *_whole(HANDED_OUT), "sync emho-checked", "expect-session 2"]
+              for role in ("host", "guest")},
+    "syncs": {"emho-checked": {"chapter": "enemy-max-hp-handed-out", "roles": ["host", "guest"]}},
+    "known_bug": "handed-out enemies keep the unscaled max on the host (179/179) and 179/268 on the "
+                 "guest after the rescale; the hand-out path makes their stats again (bug audit 24)",
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
     "timeout": 300,
 }
 

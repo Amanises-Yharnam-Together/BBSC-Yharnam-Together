@@ -68,6 +68,7 @@ LONG = {
     "kill-reaches-arrival": "the 10-19 playtest case #278: three games, two trips",
     "host-death-kills": "bug audit 24: kills, a death, a give-up and 40 s of checks",
     "host-death-kills-far": "bug audit 24: kills, a fall death far from the lamp, 40 s of checks",
+    "enemy-max-hp-same": "bug audit 24: a join, a reload, a kill and a party wipe",
     "soak": "a long session by design",
     "teams-apart": "Kaniel 2026-10-31: four games in three worlds, two trips each",
     "teams-apart3": "Kaniel 2026-10-31: three games in three worlds, two trips each",

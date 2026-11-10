@@ -268,3 +268,25 @@ TEST(LoadedParamSlots, ATablesSizeReachesItsFurthestRow) {
     entry(0, 0x30);
     EXPECT_EQ(ParamTableSize(param, 3, 0x10), 0x40u + 3 * 24) << "never less than its entries";
 }
+
+// Bug audit 24 (Redichoti 2026-10-30: enemy HP near zero for his friends, full for him; rig
+// hp-lossy-link 2026-11-10): the scaling changed the tables only, so the host's copies loaded
+// before the second hunter came kept 484/484 while the guest's, loaded after, had 484/726, and the
+// game's own HP sync (the owner's HP as it is) made the same enemy's bar full for one and two
+// thirds for the other. When this game's scaling changes, its copies already loaded take it too:
+// base max (data +0x104, what the game makes the max from again), max and HP, keeping the HP share.
+TEST(BloodborneHarderEnemies, CopiesAlreadyLoadedTakeTheNewScaling) {
+    EXPECT_EQ(RescaleLoadedHp(484, 484, 484, 1.0f, 1.5f), (RescaledHp{726, 726, 726}))
+        << "whole stays whole";
+    EXPECT_EQ(RescaleLoadedHp(484, 484, 242, 1.0f, 1.5f), (RescaledHp{726, 726, 363}))
+        << "half stays half";
+    EXPECT_EQ(RescaleLoadedHp(726, 726, 363, 1.5f, 1.0f), (RescaledHp{484, 484, 242}))
+        << "a hunter left: back down";
+    EXPECT_EQ(RescaleLoadedHp(958, 1917, 1917, 1.0f, 1.5f), (RescaledHp{1437, 2876, 2876}))
+        << "an effect's rate on the max stays on top of the base";
+    EXPECT_EQ(RescaleLoadedHp(484, 484, 1, 1.0f, 1.5f), (RescaledHp{726, 726, 2}));
+    EXPECT_EQ(RescaleLoadedHp(484, 484, 0, 1.0f, 1.5f), (RescaledHp{726, 726, 0}))
+        << "dead stays dead";
+    EXPECT_EQ(RescaleLoadedHp(484, 484, 484, 1.5f, 1.5f), std::nullopt) << "no change";
+    EXPECT_EQ(RescaleLoadedHp(0, 0, 0, 1.0f, 1.5f), std::nullopt) << "no HP: no enemy";
+}
