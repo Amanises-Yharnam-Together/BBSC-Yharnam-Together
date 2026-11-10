@@ -163,7 +163,10 @@ class ScenarioTest(unittest.TestCase):
                                     f"{key} names a role the scenario does not run")
 
     def test_every_pattern_compiles(self):
-        for name, scenario in scenarios.SCENARIOS.items():
+        # The probes and the suites' chapters too (the test audit, 2026-11-10).
+        chapters = {f"{suite}/{chapter['name']}": chapter
+                    for suite, spec in suites.SUITES.items() for chapter in spec["chapters"]}
+        for name, scenario in {**scenarios.SCENARIOS, **scenarios.PROBES, **chapters}.items():
             for key in ("expect", "forbid"):
                 for patterns in scenario.get(key, {}).values():
                     for pattern in patterns:
@@ -541,7 +544,7 @@ class LaneTest(unittest.TestCase):
         # Kaniel 2026-10-31: no team's progress reaches another; each flag is one team's alone.
         flags = [flag for pair in scenarios.TEAM_FLAGS.values() for flag in pair]
         self.assertEqual(len(flags), len(set(flags)))
-        for name in ("teams-apart", "teams-apart3"):
+        for name in ("teams-apart",):
             roles = scenarios.SCENARIOS[name]["roles"]
             sets = {role: {int(command.split()[1]) for command in script
                            if command.startswith("set-flag ")} for role, script in roles.items()}

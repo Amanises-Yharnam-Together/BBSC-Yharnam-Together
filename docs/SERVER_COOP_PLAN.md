@@ -79,7 +79,7 @@ only (bbport is the target; every player and the server run one build).
   First step done: rituals work online again. A standard chalice's ritual asks the server for
   that chalice's dungeon (ChannelSearch FixedOrGeneral 2, then ChannelGetDetailsInfo); the
   server makes it (backend `StandardDungeon`), and two members who both conduct it meet in the
-  one dungeon (rig `chalice-team`).
+  one dungeon (rig `chalice-altar-team`).
   Second step: joining without a ritual. A dungeon's FormData is the 140-byte record the game
   uploads (format 5; layout in the backend's `StandardDungeon`), and a join through the altar's
   Chalice Dungeon Search builds the dungeon from it alone, free. That search

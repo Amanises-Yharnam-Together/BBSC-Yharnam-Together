@@ -19,7 +19,11 @@ int main(int argc, char** argv) {
     using namespace Vulkan;
     using namespace Shader;
     // The regression must exercise no AMD marker commands, including diagnostic breadcrumbs.
+#ifdef _WIN32
+    _putenv_s("BB_BREADCRUMBS","0");
+#else
     setenv("BB_BREADCRUMBS","0",1);
+#endif
     Instance instance(0, true);
     static vk::detail::DynamicLoader loader;
     vk::detail::DispatchLoaderDynamic d;
@@ -68,6 +72,9 @@ int main(int argc, char** argv) {
 
     Info info{};
     info.hw_stage=HwStage::Compute; info.sw_stage=SwStage::Compute;
+    // The game's buffer copy shader: the profile names its hash (Game::BufferCopyShader() in the
+    // rasterizer); the emitter writes its stores to the guest bytes as well. Any hash will do here.
+    constexpr u64 BufferCopyShaderHash=0xb0ffc0b1e5ULL;
     info.pgm_hash=BufferCopyShaderHash; info.uses_paged_buffers=true;
     for (u32 i=0;i<3;++i) {
         BufferResource buffer{};
@@ -94,6 +101,7 @@ int main(int argc, char** argv) {
     runtime.hw.cs.workgroup_size={1,1,1};
     Profile profile{}; profile.supported_spirv=0x00010600; profile.support_int64=true;
     profile.paged_buffers=true; profile.sparse_page_shift=16;
+    profile.buffer_copy_shader_hash=BufferCopyShaderHash;
     Backend::Bindings bindings{};
     const auto code=Backend::SPIRV::EmitSPIRV(profile,runtime,program,bindings);
     if (argc>1) {
