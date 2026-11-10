@@ -49,4 +49,12 @@ void runtime_wait_report(double) {}
 void runtime_thread_cpu_report(void) {}
 void runtime_sleep_stats(uint64_t* calls, uint64_t* ns) { *calls = 0; *ns = 0; }
 uint64_t runtime_heap_growths() { return 0; }
+// The game code hooks and the overlay's Controls tab (the test audit, 2026-11-10: the renderer
+// tests stopped linking once bbgpu called these). No guest mapping; no pad inputs.
+int runtime_memory_is_mapped(uintptr_t, uint64_t) { std::abort(); }
+int runtime_pad_input_count(void) { return 0; }
+const char* runtime_pad_input_name(int) { return ""; }
+int runtime_pad_input_takes_pad(int) { return 0; }
+void runtime_pad_binding_text(int, int, char* out, size_t size) { if (size) out[0] = 0; }
+void runtime_pad_reload_controls(void) {}
 }

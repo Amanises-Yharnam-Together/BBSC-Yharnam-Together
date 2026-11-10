@@ -727,6 +727,10 @@ target_compile_options(translation-memory-test PRIVATE -UNDEBUG -fPIC)
 set_source_files_properties(../tests/test_translation_memory.cpp PROPERTIES
     COMPILE_OPTIONS "-fvisibility=hidden;-fvisibility-inlines-hidden")
 target_link_libraries(translation-memory-test PRIVATE bbgpu)
+if(WIN32)  # the compat layer and onecore, as the renderer tests above
+    target_sources(translation-memory-test PRIVATE ../src/compat_win.c)
+    target_link_libraries(translation-memory-test PRIVATE onecore -pthread)
+endif()
 
 # bbport: FSR 4 benchmark outside the game (tools/fsr4_bench.cpp): ninja -C out/gpu fsr4-bench.
 add_executable(upscaler-support-test EXCLUDE_FROM_ALL ../tests/test_upscaler_support.cpp
