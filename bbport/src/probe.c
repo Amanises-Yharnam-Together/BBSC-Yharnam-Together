@@ -292,6 +292,7 @@ static uint64_t patch_tcb_loads(const Segment *segments, uint64_t count) {
 }
 #endif
 #ifndef _WIN32
+static void dump_frames(ucontext_t *uc);
 static void fault(int sig, siginfo_t *info, void *context) {
     /* GPU page tracking (write-protected guest pages) is resolved first. */
     if (gpu_enabled && sig == SIGSEGV && bbgpu_handle_fault(context, info->si_addr)) return;
@@ -320,6 +321,21 @@ static void fault(int sig, siginfo_t *info, void *context) {
         snprintf(line, sizeof(line), "Fault (signal %d) at RIP %p, address %p\n", sig, (void *)rip, info->si_addr);
     { ssize_t written_=write(2, line, strlen(line)); (void)written_; }
     if (gpu_enabled) bbgpu_dump_guest_writes(context);
+    /* Inside the game's code: the thread, the registers and the guest's rbp frame chain, so the
+     * report names the caller too (the host backtrace below stops at the first guest frame). */
+    if (rip - (uintptr_t)image < 0x10000000) {
+        char thread[32] = "?";
+        pthread_getname_np(pthread_self(), thread, sizeof(thread));
+        const greg_t *r = uc->uc_mcontext.gregs;
+        snprintf(line, sizeof(line), "  thread %s; rax=%llx rbx=%llx rcx=%llx rdx=%llx rsi=%llx rdi=%llx rbp=%llx rsp=%llx "
+                 "r12=%llx r13=%llx r14=%llx r15=%llx\n", thread,
+                 (unsigned long long)r[REG_RAX], (unsigned long long)r[REG_RBX], (unsigned long long)r[REG_RCX],
+                 (unsigned long long)r[REG_RDX], (unsigned long long)r[REG_RSI], (unsigned long long)r[REG_RDI],
+                 (unsigned long long)r[REG_RBP], (unsigned long long)r[REG_RSP], (unsigned long long)r[REG_R12],
+                 (unsigned long long)r[REG_R13], (unsigned long long)r[REG_R14], (unsigned long long)r[REG_R15]);
+        { ssize_t written_=write(2, line, strlen(line)); (void)written_; }
+        dump_frames(uc);
+    }
     /* Outside the image and any shared object (generated code, a freed mapping): the mapping
      * from /proc/self/maps, and the thread. */
     if (rip - (uintptr_t)image >= 0x10000000 && !(dladdr((void *)rip, &where) && where.dli_fname)) {
