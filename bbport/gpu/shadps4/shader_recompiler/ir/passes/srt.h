@@ -15,6 +15,11 @@ namespace Shader {
 
 using PFN_SrtWalker = void PS4_SYSV_ABI (*)(const u32* /*user_data*/, u32* /*flat_dst*/);
 PFN_SrtWalker RegisterWalkerCode(const u8* ptr, size_t size);
+/// bbport: runs `walker` over a draw's user data into `flat` (flat_size dwords), its roots checked
+/// first (shim/bbport_srt_roots.h): a null root's tables read zeros without a fault for each
+/// load. Returns the null roots (counted for the console's null table line).
+u32 RunSrtWalker(PFN_SrtWalker walker, const u32* user_data, u32 user_data_size, u32* flat,
+                 u32 flat_size);
 
 struct PersistentSrtInfo {
     // Special case when fetch shader uses step rates.

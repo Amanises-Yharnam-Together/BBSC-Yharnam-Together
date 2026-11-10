@@ -958,7 +958,7 @@ struct LiveSite {
     std::atomic<u64> address{0}, stub{0};
     std::atomic<u64> second{0}, second_stub{0};
 };
-std::array<LiveSite, 16> live_sites;
+std::array<LiveSite, 24> live_sites;
 std::atomic<std::size_t> live_count{0};
 
 u64 LiveStubFor(u64 rip) {
@@ -1417,7 +1417,131 @@ bool InstallEntryHook(u64 offset, const void* handler, bool pass_return) {
     return DetourLive(address, PlaceStub(e), sizeof(FunctionEntryCode));
 }
 
+/// The null table probes (textures breaking after trips, invisible floors and stairs, 1.0.0 to
+/// 1.4.0): the port drew such draws' resource tables as zeros because their user data pointers
+/// were null ("SRT walker ... read through a bad pointer", "draw skipped: its vertex buffer table
+/// pointer is null"). These two count where the game itself hands out such pointers, so a
+/// player's log (BbNullTables' line) tells whether they come from the game.
+/// SetUdPointerSite: Gnm's DrawCommandBuffer::setPointerInUserData(cb, stage, sgpr, pointer) as
+/// the eboot has it (the SET_SH_REG 0xc0027600 packet; 155 callers, the per-draw tables among
+/// them at 0x1098484: each table's pointer into the context's bump region at [ctx + 8]). A
+/// pointer whose 48 address bits are below 64 KiB is counted with its caller; the fast path is
+/// four instructions. GxChunkRefusedSite: the GX chunk allocator (0xe45560; the per-frame command
+/// heaps at [swap chain + 0x370/0x378], 256 KiB chunks, 1 MiB with the patch) where its parent
+/// heap returned no chunk and it returns null. BB_NULL_TABLE_PROBES=0: not installed.
+constexpr u64 SetUdPointerSite = 0x1076390;
+constexpr u64 GxChunkRefusedSite = 0xe455f7;
+constexpr unsigned char GxChunkRefusedCode[12] = {0x48, 0x83, 0xc3, 0x20,  // add rbx, 0x20
+                                                  0x48, 0xc7, 0x43, 0x08,  // mov qword [rbx + 8], 0
+                                                  0x00, 0x00, 0x00, 0x00};
+struct NullTableCounters {
+    std::atomic<u64> pointers{0}, last_caller{0};
+    std::atomic<std::uint32_t> last_sgpr{0};
+    std::atomic<u64> heap_refusals{0}, last_refused{0};
+    std::atomic<bool> pointer_probe{false}, heap_probe{false};
+};
+NullTableCounters null_tables;
+
+/// Told at the first one and at powers of two (the GPU side's line has the rates).
+bool TellNow(u64 n) {
+    return (n & (n - 1)) == 0;
+}
+
+GUEST_ABI void NullTablePointer(u64, u64 stage, u64 sgpr, u64 pointer, u64 caller) {
+    const u64 n = null_tables.pointers.fetch_add(1, std::memory_order_relaxed) + 1;
+    const bool in_image = caller >= ImageBase && caller - ImageBase < (u64(1) << 32);
+    const u64 at = in_image ? caller - ImageBase : caller;
+    null_tables.last_caller.store(at, std::memory_order_relaxed);
+    null_tables.last_sgpr.store(std::uint32_t(sgpr), std::memory_order_relaxed);
+    if (TellNow(n)) {
+        std::printf("Guest hooks: the game handed the GPU a null table pointer (%#llx, stage %u "
+                    "s%u, from %s%#llx): %llu so far\n",
+                    (unsigned long long)pointer, unsigned(stage), unsigned(sgpr),
+                    in_image ? "eboot+" : "", (unsigned long long)at, (unsigned long long)n);
+    }
+}
+
+GUEST_ABI void GxChunkRefusal(u64 allocator, u64 bytes) {
+    const u64 n = null_tables.heap_refusals.fetch_add(1, std::memory_order_relaxed) + 1;
+    null_tables.last_refused.store(bytes, std::memory_order_relaxed);
+    if (TellNow(n)) {
+        // The allocator: [+8] its chunk size, [+0x10] chunks taken, [+0x14] allocations made.
+        const auto* a = reinterpret_cast<const std::uint32_t*>(allocator);
+        std::printf("Guest hooks: the game's GX heap refused a chunk for %llu bytes (chunks of "
+                    "%u, %u taken, %u allocations): %llu so far\n",
+                    (unsigned long long)bytes, a[2], a[4], a[5], (unsigned long long)n);
+    }
+}
+
+bool InstallNullTablePointerProbe() {
+    const u64 address = ImageBase + SetUdPointerSite;
+    if (std::memcmp(reinterpret_cast<const void*>(address), FunctionEntryCode, sizeof(FunctionEntryCode)) != 0) {
+        return false;
+    }
+    Emitter count; // the rare path: the handler with every register kept
+    count.SaveVolatile();
+    count.Bytes({0x4d, 0x8b, 0x44, 0x24, 0x50}); // mov r8, [r12 + 80]: the return address
+    count.SaveXmm();
+    count.CallAbs(reinterpret_cast<const void*>(&NullTablePointer));
+    count.RestoreXmm();
+    count.RestoreVolatile();
+    Emitter e; // at the function's entry: r11 and the flags are free
+    e.Bytes({0x49, 0x89, 0xcb});       // mov r11, rcx: the pointer
+    e.Bytes({0x49, 0xc1, 0xe3, 0x10}); // shl r11, 16
+    e.Bytes({0x49, 0xc1, 0xeb, 0x10}); // shr r11, 16: its 48 address bits
+    e.Bytes({0x49, 0x81, 0xfb});       // cmp r11, 0x10000
+    e.U32(0x10000);
+    e.Bytes({0x0f, 0x83}); // jae past the count
+    e.U32(std::uint32_t(count.size));
+    for (std::size_t i = 0; i < count.size && i < count.code.size(); ++i) {
+        e.Bytes({count.code[i]});
+    }
+    e.overflow = e.overflow || count.overflow;
+    for (const unsigned char b : FunctionEntryCode) {
+        e.Bytes({b});
+    }
+    e.JmpAbs(address + sizeof(FunctionEntryCode));
+    return DetourLive(address, PlaceStub(e), sizeof(FunctionEntryCode));
+}
+
+/// Over two instructions (the allocator's refused branch, reached only when its heap is out):
+/// a thread stopped between them while the jump goes in would run the jump's tail. The probe goes
+/// in at start, long before any heap runs out.
+bool InstallGxChunkRefusalProbe() {
+    const u64 address = ImageBase + GxChunkRefusedSite;
+    if (std::memcmp(reinterpret_cast<const void*>(address), GxChunkRefusedCode, sizeof(GxChunkRefusedCode)) != 0) {
+        return false;
+    }
+    Emitter e;
+    e.SkipRedZone();
+    e.SaveVolatile();
+    e.Bytes({0x48, 0x89, 0xdf}); // mov rdi, rbx: the allocator
+    e.Bytes({0x4c, 0x89, 0xf6}); // mov rsi, r14: the bytes asked for
+    e.SaveXmm();
+    e.CallAbs(reinterpret_cast<const void*>(&GxChunkRefusal));
+    e.RestoreXmm();
+    e.RestoreVolatile();
+    e.UnskipRedZone();
+    for (const unsigned char b : GxChunkRefusedCode) {
+        e.Bytes({b});
+    }
+    e.JmpAbs(address + sizeof(GxChunkRefusedCode));
+    return DetourLive(address, PlaceStub(e), sizeof(GxChunkRefusedCode));
+}
+
 } // namespace
+
+NullTableStats NullTables() {
+    NullTableStats s;
+    s.pointer_probe = null_tables.pointer_probe.load(std::memory_order_acquire);
+    s.heap_probe = null_tables.heap_probe.load(std::memory_order_acquire);
+    s.pointers = null_tables.pointers.load(std::memory_order_relaxed);
+    s.last_caller = null_tables.last_caller.load(std::memory_order_relaxed);
+    s.last_sgpr = null_tables.last_sgpr.load(std::memory_order_relaxed);
+    s.heap_refusals = null_tables.heap_refusals.load(std::memory_order_relaxed);
+    s.last_refused = null_tables.last_refused.load(std::memory_order_relaxed);
+    return s;
+}
 
 void SetDisplayAspect(float aspect) {
     constexpr float game = 16.0f / 9.0f;
@@ -1545,6 +1669,10 @@ void Install(RangeCallback on_gpu_range_allocated) {
         const char* gx_query = InstallGxQueryGuard();
         const bool job_slots = InstallJobSlotFix();
         const bool kernel_clamp = InstallKernelSampleClamp();
+        if (const char* env = std::getenv("BB_NULL_TABLE_PROBES"); !(env && env[0] == '0')) {
+            null_tables.pointer_probe.store(InstallNullTablePointerProbe(), std::memory_order_release);
+            null_tables.heap_probe.store(InstallGxChunkRefusalProbe(), std::memory_order_release);
+        }
         // BB_ASPECT_HOOKS=0: the camera, HUD markers and UI keep 16:9 (the output too).
         if (const char* env = std::getenv("BB_ASPECT_HOOKS"); !(env && env[0] == '0')) {
             InstallAspectHooks();
@@ -1558,6 +1686,10 @@ void Install(RangeCallback on_gpu_range_allocated) {
         std::printf("Guest hooks: render job slot fix %s\n", job_slots ? "on" : "not installed");
         std::printf("Guest hooks: blur-kernel sample count clamp %s\n",
                     kernel_clamp ? "on" : "not installed");
+        std::printf("Guest hooks: null table probes: pointers handed to the GPU %s, GX heap "
+                    "refusals %s\n",
+                    null_tables.pointer_probe.load() ? "watched" : "not watched",
+                    null_tables.heap_probe.load() ? "watched" : "not watched");
     } else if (!(traps_env && traps_env[0] == '1')) {
         std::printf("Guest hooks: no memory within reach of the game's code for detours: no crash "
                     "fixes, and the output keeps 16:9\n");

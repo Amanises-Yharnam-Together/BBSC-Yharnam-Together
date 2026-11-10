@@ -29,4 +29,15 @@ struct HudShift {
     float dx = 0.0f, dy = 0.0f;
 };
 HudShift HudEdgeShift();
+
+/// The null table probes (bbport_guest_hooks.cpp): table pointers below 64 KiB the game hands to
+/// the GPU (setPointerInUserData, with the last caller as an eboot offset and its user data
+/// register) and its GX chunk allocator's heap refusing a chunk. *_probe: the hook is in.
+struct NullTableStats {
+    bool pointer_probe = false, heap_probe = false;
+    std::uint64_t pointers = 0, last_caller = 0;
+    std::uint32_t last_sgpr = 0;
+    std::uint64_t heap_refusals = 0, last_refused = 0;
+};
+NullTableStats NullTables();
 } // namespace BbGuestHooks

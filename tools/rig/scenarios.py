@@ -5779,9 +5779,62 @@ SCENARIOS["a10-gascoigne-fog-look"] = {
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
 # look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
 # --play <name>) and in no tier.
+# Textures breaking after trips (Discord, 1.0.0 to 1.4.0: invisible floors and stairs after lamp
+# travel far away, mostly guests): host and guest go lamp to lamp between far maps, never through
+# the Dream (Provi: Hemwick straight to the Ward), the guest after the host each time. A headless
+# run draws nothing; the logs carry the game's side: "Guest hooks: the game handed the GPU a null
+# table pointer" and "the game's GX heap refused a chunk" (bbport_guest_hooks.cpp) per trip.
+FAR_TRIPS = ((CHARNEL_LANE_LAMP, HEMWICK), (CATHEDRAL_WARD_LAMP, CATHEDRAL_WARD),
+             (FORBIDDEN_WOODS_LAMP, FORBIDDEN_WOODS), (YAHARGUL_LAMP, YAHARGUL))
+FAR_TRIP_ROUNDS = int(os.environ.get("BB_RIG_FAR_TRIP_ROUNDS", "6"))
+
+
+def far_trips(role: str, rounds: int = FAR_TRIP_ROUNDS, shots: bool = False) -> list[str]:
+    steps = [START, "godmode", "wait-session 2 300"]
+    if shots and role == "host":
+        steps += ["wait 10", "shot host-before-trips"]
+    for round_ in range(rounds):
+        for i, (lamp, map_) in enumerate(FAR_TRIPS):
+            name = f"fts-{round_}-{i}"
+            trip = [f"travel {lamp}", f"wait-map {map_} 240"]
+            steps += ([*trip, f"sync {name}"] if role == "host" else [f"sync {name}", *trip])
+            steps += ["wait-members 2 240", "wait 5", f"log far trip {round_ * len(FAR_TRIPS) + i + 1}"]
+            if shots and role == "host":
+                steps += ["wait 8", f"shot host-after-trip-{round_ * len(FAR_TRIPS) + i + 1}"]
+    return [*steps, "expect-session 2"]
+
+
+def far_trip_syncs(rounds: int) -> dict[str, dict]:
+    return {f"fts-{round_}-{i}": {"chapter": "far-trips-soak", "roles": ["host", "guest"]}
+            for round_ in range(rounds) for i in range(len(FAR_TRIPS))}
+
+
+SCENARIOS["far-trips-soak"] = {
+    "about": "host and guest go lamp to lamp between far maps (Hemwick, the Ward, the Woods, "
+             "Yahar'gul) without the Dream, the guest after the host: null table pointers and GX "
+             "heap refusals per trip (BB_RIG_FAR_TRIP_ROUNDS rounds, 6 by default)",
+    "roles": {role: far_trips(role) for role in ("host", "guest")},
+    "syncs": far_trip_syncs(FAR_TRIP_ROUNDS),
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300 + FAR_TRIP_ROUNDS * len(FAR_TRIPS) * 120,
+}
+# The same trips once with the host drawn (a visible window; the guest headless) and a picture
+# before them and after each: the world's floors, characters and HUD with their textures.
+SCENARIOS["far-trips-look"] = {
+    "about": "far-trips-soak's trips once, the host visible: a picture before the trips and after "
+             "each (textures after trips)",
+    "settings": {"rig.headless_roles": "guest"},
+    "roles": {role: far_trips(role, 1, shots=True) for role in ("host", "guest")},
+    "syncs": far_trip_syncs(1),
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300 + len(FAR_TRIPS) * 120,
+}
+
 PROBE_NAMES = (
     # rig tools (make the baseline saves, boot check)
     "setup", "boot",
+    # textures after trips: the game's null table pointers per far trip, and pictures of it
+    "far-trips-soak", "far-trips-look",
     # packet trace for tools/re/packet_summary.py
     "fps-pace",
     # 2026-10-10/11 investigations; mine/prey use whatever saves the games have now
