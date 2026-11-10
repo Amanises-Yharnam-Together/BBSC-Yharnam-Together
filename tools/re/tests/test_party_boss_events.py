@@ -550,6 +550,99 @@ class LudwigsArenaWallGoesAfterHim(unittest.TestCase):
         self.assertIsNone(self.patched(13400011))
 
 
+def fog_hide(wall: int, fog: int) -> list[tuple[int, int, bytes]]:
+    """A boss fog event's "hidden until the boss's entrance": skip the next two lines for a client
+    (1003:5 2 1), wall object off (2005:3), fog SFX off (2006:1)."""
+    return [(1003, 5, struct.pack('<BBxx', 2, 1)),
+            (2005, 3, struct.pack('<iBxxx', wall, 0)),
+            (2006, 1, struct.pack('<ii', fog, 0))]
+
+
+ROM_FOG_WALL = 3201800
+
+
+def rom_host_fog_event() -> list[tuple[int, int, bytes]]:
+    """m32_00's 13204830, up to its label: Rom's fog at the Lunarium's balcony is hidden until his
+    entrance has run (13201802), except for a client; once it ran the fog shows (wall 3201800,
+    fog 3203800, hit part 3204010). No "host entered" flag: Rom starts by the dive."""
+    return [(1003, 2, struct.pack('<BBBxi', 0, 1, 0, 13201800)),
+            (1003, 101, struct.pack('<BBBxi', 0, 1, 0, ROM_BOSS_ENTRANCE)),
+            *fog_hide(ROM_FOG_WALL, 3203800),
+            (2011, 1, struct.pack('<ii', 3204010, 0)),
+            (3, 0, struct.pack('<BBBxi', 1, 0, 0, 13201800)),
+            (3, 0, struct.pack('<BBBxi', 1, 1, 0, ROM_BOSS_ENTRANCE)),
+            (0, 0, struct.pack('<bBBx', 0, 1, 1)),
+            (2005, 3, struct.pack('<iBxxx', ROM_FOG_WALL, 1)),
+            (2006, 2, struct.pack('<i', 3203800)),
+            (2011, 1, struct.pack('<ii', 3204010, 1)),
+            (1014, 0, b''),
+            (4, 3, struct.pack('<bxxxiBxxx', 2, 10000, 0)),
+            (3, 24, struct.pack('<bxxxii', 2, 3200800, ROM_FOG_WALL))]
+
+
+def dream_fog_event() -> list[tuple[int, int, bytes]]:
+    """m21_00's 12100800, its first branch: once the Moon Presence (12101850) is dead its
+    fog (wall 2101800, fog 2103800) goes, except for a client."""
+    return [(1003, 101, struct.pack('<BBBxi', 0, 0, 0, 12101850)),
+            (2004, 5, struct.pack('<iBxxx', 2100810, 0)),
+            (2004, 5, struct.pack('<iBxxx', 2100800, 0)),
+            *fog_hide(2101800, 2103800),
+            (1000, 4, struct.pack('<i', 0)),
+            (1014, 0, b'')]
+
+
+class GuestsSeeHiddenBossFogs(unittest.TestCase):
+    """Player report 2026-11-08 (v1.4.0): in Byrgenwerth on the way to Rom one of two players could
+    not get through, a fog wall stood in the way. Rom's fog at the Lunarium's balcony (m32_00
+    13204830) is hidden until his entrance has run, but a client skips the hiding, so a party
+    guest faced a shut fog the host never saw. Every other boss's fog event gets that skip turned
+    off by open_boss_fog_for_guests, which finds it through the phantom's "host entered" flag;
+    Rom has none (his fight starts with the dive). The Dream's 12100800 (Gehrman's and the Moon
+    Presence's fog, gone once they are dead) skips it for a client the same way."""
+
+    def patched(self, name: str, event: int, instructions: list) -> list | None:
+        original = tool.save_dcx(DCX_HEADER, build_emevd({event: instructions}))
+        output, edits, counts = tool.patch_file(name, original)
+        if output is None:
+            return None
+        tool.validate(original, output, edits, name)
+        return read_events(tool.load_dcx(output))[event]
+
+    def test_a_guest_sees_roms_fog_hidden_before_his_entrance(self):
+        events = self.patched('m32_00_00_00.emevd.dcx', 13204830, rom_host_fog_event())
+        self.assertIsNotNone(events)
+        self.assertEqual(events[2][2][:2], bytes([2, tool.NEVER]))
+        self.assertEqual(events[3:], rom_host_fog_event()[3:], 'the rest stays as it was')
+
+    def test_a_guest_sees_the_dream_fog_go_with_its_bosses(self):
+        events = self.patched('m21_00_00_00.emevd.dcx', 12100800, dream_fog_event())
+        self.assertIsNotNone(events)
+        self.assertEqual(events[3][2][:2], bytes([2, tool.NEVER]))
+
+    def test_other_events_keep_their_client_skips(self):
+        self.assertIsNone(self.patched('m32_00_00_00.emevd.dcx', 13204839, rom_host_fog_event()))
+
+    def test_a_guest_sees_a_chalice_fog_hidden_like_the_host(self):
+        """Discord 2026-11-05 and 2026-11-08 (v1.4.0): in a chalice dungeon with a friend fog
+        walls stood (at the spawn room, and after the friend left). m29's 12906796 (and 12906789,
+        12906800) is the fog event of nearly every chalice block, started with the block's wall
+        and fog (2000:0 arguments): hidden until its flag, except for a client."""
+        fog = [(1003, 2, struct.pack('<BBBxi', 0, 1, 0, 0)),
+               (1003, 101, struct.pack('<BBBxi', 0, 1, 0, 0)),
+               (1003, 5, struct.pack('<BBxx', 2, 1)),
+               (2005, 3, struct.pack('<iBxxx', 0, 0)),
+               (2006, 1, struct.pack('<ii', 0, 0)),
+               (2005, 3, struct.pack('<iBxxx', 0, 0)),
+               (2006, 1, struct.pack('<ii', 0, 0))]
+        original = tool.save_dcx(DCX_HEADER, build_emevd(
+            {12906796: fog}, {12906796: [(3, 0, 4, 4), (4, 0, 12, 4), (5, 0, 8, 4)]}))
+        output, edits, _ = tool.patch_file('m29.emevd.dcx', original)
+        self.assertIsNotNone(output)
+        tool.validate(original, output, edits, 'm29.emevd.dcx')
+        events = read_events(tool.load_dcx(output))[12906796]
+        self.assertEqual(events[2][2][:2], bytes([2, tool.NEVER]))
+
+
 class GuestsOpenChaliceBossDoors(unittest.TestCase):
     """Kaniel 2026-10-19: a chalice dungeon's boss door said "Only the beckoner can open this door"
     to guests. The door (ObjActParam 2901900-2901920) asks for SpEffect 9920, which m29's event 0

@@ -284,6 +284,25 @@ class TheGamesEventFiles(unittest.TestCase):
                 patched += 1
         self.assertGreater(patched, 10)
 
+    def test_no_fog_stays_shut_for_a_guest_alone(self):
+        """A boss fog event that hides its wall (2005:3 off, then its fog SFX off) skips that
+        for a client (1003:5 lines, state 1) in the game's files. After the patch no such skip
+        is left, so no guest faces a fog the host does not (2026-11-08: Rom's, m32_00 13204830,
+        and the chalice dungeons' passage and boss fogs, m29 12906789/12906796/12906800)."""
+        left = []
+        for name, path in game_event_files().items():
+            output, _, _ = tool.patch_file(name, path.read_bytes())
+            emevd = tool.load_dcx(output if output is not None else path.read_bytes())
+            for event in tool.parse(emevd)['events']:
+                instructions = event['instructions']
+                for k, (bank, ident, _, _, args) in enumerate(instructions):
+                    if (bank, ident) != (1003, 5) or args[1] != 1:
+                        continue
+                    skipped = instructions[k + 1:k + 1 + args[0]]
+                    if any((b, i) == (2005, 3) and a[4] == 0 for b, i, _, _, a in skipped):
+                        left.append(f'{name} {event["id"]} #{k}')
+        self.assertEqual(left, [])
+
     def test_the_shop_patch_before_the_parameter_fix_on_the_real_dream(self):
         original = tool.load_dcx(game_event_files()[DREAM].read_bytes())
         edits = []
