@@ -12,12 +12,14 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import subprocess
 from struct import error as struct_error
 import sys
 
 PORT = Path(__file__).resolve().parent
+EXE = '.exe' if sys.platform == 'win32' else ''  # Linux: out/bb-probe, out/bb-gpu-capabilities
 # Direct memory (BB_DMEM_MB, MiB) of a render size above 1080p, where patches.py also enlarges the
 # graphics heap ("Increased Graphics Heap Sizes").
 FULL_HD_PIXELS = 1920 * 1080
@@ -79,6 +81,17 @@ def fail(message):
 
 
 def wait_for(pid):
+    if sys.platform != 'win32':  # Linux: until the process is gone, 30 s at most (as below)
+        import time
+        for _ in range(300):
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                return
+            except PermissionError:  # alive, another user's
+                pass
+            time.sleep(0.1)
+        return
     kernel32 = ctypes.windll.kernel32
     SYNCHRONIZE = 0x00100000
     handle = kernel32.OpenProcess(SYNCHRONIZE, False, pid)
@@ -89,6 +102,8 @@ def wait_for(pid):
 
 def no_console():
     """Started without a console (the launcher): console programs must not open their own."""
+    if sys.platform != 'win32':  # creationflags is Windows only (POSIX takes 0)
+        return 0
     return 0 if ctypes.windll.kernel32.GetConsoleWindow() else subprocess.CREATE_NO_WINDOW
 
 
@@ -371,7 +386,7 @@ def main():
     if not env.get('BB_FSR411_DIR') and not (PORT / 'fsr4_411').is_dir() and (data / 'fsr4_411').is_dir():
         env['BB_FSR411_DIR'] = str(data / 'fsr4_411')
 
-    probe = Path(env['BB_PROBE']) if env.get('BB_PROBE') else find_executable('bb-probe.exe')
+    probe = Path(env['BB_PROBE']) if env.get('BB_PROBE') else find_executable(f'bb-probe{EXE}')
     if not probe or not probe.is_file():
         fail('bb-probe.exe not found: build it with build.sh (MSYS2 CLANG64) or use a packaged build.')
     # Development builds run from the MSYS2 tree: its CLANG64 DLLs (SDL3, FFmpeg, ...).
@@ -399,7 +414,7 @@ def main():
         except ImportError as error:  # nothing about the icons may stop the game from starting
             decided = {'BB_ICONS_NOTE': f'Button icons are off for this run: {error}'}
         else:
-            tool = probe.parent / 'bb-gpu-capabilities.exe'
+            tool = probe.parent / f'bb-gpu-capabilities{EXE}'
             decided = button_icons.environment(game, out, button_icons.read_ini(config),
                                                env.get('BB_MODS_DIR', data / 'mods'),
                                                env.get('BB_MODS_CONFIG', data / 'mods.json'),
@@ -434,7 +449,7 @@ def main():
         import button_icons
         env['BB_ICONS_SET'] = 'playstation' if env.get('BB_ICONS', '1') == '0' else button_icons.icon_set(
             button_icons.read_ini(config), env.get('BB_GAMEPAD', ''),
-            lambda: button_icons.list_gamepads(probe.parent / 'bb-gpu-capabilities.exe'))
+            lambda: button_icons.list_gamepads(probe.parent / f'bb-gpu-capabilities{EXE}'))
     except Exception:  # nothing about the icons may stop the game from starting
         env['BB_ICONS_SET'] = 'playstation'
     # The view belongs to this process, which lasts for the whole game: a later launch removes it if this one is
@@ -506,7 +521,7 @@ def main():
         scaled_render = scaled_output = None
         # The output as the game resolves it (BbSettings::ResolveOutput): its display's desktop and its
         # window mode (borderless takes the desktop's shape), so the scene patch has the game's shape.
-        caps = probe.parent / 'bb-gpu-capabilities.exe'
+        caps = probe.parent / f'bb-gpu-capabilities{EXE}'
         desktop = game_desktop(env, caps)
         window_mode = game_window_mode(config, env)
         shape = ('--desktop', desktop, '--window-mode', window_mode)
@@ -548,7 +563,7 @@ def main():
         if scaled:
             print(f'Output {scaled_output}: scene {scaled_render}, direct memory {env["BB_DMEM_MB"]} MiB '
                   '(live_resolution=1: live changes)')
-        vram = low_vram_mb(env, probe.parent / 'bb-gpu-capabilities.exe')
+        vram = low_vram_mb(env, probe.parent / f'bb-gpu-capabilities{EXE}')
         if vram:
             env.setdefault('BB_GC_BUDGET_MB', str(low_vram_budget_mb(vram)))
             notes = [f'texture budget {env["BB_GC_BUDGET_MB"]} MiB']
@@ -595,7 +610,9 @@ def main():
             online_overrides(env, user_dir)
         this = ['--run'] if getattr(sys, 'frozen', False) else [str(Path(__file__).resolve())]
         restart = [sys.executable, *this, '--after', str(os.getpid()), *args]
-        env['BB_RESTART_COMMAND'] = subprocess.list2cmdline(restart)
+        # The game runs it through cmd's rules on Windows (CreateProcess), through sh elsewhere.
+        env['BB_RESTART_COMMAND'] = (subprocess.list2cmdline(restart) if sys.platform == 'win32'
+                                     else shlex.join(restart))
         command = [str(probe), str(out / 'boot-linked.bin'), '--content-profile', str(out / 'content.bin'),
                    '--patches', str(out / 'patches.bin'), '--app0', str(game),
                    '--user', str(user_dir),

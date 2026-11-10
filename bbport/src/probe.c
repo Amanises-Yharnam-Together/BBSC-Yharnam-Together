@@ -504,6 +504,24 @@ void runtime_restart(void) {
     /* The new launch waits for this process's GPU device to go away (run.py --after). */
     TerminateProcess(GetCurrentProcess(),0);
 #else
+    /* Started by run.py (the launchers): run.py again, as on Windows, so the restart prepares the
+     * game as the first launch did (the co-op's settings and patches); run.sh does it its own way.
+     * A child of this process runs it, and this one ends: run.py --after waits for the first run.py
+     * to end (it does once this process is gone) before it starts the game again. */
+    const char *command=getenv("BB_RESTART_COMMAND");
+    if (command && *command) {
+        puts("Runtime: restarting through run.py");
+        fflush(stdout);
+        pid_t child=fork();
+        if (child==0) {
+            /* Only the log (stdout, stderr) goes on: not the GPU device or the game's other files. */
+            syscall(SYS_close_range,3u,~0u,0u);
+            execl("/bin/sh","sh","-c",command,(char *)NULL);
+            _exit(127);
+        }
+        if (child<0) { perror("runtime_restart: fork"); _exit(1); }
+        _exit(0);
+    }
     puts("Runtime: restarting through run.sh");
     setenv("BB_LOG_APPEND","1",1); /* the new launch keeps this run's log (run.py's log_append) */
     /* The GPU threads still run until exec: their Vulkan calls fail once the device fd is

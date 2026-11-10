@@ -1403,7 +1403,15 @@ class ConsoleTextTests(unittest.TestCase):
         install = Path('C:/Games/Yharnam Together')
         raw = ('Программа: ' + str(install / 'bin' / 'bb-probe.exe') + '\r\nШ\r\n').encode('cp866')
         done = mock.Mock(returncode=0, stdout=raw)
-        with mock.patch.object(coop.subprocess, 'run', return_value=done):
-            self.assertTrue(coop.firewall_ready(install, False))
-        with mock.patch.object(coop.subprocess, 'run', return_value=mock.Mock(returncode=0, stdout=b'\x98\xff')):
-            self.assertFalse(coop.firewall_ready(install, False))
+        with mock.patch.object(coop.sys, 'platform', 'win32'):  # netsh's answer, read on any OS
+            with mock.patch.object(coop.subprocess, 'run', return_value=done):
+                self.assertTrue(coop.firewall_ready(install, False))
+            with mock.patch.object(coop.subprocess, 'run', return_value=mock.Mock(returncode=0, stdout=b'\x98\xff')):
+                self.assertFalse(coop.firewall_ready(install, False))
+
+    def test_no_windows_firewall_elsewhere(self):
+        # Linux and the rest have no Windows Firewall to ask (their own, ufw or firewalld, the player
+        # opens by hand): PLAY and Start server go on without netsh.
+        with mock.patch.object(coop.sys, 'platform', 'linux'), mock.patch.object(coop.subprocess, 'run') as run:
+            self.assertTrue(coop.firewall_ready(Path('/games/yharnam'), True))
+        run.assert_not_called()

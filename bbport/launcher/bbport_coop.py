@@ -1043,10 +1043,10 @@ def junctions_work(folder):
     probe = folder / '.junction-probe'
     try:
         folder.mkdir(parents=True, exist_ok=True)
-        if is_junction(probe):
-            os.rmdir(probe)
+        if is_link(probe):  # a probe left behind (Linux: a symbolic link, which os.rmdir cannot remove)
+            remove_link(probe)
         make_junction(probe, folder)
-        os.rmdir(probe)
+        remove_link(probe)
         return True
     except OSError:
         return False
@@ -1922,6 +1922,8 @@ def firewall_commands(install, host):
 
 def firewall_ready(install, host):
     """Whether this install's rules are there (reading rules needs no administrator)."""
+    if sys.platform != 'win32':  # Windows Firewall only: elsewhere (ufw, firewalld) the player opens the ports
+        return True
     probe = str(Path(install) / 'bin' / 'bb-probe.exe').lower()
     names = [RULE_GAME] + ([RULE_HOST_TCP, RULE_HOST_UDP] if host else [])
     for name in names:

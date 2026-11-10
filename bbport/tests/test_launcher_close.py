@@ -15,7 +15,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'launcher'))
 
-if sys.platform == 'win32':
+if sys.platform in ('win32', 'linux'):
     import bbport_launcher_win as launcher
 
 
@@ -31,7 +31,7 @@ def stand_in(directory, body):
     return [sys.executable, str(path)]
 
 
-@unittest.skipUnless(sys.platform == 'win32', 'the Windows launcher')
+@unittest.skipUnless(sys.platform in ('win32', 'linux'), 'the launcher (Windows job, Linux session)')
 class LauncherCloseTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -181,7 +181,7 @@ class LauncherCloseTests(unittest.TestCase):
             say('restarting through run.py')
             """)
         job = launcher.GameJob(process)
-        job.assigned = False
+        job.assigned, job.session = False, None  # no job object (Windows), no session (Linux)
         notes = []
         job.say = notes.append
         process.wait(timeout=30)
@@ -198,7 +198,7 @@ class LauncherCloseTests(unittest.TestCase):
         process = self.start("say('done')\n")
         process.wait(timeout=30)
         job = launcher.GameJob(process)
-        job.assigned = False
+        job.assigned, job.session = False, None  # no job object (Windows), no session (Linux)
         with mock.patch.object(launcher, 'FALLBACK_GRACE_S', 0.2):
             self.assertFalse(launcher.game_over(process, job))
             time.sleep(0.3)
