@@ -5171,6 +5171,34 @@ SCENARIOS["host-death-kills"] = _host_death_kills("host-death-kills", far=False)
 SCENARIOS["host-death-kills-far"] = _host_death_kills("host-death-kills-far", far=True)
 
 
+# Bug audit 24 (I_Eat_Toast 2026-10-30): both nameplates said "Host". The role line is the
+# party's: the host's game shows Guest over the guest, the guest's game Host over the host, and so
+# again after the guest's own reload (a lamp trip).
+NAMEPLATE_GUEST = r"Bloodborne party HUD: nameplate \d role line: \S+ Guest"
+NAMEPLATE_HOST = r"Bloodborne party HUD: nameplate \d role line: \S+ Host"
+NAMEPLATE_GAMES = r"Bloodborne party HUD: nameplate \d role line: \S+ game's"
+SCENARIOS["nameplate-roles"] = {
+    "about": "the host's nameplate over the guest says Guest and the guest's over the host says "
+             "Host, also after the guest travels to the lamp again (a reload)",
+    "roles": {
+        "host": [START, "godmode", "wait-session 2 300", "wait 15", "sync np-seen",
+                 "sync np-reloaded", "wait 15", "expect-session 2"],
+        "guest": [START, "godmode", "wait-session 2 300", "wait 15", "sync np-seen",
+                  "log reloading", f"travel {CENTRAL_YHARNAM_LAMP}", "wait 15",
+                  "sync np-reloaded", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "nameplate-roles", "roles": ["host", "guest"]}
+              for name in ("np-seen", "np-reloaded")},
+    "expect": {"host": [NAMEPLATE_GUEST],
+               "guest": [NAMEPLATE_HOST]},
+    # The line is noted on change only: after the reload it stays the party's (never the game's).
+    "forbid": {"host": [*SESSION_HOLDS, NAMEPLATE_HOST],
+               "guest": [*SESSION_HOLDS, NAMEPLATE_GUEST,
+                         r"autoplay log: reloading[\s\S]*" + NAMEPLATE_GAMES]},
+    "timeout": 300,
+}
+
+
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
 # look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
 # --play <name>) and in no tier.
