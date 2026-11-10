@@ -5201,6 +5201,32 @@ SCENARIOS["nameplate-roles"] = {
 }
 
 
+# Bug audit 24 (Provi 2026-10-29): a guest's frenzy build-up in the Nightmare areas showed its
+# effect, damage and sound over and over on the host's screen. SpEffect 5299 is a frenzy build-up
+# aura (registCurse 5 every 2 s, as a Winter Lantern's gaze gives); the guest stands in it for
+# 20 s, the host watches its copy of the guest (effects added and removed, HP) the whole time.
+FRENZY_AURA = 5299
+FRENZY_FULL = 6421
+SCENARIOS["frenzy-guest-look"] = {
+    "about": "probe: the guest builds up frenzy (SpEffect 5299 for 20 s); both games log the "
+             "guest's effects: what the host's copy of it adds again and again",
+    "roles": {
+        "host": [START, "godmode", "wait-session 2 300", "wait 10", "sync fz-ready",
+                 "watch-effects player 60", "sync fz-done", "wait 5", "expect-session 2"],
+        "guest": [START, "wait-session 2 300", "wait 10", "sync fz-ready",
+                  "watch-effects self 60",
+                  *[step for _ in range(10) for step in (f"add-effect {FRENZY_AURA}", "wait 2")],
+                  # Rig 2026-11-10: 5299 changed neither game's effect list; 6421 is a full
+                  # build-up at once (registCurse 99999) with frenzy's 70% HP damage.
+                  f"add-effect {FRENZY_FULL}", "wait 20", "sync fz-done", "wait 5", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "frenzy-guest-look", "roles": ["host", "guest"]}
+              for name in ("fz-ready", "fz-done")},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300,
+}
+
+
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
 # look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
 # --play <name>) and in no tier.
@@ -5223,5 +5249,7 @@ PROBE_NAMES = (
     "altar-record-capture", "chalice-remove-record",
     # known failure kept for the uncapped-FPS summon bug
     "join3-uncap",
+    # bug audit 24: a guest's frenzy on the host's screen
+    "frenzy-guest-look",
 )
 PROBES = {name: SCENARIOS.pop(name) for name in PROBE_NAMES}
