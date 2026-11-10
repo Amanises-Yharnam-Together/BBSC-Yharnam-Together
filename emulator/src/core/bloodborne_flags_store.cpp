@@ -685,6 +685,7 @@ namespace Coop {
 // The character the kept progress belongs to: the save slot the game opened last (see
 // CharacterSlotOfSavePath), -1 until it opened one.
 std::atomic<int> character_slot{-1};
+std::atomic<bool> phantom_keys_forgotten{false};
 
 } // namespace Coop
 
@@ -849,6 +850,11 @@ void ForgetSlotIfNewCharacter() {
     std::filesystem::remove(Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
                                 SlotFileName("resume", character_slot.load()),
                             error);
+    // And the key items the old character gained as a phantom (GiveBackPhantomKeyItems).
+    std::filesystem::remove(Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
+                                SlotFileName("phantom_keys", character_slot.load()),
+                            error);
+    phantom_keys_forgotten.store(true);
     RefuseServerResumePoint(); // the old character's place in its team's world (phase 7)
     LOG_INFO(Debug,
              "Bloodborne party: new character in save slot {} ({} event flags set, {} kept); its "

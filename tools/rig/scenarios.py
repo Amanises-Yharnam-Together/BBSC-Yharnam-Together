@@ -3611,6 +3611,38 @@ SCENARIOS["key-items-silent"] = {
     "timeout": 600,
 }
 
+# Discord 2026-10-26 (a guest without the Cleric Beast's Sword Hunter Badge and Gascoigne's key)
+# and 2026-11-07 (back on their own save after the friend quit: no badges, no Workshop Tool): a
+# key item gained as the team's phantom came back only at the guest's first trip in that run of
+# the game. Here the guest gains the badge as a phantom and its game closes with no trip.
+SCENARIOS["key-items-after-quit"] = {
+    "about": "a guest gains a key item (the Sword Hunter Badge) as the team's phantom and its "
+             "game closes before any trip; started again it holds the badge, as a phantom in "
+             "the team's session and in its own list after a lamp trip and back",
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait-members 2 120", "wait 10",
+                 "wait-solo 180", "wait-session 2 420", "wait-members 2 120", "wait 30",
+                 "wait 30", "wait 30", "expect-session 2"],
+        "guest": [["team-accept", "team-ready", START, "godmode",
+                   f"trade-stock {SWORD_HUNTER_BADGE} 0", f"expect-held {SWORD_HUNTER_BADGE} 0",
+                   "wait-session 2 300", "wait-members 2 120", "wait 15",
+                   f"expect-held {SWORD_HUNTER_BADGE} 0", f"trade-stock {SWORD_HUNTER_BADGE} 1",
+                   f"expect-held {SWORD_HUNTER_BADGE} 1 20", "wait 5", "snapshot", "done"],
+                  ["team-accept", "team-ready", "godmode", "wait-session 2 420",
+                   "wait-members 2 120", "wait 20", f"expect-held {SWORD_HUNTER_BADGE} 1 20",
+                   f"travel {HUNTERS_DREAM}", "wait 15", f"expect-held {SWORD_HUNTER_BADGE} 1 20",
+                   f"travel {CENTRAL_YHARNAM_LAMP}", "wait 15",
+                   f"expect-held {SWORD_HUNTER_BADGE} 1 20", "expect-session 2"]],
+    },
+    # The owed count also takes the guest's own key items put into the phantom's list (2 on the
+    # rig's save: goods 4000 and the badge); only the badge is missing at home, so only it is given.
+    "expect": {"guest": [r"save slot \d+ is owed \d+ key items gained as a phantom in an earlier "
+                         r"game[\s\S]*gave back 1 x goods 4114: gained as a phantom"]},
+    "allow": CRASH_CLEANUP,
+    "timeout": 900,
+}
+
 # A world flag in Cathedral Ward's block (not the block of the map anyone stands on): the team's
 # progress there (krolebord's Ward gate, #266) and NPC steps (#269) live in blocks like it.
 WARD_BLOCK_FLAG = 12400999

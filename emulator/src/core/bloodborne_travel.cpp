@@ -1623,60 +1623,77 @@ void RecheckShopLinesOnce(u32 map) {
 // See HeldItemFlagFix: every second in a loaded world, each held-item flag follows this player's
 // own items, so a save that took the host's value from a team world gets its own badges from the
 // bosses, NPCs and maps, and a player who holds one never gets it twice.
-// See PhantomKeyItemsToGiveBack: while this guest is a phantom (character type 1) its key item
-// list is looked at every 250 ms; once its own list is back (another list, not a phantom), what
-// it gained in the phantom's comes back. Its own list is looked at as often out of the join's
-// state, and a new phantom's list gets its own key items (OwnKeyItemsForPhantom).
+// See PhantomKeyItemLedger: while this guest is a phantom (character type 1) its key item list
+// is looked at every 250 ms, and what it gained there is kept in the save slot's file. Once its
+// own list is in view (another list, not a phantom), in this run of the game or a later one, what
+// it is owed comes back. Its own list is looked at as often out of the join's state, and a new
+// phantom's list gets its own key items and the owed ones (OwnKeyItemsForPhantom).
 void GiveBackPhantomKeyItems() {
     constexpr s32 PhantomType = 1;
-    static u64 phantom_list = 0;
-    static std::vector<HeldGoods> first_look;
-    static std::vector<HeldGoods> last_look;
-    static std::vector<HeldGoods> own_look;
+    static PhantomKeyItemLedger ledger;
+    static std::vector<OwedKeyItem> filed;
+    static int ledger_slot = -2;
     static s64 looked_ms = 0;
     const u64 player = GetLocalPlayer();
-    if (!party_controller || player < 0x10000 || !PlayerItemsReadable()) {
+    const int slot = character_slot.load();
+    if (!party_controller || slot < 0 || player < 0x10000 || !PlayerItemsReadable()) {
         return;
     }
-    const u64 list = KeyItemList();
-    if (ReadValue<s32>(player, 0x78) == PhantomType) {
-        const s64 now_ms = SteadyMilliseconds();
-        if (now_ms - looked_ms < 250) {
-            return;
-        }
-        looked_ms = now_ms;
-        last_look = HeldKeyGoods();
-        if (list != phantom_list) {
-            phantom_list = list;
-            first_look = last_look;
-            for (const HeldGoods& held : OwnKeyItemsForPhantom(own_look, last_look)) {
-                const TradeItem item{BloodborneCoop::TradeItemKind::Goods, held.goods,
-                                     static_cast<u32>(held.count)};
-                AddTradeItems(std::span{&item, 1}, ItemPopup::Silent);
-                LOG_INFO(Debug,
-                         "Bloodborne party: {} x goods {} of the guest's own in the phantom's key "
-                         "items",
-                         held.count, held.goods);
-            }
-        }
+    const s64 now_ms = SteadyMilliseconds();
+    if (now_ms - looked_ms < 250) {
         return;
     }
-    if (phantom_list == 0 || list == phantom_list) {
-        if (const s64 now_ms = SteadyMilliseconds(); now_ms - looked_ms >= 250) {
-            looked_ms = now_ms;
-            own_look = HeldKeyGoods();
+    looked_ms = now_ms;
+    const std::filesystem::path file =
+        Common::FS::GetUserPath(Common::FS::PathType::UserDir) / SlotFileName("phantom_keys", slot);
+    if (phantom_keys_forgotten.exchange(false) || slot != ledger_slot) {
+        ledger_slot = slot;
+        std::ifstream in{file, std::ios::binary};
+        const std::string text{std::istreambuf_iterator<char>{in},
+                               std::istreambuf_iterator<char>{}};
+        filed = ParseOwedKeyItems(text);
+        ledger.Load(filed);
+        if (!filed.empty()) {
+            LOG_INFO(Debug,
+                     "Bloodborne party: save slot {} is owed {} key items gained as a phantom "
+                     "in an earlier game",
+                     slot, filed.size());
         }
-        return;
     }
-    phantom_list = 0;
-    for (const HeldGoods& held : PhantomKeyItemsToGiveBack(first_look, last_look, HeldKeyGoods())) {
+    const auto give = [](const HeldGoods& held) {
         const TradeItem item{BloodborneCoop::TradeItemKind::Goods, held.goods,
                              static_cast<u32>(held.count)};
         AddTradeItems(std::span{&item, 1}, ItemPopup::Silent);
-        LOG_INFO(Debug,
-                 "Bloodborne party: gave back {} x goods {}: gained as a phantom, dropped by "
-                 "the game with its key item list",
-                 held.count, held.goods);
+    };
+    const u64 list = KeyItemList();
+    if (ReadValue<s32>(player, 0x78) == PhantomType) {
+        for (const HeldGoods& held : ledger.LookAtPhantom(list, HeldKeyGoods())) {
+            give(held);
+            LOG_INFO(Debug,
+                     "Bloodborne party: {} x goods {} of the guest's own in the phantom's key "
+                     "items",
+                     held.count, held.goods);
+        }
+    } else if (const auto owed = ledger.LookAtOwn(list, HeldKeyGoods());
+               owed && !ledger.Owed().empty() && (owed->empty() || TradeItemsCanBeAdded())) {
+        for (const HeldGoods& held : *owed) {
+            give(held);
+            LOG_INFO(Debug,
+                     "Bloodborne party: gave back {} x goods {}: gained as a phantom, dropped by "
+                     "the game with its key item list",
+                     held.count, held.goods);
+        }
+        ledger.GaveBack();
+    }
+    // The slot's file follows what is owed, so a game closed as a phantom still gives it back.
+    if (std::vector<OwedKeyItem> owed = ledger.Owed(); owed != filed) {
+        std::error_code error;
+        if (owed.empty()) {
+            std::filesystem::remove(file, error);
+        } else {
+            std::ofstream{file, std::ios::binary | std::ios::trunc} << EncodeOwedKeyItems(owed);
+        }
+        filed = std::move(owed);
     }
 }
 

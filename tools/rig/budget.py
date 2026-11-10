@@ -51,6 +51,7 @@ LONG = {
     "team-world-kept-alone": "a team join, a quit to the title and a load alone",
     "gesture-own": "the 10-23 gestures case: a join, two trips",
     "key-items-silent": "Kaniel 2026-10-23: a join, two trips",
+    "key-items-after-quit": "Discord 2026-11-07: two stages (two boots), a join each, two trips",
     "team-world-other-block": "the 10-19 playtest case #266: two team sessions",
     "home-world": "players' rolled-back saves 2026-11: one game, three returns to the title and four loads",
     "npc-progress-after-trip": "the 10-19 playtest case #269: a join, two trips",
