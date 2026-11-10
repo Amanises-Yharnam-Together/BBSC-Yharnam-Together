@@ -5087,6 +5087,9 @@ SCENARIOS["doll-hit-during-level-up"] = {
 # nothing new to say, for the host and the guests. m21_00 12100121 sets 12100122 while the player
 # holds it, and her talk offers "Give" (its third choice) while 12100122 is on; "Give" sets
 # 72100114, then 72100112 after her words.
+# Rig 2026-11-10: the host's give works on its own. The guest's does not prove its own "Give" yet:
+# 72100114 and 72100112 are the host's story steps and reach the guest (FollowTeamStory), so its
+# 12100123 gives the Tear Stone and takes its ornament before its own pick.
 SMALL_HAIR_ORNAMENT = "goods:4300"
 DOLL_GIVE = 12100122
 GIVE_THE_ORNAMENT = [f"wait-flag {DOLL_GIVE} 1 20", f"approach {DOLL} 1.0 0 1.5708", "wait 2",
