@@ -416,7 +416,10 @@ Each phase: red-green tests first, all CI checks, rig scenarios named below, mer
    - **The save's own world aside.** Before a block takes the team's values, its world flags go
      to `user\bloodborne_party_personal_world_slot<N>.txt` (blocks already in the file keep what it
      says: a save that played a team before). A save loaded alone gets them back block by block
-     as its loads bring them, and the file goes when all are back.
+     as its loads bring them, and the file goes when all are back. A guest's kept session changes
+     to world flags (`KeepWorldChanges`) are not set in a save loaded alone
+     (`KeptChangeStaysWithTeam`): they were, in the same run (out of the team in play, or alone
+     from the title: the role stays a guest's), and made the team's world the save's own progress.
    - **Home worlds.** `user\bloodborne_party_home_world_slot<N>.txt` lists the worlds this save
      made (the host's load of a team with no world yet adds it) and, for each, the version of the
      server's copy its game last had as that world's host. `HowToTakeTeamWorld`: another save's

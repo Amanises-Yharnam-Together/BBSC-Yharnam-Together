@@ -48,6 +48,7 @@ LONG = {
     "doll-walk-alone": "Kaniel 2026-11-03 Doll level up: a team join, two level ups and their walks (about 280 s)",
     "doll-walk-host": "Kaniel 2026-11-03 Doll level up: a team join, two level ups and their walks (about 265 s)",
     "story-hostless": "the 10-20 case #286: a team join and a trip",
+    "team-world-kept-alone": "a team join, a quit to the title and a load alone",
     "gesture-own": "the 10-23 gestures case: a join, two trips",
     "key-items-silent": "Kaniel 2026-10-23: a join, two trips",
     "team-world-other-block": "the 10-19 playtest case #266: two team sessions",

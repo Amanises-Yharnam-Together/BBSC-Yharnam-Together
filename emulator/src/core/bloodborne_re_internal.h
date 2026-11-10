@@ -1038,6 +1038,9 @@ void ApplyTeamWorldOnLoad(bool trip = false);
 std::vector<s32> TeamWorldFlagsOnForGuest();
 // The blocks the team's world covers, for a team guest (none otherwise).
 std::vector<u32> TeamWorldBlocksForGuest();
+// Whether the save loaded now plays in a team (its Start's party, until it loads alone from the
+// title or leaves its team in play).
+bool SavePlaysInTeam();
 // Puts lamps (entities, LampOfActiveFlag) on this character's lamp list, so they stay lit for it.
 void ListLamps(std::span<const s32> lamps);
 // The lamps KeepGuestLampsLit lit again are no world changes (WithoutRelitLamps).
