@@ -5419,6 +5419,11 @@ class Launcher:
         tries = getattr(self, 'coop_id_tries', 0)
         what = bbport_coop.id_retry(line, tries)
         if what is None:
+            # Any other refusal: the server's own reason stays in the status line (the game's team
+            # screen has one short line of it, gone with the window).
+            reason = bbport_coop.refusal_reason(line)
+            if reason:
+                self.status.configure(text=_(bbport_coop.REFUSED_TEXT).format(reason), fg=BAD)
             return
         if what == 'retry':
             self.coop_id_tries = tries + 1
