@@ -269,6 +269,9 @@ struct HomeWorlds {
         bool operator==(const World&) const = default;
     };
     std::vector<World> worlds; // the oldest first, MaxHomeWorlds at most
+    // The save was loaded alone since its last load in a team: what it holds may be ahead of the
+    // server's copy (what it did alone), never only behind it.
+    bool alone = false;
     bool operator==(const HomeWorlds&) const = default;
 
     bool Has(std::string_view id) const;
@@ -279,7 +282,8 @@ struct HomeWorlds {
     bool NoteVersion(std::string_view id, u64 version);
 };
 constexpr size_t MaxHomeWorlds = 16;
-// The file ("worlds", an id and its version a line, "end"); a cut or broken one is none.
+// The file ("worlds", an id and its version a line, "alone" when so, "end"); a cut or broken one
+// is none.
 std::string FormatHomeWorlds(const HomeWorlds& home);
 std::optional<HomeWorlds> ParseHomeWorlds(std::string_view text);
 // The world of a team's party key ("world:<id>"), "" for another key.
@@ -287,10 +291,14 @@ std::string_view WorldIdOfParty(std::string_view party);
 // How a save's loads take the team's world `world` as the server has it (`server_version`):
 //   Aside      another save's world: this save's own goes aside first and comes back alone
 //   Home       its home world: the server's goes in, nothing aside (its own world is this one)
-//   SaveLeads  its home world, this game its host, and the server's copy the one this save's game
-//              last had as its host: the save's world is the team's as it is (its host's reports
-//              take it to the server), with what it did alone since. A copy another host moved on
-//              is taken instead (Home): the team played on without this save.
+//   SaveLeads  its home world, this game its host, the save played alone since its last team
+//              load, and the server's copy the one this save's game last had as its host: the
+//              save's world is the team's as it is (its host's reports take it to the server),
+//              with what it did alone. A copy another host moved on is taken instead (Home): the
+//              team played on without this save. So is the server's by a save that did not play
+//              alone: the server's copy is then the newer one whenever the game closed before
+//              it saved (rig team-world 2026-11-10: the host's flag of the session before was
+//              only on the server, and its save leading took it back for the whole team).
 enum class TeamWorldTake : u8 { Aside, Home, SaveLeads };
 TeamWorldTake HowToTakeTeamWorld(const HomeWorlds& home, std::string_view world, bool host,
                                  u64 server_version);

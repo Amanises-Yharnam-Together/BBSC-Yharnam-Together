@@ -379,9 +379,9 @@ TEST(HomeWorlds, AWorldsIdIsItsPartyKeys) {
 }
 
 // Another save's world: this save's own goes aside as before and comes back when it plays alone.
-// Its home world: nothing aside. And the host of its home world whose save was the last to
-// report it (the server's copy is at the version this save saw) leads with its save, so what it
-// did alone since is the team's too; a server copy another host moved on is taken.
+// Its home world: nothing aside. And the host of its home world that played alone since, whose
+// save was the last to report it (the server's copy is at the version this save saw), leads with
+// its save, so what it did alone is the team's too; a server copy another host moved on is taken.
 TEST(HomeWorlds, HowASaveTakesATeamsWorld) {
     HomeWorlds home;
     home.Add("mine");
@@ -389,6 +389,12 @@ TEST(HomeWorlds, HowASaveTakesATeamsWorld) {
     EXPECT_EQ(HowToTakeTeamWorld(home, "theirs", true, 12), TeamWorldTake::Aside);
     EXPECT_EQ(HowToTakeTeamWorld(home, "theirs", false, 12), TeamWorldTake::Aside);
     EXPECT_EQ(HowToTakeTeamWorld({}, "mine", true, 12), TeamWorldTake::Aside);
+    // Rig team-world 2026-11-10: the host's game closed before it saved; the flag of that session
+    // was only on the server, and the save leading took it back for the whole team. A save that
+    // did not play alone since has nothing the server lacks: the server's goes in.
+    EXPECT_EQ(HowToTakeTeamWorld(home, "mine", true, 12), TeamWorldTake::Home);
+    home.alone = true;
+    EXPECT_EQ(ParseHomeWorlds(FormatHomeWorlds(home)), home);
     EXPECT_EQ(HowToTakeTeamWorld(home, "mine", true, 12), TeamWorldTake::SaveLeads);
     EXPECT_EQ(HowToTakeTeamWorld(home, "mine", true, 13), TeamWorldTake::Home)
         << "another host played it since";

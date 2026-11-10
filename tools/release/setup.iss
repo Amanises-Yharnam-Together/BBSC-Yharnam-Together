@@ -161,8 +161,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; The player's own files are never installed over (check_release.py keeps them out of a release as well):
 ; an update leaves the settings, key and pad remaps (bbport.ini), mods and patch choices as they are.
 ; The saves least of all (red, 2026-11-06: "I updated with the installer and lost our save files"):
-; whatever a staged folder holds, nothing is ever written into user\ or a savedata folder, and no
-; section of this script deletes there (tools\release\tests\test_setup_saves.py).
+; whatever a staged folder holds, nothing is ever written into user\ (the saves are in it) or a
+; savedata folder beside it, and no section of this script deletes there (tools\release\tests\test_setup_saves.py).
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Excludes: "bbport.ini,mods.json,patches.json,\user\*,\savedata\*"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [InstallDelete]

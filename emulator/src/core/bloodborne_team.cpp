@@ -565,7 +565,7 @@ std::string FormatHomeWorlds(const HomeWorlds& home) {
     for (const HomeWorlds::World& world : home.worlds) {
         text += world.id + " " + std::to_string(world.version) + "\n";
     }
-    return text + "end\n";
+    return text + (home.alone ? "alone\n" : "") + "end\n";
 }
 
 std::optional<HomeWorlds> ParseHomeWorlds(std::string_view text) {
@@ -587,6 +587,10 @@ std::optional<HomeWorlds> ParseHomeWorlds(std::string_view text) {
         }
         if (line == "end" && part == 1) {
             part = 2;
+            continue;
+        }
+        if (line == "alone" && part == 1) {
+            home.alone = true;
             continue;
         }
         const auto space = line.find(' ');
@@ -620,8 +624,8 @@ TeamWorldTake HowToTakeTeamWorld(const HomeWorlds& home, std::string_view world,
         return TeamWorldTake::Aside;
     }
     const u64 seen = home.Version(world);
-    return host && seen != 0 && seen == server_version ? TeamWorldTake::SaveLeads
-                                                       : TeamWorldTake::Home;
+    return host && home.alone && seen != 0 && seen == server_version ? TeamWorldTake::SaveLeads
+                                                                     : TeamWorldTake::Home;
 }
 
 OldSaveWorld OldSavesWorld(const bbcoop::LobbyState* lobby, std::string_view hint,

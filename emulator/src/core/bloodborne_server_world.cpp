@@ -2819,6 +2819,12 @@ void ApplyTeamWorldOnLoad(bool trip) {
         // Alone again: this save's own world back where a team's was in it, block by block as
         // the loads bring them; the file keeps the blocks still to come.
         std::scoped_lock lock{team_mutex};
+        // Noted with its home worlds: its next hunt as their host goes on from this save
+        // (HowToTakeTeamWorld).
+        if (auto home = ReadHomeWorlds(slot); home && !home->worlds.empty() && !home->alone) {
+            home->alone = true;
+            WriteWholeFile(HomeWorldFile(slot), FormatHomeWorlds(*home));
+        }
         std::error_code error;
         if (!std::filesystem::exists(PersonalWorldFile(slot), error)) {
             personal_world_due = false;
@@ -2904,6 +2910,11 @@ void ApplyTeamWorldOnLoad(bool trip) {
         }
         team_take =
             HowToTakeTeamWorld(home.value_or(HomeWorlds{}), world_id, team_host, world->version());
+        // In a team again: decided for this session, and the next one starts from the server's.
+        if (home && home->alone) {
+            home->alone = false;
+            WriteWholeFile(HomeWorldFile(slot), FormatHomeWorlds(*home));
+        }
         LOG_INFO(Debug, "Co-op team world: slot {} takes world {} (version {}) as {}", slot,
                  world_id, world->version(),
                  *team_take == TeamWorldTake::Aside  ? "another's: its own goes aside"

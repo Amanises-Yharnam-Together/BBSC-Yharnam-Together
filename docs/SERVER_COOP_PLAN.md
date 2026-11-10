@@ -422,7 +422,8 @@ Each phase: red-green tests first, all CI checks, rig scenarios named below, mer
      server's copy its game last had as that world's host. `HowToTakeTeamWorld`: another save's
      world goes in with the save's own aside, as above; a home world goes in with nothing aside
      (a world kept aside while the save visited another's is put back first); and the host of its
-     home world whose server copy is still at the version it noted leads with its save (no
+     home world that was loaded alone since its last team load (`alone` in the file), whose
+     server copy is still at the version it noted, leads with its save (no
      block is taken; its reports take the save's world to the server), so solo progress is the
      team's. A copy another host moved on is taken instead. A save from before the list (its own
      world aside, no list) makes its last world its home world when the server's list names its
