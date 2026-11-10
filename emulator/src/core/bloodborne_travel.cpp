@@ -1775,6 +1775,43 @@ void ClearDollLevelUpFlagAfterHerBlessing() {
              DollLevelUpFlag);
 }
 
+// See DollHitEndsBlessing: each frame in the co-op mode, this game's blessing ended when the
+// Doll is hit during it, so m21_00 12100112 stands the player up.
+void EndDollBlessingWhenSheIsHit() {
+    static DollHitEndsBlessing hit;
+    const bool playing = party_controller && GetLocalPlayer() >= 0x10000;
+    const bool blessing_on = playing && EventFlagOn(DollBlessingFlag);
+    if (!hit.Tick(playing, blessing_on, blessing_on ? DollHp() : std::nullopt)) {
+        return;
+    }
+    reinterpret_cast<bool PS4_SYSV_ABI (*)(u64, s32, bool)>(
+        image_base + PartyGhostSetEventFlagOffset)(0, DollBlessingFlag, false);
+    LOG_INFO(Debug, "Bloodborne party: the Doll was hit during her blessing; flag {} cleared",
+             DollBlessingFlag);
+}
+
+// See DollGiveFix: every second in a party, the Doll's "Give" follows this player's Small Hair
+// Ornament (in a session its own event's set reaches it only over a flag message).
+void KeepDollGiveFlagOwn() {
+    static s64 checked_ms = 0;
+    const s64 now_ms = SteadyMilliseconds();
+    if (!party_controller || now_ms - checked_ms < 1'000 || GetLocalPlayer() < 0x10000 ||
+        !PlayerItemsReadable()) {
+        return;
+    }
+    checked_ms = now_ms;
+    const bool holds =
+        TradeHeld({BloodborneCoop::TradeItemKind::Goods, SmallHairOrnamentGoods, 0}) > 0;
+    const auto fix = DollGiveFix(true, EventFlagOn(DollGiveFlag), holds);
+    if (!fix) {
+        return;
+    }
+    reinterpret_cast<bool PS4_SYSV_ABI (*)(u64, s32, bool)>(
+        image_base + PartyGhostSetEventFlagOffset)(0, DollGiveFlag, *fix);
+    LOG_INFO(Debug, "Bloodborne party: the Doll's \"Give\" flag {} {}: this player {} the ornament",
+             DollGiveFlag, *fix ? "set" : "cleared", holds ? "holds" : "has no");
+}
+
 // See ImpurityBonusChange: every second, the Impurity rune's HP bonus put on (through the
 // player's own add-effect virtual, as event 9035's 2004:8) or taken off.
 void KeepImpurityBonus(bool in_session) {
@@ -2029,7 +2066,9 @@ void TickPlayersOnThisMap() {
     KeepGiftTalkFlagsOwn();
     KeepOwnedWeaponFlagsOwn();
     KeepHeadstoneFlagsOwn();
+    EndDollBlessingWhenSheIsHit();
     ClearDollLevelUpFlagAfterHerBlessing();
+    KeepDollGiveFlagOwn();
     static RecreateAfterJoin recreate_after_join;
     if (recreate_after_join.Tick(IsPartyGuestRole(), in_session,
                                  in_session ? OtherSessionMembers().size() : 0,

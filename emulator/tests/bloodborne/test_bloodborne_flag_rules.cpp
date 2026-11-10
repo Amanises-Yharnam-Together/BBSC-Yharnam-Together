@@ -690,6 +690,51 @@ TEST(BloodborneFlagRules, TheDollsLevelUpFlagStaysWithoutABlessingOrOutOfCoop) {
     EXPECT_FALSE(solo.Tick(true, true, false, false)) << "a blessing out of it is forgotten";
 }
 
+// Discord 2026-11-06 (vPeppy): "stuck interacting with the doll if your friend attacks her". A hit
+// on the Doll ends her talk where it stands (rig doll-hit-during-level-up: 72100100, 72100101 and
+// 72100102 all stayed on, the player knelt for good): her talk's "72100100 off" never runs. A
+// drop of her HP while this game's blessing is on ends the blessing here.
+TEST(BloodborneFlagRules, AHitOnTheDollEndsHerBlessing) {
+    DollHitEndsBlessing hit;
+    EXPECT_FALSE(hit.Tick(true, true, 900)) << "her HP first seen";
+    EXPECT_FALSE(hit.Tick(true, true, 900));
+    EXPECT_TRUE(hit.Tick(true, true, 586)) << "hit during her blessing";
+    EXPECT_FALSE(hit.Tick(true, true, 586)) << "once a hit";
+    EXPECT_FALSE(hit.Tick(true, true, 900)) << "healed";
+    EXPECT_TRUE(hit.Tick(true, true, 0)) << "killed";
+}
+
+TEST(BloodborneFlagRules, AHitOnTheDollOutsideHerBlessingChangesNothing) {
+    DollHitEndsBlessing hit;
+    EXPECT_FALSE(hit.Tick(true, false, 900));
+    EXPECT_FALSE(hit.Tick(true, false, 586)) << "no blessing";
+    EXPECT_FALSE(hit.Tick(true, true, 586)) << "hit before her blessing";
+    EXPECT_FALSE(hit.Tick(true, true, std::nullopt)) << "no Doll here";
+    EXPECT_FALSE(hit.Tick(true, true, 300)) << "another map's Doll is not a hit";
+    EXPECT_TRUE(hit.Tick(true, true, 200));
+    DollHitEndsBlessing solo;
+    EXPECT_FALSE(solo.Tick(false, true, 900));
+    EXPECT_FALSE(solo.Tick(false, true, 586)) << "the co-op mode only";
+    EXPECT_FALSE(solo.Tick(true, true, 400)) << "nothing kept from outside it";
+}
+
+// Discord 2026-11-06 (1.4.0, markmon93): with the Small Hair Ornament the Doll offered no "Give",
+// host and guests alike. m21_00 12100121 sets 12100122 while the player holds the ornament (goods
+// 4300); in a session that set reaches the game as a flag message, which keeps a per-player flag
+// as it was (rig doll-ornament-give: "kept flag 12100122 off against the other player's"). It
+// follows what this player holds, as the held-item flags do.
+TEST(BloodborneFlagRules, TheDollsGiveFollowsThePlayersOrnament) {
+    EXPECT_EQ(DollGiveFlag, 12100122);
+    EXPECT_EQ(SmallHairOrnamentGoods, 4300u);
+    EXPECT_EQ(RuleFor(DollGiveFlag).owner, FlagOwner::PerPlayer);
+    EXPECT_TRUE(KeepsLocalFlag(true, DollGiveFlag));
+    EXPECT_EQ(DollGiveFix(true, false, true), std::optional<bool>{true});
+    EXPECT_EQ(DollGiveFix(true, true, false), std::optional<bool>{false});
+    EXPECT_EQ(DollGiveFix(true, true, true), std::nullopt);
+    EXPECT_EQ(DollGiveFix(true, false, false), std::nullopt);
+    EXPECT_EQ(DollGiveFix(false, false, true), std::nullopt) << "the co-op mode only";
+}
+
 // m21_00 12105020-12105024 (01.09): on while any of the headstone's lamps is lit.
 TEST(BloodborneFlagRules, AHeadstoneIsLitByThisPlayersOwnLamps) {
     const std::set<s32> lit{12407830, 13207810};

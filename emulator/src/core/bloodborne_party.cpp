@@ -1148,6 +1148,10 @@ std::optional<bool> HeldItemFlagFix(bool party_configured, bool flag_on, bool ho
     return holds;
 }
 
+std::optional<bool> DollGiveFix(bool party_configured, bool flag_on, bool holds) {
+    return HeldItemFlagFix(party_configured, flag_on, holds);
+}
+
 std::optional<bool> GestureFlagFix(bool party_configured, bool flag_on, bool learned) {
     if (!party_configured || !flag_on || learned) {
         return std::nullopt;
