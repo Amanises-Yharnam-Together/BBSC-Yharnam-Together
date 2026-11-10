@@ -31,11 +31,17 @@ unused here. `probe.c`'s `patchable` comes from the same release. Thanks to Supe
 
 ## Late frames in the game's own modes
 
-In the 30, 60 and 90 FPS modes the screen's vblank ticks at the mode's rate (60, 60, 90 Hz) and
-the game draws its next frame once the last one is flipped. Flips used to go on vblank ticks only:
-a frame that took 17 ms in the 60 FPS mode waited for the second tick, and the game ran at a hard
-30 FPS. Co-op always plays in the 60 FPS mode, so players saw 60 FPS alone and 30 "the moment
-someone joins" (Discord, 2026-10-26 to 11-06). A frame that is ready after its tick is now shown
-at once (`BbFrameSlots::FlipPace`, `VideoOutDriver::PresentThread`); flips still keep a period
-between them, so the game never runs above its mode's rate. `BB_LATE_FLIPS=0`: on ticks only, as
-before. Rig: `slow-frames-60` (`BB_RIG_FRAME_WORK_MS` makes every frame take that long).
+In the 30, 60 and 90 FPS modes the screen's vblank ticks at the mode's rate (60, 60, 90 Hz).
+Flips used to go on vblank ticks only, so a frame that missed its tick waited for the next one.
+A frame that is ready after its tick is now shown at once (`BbFrameSlots::FlipPace`,
+`VideoOutDriver::PresentThread`); flips still keep a period between them, so the game never runs
+above its mode's rate. `BB_LATE_FLIPS=0`: on ticks only, as before.
+
+Measured on the rig (2026-11-10, RTX 4070 Ti, drawn, co-op's 60 FPS mode, `slow-frames-60` with
+`BB_RIG_TICK_BURN_MS=N`: the game's main thread spins N ms once a frame at the co-op tick, as on
+a slower CPU): up to 6 ms the game stays at 59.4 FPS either way. At 12 ms it falls gradually: to
+47-55 FPS with flips on ticks only (p99 frame 34-51 ms) and to 55-56 FPS with late flips (p99
+20-21 ms). No load gave a hard 30, so late flips smooth an overloaded PC; they do not explain
+the players' 30 FPS "the moment someone joins" (Discord, 2026-10-26 to 11-06). The game's speed
+does not change with the frame rate (the same distance walked at 50-72 FPS). A headless game
+never waits for its flips: run `slow-frames-60` drawn.

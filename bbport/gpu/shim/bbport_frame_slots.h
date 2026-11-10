@@ -21,11 +21,10 @@ constexpr TimePoint NextSlot(TimePoint slot, TimePoint flipped, Duration period)
 
 /// The rate the present thread paces its flips at, 0 none: the frame limit, else with the game's
 /// own 30/60/90 modes (`uncapped_vblank` false) the vblank's rate, when `late_flips`. A frame
-/// that is ready after its vblank tick is then shown at once, not on the next tick. On ticks
-/// only, a game whose frames take 17 ms waited for every second tick: a hard 30 FPS in the 60
-/// FPS mode, which is co-op's ("30 FPS the moment someone joins", Discord 2026-10-26..11-06;
-/// the game waits for its last flip before it draws the next frame). Flips still keep a period
-/// between them (NextSlot), so the game never runs above its mode's rate.
+/// that is ready after its vblank tick is then shown at once, not on the next tick: an
+/// overloaded PC in co-op's 60 FPS mode keeps a higher, steadier rate (rig slow-frames-60).
+/// Flips still keep a period between them (NextSlot), so the game never runs above its mode's
+/// rate.
 constexpr unsigned FlipPace(unsigned frame_limit, unsigned vblank_hz, bool uncapped_vblank,
                             bool late_flips) {
     if (frame_limit != 0) {

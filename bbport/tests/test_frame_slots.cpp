@@ -48,10 +48,10 @@ int main() {
     std::printf("shortest interval %.2f ms\n", shortest.count() / 1e6);
     assert(shortest >= period - period / 16);
 
-    // The game's own 60 FPS mode (co-op's): vblank 60 Hz, no frame limit. The game draws its next
-    // frame once the last one is flipped. Flips on vblank ticks only: frames of 18 ms wait for
-    // every second tick, a hard 30 FPS (players, Discord 2026-10-26..11-06: 60 alone, 30 "the
-    // moment someone joins"). Late flips (the pace is the vblank's rate): about 55.
+    // The game's own 60 FPS mode (co-op's): vblank 60 Hz, no frame limit. A model where every
+    // frame is drawn only once the last one is flipped: on vblank ticks only, frames of 18 ms wait
+    // for every second tick (30 FPS); with late flips (the pace is the vblank's rate) about 55.
+    // (The real game keeps more than one frame in flight: on the rig it falls gradually instead.)
     const auto frames_per_second = [](milliseconds work, bool late_flips) {
         const nanoseconds vblank{1000000000 / 60};
         const unsigned pace = BbFrameSlots::FlipPace(0, 60, false, late_flips);

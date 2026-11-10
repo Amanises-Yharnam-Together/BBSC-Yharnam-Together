@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <algorithm>
-#include <atomic>
 #include <cmath>
 #include <vector>
 #include <chrono>
@@ -380,9 +379,6 @@ static void PrintMemory() {
 }
 #endif
 
-/// When the last flip was made (steady clock, ns), 0 before the first: WaitOutRigFrameWork.
-static std::atomic<s64> g_last_flip_ns{0};
-
 void VideoOutDriver::Flip(const Request& req) {
     // Update HDR status before presenting, then present the frame (bbport: on the swap thread).
     RunPresenter([this, frame = req.frame, hdr = req.port->is_hdr] {
@@ -753,6 +749,9 @@ void VideoOutDriver::Flip(const Request& req) {
                             median, std::sqrt(std::max(0.0, sq / intervals.size() - mean * mean)),
                             sorted[std::min(sorted.size() - 1, sorted.size() * 99 / 100)], spikes);
             }
+            // Each thread's share of a core over the window (GameMain's above all: the game's
+            // own frame work, rig scenario slow-frames-60).
+            runtime_thread_cpu_report();
             intervals.clear();
             window_start = now;
             frames = 0;
@@ -771,8 +770,6 @@ void VideoOutDriver::Flip(const Request& req) {
     if (honest_flips) {
         presenter->WaitRendered(req.frame);
     }
-
-    g_last_flip_ns = std::chrono::steady_clock::now().time_since_epoch().count();
 
     // Update flip status.
     auto* port = req.port;
@@ -853,24 +850,7 @@ bool VideoOutDriver::SubmitFlip(VideoOutPort* port, s32 index, s64 flip_arg,
     return true;
 }
 
-// bbport, the rig only (BB_RIG_FRAME_WORK_MS=18): a frame is queued no sooner than this long
-// after the last flip, as on a PC whose frames take that long. The game draws its next frame once
-// the last one is flipped, so this is its frame time (rig scenario slow-frames-60).
-static void WaitOutRigFrameWork() {
-    static const s64 work_ns = [] {
-        const char* env = std::getenv("BB_RIG_FRAME_WORK_MS");
-        return env ? s64(std::max(std::atof(env), 0.0) * 1e6) : s64(0);
-    }();
-    if (const s64 last = g_last_flip_ns.load(); work_ns > 0 && last != 0) {
-        Common::PreciseSleepUntil(std::chrono::steady_clock::time_point(
-            std::chrono::nanoseconds(last + work_ns)));
-    }
-}
-
 void VideoOutDriver::SubmitFlipInternal(VideoOutPort* port, s32 index, s64 flip_arg, bool is_eop) {
-    if (index != -1) {
-        WaitOutRigFrameWork();
-    }
     Vulkan::Frame* frame;
     if (index == -1) {
         frame = presenter->PrepareBlankFrame(false);
@@ -910,8 +890,9 @@ void VideoOutDriver::PresentThread(std::stop_token token) {
     u32 frame_limit = EmulatorSettings.GetFrameLimit();
     auto next_flip = std::chrono::steady_clock::now();
     // bbport: late flips (BbFrameSlots::FlipPace): in the game's own 30/60/90 modes a frame that
-    // is ready after its vblank tick is shown at once. On ticks only, frames of 17 ms waited for
-    // every second tick: a hard 30 FPS in co-op's 60 FPS mode. BB_LATE_FLIPS=0: on ticks only.
+    // is ready after its vblank tick is shown at once, not on the next tick (rig slow-frames-60,
+    // a main thread 12 ms slower: 55-56 FPS, p99 20 ms; on ticks only 47-55, p99 34-51 ms).
+    // BB_LATE_FLIPS=0: on ticks only.
     static const bool late_flips = [] {
         const char* env = std::getenv("BB_LATE_FLIPS");
         return !(env && env[0] == '0');
