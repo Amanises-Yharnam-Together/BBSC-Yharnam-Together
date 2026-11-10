@@ -5056,24 +5056,32 @@ def rom_fog_walk(z: float) -> list[str]:
             "snapshot", "expect-walks 8 12", "snapshot"]
 
 
+# A plain join leaves the guest where it stands (rig 2026-11-10 10:25: it stayed in Central
+# Yharnam). As team-guest-restart: a team in Byrgenwerth, the guest's game starts again and its team
+# load puts it beside the host, in the host's world.
+BYRGENWERTH = "0x20000000"
 SCENARIOS["rom-fog-guest-joins"] = {
-    "about": "the host in Byrgenwerth, the guest joins it there (a client in the host's world): "
-             "both walk west through the place of Rom's fog on the Lunarium's balcony",
+    "about": "a team in Byrgenwerth: the guest's game starts again and its team load puts it "
+             "beside the host (a client in the host's world); both walk west through the place "
+             "of Rom's fog on the Lunarium's balcony",
     "roles": {
-        "host": [START, "godmode", f"set-flag {BYRGENWERTH_LAMP_LIT} 1",
-                 f"travel {BYRGENWERTH_LAMP}", "wait-session 2 420", "wait-members 2 180",
-                 "wait 10", "sync rom-fog-guest", "sync rom-fog-guest-walked",
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", f"set-flag {BYRGENWERTH_LAMP_LIT} 1", "wait-session 2 300",
+                 f"travel {BYRGENWERTH_LAMP}", "wait-members 2 240", "wait 10", "wait-solo 180",
+                 "wait-session 2 420", "wait-members 2 180", "wait 20", f"expect-map {BYRGENWERTH}",
                  *rom_fog_walk(394.6), "expect-session 2"],
-        "guest": [START, "godmode", "wait-session 2 420", "wait-members 2 180", "wait 10",
-                  "sync rom-fog-guest", *rom_fog_walk(390.6), "sync rom-fog-guest-walked",
-                  "expect-session 2"],
+        "guest": [["team-accept", "team-ready", START, "godmode",
+                   f"set-flag {BYRGENWERTH_LAMP_LIT} 1", "wait-session 2 300",
+                   f"travel {BYRGENWERTH_LAMP}", "wait-members 2 240", "wait 15", "snapshot",
+                   "done"],
+                  ["team-accept", "team-ready", "godmode", "wait-session 2 420",
+                   "wait-members 2 180", "wait 20", f"expect-map {BYRGENWERTH}",
+                   *rom_fog_walk(390.6), "expect-session 2"]],
     },
-    "syncs": {name: {"chapter": "rom-fog-guest-joins", "roles": ["host", "guest"]}
-              for name in ("rom-fog-guest", "rom-fog-guest-walked")},
     "expect": {role: [r"autoplay object 3201800: enabled 0 ", r"autoplay: walked"]
                for role in ("host", "guest")},
-    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
-    "timeout": 600,
+    "allow": CRASH_CLEANUP,
+    "timeout": 900,
 }
 SCENARIOS["rom-fog-both-travel"] = {
     "about": "a session in Central Yharnam, each player travels to Byrgenwerth's lamp: both walk "
