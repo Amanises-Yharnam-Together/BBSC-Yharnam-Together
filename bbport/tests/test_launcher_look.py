@@ -702,6 +702,19 @@ class CoopSettingsTests(unittest.TestCase):
             self.app.coop['public_asked'] = ''
             self.assertIsNone(self.app.coop_offer_public())
 
+    def test_the_3d_map_sees_a_game_folder_picked_in_co_op_setup(self):
+        """The 3D map's Prepare button stayed off ("Choose your game folder first.") after the game folder
+        was picked in Co-op setup, until the launcher was started again: only the co-op card changed."""
+        app = self.app
+        if not hasattr(app, 'map_label'):
+            self.skipTest('no 3D map section in this build')
+        self.assertIn('game folder first', app.map_label.cget('text'))
+        (self.game / 'dvdroot_ps4').mkdir()
+        app.coop_vars['game'].set(str(self.game))
+        app.coop_changed()
+        self.settle(0.3)
+        self.assertNotIn('game folder first', app.map_label.cget('text'))
+
     def test_start_and_stop_server_only_on_local(self):
         """Kaniel 2026-11-06: on the public server nobody runs a server, so its buttons go."""
         app = self.app
