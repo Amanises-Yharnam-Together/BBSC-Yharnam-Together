@@ -1694,6 +1694,38 @@ SCENARIOS = {
         "allow": CRASH_CLEANUP,
         "timeout": 900,
     },
+    # Players 2026-10-24 to 2026-11-07 ("my save rolled back"): the host of a world made from its
+    # own save played alone and the save took back the world it had before its first team (lamps
+    # gone, bosses alive). The world a save made is its home world: alone, the save keeps it, and
+    # what it does alone is the team's at its next hunt. One game, by the title: a new world from
+    # its save; the same world again, where it sets TEAM_WORLD_FLAG; alone, the flag is still on
+    # (it went off with the save's old world before), and it turns it off; its team again: still
+    # off (its save leads; the server's copy from before had it on).
+    "home-world": {
+        "about": "the host of a world its save made plays alone and keeps the team's progress, "
+                 "and what it does alone is in its team's world after",
+        "roles": {
+            "host": ["team-create", "team-start", START, "wait 25",
+                     "quit-title", "title-wait 10",
+                     "team-create", "team-start", START, "wait 10",
+                     f"set-flag {TEAM_WORLD_FLAG} 1", "wait 15",
+                     "quit-title", "title-wait 10",
+                     "team-alone", START, "wait 10", f"expect-flag {TEAM_WORLD_FLAG} 1",
+                     f"set-flag {TEAM_WORLD_FLAG} 0", "wait 5",
+                     "quit-title", "title-wait 10",
+                     "team-create", "team-start", START, "wait 15",
+                     f"expect-flag {TEAM_WORLD_FLAG} 0"],
+        },
+        "expect": {
+            "host": [r"Co-op team world: world \w+ is made from slot \d+'s save: its home world",
+                     r"Co-op team world: this host's save is its home world's latest",
+                     r"Co-op team world: this host's world to the server"],
+        },
+        "forbid": {"host": [r"Co-op team world: slot \d+'s own world kept aside",
+                            r"its own world is back"]},
+        "allow": CRASH_CLEANUP,
+        "timeout": 600,
+    },
     # Kaniel's play test 2026-10-18: krolebord joined the team and his lamps listed only Cathedral
     # Ward. A lamp stays lit only for a character whose lamp list holds it (the game clears its
     # active flag otherwise), and the team world's lamps went into the guest's flags at its load,
@@ -4270,6 +4302,46 @@ SCENARIOS["wrong-server-key"] = {
     "timeout": 300,
 }
 
+# Players' reports (Discord, 1.0.0 to 1.3.x): with the co-op server out of reach the game said
+# "not signed in to PlayStation Network" (SP_Dialog 204/401203). Its dialog and the team screen
+# say why the sign-in failed instead (core/bloodborne_sign_in.h). The address is one nothing
+# answers at (the rig's firewall drops what goes there, as a real one would). The game's dialogs
+# are traced (BB_GAME_MENU_TRACE_IDS): a headless game draws nothing to look at.
+SIGN_IN_DIALOG = r"Game menu: the sign-in dialog says: "
+SIGN_IN_TRACE = {"BB_GAME_MENU_TRACE_IDS": "4000-5999,110000-110100,401000-401999"}
+SIGN_IN_TITLE = ["title-wait 20", "title-shot title", "title-press cross", "title-wait 5",
+                 "title-shot after-cross", "title-press cross", "title-wait 5",
+                 "title-shot after-cross-2", "team-screen", "title-wait 3", "title-shot team"]
+SCENARIOS["sign-in-no-server"] = {
+    "about": "the co-op server's address answers nothing: the game's PSN sign-in dialog and the "
+             "team screen say the server cannot be reached, with its address",
+    "settings": SIGN_IN_TRACE,
+    "role_settings": {"host": {"BB_SHADNET_SERVER": "127.0.0.1:9"}},
+    "roles": {"host": [*SIGN_IN_TITLE, "team-alone", START, "wait 5", "done"]},
+    "console_expect": {"host": [SIGN_IN_DIALOG + r"Can't reach the co-op server at "
+                                r"127\.0\.0\.1:9 \| "]},
+    "forbid": {"host": [LINKED]},
+    "allow": [r"reached past the server"],
+    "timeout": 300,
+}
+SCENARIOS["sign-in-wrong-password"] = {
+    "about": "the server answers and refuses the password: what the dialog and team screen say",
+    "settings": SIGN_IN_TRACE,
+    "role_settings": {"host": {"BB_SHADNET_PASSWORD": "not-the-rig-password-1"}},
+    "roles": {"host": [*SIGN_IN_TITLE, "team-alone", START, "wait 5", "done"]},
+    "console_expect": {"host": [SIGN_IN_DIALOG]},
+    "forbid": {"host": [LINKED]},
+    "timeout": 300,
+}
+SCENARIOS["sign-in-ok"] = {
+    "about": "a game that signs in shows the game's own texts: no sign-in reason anywhere",
+    "settings": SIGN_IN_TRACE,
+    "roles": {"host": [*SIGN_IN_TITLE, "team-alone", START, "wait 5", "done"]},
+    "expect": {"host": [LINKED]},
+    "console_forbid": {"host": [SIGN_IN_DIALOG, r"Game menu: shows 0xcc/401203"]},
+    "timeout": 300,
+}
+
 
 SCENARIOS["build-check-version"] = {
     "about": "the guest says another Seamless Co-op release (BB_RELEASE_VERSION 0.0.1, the host "
@@ -5279,6 +5351,82 @@ SCENARIOS["ludwig-retry"] = _ludwig_retry("ludwig-retry", during_change=False)
 SCENARIOS["ludwig-retry-mid-change"] = _ludwig_retry("ludwig-retry-mid-change",
                                                      during_change=True)
 
+
+# Discord 2026-11-06 (1.4.0, Moab): backing out of the Doll's level up with Circle left the player
+# kneeling for good. m21_00 12100112 stands the player up once 72100100 is off again, at the
+# earliest 54 frames after its kneel (72100101 on), and only while 6700 is on; 6700 was cleared
+# the frame 72100100 went off, so a level-up screen closed inside those 54 frames skipped the
+# stand-up. Circle from 0.4 s after the kneel, four times: the first that the level-up screen
+# takes closes it.
+QUICK_BACK = [step for _ in range(4) for step in ("wait 0.4", "press circle 150")]
+SCENARIOS["doll-level-up-quick-back"] = {
+    "about": "the host opens the Doll's level up with a team guest in the Dream and backs out of "
+             "it with Circle at once: it stands up and walks away",
+    "roles": {
+        "host": [*TEAM_HOST, f"travel {HUNTERS_DREAM}", "wait-members 2 120", "wait 3",
+                 "sync dq-here", *OPEN_DOLL_MENU, "press cross 200", "wait-flag 72100101 1 20",
+                 *QUICK_BACK, DOLL_FLAGS, f"wait-flag {DOLL_BLESSING} 0 15",
+                 "wait-flag 72100101 0 15", DOLL_FLAGS, *LEAVE_THE_DOLL, "sync dq-done",
+                 "expect-session 2"],
+        "guest": [*TEAM_GUEST, "wait 5", f"travel {HUNTERS_DREAM}", "wait 8", "sync dq-here",
+                  "sync dq-done", "expect-walks 2 10", "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-level-up-quick-back", "roles": ["host", "guest"]}
+              for sync in ("dq-here", "dq-done")},
+    "expect": {"host": [r"autoplay: walked"], "guest": [r"autoplay: walked"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": [*SESSION_HOLDS, *NO_BLESSING_HERE]},
+    "timeout": 300,
+}
+# Discord 2026-11-06 (vPeppy): "stuck interacting with the doll if your friend attacks her".
+SCENARIOS["doll-hit-during-level-up"] = {
+    "about": "a team guest hits the Doll while the host is in her level up: the host leaves her "
+             "and walks away",
+    "roles": {
+        "host": [*TEAM_HOST, f"travel {HUNTERS_DREAM}", "wait-members 2 120", "wait 3",
+                 "sync dx-here", *OPEN_DOLL_MENU, "press cross 200", "wait-flag 72100101 1 20",
+                 "wait 4", DOLL_FLAGS, "sync dx-open", "sync dx-hit", "wait 3", DOLL_FLAGS,
+                 *LEAVE_THE_DOLL, DOLL_FLAGS, "sync dx-done", "expect-session 2"],
+        "guest": [*TEAM_GUEST, "wait 5", f"travel {HUNTERS_DREAM}", "wait 8", "sync dx-here",
+                  "sync dx-open", f"hit {DOLL} 20", "sync dx-hit", "sync dx-done",
+                  "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-hit-during-level-up", "roles": ["host", "guest"]}
+              for sync in ("dx-here", "dx-open", "dx-hit", "dx-done")},
+    "expect": {"host": [r"autoplay: walked"], "guest": [r"autoplay: hit "]},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300,
+}
+# Discord 2026-11-06 (1.4.0, markmon93): with the Small Hair Ornament (goods 4300) the Doll had
+# nothing new to say, for the host and the guests. m21_00 12100121 sets 12100122 while the player
+# holds it, and her talk offers "Give" (its third choice) while 12100122 is on; "Give" sets
+# 72100114, then 72100112 after her words.
+# Rig 2026-11-10: the host's give works on its own. The guest's does not prove its own "Give" yet:
+# 72100114 and 72100112 are the host's story steps and reach the guest (FollowTeamStory), so its
+# 12100123 gives the Tear Stone and takes its ornament before its own pick.
+SMALL_HAIR_ORNAMENT = "goods:4300"
+DOLL_GIVE = 12100122
+GIVE_THE_ORNAMENT = [f"wait-flag {DOLL_GIVE} 1 20", f"approach {DOLL} 1.0 0 1.5708", "wait 2",
+                     "press cross 200", "wait 24", "press cross 200", "wait 8", "press down 200",
+                     "wait 1", "press down 200", "wait 1", "press cross 200",
+                     "wait-flag 72100114 1 15", "flags 12100122 72100114 72100112 12100123"]
+SCENARIOS["doll-ornament-give"] = {
+    "about": "the host and a team guest each come to the Dream holding the Small Hair Ornament: "
+             "the Doll offers each of them \"Give\" and takes it",
+    "roles": {
+        "host": [*TEAM_HOST, f"trade-stock {SMALL_HAIR_ORNAMENT} 1", f"travel {HUNTERS_DREAM}",
+                 "wait-members 2 120", "wait 3", "sync do-here", *GIVE_THE_ORNAMENT,
+                 "sync do-host-gave", "sync do-done", "expect-session 2"],
+        "guest": [*TEAM_GUEST, f"trade-stock {SMALL_HAIR_ORNAMENT} 1", "wait 5",
+                  f"travel {HUNTERS_DREAM}", "wait 8", "sync do-here",
+                  f"wait-flag {DOLL_GIVE} 1 20", "sync do-host-gave", *GIVE_THE_ORNAMENT,
+                  "sync do-done", "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "doll-ornament-give", "roles": ["host", "guest"]}
+              for sync in ("do-here", "do-host-gave", "do-done")},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300,
+}
+
 # Bug audit 24 (Lisara 2026-11-04, STEVE 2026-11-03, Provi 2026-10-29; 1.3.1 on): when the host,
 # whose game runs the enemies, dies for real, enemies the party killed come back for one player
 # ("the whole area may get respawned"), and the host's death respawn kills them again, paying
@@ -5334,6 +5482,34 @@ def _host_death_kills(name: str, far: bool) -> dict:
 
 SCENARIOS["host-death-kills"] = _host_death_kills("host-death-kills", far=False)
 SCENARIOS["host-death-kills-far"] = _host_death_kills("host-death-kills-far", far=True)
+
+
+# Bug audit 24 (I_Eat_Toast 2026-10-30): both nameplates said "Host". The role line is the
+# party's: the host's game shows Guest over the guest, the guest's game Host over the host, and so
+# again after the guest's own reload (a lamp trip).
+NAMEPLATE_GUEST = r"Bloodborne party HUD: nameplate \d role line: \S+ Guest"
+NAMEPLATE_HOST = r"Bloodborne party HUD: nameplate \d role line: \S+ Host"
+NAMEPLATE_GAMES = r"Bloodborne party HUD: nameplate \d role line: \S+ game's"
+SCENARIOS["nameplate-roles"] = {
+    "about": "the host's nameplate over the guest says Guest and the guest's over the host says "
+             "Host, also after the guest travels to the lamp again (a reload)",
+    "roles": {
+        "host": [START, "godmode", "wait-session 2 300", "wait 15", "sync np-seen",
+                 "sync np-reloaded", "wait 15", "expect-session 2"],
+        "guest": [START, "godmode", "wait-session 2 300", "wait 15", "sync np-seen",
+                  "log reloading", f"travel {CENTRAL_YHARNAM_LAMP}", "wait 15",
+                  "sync np-reloaded", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "nameplate-roles", "roles": ["host", "guest"]}
+              for name in ("np-seen", "np-reloaded")},
+    "expect": {"host": [NAMEPLATE_GUEST],
+               "guest": [NAMEPLATE_HOST]},
+    # The line is noted on change only: after the reload it stays the party's (never the game's).
+    "forbid": {"host": [*SESSION_HOLDS, NAMEPLATE_HOST],
+               "guest": [*SESSION_HOLDS, NAMEPLATE_GUEST,
+                         r"autoplay log: reloading[\s\S]*" + NAMEPLATE_GAMES]},
+    "timeout": 300,
+}
 
 
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to

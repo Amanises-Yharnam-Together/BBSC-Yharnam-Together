@@ -2311,6 +2311,23 @@ void NoteNameplate(int index, const std::string& name) {
     }
 }
 
+// Which role line each tag got (the trace for the rig's nameplate checks), on change.
+void NoteNameplateRole(int index, const std::string& name, std::optional<NameplateRole> role) {
+    static std::array<std::string, 16> last;
+    const std::string note = fmt::format("{} {}", name,
+                                         !role                          ? "game's"
+                                         : *role == NameplateRole::Host ? "Host"
+                                                                        : "Guest");
+    if (index < 0 || static_cast<size_t>(index) >= last.size() || last[index] == note) {
+        return;
+    }
+    last[index] = note;
+    static std::atomic<u32> logged{0};
+    if (logged.fetch_add(1) < 200) {
+        LOG_INFO(Debug, "Bloodborne party HUD: nameplate {} role line: {}", index, note);
+    }
+}
+
 // An element's text as html, with its own SetText (the object interface's UTF-8 one).
 void SetElementText(u64 element, const std::string& html) {
     if (!HasMemoryAccess(element, 0x50, MemoryProt::CpuRead) ||
@@ -2348,11 +2365,21 @@ void PS4_SYSV_ABI WriteNameplateRoleLine(u64, const GuestRegisterSnapshot* regis
     if (line) {
         SetElementText(tag + HudTagNameLineAt, *line);
     }
-    if (!panel_has_downed.load(std::memory_order_relaxed)) {
+    if (panel_has_downed.load(std::memory_order_relaxed)) {
+        if (const auto downed = NameplateRoleLine(panel, name)) {
+            SetElementText(tag + HudTagRoleLineAt, *downed);
+            return;
+        }
+    }
+    // Bug audit 24: Host or Guest as the party has it, not the role the member's game sent.
+    if (!InPartySession()) {
         return;
     }
-    if (const auto line = NameplateRoleLine(panel, name)) {
-        SetElementText(tag + HudTagRoleLineAt, *line);
+    const bool hosting = !IsPartyGuestRole();
+    const auto role = NameplateRoleOf(panel, name, hosting, hosting ? "" : TeamSessionHost());
+    NoteNameplateRole(*index, name, role);
+    if (const auto text = role ? PartyNameplateRoleText(*role) : std::nullopt) {
+        SetElementText(tag + HudTagRoleLineAt, *text);
     }
 }
 #endif

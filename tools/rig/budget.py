@@ -55,6 +55,7 @@ LONG = {
     "gesture-own": "the 10-23 gestures case: a join, two trips",
     "key-items-silent": "Kaniel 2026-10-23: a join, two trips",
     "team-world-other-block": "the 10-19 playtest case #266: two team sessions",
+    "home-world": "players' rolled-back saves 2026-11: one game, three returns to the title and four loads",
     "npc-progress-after-trip": "the 10-19 playtest case #269: a join, two trips",
     "wipe-one-map": "the 10-19 playtest case #270: three games, a death and a wake",
     "boss-hp-after-wipe": "the 10-19 playtest case #272: a wipe and a wake",
