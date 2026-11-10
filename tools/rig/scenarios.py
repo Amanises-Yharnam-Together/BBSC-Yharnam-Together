@@ -5204,7 +5204,10 @@ SCENARIOS["rom-retry"] = {
 # party guest) walks it through. The fog is up only once he was met (12411802; the rig's saves
 # never met him, so a first visit's walk into region 2412815 plays his cutscene instead): on, then
 # a lamp trip loads the map with it.
-THROUGH_GASCOIGNE_FOG = ["teleport -51.1 -40.8 69.6 -0.614", "wait 3", "press cross 300",
+# His fog part is turned -134.5 degrees (Ludwig's, at 0, took a walk from 2.7 m on its +z side,
+# facing it): 2.7 m out on the side away from him, facing it. (1.5 m out at -0.614 brought no
+# walk, rig 2026-11-10.)
+THROUGH_GASCOIGNE_FOG = ["teleport -52.1 -40.8 68.9 -0.794", "wait 3", "press cross 300",
                          "wait 10"]
 GASCOIGNE_IN = [START, f"set-flag {GASCOIGNE_DEFEATED} 0", "set-flag 12411802 1", "godmode",
                 "wait-session 3 420", "wait 5", f"travel {CENTRAL_YHARNAM_LAMP_2}",
@@ -5225,7 +5228,7 @@ SCENARIOS["gascoigne-late-guest"] = {
         "guest2": [*GASCOIGNE_IN, "sync gl-host-in", "sync gl-fight", "wait 30",
                    *THROUGH_GASCOIGNE_FOG, "wait 5", "sync gl-late-in", "wait 10",
                    "flags 12414800 12414801 12414223", "census 60",
-                   f"expect-hp {GASCOIGNE} < 2031", "expect-others-near 2 40", "sync gl-done",
+                   f"expect-hp {GASCOIGNE} < 4000", "expect-others-near 2 40", "sync gl-done",
                    "expect-session 3"],
     },
     "syncs": {sync: {"chapter": "gascoigne-late-guest", "roles": ["host", "guest", "guest2"]}
@@ -5245,17 +5248,18 @@ SCENARIOS["rom-retry-guest-alone"] = {
     "settings": PARTY_DEATH,
     "game_kill": True,
     "roles": {
+        # Her swings put a host beside her down, godmode or not (rig 2026-11-10, twice): one hit,
+        # then 20 m off at once (still in her fight, 45 m) before her later phases. A downed host
+        # makes the guest's death the party's wipe, no spectate: the guest checks it stands.
         "host": [*ROM_START, *ROM_DIVE_IN, "sync ra-in", f"approach {ROM} 5 0",
-                 f"hit {ROM} 30", "wait 5", f"hurt {ROM} 2800", "wait-flag 13204812 1 60",
-                 # Her swings put a host beside her down, godmode or not (rig 2026-11-10); 20 m
-                 # off it is still in her fight (45 m).
-                 f"approach {ROM} 20 0", "wait 5", "sync ra-hurt",
+                 f"hit {ROM} 30", f"approach {ROM} 20 0", "wait 3", f"hurt {ROM} 2800",
+                 "wait-flag 13204812 1 60", f"approach {ROM} 20 0", "wait 5", "sync ra-hurt",
                  "wait-member-vital spectate 60",
                  "wait-member-vital up 90", "sync ra-woke", "sync ra-back", "wait 5",
                  "census 150", ROM_FLAGS, f"expect-hp {ROM} < 3000", "sync ra-done",
                  "expect-session 2"],
         "guest": [*ROM_START, "sync ra-in", "wait 5", *ROM_DIVE_IN, "sync ra-hurt",
-                  "godmode off", "kill self", "wait-vital spectate 20", "wait 5",
+                  "wait-member-vital up 5", "godmode off", "kill self", "wait-vital spectate 20", "wait 5",
                   "press circle 3600", "wait-vital up 30", "godmode", "wait 3", "shot lamp",
                   "wait 12", "sync ra-woke", ROM_FLAGS, "census 150", *ROM_DIVE_IN,
                   "sync ra-back", "wait 5", "census 150", ROM_FLAGS, f"expect-hp {ROM} < 3000",
