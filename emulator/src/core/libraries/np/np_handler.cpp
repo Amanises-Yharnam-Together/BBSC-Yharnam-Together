@@ -329,8 +329,9 @@ bool NpHandler::ConnectUser(s32 user_id, const std::string& host, u16 port, cons
     for (int retry = 1;
          auth_state == ShadNet::ShadNetState::FailureAlreadyIn && retry <= AlreadyInRetries;
          ++retry) {
-        LOG_WARNING(NpHandler, "user_id={} already signed in elsewhere; asking again in 5 s ({}/{})",
-                    user_id, retry, AlreadyInRetries);
+        LOG_WARNING(NpHandler,
+                    "user_id={} already signed in elsewhere; asking again in 5 s ({}/{})", user_id,
+                    retry, AlreadyInRetries);
         client->Stop();
         std::this_thread::sleep_for(std::chrono::seconds(5));
         client = make_client();

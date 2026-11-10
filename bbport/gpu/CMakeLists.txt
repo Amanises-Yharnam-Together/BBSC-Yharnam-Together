@@ -753,7 +753,7 @@ target_link_libraries(map-art-tool PRIVATE miniz::miniz)
 # file-positions-test, then run it in the source tree (it writes under out/). No GPU, no game.
 if (WIN32)
     add_executable(file-positions-test EXCLUDE_FROM_ALL ../tests/test_file_positions.c ../src/compat_win.c)
-    target_include_directories(file-positions-test PRIVATE ../src)
+    target_include_directories(file-positions-test PRIVATE ../src ..)
     target_compile_options(file-positions-test PRIVATE -UNDEBUG)
     target_link_libraries(file-positions-test PRIVATE bcrypt -pthread)
 endif()
