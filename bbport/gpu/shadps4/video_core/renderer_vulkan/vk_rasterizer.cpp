@@ -3240,7 +3240,7 @@ void Rasterizer::BindBuffers(const Shader::Info& stage, const PreparedStage* pre
             } else {
                 const u64 size = memory->ClampRangeSize(vsharp.base_address, vsharp.GetSize());
                 if (size != vsharp.GetSize()) {
-                    LOG_ERROR(Render, "Clamped size from {} to {} for stage {:#x}",
+                    LOG_DEBUG(Render, "Clamped size from {} to {} for stage {:#x}",
                               vsharp.GetSize(), size, stage.pgm_hash);
                 }
                 VideoCore::ObtainBufferFlags flags = {};
