@@ -1253,8 +1253,9 @@ def game_environment(s, frame_generation=None):
     # Overlay layers that crash the game while it makes its Vulkan device, before the first frame: the
     # loader skips them for this run only (extra_env can set VK_LOADER_LAYERS_DISABLE back).
     # The list is bbport_support.CRASHING_OVERLAYS.
+    reshade_on = bool(s.get('reshade') and reshade_ready())
     env['VK_LOADER_LAYERS_DISABLE'] = bbport_support.layers_to_skip(env.get('VK_LOADER_LAYERS_DISABLE', ''),
-                                                                    bbport_support.vulkan_layers())
+                                                                    bbport_support.vulkan_layers(), reshade=reshade_on)
     for item in str(s['extra_env']).split():
         if '=' in item:
             key, value = item.split('=', 1)
@@ -1267,7 +1268,7 @@ def game_environment(s, frame_generation=None):
         env['BB_SHADNET_NPID'] = str(s['online_npid']).strip()
         env['BB_SHADNET_PASSWORD'] = str(s['online_password'])
         env['BB_COMMUNITY_SERVER'] = community_address(s['online_community'])
-    if s.get('reshade') and reshade_ready():
+    if reshade_on:
         # An explicit layer for this run only; its files, settings and log stay in bin/reshade.
         for name, value in (('VK_ADD_LAYER_PATH', str(RESHADE_DIR)), ('VK_INSTANCE_LAYERS', RESHADE_LAYER)):
             env[name] = os.pathsep.join(filter(None, (env.get(name), value)))

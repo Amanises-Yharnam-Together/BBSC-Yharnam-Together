@@ -203,7 +203,11 @@ CRASHING_OVERLAYS = (
 )
 CRASHING_VK_LAYERS = tuple(glob for _tool, glob, _marks in CRASHING_OVERLAYS)
 # The graphics drivers' own layers (laptop GPU switching, the driver's frame pacing): never an overlay.
-DRIVER_LAYER_PREFIXES = ('vk_layer_nv_', 'vk_layer_amd_', 'vk_layer_intel_')
+# Steam's fossilize layer only records shaders.
+DRIVER_LAYER_PREFIXES = ('vk_layer_nv_', 'vk_layer_amd_', 'vk_layer_intel_', 'vk_layer_valve_steam_fossilize')
+# ReShade installed for every Vulkan game (its own setup, ProgramData\\ReShade): kept out while the launcher's
+# own ReShade is on, or the game would load two.
+GLOBAL_RESHADE_LAYER = 'VK_LAYER_reshade'
 
 
 def loader_skips(name, globs):
@@ -223,12 +227,14 @@ def crashing_overlay(name, manifest):
     return None
 
 
-def layers_to_skip(inherited, layers):
+def layers_to_skip(inherited, layers, reshade=False):
     """VK_LOADER_LAYERS_DISABLE for a game run: what was set already, the known crashers' globs, and the
     installed crashers' layers by their own names (LAYERS as vulkan_layers() gives them) in case a new
     version of a tool named its layer differently."""
     skipped = [item for item in inherited.split(',') if item]
     skipped += [glob for glob in CRASHING_VK_LAYERS if glob not in skipped]
+    if reshade and GLOBAL_RESHADE_LAYER not in skipped:  # RESHADE: the launcher's own is on for this run
+        skipped.append(GLOBAL_RESHADE_LAYER)
     for name, manifest, on in layers:
         if on and name != '?' and crashing_overlay(name, manifest) and not loader_skips(name, skipped):
             skipped.append(name)
@@ -246,7 +252,7 @@ def overlay_suspects(layers, disabled):
         if name == '?':
             if not loader_skips('', [glob for glob in globs if glob.startswith('~')]):
                 suspects.append(manifest)
-        elif not loader_skips(name, globs):
+        elif not loader_skips(name, globs) and name not in suspects:  # 64-bit and 32-bit manifests: once
             suspects.append(name)
     return suspects
 

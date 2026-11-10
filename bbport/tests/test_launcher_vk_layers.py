@@ -52,6 +52,14 @@ class LayersToSkipTests(unittest.TestCase):
         self.assertEqual(support.layers_to_skip('~implicit~,*fpsmon*', []).split(',')[:2], ['~implicit~', '*fpsmon*'])
         self.assertEqual(support.layers_to_skip('*fpsmon*', []).count('*fpsmon*'), 1)
 
+    def test_a_reshade_installed_for_every_game_is_skipped_while_the_launchers_own_is_on(self):
+        # Kaniel's PC has VK_LAYER_reshade (ProgramData\\ReShade) on: with the launcher's ReShade the game
+        # would load two.
+        self.assertNotIn('VK_LAYER_reshade', support.layers_to_skip('', []).split(','))
+        skipped = support.layers_to_skip('', [], reshade=True).split(',')
+        self.assertIn('VK_LAYER_reshade', skipped)
+        self.assertFalse(support.loader_skips('VK_LAYER_bbport_reshade', skipped))
+
     def test_the_log_marks_what_the_loader_skips_whatever_the_case(self):
         # The loader compares its globs without case.
         line = support.overlay_log_line([('VK_LAYER_FPSMON', 'C:/f.json', True)], '*fpsmon*')
@@ -67,6 +75,12 @@ class StartHintTests(unittest.TestCase):
         disabled = support.layers_to_skip('', layers)
         self.assertEqual(support.overlay_suspects(layers, disabled),
                          ['VK_LAYER_Discord_x64', 'VK_LAYER_RTSS', r'C:\Tools\Some Overlay\x.json'])
+
+    def test_a_layer_with_two_manifests_is_named_once(self):
+        # 64-bit and 32-bit manifests of one layer (Steam, ReShade) are two registry entries.
+        steam = [('VK_LAYER_VALVE_steam_overlay', 'C:/s64.json', True), ('VK_LAYER_VALVE_steam_overlay', 'C:/s32.json', True),
+                 ('VK_LAYER_VALVE_steam_fossilize', 'C:/f64.json', True)]
+        self.assertEqual(support.overlay_suspects(steam, ''), ['VK_LAYER_VALVE_steam_overlay'])
 
     def test_the_graphics_drivers_own_layers_are_not_suspects(self):
         layers = [NVIDIA, ('VK_LAYER_AMD_switchable_graphics', 'C:/amd.json', True),
