@@ -39,13 +39,41 @@ constexpr u64 ImageBase = 0x800000000ull;
 #define GUEST_ABI
 #endif
 
-/// Makes [address, address + size) of the game's code writable; Restore puts the protection back
-/// (read-execute on Linux, the one it had on Windows) and flushes the instruction cache there.
+#ifndef _WIN32
+/// The protection of the mapping holding `address` (/proc/self/maps), -1 when it is not listed.
+/// The hooks go in while the GPU starts, before the loader has made the image read-execute
+/// (probe.c: the patches still write it then), so the page's own protection is put back, as
+/// VirtualProtect does on Windows.
+int PageProtection(u64 address) {
+    std::FILE* maps = std::fopen("/proc/self/maps", "r");
+    if (!maps) {
+        return -1;
+    }
+    int protection = -1;
+    char line[512];
+    while (protection < 0 && std::fgets(line, sizeof(line), maps)) {
+        unsigned long long start = 0, end = 0;
+        char perms[5] = {};
+        if (std::sscanf(line, "%llx-%llx %4s", &start, &end, perms) == 3 && address >= start &&
+            address < end) {
+            protection = (perms[0] == 'r' ? PROT_READ : 0) | (perms[1] == 'w' ? PROT_WRITE : 0) |
+                         (perms[2] == 'x' ? PROT_EXEC : 0);
+        }
+    }
+    std::fclose(maps);
+    return protection;
+}
+#endif
+
+/// Makes [address, address + size) of the game's code writable; Restore puts the protection it had
+/// back and flushes the instruction cache there.
 struct CodeWrite {
     void* page = nullptr;
     std::size_t span = 0;
 #ifdef _WIN32
     DWORD previous = 0;
+#else
+    int previous = PROT_READ | PROT_EXEC; // when /proc/self/maps does not list the page
 #endif
     bool Open(u64 address, std::size_t size) {
 #ifdef _WIN32
@@ -56,6 +84,9 @@ struct CodeWrite {
         const long page_size = sysconf(_SC_PAGESIZE);
         page = reinterpret_cast<void*>(address & ~u64(page_size - 1));
         span = (address + size) - reinterpret_cast<u64>(page);
+        if (const int protection = PageProtection(reinterpret_cast<u64>(page)); protection >= 0) {
+            previous = protection;
+        }
         return mprotect(page, span, PROT_READ | PROT_WRITE | PROT_EXEC) == 0;
 #endif
     }
@@ -65,7 +96,8 @@ struct CodeWrite {
         VirtualProtect(page, span, previous, &unused);
         FlushInstructionCache(GetCurrentProcess(), page, span);
 #else
-        mprotect(page, span, PROT_READ | PROT_EXEC);
+        mprotect(page, span, previous);
+        __builtin___clear_cache(static_cast<char*>(page), static_cast<char*>(page) + span);
 #endif
     }
 };
