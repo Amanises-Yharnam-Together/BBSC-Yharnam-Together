@@ -368,6 +368,9 @@ void Load() {
             Set(v, key, value);
         }
     }
+    if (FrameGenHidden()) {
+        v.frame_generation = false;
+    }
     // The launcher's frame cap until the game menu has set one (it is kept in this file).
     if (const char* value = std::getenv("BB_FPS_LIMIT"); value && !file_fps_limit) {
         Set(v, "fps_limit", value);
@@ -464,6 +467,14 @@ bool FrameRateLocked(const char* online, const char* online_cap) {
 
 bool FrameRateLocked() {
     return FrameRateLocked(std::getenv("BB_ONLINE"), std::getenv("BB_ONLINE_FPS_CAP"));
+}
+
+bool FrameGenHidden(const char* hidden) {
+    return hidden != nullptr && std::string_view{hidden} == "1";
+}
+
+bool FrameGenHidden() {
+    return FrameGenHidden(std::getenv("BB_FRAME_GEN_HIDDEN"));
 }
 
 int FpsLimitIndex(int limit) {

@@ -197,6 +197,11 @@ def run_command():
     return [sys.executable, '--run'] if FROZEN else [sys.executable, str(PORT_DIR / 'run.py')]
 
 
+def stop_servers_command():
+    """This launcher as the one that stops the co-op server once nothing uses it (bbport_coop.STOP_WHEN_UNUSED)."""
+    return [sys.executable, *([] if FROZEN else [str(Path(__file__).resolve())]), bbport_coop.STOP_WHEN_UNUSED]
+
+
 # ---------------------------------------------------------------------------------------------
 # Languages: every text is written in English with the Russian next to it; the other
 # languages are in bbport_lang.py, keyed by the English text.
@@ -926,6 +931,16 @@ def reason_text(reason):
     return _(reason, UPSCALER_REASONS_RU.get(reason))
 
 
+def experimental_hint():
+    """The note under the Experimental features switch: what it unlocks for now."""
+    return _('Unlocks options that are still being tested and marked (experimental). For now: frame generation '
+             '(it can crash the game), FSR 4.1.1, and object motion vectors on AMD graphics cards, which can '
+             'lower the frame rate or draw some objects wrong.',
+             'Открывает функции, которые ещё проверяются и помечены (экспериментально). Пока это генерация кадров '
+             '(с ней игра может вылетать), FSR 4.1.1 и векторы движения объектов на видеокартах AMD: они могут '
+             'снижать FPS или неправильно рисовать объекты.')
+
+
 def object_motion_hint(experimental):
     """The note under 'Object motion vectors'. On AMD graphics cards the game keeps it off, unless
     Experimental features (Advanced) is on and the player turns on the AMD switch below it."""
@@ -1068,6 +1083,18 @@ def ini_values(ini):
     return {**{key: ini[key] for key in INI_DEFAULTS}, **bbport_controls.ini_updates(ini)}
 
 
+def dlc_text(game, label):
+    """(what the DLC row says, whether the game gets The Old Hunters) for the game folder and the label of
+    the player's DLC package: an edition sold with the DLC has it without a package (Dinkles 2026-10-31: a
+    Game of the Year edition said "Not installed")."""
+    label = str(label).strip()
+    if label:
+        return label, True
+    if bbport_coop.edition_addcont(game):
+        return _('Included in this edition', 'Входит в это издание'), True
+    return _('Not installed', 'Не установлено'), False
+
+
 def game_info(folder):
     """(title, app version) of a game folder, or None without eboot.bin."""
     folder = Path(folder or '.')
@@ -1197,7 +1224,9 @@ def game_environment(s, frame_generation=None):
         frame_generation = ini.get('frame_generation') == '1'
     # Auto caps the game only while frame generation can run: the game turns it off with the
     # upscaler off or with HDR output, and the cap would then only cost frames.
-    frame_generation = (frame_generation
+    # Frame generation is hidden until it works (Discord 2026-10-21..11-01: toggling it crashed the
+    # game, and it did nothing at co-op's 60 FPS): only Experimental features offer it.
+    frame_generation = (frame_generation and bool(s.get('experimental'))
                         and ini.get('upscaler', INI_DEFAULTS['upscaler']) != 'off')
     env = dict(os.environ)
     env['BB_GAME_DIR'] = s['game_dir']
@@ -1217,8 +1246,10 @@ def game_environment(s, frame_generation=None):
     env['BB_RELEASE_VERSION'] = coop_release_version() or 'dev'
     if str(s['player_name']).strip():
         env['BB_USER_NAME'] = str(s['player_name']).strip()
-    if str(s.get('addcont', '')).strip():
-        env['BB_ADDCONT'] = str(s['addcont']).strip()
+    # The player's DLC package, else the edition's own (bbport_coop.DLC_EDITIONS).
+    addcont = str(s.get('addcont', '')).strip() or bbport_coop.edition_addcont(s.get('game_dir'))
+    if addcont:
+        env['BB_ADDCONT'] = addcont
     # Window mode and HDR are bbport.ini keys (window_mode, hdr) the game reads itself.
     if str(s.get('monitor', '')).strip():  # the game opens on the primary monitor when this one is gone
         env['BB_DISPLAY'] = str(s['monitor']).strip()
@@ -1243,6 +1274,11 @@ def game_environment(s, frame_generation=None):
     if s.get('experimental') and s.get('object_motion_amd') \
             and ini.get('object_motion', INI_DEFAULTS['object_motion']) == '1':
         env['BB_OBJECT_MOTION_AMD'] = '1'
+    # The game keeps frame generation off and shows no rows for it (BbSettings::FrameGenHidden).
+    if s.get('experimental'):
+        env.pop('BB_FRAME_GEN_HIDDEN', None)
+    else:
+        env['BB_FRAME_GEN_HIDDEN'] = '1'
     # FSR 4.1.1 (fsr4vk) is experimental: its DLL sits in the install's fsr4vk folder and is loaded only
     # while the switch is on.
     env['BB_FSR4VK_DIR'] = str(fsr4vk_dir())
@@ -3247,17 +3283,19 @@ class Launcher:
 
     def grey_with_upscaler(self, row, *notes):
         """Frame generation works on top of an upscaler: the switch is greyed while the upscaler is Off
-        (its value is kept)."""
-        upscaler = self.var('upscaler', 'ini')
+        (its value is kept), and while Experimental features (Advanced) are off: it is hidden in the
+        game until it works."""
+        upscaler, experimental = self.var('upscaler', 'ini'), self.var('experimental', 'app')
 
         def apply(*_args):
-            on = upscaler.get() != 'off'
+            on = upscaler.get() != 'off' and bool(experimental.get())
             row.knob.set_enabled(on)
             row.caption.configure(fg=TEXT if on else DIM)
             for note in notes:
                 if note is not None:
                     note.configure(fg=MUTED if on else DIM)
         upscaler.trace_add('write', apply)
+        experimental.trace_add('write', apply)
         apply()
 
     def note(self, parent, text, top=12):
@@ -3762,6 +3800,13 @@ class Launcher:
         for var in (generation, cap):
             var.trace_add('write', show_note)
         show_note()
+        experimental = self.var('experimental', 'app')
+
+        def offer(*_args, cell=holder):
+            """The Simple page shows the switch only while Experimental features (Advanced) offer it."""
+            cell.grid() if experimental.get() else cell.grid_remove()
+        experimental.trace_add('write', offer)
+        offer()
         for key in ('fps_mode', 'upscaler', 'output_res'):
             self.vars[key].trace_add('write', lambda *_a: self.refresh_status())
         self.build_map_card(page)
@@ -5283,34 +5328,14 @@ class Launcher:
                 pass  # a full disk or a locked file costs this one copy, not the game
             # No account step (phase 11): the host's server makes the player's account at its first
             # sign-in, and the game's team screen says when it cannot reach the server.
-            root = bbport_coop.view_root(PORT_DIR)
-            if bbport_coop.needs_prepare(PORT_DIR, settings):
-                root, note = bbport_coop.prepare(PORT_DIR, settings, say=lambda text: self.coop_say(_(text)))
-                settings['prepared'] = bbport_coop.prepared_key(settings)
-                self.coop['prepared'] = settings['prepared']
+            def prepared(key):
+                self.coop['prepared'] = key
                 bbport_coop.save_settings(PORT_DIR, self.coop)
-            else:
-                bbport_coop.copy_events(PORT_DIR, root)
-            # A public server's name is looked up once: the link and the HTTP ports go to its address,
-            # as to a host's IP.
-            # A region's directory (https://...) names the shard: the least loaded, or the player's own
-            # (docs/SCALING.md); the shards send the game on by themselves later.
-            if settings.get('server_type') == 'global':
-                settings = bbport_coop.global_game_settings(settings)
-            elif bbport_coop.region_url(settings['host_ip']):
-                settings = bbport_coop.region_settings(settings)
-            else:
-                address = bbport_coop.resolve_host(settings['host_ip'])
-                if not address:
-                    raise RuntimeError(_(bbport_coop.UNKNOWN_SERVER_TEXT).format(settings['host_ip']))
-                # The id for this server: its own when it refused the player's one id (coop_watch_line).
-                account, secret = bbport_coop.player_id_for(settings, settings['host_ip'])
-                settings = dict(settings, host_ip=address, server=settings['host_ip'], account=account,
-                                password=secret, link_key=bbport_coop.link_key_for(settings, settings['host_ip']))
-            user = PORT_DIR / 'user'
-            user.mkdir(parents=True, exist_ok=True)
-            (user / 'host_overrides.custom.json').write_text(bbport_coop.host_overrides(settings['host_ip']),
-                                                              encoding='utf-8')
+            # The same steps Bloodborne.exe and a Steam shortcut take (play_coop_without_window).
+            settings, root, note = bbport_coop.launch_settings(
+                PORT_DIR, settings, say=lambda text: self.coop_say(_(text)), on_prepared=prepared)
+        except bbport_coop.UnknownServer as error:
+            failed = _(bbport_coop.UNKNOWN_SERVER_TEXT).format(error.host)
         except (RuntimeError, OSError, ValueError) as error:
             failed = str(error)
         except Exception as error:  # noqa: BLE001 - 2026-11-05: any other error left PLAY spinning for good
@@ -5391,6 +5416,11 @@ class Launcher:
         tries = getattr(self, 'coop_id_tries', 0)
         what = bbport_coop.id_retry(line, tries)
         if what is None:
+            # Any other refusal: the server's own reason stays in the status line (the game's team
+            # screen has one short line of it, gone with the window).
+            reason = bbport_coop.refusal_reason(line)
+            if reason:
+                self.status.configure(text=_(bbport_coop.REFUSED_TEXT).format(reason), fg=BAD)
             return
         if what == 'retry':
             self.coop_id_tries = tries + 1
@@ -5615,10 +5645,12 @@ class Launcher:
         hint = self.label(holder, '', 'small', MUTED, wraplength=self.px(560), justify='left')
         hint.pack(anchor='w', pady=(self.px(6), 0))
         generation, cap = self.var('frame_generation', 'ini'), self.var('frame_cap', 'app')
+        experimental = self.var('experimental', 'app')  # frame generation runs only with it on
 
         def show_hint(*_args):
-            hint.configure(text=advanced_cap_hint(cap.get(), generation.get(), display_refresh()))
-        for var in (generation, cap):
+            hint.configure(text=advanced_cap_hint(cap.get(), generation.get() and experimental.get(),
+                                                  display_refresh()))
+        for var in (generation, cap, experimental):
             var.trace_add('write', show_hint)
         show_hint()
         self.row(f, _('Frame cap (unlocked mode)', 'Ограничение FPS (режим без ограничения)'), holder,
@@ -6128,11 +6160,7 @@ class Launcher:
                              'Если игра показывает только чёрный экран, обычно это помогает.'), 'small', MUTED).pack(
             side='left', padx=px(12))
         f = self.card(page, _('Performance', 'Производительность'))
-        self.check(f, 'experimental', 'app', _('Experimental features', 'Экспериментальные функции'),
-                   _('Unlocks options that are still being tested and marked (experimental). For now: FSR 4.1.1, and '
-                     'object motion vectors on AMD graphics cards, which can lower the frame rate or draw some objects wrong.',
-                     'Открывает функции, которые ещё проверяются и помечены (экспериментально). Пока это FSR 4.1.1 и '
-                     'векторы движения объектов на видеокартах AMD: они могут снижать FPS или неправильно рисовать объекты.'))
+        self.check(f, 'experimental', 'app', _('Experimental features', 'Экспериментальные функции'), experimental_hint())
         self.row(f, _('Two-stage GPU pipeline', 'Двухстадийный конвейер GPU'), self.choice(f, 'draw_pipe', 'app', DRAW_PIPE),
                  _('20–30% faster; switch it off if the game is unstable.', 'Быстрее на 20–30%; при нестабильности выключите.'))
         self.row(f, _('GPU readbacks', 'Чтение данных GPU'), self.choice(f, 'readbacks', 'app', READBACKS),
@@ -6204,6 +6232,8 @@ class Launcher:
         self.refresh_status()
 
     def refresh_status(self):
+        if getattr(self, 'dlc_show', None):
+            self.dlc_show()
         info = self.coop_game_info() if COOP_INSTALL else game_info(self.var('game_dir', 'app').get())
         if not info:
             game = (_('✗ Choose your Bloodborne folder in Co-op', '✗ Выберите папку Bloodborne в разделе «Кооператив»')
@@ -6622,6 +6652,7 @@ class Launcher:
                         self.status.configure(text=_('The game is running.', 'Игра запущена.'), fg=GOLD)
                         if self.app.get('close_on_play') and not self.close_scheduled:  # both GAME_UP_LINES arrive
                             self.close_scheduled = True
+                            self.coop_release_server()  # the server stays for the game, then stops
                             self.root.after(CLOSE_AFTER_UP_MS, self.root.destroy)  # the game keeps running
                     elif 'restarting through run.py' in item:
                         self.set_running(True, preparing=True)
@@ -6756,9 +6787,12 @@ class Launcher:
 
         def show(*_args):
             label = var.get().strip()
-            text.configure(text=label or _('Not installed', 'Не установлено'), fg=GOLD if label else DIM)
+            game = self.coop_game_folder() if COOP_INSTALL else self.var('game_dir', 'app').get()
+            said, installed = dlc_text(game, label)
+            text.configure(text=said, fg=GOLD if installed else DIM)
             clear.configure(state='normal' if label else 'disabled')
         var.trace_add('write', show)
+        self.dlc_show = show  # the game folder changed (refresh_status)
         show()
         return holder
 
@@ -7408,7 +7442,18 @@ class Launcher:
                              'Steam на этом ПК). Игра запускается с настройками, сохранёнными в лаунчере. Прежний '
                              'shortcuts.vdf сохранён как shortcuts.vdf.bak.').format(added, len(done) - added))
 
+    def coop_release_server(self):
+        """The host's server goes with the launcher (Provi 2026-10-21, Omegadash 2026-10-30: it kept running
+        after the launcher was closed), or with the game when that outlives the launcher."""
+        if not COOP_INSTALL:
+            return
+        try:
+            bbport_coop.stop_servers_later(PORT_DIR, stop_servers_command())
+        except Exception:  # never keep the window open over it
+            pass
+
     def close(self):
+        self.coop_release_server()
         try:
             self.coop_flush()
         except Exception:  # never keep the window open over a settings problem
@@ -7609,6 +7654,35 @@ def play_without_window(settings):
         return process.wait()
 
 
+def play_coop_without_window(app):
+    """--play in the co-op release: what PLAY does (bbport_coop.launch_settings), with the saved co-op
+    settings and no window. A start that cannot be made says why in a message box. The host's server is
+    not started here either: Start server in the launcher starts it."""
+    coop = bbport_coop.load_settings(PORT_DIR)
+
+    def prepared(key):
+        coop['prepared'] = key
+        bbport_coop.save_settings(PORT_DIR, coop)
+    try:
+        try:
+            bbport_coop.back_up_saves(PORT_DIR, 'before PLAY')
+        except OSError:
+            pass  # a full disk or a locked file costs this one copy, not the game
+        settings, root, _note = bbport_coop.launch_settings(PORT_DIR, bbport_coop.played_settings(coop),
+                                                            say=lambda _text: None, on_prepared=prepared)
+    except bbport_coop.UnknownServer as error:
+        show_error_box(_(bbport_coop.UNKNOWN_SERVER_TEXT).format(error.host))
+        return 1
+    except (RuntimeError, OSError, ValueError) as error:
+        show_error_box(str(error))
+        return 1
+    log_path = bbport_coop.rotate_logs(PORT_DIR)
+    threading.Thread(target=bbport_coop.send_reports, args=(PORT_DIR, dict(settings)), daemon=True).start()
+    settings = dict(settings, unlocked_fps='1' if bbport_coop.unlocked_fps(app.get('fps_mode')) else '')
+    env = bbport_coop.game_environment(game_environment(app), settings, PORT_DIR, root)
+    return start_game(run_command(), env, log_path).wait()
+
+
 def update_ignore(target):
     """What copying an update over TARGET skips: USER_FILES everywhere and, in bin/reshade, what is
     already installed of ReShade.ini and the presets (players edit them; new presets still arrive)."""
@@ -7749,14 +7823,28 @@ def start_launcher():
             import traceback
             record_startup_failure(traceback.format_exc())
         sys.exit(0)
+    if args[:1] == [bbport_coop.STOP_WHEN_UNUSED]:
+        # Left behind by a launcher that closed while a co-op server ran: the server stops once no game and
+        # no launcher window of this install is left.
+        try:
+            bbport_coop.stop_servers_when_unused(PORT_DIR)
+        except Exception:  # no window to say it in: the log keeps it
+            import traceback
+            record_startup_failure(traceback.format_exc())
+        sys.exit(0)
     settings = load_app_settings()
     LANG = settings.get('ui_language') or windows_language()
     if args[:1] == ['--install-update'] and len(args) == 3:
         sys.exit(install_update(args[1], args[2]))
     if FROZEN and UPDATE_DIR not in PORT_DIR.parents:
         shutil.rmtree(UPDATE_DIR, ignore_errors=True)  # what a finished update left behind
-    # Without a usable game folder there is nothing to play yet: open the launcher instead.
-    if '--play' in args and (Path(settings['game_dir'] or '.') / 'eboot.bin').is_file():
+    # Without a usable game folder there is nothing to play yet: open the launcher instead. The co-op
+    # release plays co-op from Bloodborne.exe and Steam too (LeWhiske 2026-11-05: it started the plain
+    # game, which could not reach the server); unfinished co-op settings open the launcher.
+    if '--play' in args and COOP_INSTALL:
+        if bbport_coop.can_play_unattended(bbport_coop.load_settings(PORT_DIR)):
+            sys.exit(play_coop_without_window(settings))
+    elif '--play' in args and (Path(settings['game_dir'] or '.') / 'eboot.bin').is_file():
         sys.exit(play_without_window(settings))
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)  # sharp text on scaled displays
