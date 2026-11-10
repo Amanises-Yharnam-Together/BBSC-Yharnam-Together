@@ -649,6 +649,16 @@ add_executable(srt-fault-test EXCLUDE_FROM_ALL ../tests/test_srt_fault.cpp)
 target_compile_options(srt-fault-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(srt-fault-test PRIVATE shim)
 
+# A walker's null roots are checked before the walk: no fault for them (shim/bbport_srt_roots.h).
+add_executable(srt-null-root-test EXCLUDE_FROM_ALL ../tests/test_srt_null_root.cpp)
+target_compile_options(srt-null-root-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(srt-null-root-test PRIVATE shim)
+
+# The console line for draws with null resource tables (shim/bbport_null_tables.h).
+add_executable(null-tables-test EXCLUDE_FROM_ALL ../tests/test_null_tables.cpp)
+target_compile_options(null-tables-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(null-tables-test PRIVATE shim)
+
 # The push constant block the shaders read (header only: bbgpu's include directories, no link).
 add_executable(push-data-test EXCLUDE_FROM_ALL ../tests/test_push_data.cpp)
 target_compile_options(push-data-test PRIVATE -UNDEBUG)

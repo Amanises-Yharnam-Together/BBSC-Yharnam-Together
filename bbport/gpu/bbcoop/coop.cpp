@@ -923,6 +923,10 @@ extern "C" void bbcoop_trophy_unlocked(int32_t trophy_id) {
     Libraries::Np::NpTrophy::NotifyTrophyUnlocked(trophy_id);
 }
 
+extern "C" uint32_t bbcoop_current_map(void) {
+    return Core::Bloodborne::GetCurrentPackedMap();
+}
+
 extern "C" int bbcoop_rot_view(bbcoop_rot* rot) {
     *rot = {};
     const Core::Bloodborne::Coop::RotView view = Core::Bloodborne::Coop::ReadRotView();

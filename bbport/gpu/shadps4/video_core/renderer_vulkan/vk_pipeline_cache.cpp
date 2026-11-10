@@ -41,6 +41,7 @@
 #include "video_core/renderer_vulkan/vk_scheduler.h"
 #include "video_core/renderer_vulkan/vk_shader_util.h"
 #include "bbport_async_claim.h"
+#include "bbport_null_tables.h"
 #include "bbport_spec_drop.h"
 #include "bbport_toggles.h"
 #ifdef _WIN32
@@ -1541,6 +1542,10 @@ bool PipelineCache::RefreshGraphicsStages(PipelineSelection& sel) {
                 static std::atomic<u32> reported{0};
                 if (reported.fetch_add(1, std::memory_order_relaxed) < 5) {
                     std::printf("GPU: draw skipped: its vertex buffer table pointer is null\n");
+                }
+                // The rate and the map: the null table line (shim/bbport_null_tables.h).
+                if (!runtime_fault_recover) {
+                    BbNullTables::NoteVertexSkip();
                 }
                 return false;
             }
