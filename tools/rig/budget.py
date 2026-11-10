@@ -39,6 +39,7 @@ LONG = {
     "rom-fog-guest-joins": "player report 2026-11-08 Rom's fog: a trip to Byrgenwerth, a join there and two walks",
     "rom-fog-both-travel": "player report 2026-11-08 Rom's fog: two trips to Byrgenwerth and two walks",
     "chalice-fog-guest": "Discord 2026-11-05/08 chalice fogs: a team ritual, both in the dungeon, the guest leaves",
+    "chalice-fog-guest-team-load": "Discord 2026-11-05/08 chalice fogs: a team ritual, both in the dungeon, the guest's restart and team load",
     "boss-death-spectate": "#414: a boss fight to a teammate's death and the fight after (600 s)",
     "boss-death-wipe": "#414: a boss fight to the whole party's deaths (600 s)",
     "boss-tempo-party": "Kaniel 2026-10-28 boss tempo: a join, then 60 s of Paarl's fight at the leader's Relentless",

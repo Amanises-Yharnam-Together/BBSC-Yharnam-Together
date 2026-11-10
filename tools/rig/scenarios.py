@@ -5134,6 +5134,29 @@ SCENARIOS["chalice-fog-guest"] = {
     "allow": CRASH_CLEANUP,
     "timeout": 1200,
 }
+# chalice-fog-guest showed the same objects in both games (rig 2026-11-10 13:56: the guest entered
+# from its own altar). As rom-fog-guest-joins: the guest's game starts again and its team load
+# puts it beside the host in the dungeon, a client in the host's world; then each reads the
+# block objects and its character type.
+SCENARIOS["chalice-fog-guest-team-load"] = {
+    "about": "a team in the host's chalice dungeon, the guest back by its team load (a client in "
+             "the host's world): the same spawn room objects in both games",
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 10", *CHALICE_ENTER("host"),
+                 "wait-members 2 400", "wait 20", "wait-solo 180", "wait-session 2 420",
+                 "wait-members 2 180", "wait 20", f"expect-map {CHALICE_DUNGEON}",
+                 CHALICE_BLOCK_OBJECTS, "peek self 78", "snapshot", "expect-session 2"],
+        "guest": [["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                   *["wait 30"] * 5, *CHALICE_FROM_OWN_ALTAR("guest"), "wait-members 2 300",
+                   "wait 15", "snapshot", "done"],
+                  ["team-accept", "team-ready", "godmode", "wait-session 2 420",
+                   "wait-members 2 180", "wait 20", f"expect-map {CHALICE_DUNGEON}",
+                   CHALICE_BLOCK_OBJECTS, "peek self 78", "snapshot", "expect-session 2"]],
+    },
+    "allow": CRASH_CLEANUP,
+    "timeout": 1500,
+}
 
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
 # look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
