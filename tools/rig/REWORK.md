@@ -180,3 +180,19 @@ everything in them runs in a tier.
 | half an hour by design: the long tier | soak |
 | harder enemies on all three games | paarl-after-wipe |
 | new-character saves (could share one run: both on rig/saves/new-character) | shop-own-weapons, new-char-cutscene |
+
+## Test audit, 2026-11-10 (before the full run on the release after 1.4.0)
+
+Report: `reports/test-audit-2026-11-10.md` in the project files. What it changed here:
+
+- Deleted, each a strict part of a scenario that stays: `guest-alone-hits` (`guest-hits-host-comes`),
+  `key-items-kept` (`key-items-silent`), `logarius-spells` and `shadows-spells` (their
+  `-runner-leaves`), `boss-targets-host` (`boss-targets-teammate-revived`), `teams-apart3`
+  (`teams-apart`), `dog-alone` (`dog-alone3`), `chalice-team` (stale since the team altars;
+  `chalice-altar-team`).
+- Merged: `spectate-default-down` into party-death/give-up, `spectate-lamp` into `spectate-follow`,
+  joins/join-time into joins/restart-keeps.
+- To the probes (no check of their own): `clinic`, `button-icons`, `map-team`.
+- Repaired: crashes/resume (the place it comes back to), `dead-before-session` (hidden or put down
+  again), `early-trip` (two lines that hang on the PC's timing), `chalice-load-inside-*` (a sync
+  before the restart).

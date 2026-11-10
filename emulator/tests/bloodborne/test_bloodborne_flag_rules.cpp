@@ -604,6 +604,36 @@ TEST(BloodborneFlagRules, TheDollsBlessingFlagsAreEachGamesOwn) {
     }
 }
 
+// Supermedo's bloodborne_pc 1.9.8.3: "Bath Messengers' hat flags are per player". The messengers'
+// attire (Messenger Top Hat, Head Bandage, Urn Dance...): the Dream stump's talk lists the attire
+// this player received (6071-6085: m21_00 12100020 from the player's goods 4900-4914, 12105064's
+// gifts) and asks for one (72100141-72100155, 72100140 "take it off"), m21_00 12105060/12105070
+// (each game's own events) put 6011-6025 to the pick, and the messengers wear it. As the host's,
+// a teammate's pick dressed this player's messengers, and the team's world put the host's attire
+// and the host's list in every guest's save.
+TEST(BloodborneFlagRules, TheMessengersAttireIsEachPlayersOwn) {
+    for (const s32 flag : {6011, 6018, 6025, 6071, 6080, 6085}) {
+        EXPECT_EQ(RuleFor(flag).owner, FlagOwner::PerPlayer) << flag;
+        EXPECT_TRUE(RuleFor(flag).Has(FlagCarriesHome)) << flag << ": the player's lasting pick";
+        EXPECT_FALSE(IsWorldFlag(flag)) << flag;
+        EXPECT_TRUE(KeepsLocalFlag(true, flag)) << flag;
+        EXPECT_FALSE(TakesHostMapFlag(flag)) << flag;
+        EXPECT_FALSE(SharedWithParty(flag)) << flag;
+    }
+    for (const s32 flag : {72100140, 72100141, 72100155}) {
+        EXPECT_EQ(RuleFor(flag).owner, FlagOwner::PerPlayer) << flag;
+        EXPECT_FALSE(RuleFor(flag).Has(FlagCarriesHome))
+            << flag << ": a request, cleared by its event";
+        EXPECT_FALSE(IsWorldFlag(flag)) << flag;
+        EXPECT_TRUE(KeepsLocalFlag(true, flag)) << flag;
+        EXPECT_FALSE(CarriesToGuestWorld(flag)) << flag;
+        EXPECT_FALSE(SharedWithParty(flag)) << flag;
+    }
+    for (const s32 flag : {6010, 6026, 6070, 6086, 72100139, 72100156}) {
+        EXPECT_EQ(RuleFor(flag).owner, FlagOwner::Host) << flag;
+    }
+}
+
 // Rig iosefka-gift (failing since 2026-10-20's live team story): the host talked to Iosefka first,
 // its talk's steps (first talk done 72410300, gift given this visit 72410301, gift talks
 // 72410302-72410304) reached the guest, and the guest's talk took her "already gave" branch: no
@@ -1005,7 +1035,7 @@ TEST(BloodborneFlagRules, AChaliceMapsFlagsAreTheCurrentAltarsView) {
             EXPECT_TRUE(IsWorldFlag(flag)) << flag;
             EXPECT_TRUE(CarriesToGuestWorld(flag)) << flag;
         }
-        for (const s32 flag : {base, base + 1800, base + 7210, base + 7812, base + 9999}) {
+        for (const s32 flag : {base, base + 1810, base + 7210, base + 7812, base + 9999}) {
             EXPECT_EQ(RuleFor(flag).owner, FlagOwner::Host) << flag;
             EXPECT_TRUE(IsWorldFlag(flag)) << flag;
             EXPECT_TRUE(CarriesToGuestWorld(flag)) << flag;
@@ -1046,9 +1076,16 @@ TEST(BloodborneFlagRules, AChaliceDungeonsDoorsAreSharedAsTheirAltarKeepsThem) {
             EXPECT_TRUE(CarriesToGuestWorld(base + offset)) << base + offset;
             EXPECT_FALSE(SharedWithParty(12900000 + offset)) << "the view stays each game's own";
         }
-        // A flag an event turns back off in some layout (a switch: 12900004, 12900516), the
-        // layers' bosses, the load-reset part (12904700) and one past the doors' part.
-        for (const s32 flag : {base, base + 4, base + 516, base + 1800, base + 4700, base + 5000}) {
+        // The layers' bosses beaten (12901800 + layer, ChaliceLayerBossFlags; A6 item 4: a
+        // layer a teammate beat stays beaten after a trip, a guest's own is not put back off).
+        for (const s32 offset : {1800, 1802, 1809}) {
+            EXPECT_TRUE(SharedWithParty(base + offset)) << base + offset;
+            EXPECT_TRUE(IsWorldFlag(base + offset)) << base + offset;
+            EXPECT_FALSE(SharedWithParty(12900000 + offset)) << "the view stays each game's own";
+        }
+        // A flag an event turns back off in some layout (a switch: 12900004, 12900516), past the
+        // layers' bosses (12901810), the load-reset part (12904700) and past the shared part.
+        for (const s32 flag : {base, base + 4, base + 516, base + 1810, base + 4700, base + 5000}) {
             EXPECT_FALSE(SharedWithParty(flag)) << flag;
         }
     }

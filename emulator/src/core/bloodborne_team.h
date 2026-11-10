@@ -337,6 +337,17 @@ std::vector<std::pair<s32, bool>> TeamStoryToFollow(const WorldFlags& before,
 inline constexpr s64 KeptChangeReportMs = 20'000;
 bool KeptChangeYieldsToTeam(s32 flag, std::optional<s64> kept_ms, s64 now_ms,
                             std::span<const u32> team_blocks, u32 flags_per_block);
+// A guest's kept session change that stays out of a save loaded alone: with teams (`team_mode`),
+// a save that plays in no team (`plays_in_team` off: alone from the title, or out of its team in
+// play) has its own world back (ApplyTeamWorldOnLoad), and a kept change to a world flag
+// (IsWorldFlag: a boss, a door, a lamp, a story step) is the team's world as the guest saw it.
+// Set at home it made the team host's world this save's own progress: a guest that left its
+// team and played on had the team's bosses dead and its lamps lit in its own world (the same
+// bug as Supermedo's bloodborne_pc 1.9.8.3, "the host's world written into a guest is no longer
+// kept as the guest's own progress"). The change stays in the list for the save's next team
+// load. A flag of the player's own (PerPlayer: a gift, a gesture) goes home as before, and so
+// does everything without teams (the old party's shared progression).
+bool KeptChangeStaysWithTeam(s32 flag, bool team_mode, bool plays_in_team);
 
 // Phase 6: the team join without signs or a bell (docs/native-netcode/session.md, "Team join").
 // The team's host opens its game session itself (NetSync CreateSession) once it stands in its
@@ -403,6 +414,57 @@ std::vector<HeldGoods> PhantomKeyItemsToGiveBack(std::span<const HeldGoods> firs
 // them with that list, and PhantomKeyItemsToGiveBack gives none back twice (home holds them).
 std::vector<HeldGoods> OwnKeyItemsForPhantom(std::span<const HeldGoods> own,
                                              std::span<const HeldGoods> phantom);
+
+// Discord 2026-10-26 and 2026-11-07 (a guest's Sword Hunter Badge and Oedon Tomb Key never came; a
+// player back on their own save without badges and the Workshop Tool): what a guest gained in a
+// phantom's list came back only once its own list returned in the same run of the game. A game
+// closed before that (the friend quit, the evening ended) lost it for good: the boss stays dead
+// and the chest stays open in the guest's own world. So what is owed is kept in a file of the
+// save slot ("phantom_keys") and comes back at the next look at the guest's own list, in this
+// run of the game or a later one.
+// A key item gained in a phantom's list: how many were gained there and how many that list held.
+struct OwedKeyItem {
+    u32 goods = 0;
+    s32 gained = 0;
+    s32 held = 0;
+    bool operator==(const OwedKeyItem&) const = default;
+};
+// What a phantom's list gained between two looks (never a bell).
+std::vector<OwedKeyItem> PhantomKeyItemsGained(std::span<const HeldGoods> first_look,
+                                               std::span<const HeldGoods> last_look);
+// What of the owed items to give the guest's own list (`home`): each as many as it gained, less
+// what home holds of them already.
+std::vector<HeldGoods> OwedKeyItemsToGive(std::span<const OwedKeyItem> owed,
+                                          std::span<const HeldGoods> home);
+// The slot's file: one "<goods> <gained> <held>" line for each; a line that does not read is
+// left out.
+std::string EncodeOwedKeyItems(std::span<const OwedKeyItem> owed);
+std::vector<OwedKeyItem> ParseOwedKeyItems(std::string_view text);
+// The looks at a guest's key item lists, and what they owe its own list.
+class PhantomKeyItemLedger {
+public:
+    // The slot's file as a game started again read it.
+    void Load(std::vector<OwedKeyItem> owed);
+    // A look at a phantom's list (`list` tells one from another). For a new one: what to put in
+    // it, the guest's own key items and the ones owed from an earlier phantom's list, each as
+    // many as it lacks.
+    std::vector<HeldGoods> LookAtPhantom(u64 list, std::vector<HeldGoods> held);
+    // A look at the list of a guest that is no phantom. While that is still the phantom's list
+    // nothing; else what to give it back, none when it holds all it is owed (GaveBack once
+    // given).
+    std::optional<std::vector<HeldGoods>> LookAtOwn(u64 list, std::vector<HeldGoods> held);
+    void GaveBack();
+    // What the slot's file must hold now.
+    std::vector<OwedKeyItem> Owed() const;
+
+private:
+    u64 phantom_list = 0;
+    std::vector<HeldGoods> first_look;
+    std::vector<HeldGoods> last_look;
+    std::vector<HeldGoods> own_look;
+    // Owed from phantom lists gone by (or an earlier run of the game), not yet in this one.
+    std::vector<OwedKeyItem> carried;
+};
 
 // Kaniel 2026-10-23: a joining guest saw the game's "item received" popup ("Oedon Tomb Key 1 /
 // OK") once for each of its own key items OwnKeyItemsForPhantom put in the phantom's list. While

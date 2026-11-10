@@ -198,6 +198,29 @@ inline constexpr std::array<s32, 351> ChaliceDoorFlags{
     1564, 1565, 1566, 1567, 1568, 1697, 1698, 1699, 1713, 1714, 1715, 1716, 1717, 1719, 1720,
 };
 
+// A chalice dungeon's layers' bosses beaten (12901800 + layer, event 12901693's param 0, the same
+// ids in the story and root layouts), as the doors: shared as altar k keeps them (Discord audit
+// A6, 10-29: back from the Dream, a layer a teammate beat was not beaten; a guest's own was put
+// back off by the team world at its next load). No reward goes with them: 12901693 ends at once
+// on a flag already on (a load), and gives its rewards only to the fight's own players as the
+// flag comes on while it runs (the game syncs a boss's death to the players at the fight).
+inline constexpr std::array<s32, 10> ChaliceLayerBossFlags{1800, 1801, 1802, 1803, 1804,
+                                                           1805, 1806, 1807, 1808, 1809};
+
+namespace FlagTableDetail {
+template <size_t A, size_t B>
+constexpr std::array<s32, A + B> SortedUnion(const std::array<s32, A>& a,
+                                             const std::array<s32, B>& b) {
+    std::array<s32, A + B> both{};
+    std::ranges::merge(a, b, both.begin());
+    return both;
+}
+} // namespace FlagTableDetail
+
+// What a chalice dungeon shares as its altar keeps it: its doors and its layers' bosses.
+inline constexpr auto ChaliceSharedFlags =
+    FlagTableDetail::SortedUnion(ChaliceDoorFlags, ChaliceLayerBossFlags);
+
 // The Dream's m21_00 event 12100450 sets each of these flags once the player holds its goods (the
 // workshop's tools, the hunter badges). The badges' givers read them: a boss event gives its badge
 // only while the flag is off (the Cleric Beast's 12411700 its Sword Hunter Badge by 6645, m21_00
@@ -371,6 +394,15 @@ inline constexpr std::array FirstRows{
     Range(5500, 5521, FlagOwner::PerPlayer, FlagCarriesHome,
           "had an Uncanny or Lost DLC weapon (OwnedWeaponFlags, common event 5500 + slot): the "
           "Bath shop sells it to this player only"),
+    Range(6011, 6025, FlagOwner::PerPlayer, FlagCarriesHome,
+          "the Bath messengers' attire they wear (Messenger Top Hat, Head Bandage, Urn "
+          "Dance...: m21_00 12105060/12105070, each game's own events, put it to the Dream "
+          "stump talk's pick): this player's own, as the host's a teammate's pick dressed "
+          "this player's messengers and the team's world put it in every guest's save "
+          "(Supermedo's 1.9.8.3: \"Bath Messengers' hat flags are per player\")"),
+    Range(6071, 6085, FlagOwner::PerPlayer, FlagCarriesHome,
+          "the Bath messengers' attire this player received (m21_00 12100020 from its goods "
+          "4900-4914, 12105064's gifts): the stump's talk lists it, each player's own"),
     Range(6630, 6633, FlagOwner::PerPlayer, FlagCarriesHome,
           "holds a workshop tool (HeldItemFlags, the Dream's 12100450): what this player holds"),
     Range(6640, 6649, FlagOwner::PerPlayer, FlagCarriesHome,
@@ -481,10 +513,11 @@ inline constexpr std::array LastRows{
               .high = 3999,
               .rule = {FlagOwner::Shared, FlagCarriesHome | FlagSharesClears},
               .why =
-                  "a chalice dungeon's door as altar k keeps it (ChaliceDoorFlags, 14k0xxxx): the "
-                  "game does not sync a door opened while the teammate was elsewhere; its "
+                  "a chalice dungeon's door or layer boss as altar k keeps it (ChaliceSharedFlags, "
+                  "14k0xxxx): the game does not sync a door opened or a layer beaten while the "
+                  "teammate was elsewhere; its "
                   "clears too (a chalice taken off ends the dungeon, ClearAltarDungeon)",
-              .only = ChaliceDoorFlags},
+              .only = ChaliceSharedFlags},
     FlagRange{.first = 12107810,
               .last = 13998191,
               .period = 10000,
@@ -522,6 +555,10 @@ inline constexpr std::array LastRows{
           "12100113 turns her to the player and sets 72100102): this game's own. As the host's "
           "story steps and the game's own flag messages, the host's level up made every guest "
           "in the Dream kneel (Kaniel 2026-10-30, again 2026-11-03)"),
+    Range(72100140, 72100155, FlagOwner::PerPlayer, 0,
+          "the Dream stump's attire pick (its talk sets 72100141 + attire, 72100140 \"take "
+          "it off\"; m21_00 12105070/12105060 clear it as they dress the messengers): this "
+          "player's request, as the host's it changed the other player's attire"),
     Range(72100300, 72100309, FlagOwner::Session, 0,
           "a ritual altar's layer pick (72100300 + layer, for the Dream's warp event "
           "12107100): a request, not progress; as the host's, a guest's game took it and "

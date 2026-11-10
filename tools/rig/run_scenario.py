@@ -345,6 +345,18 @@ def judge(spec: dict, texts: dict[str, str]) -> list[str]:
     if handle := spec.get("hp_sums_hits"):
         if problem := hits_sum_problem(texts, handle):
             problems.append(f"all: {problem}")
+    # "hp_state": a character whole or hurt in a role's census (the last, or number "census"),
+    # against its own max there: the enemy strength rule moves the max with the hunters on the map.
+    for check in spec.get("hp_state", []):
+        index = check.get("census", -1)
+        where = "last census" if index < 0 else f"census {index + 1}"
+        for role in check["roles"]:
+            seen = last_census_hp(texts.get(role, ""), check["handle"], index)
+            if seen is None:
+                problems.append(f"{role}: no census of {check['handle']}")
+            elif (seen[0] >= seen[1]) != (check["is"] == "whole"):
+                problems.append(f"{role}: {check['handle']} is not {check['is']} in its {where}: "
+                                f"{seen[0]}/{seen[1]}")
     if limit := spec.get("max_hp_lag"):
         lag = hp_board_lag(texts, spec["hp_sums_hits"])
         # In milliseconds: the games' clock sums leave float noise (0.15 as 0.1500000000014).

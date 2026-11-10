@@ -482,7 +482,10 @@ class FindGameTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             make_game(root / 'drive' / 'CUSA00001', title='CUSA00001')
-            self.assertIsNone(coop.search_game(root / 'install', drives=[root / 'drive'], homes=[]))
+            # The install two folders deep: the search also looks beside the install's parent, which
+            # was the PC's own %TEMP% here (a real CUSA03173 left there by another test run was found).
+            install = root / 'Programs' / 'Yharnam Together'
+            self.assertIsNone(coop.search_game(install, drives=[root / 'drive'], homes=[]))
 
 
 @unittest.skipUnless(sys.platform == 'win32', 'folder links (junctions) are Windows')

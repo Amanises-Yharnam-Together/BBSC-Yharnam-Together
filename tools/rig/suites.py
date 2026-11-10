@@ -85,7 +85,6 @@ FRESH_ENEMY = "0x1001402e"
 # It stands 1 m from FRESH_ENEMY (both at -212,201): a weapon swing at one can kill both (rig
 # 2026-10-22, dog: 179 -> 0 in the same hit), and the host then rightly finds both dead.
 FRESH_ENEMY_BESIDE = "0x1001402f"
-ENEMY_MAX_HP = 484
 GUESTS = ("guest", "guest2")
 
 # The rig refresh's tests of recent bugs (Kaniel 2026-10-15). A test of a bug whose fix has not
@@ -147,6 +146,13 @@ def with_expect(chapter_: dict, role: str, *patterns: str) -> dict:
     return {**chapter_, "expect": expect}
 
 
+def whole(roles, *handles: str) -> list[dict]:
+    """hp_state checks: each of `handles` at its full HP in every role's last census. Its max is
+    the game's own there (the enemy strength rule raises it with the hunters on the map: 484,
+    726, 968 for ENEMY), so no chapter names a number."""
+    return [{"handle": handle, "is": "whole", "roles": list(roles)} for handle in handles]
+
+
 def map_reset(roles, name: str = "everyone-leaves") -> dict:
     """Every game goes to the Dream and back: kills held while one stayed come back once
     everyone left (Kaniel 2026-10-11: half the location reset after a trip), and the next
@@ -155,11 +161,10 @@ def map_reset(roles, name: str = "everyone-leaves") -> dict:
     steps = {role: [f"travel {HUNTERS_DREAM}", f"sync {name}-all-away", "wait 5",
                     f"travel {CENTRAL_YHARNAM_LAMP}", f"wait-members {players} 300",
                     f"sync {name}-all-back", "wait 15", "census 60",
-                    f"expect-hp {ENEMY} == {ENEMY_MAX_HP}", f"expect-hidden {ENEMY} 0",
-                    f"expect-hp {DOG} == {DOG_MAX_HP}", f"expect-session {players}"]
+                    f"expect-hidden {ENEMY} 0", f"expect-session {players}"]
              for role in roles}
     return chapter(name, "everyone leaves the map and comes back: every enemy is back, whole",
-                   steps, forbid=holds(roles))
+                   steps, hp_state=whole(roles, ENEMY, DOG), forbid=holds(roles))
 
 
 # Open sky, on the lower ground west of the first lamp (rig 2026-10-18: the old spots were
@@ -206,8 +211,7 @@ def wipe(roles, name: str = "wipe", guests_point: int | None = None,
     if hurt_first:
         # Godmode until the guests are down: the hurt enemy comes for the host.
         steps["host"] = [f"hit {ENEMY} 30", "wait 3", f"sync {name}-hurt", "wait 5",
-                         "census 40", f"expect-hp {ENEMY} < {ENEMY_MAX_HP}",
-                         f"sync {name}-guests-down", "godmode off", *steps["host"][2:]]
+                         "census 40", f"sync {name}-guests-down", "godmode off", *steps["host"][2:]]
     for guest in roles[1:]:
         # `guests_point`: the guests rest elsewhere first (a return point that stood 10 s,
         # ReturnPointSettleMs), so the wipe shows where they wake: where the host does.
@@ -216,21 +220,22 @@ def wipe(roles, name: str = "wipe", guests_point: int | None = None,
                         "wait-vital down 30", f"sync {name}-guests-down", "wait-vital dead 90",
                         "wait-vital up 150"]
         if hurt_first:
-            steps[guest] = [f"sync {name}-hurt", "wait 5", "census 40",
-                            f"expect-hp {ENEMY} < {ENEMY_MAX_HP}", *steps[guest]]
+            steps[guest] = [f"sync {name}-hurt", "wait 5", "census 40", *steps[guest]]
     for role in roles:
         steps[role] += [f"wait-members {players} 300", f"sync {name}-woken", "wait 15",
-                        "census 60", f"expect-hp {ENEMY} == {ENEMY_MAX_HP}",
-                        f"expect-hidden {ENEMY} 0", f"expect-hp {DOG} == {DOG_MAX_HP}",
-                        f"expect-session {players}"]
+                        "census 60", f"expect-hidden {ENEMY} 0", f"expect-session {players}"]
         if guests_point:
             steps[role].append(f"expect-others-near {players - 1} 30")
     woke_at_host = rf"respawn at the host's point {guests_point} \(own {CENTRAL_YHARNAM_LAMP}\)" \
         if guest_leads else rf"respawn at the host's point {CENTRAL_YHARNAM_LAMP} \(own {guests_point}\)"
     # The dog's +0x28 reads 1 at full HP in every game after a wipe (rig 2026-10-12, smoke): the
     # map's own state, not a kill hiding it (its HP is checked).
+    # Whole and hurt by each game's own census (the first one: the hurt enemy; the last: after
+    # the wipe), never a number: the enemy strength rule moves the max.
+    hurt = [{"handle": ENEMY, "is": "hurt", "census": 0, "roles": list(roles)}] if hurt_first else []
     return chapter(
         name, "a party wipe resets the map for everyone, the same in every game", steps,
+        hp_state=[*hurt, *whole(roles, ENEMY, DOG)],
         expect={"host": [r"party death: died for real on map 0x18010000 \(reset=true\)",
                          r"travelling there \(reset=true, void fall=false\)", BLOODSTAIN_DROPPED, WIPE_RAN,
                          *([woke_at_host] if guest_leads else [])],
@@ -700,8 +705,7 @@ SUITES = {
             chapter("dream-shops", "a guest in the Dream during the session: its messengers and "
                                    "doors open as in its own game (Kaniel 2026-10-11: no insight "
                                    "shop, no Hunter Chief Emblem for guests) and the shop's badge "
-                                   "check holds (every weapon opened by mistake). Flag 9401 "
-                                   "(workshop doors) is to be confirmed on the first run",
+                                   "check holds (every weapon opened by mistake)",
                     {"guest": [f"travel {HUNTERS_DREAM}", "wait 20", "expect-flag 9401 1",
                                f"travel {CENTRAL_YHARNAM_LAMP}", "wait-members 2 240",
                                "sync shops-back"],
@@ -822,8 +826,7 @@ SUITES = {
                     forbid={role: SESSION_HOLDS + [KNEEL] for role in PARTY2}),
             chapter("down-by-enemy", "the guest with 1 HP next to an enemy, locked on to it, goes "
                                      "down: the lock-on is let go (PR #69), the enemy leaves it "
-                                     "alone, and the host revives it. Whether the rig's R3 locks "
-                                     "on there is to be confirmed on the first run",
+                                     "alone, and the host revives it",
                     # Its end is a give-up, not a revive: a revive takes 50-70 s of swings (rig
                     # 2026-10-15), revives have chapters of their own.
                     {"host": ["wait-member-vital down 150", "wait-member-vital up 150"],
@@ -838,16 +841,17 @@ SUITES = {
                     # known_bug dropped: not seen in the rig run of 2026-11-02.
                     forbid={"host": SESSION_HOLDS,
                             "guest": SESSION_HOLDS + [r"party death: killed while down"]}),
-            chapter("give-up", "the downed guest holds Circle and dies; it gets up at its lamp "
+            chapter("give-up", "the death mode nobody picked is party death (down, not spectating): "
+                               "the downed guest holds Circle and dies; it gets up at its lamp "
                                "without a reload and the session holds",
-                    {"guest": ["godmode off", *GUEST_FALL, "wait-vital down 30",
+                    {"guest": ["wait-death-mode down 5", "godmode off", *GUEST_FALL, "wait-vital down 30",
                                "press circle 3600", "wait-vital dead 15", "wait-vital up 90",
                                "wait-members 2 240", "godmode"],
                      "host": ["wait-member-vital down 120"]},
                     expect={"guest": [r"party death: giving up ends down \d+; dies \(reset=false",
                                       r"party guest died; revived"]},
                     forbid={"host": SESSION_HOLDS,
-                            "guest": SESSION_HOLDS + [r"reset=true"]}),
+                            "guest": SESSION_HOLDS + [r"reset=true", r"spectate:"]}),
             chapter("stain-after-rejoin", "the guest's game dies after it died for real (give-up "
                                           "left its bloodstain); back in the host's world it "
                                           "sees its own stain with its echoes (Kaniel "
@@ -984,8 +988,7 @@ SUITES = {
                     allow=CRASH_CLEANUP),
             chapter("cutscene", "Father Gascoigne dies in the host's world with the guest there: "
                                 "his death's time-of-day cutscene reloads the host's world (a "
-                                "trip), and both are back together after it. Whether this kill "
-                                "plays the cutscene again is to be confirmed on the first run",
+                                "trip), and both are back together after it",
                     # The cutscene's reload starts within seconds of the kill; then both wait for
                     # the other on the map (no fixed minute: the rig's budget, 2026-10-15).
                     {"host": [f"set-flag {GASCOIGNE_DEFEATED} 0",
@@ -1048,8 +1051,10 @@ SUITES = {
                                "wait-session 2 420", "wait 5", "expect-session 2",
                                f"expect-map {CENTRAL_YHARNAM}", "sync resume-back"],
                      "host": ["sync resume-back"]},
-                    expect={"guest": [r"guest resumed at \(-21\d(\.\d+)?, -5\d(\.\d+)?, "
-                                      r"17\d(\.\d+)?\) on map 0x18010000"]},
+                    # Within about 10 m of where it stood (-215.0 -54.5 178.0): the point kept is
+                    # its last settled one (rig 2026-11-04: it came back at -209.61, 178.82).
+                    expect={"guest": [r"guest resumed at \(-2(?:0[5-9]|1\d|2[0-5])(\.\d+)?, "
+                                      r"-5\d(\.\d+)?, 17\d(\.\d+)?\) on map 0x18010000"]},
                     allow=CRASH_CLEANUP),
             chapter("after-resume", "after its resume the lamp the guest lit is still lit in both "
                                     "worlds, the host's hit reaches its copy, and both pick up "
@@ -1205,11 +1210,10 @@ SUITES = {
                                         "stays whole in the host's; the session forming kills "
                                         "nothing",
                     {"host": ["godmode", "wait 20", f"expect-hp {DOG} == {DOG_MAX_HP}",
-                              "wait-session 2 300", "wait 30", "census 60",
-                              f"expect-hp {DOG} == {DOG_MAX_HP}", "expect-session 2"],
+                              "wait-session 2 300", "wait 30", "census 60", "expect-session 2"],
                      "guest": ["godmode", f"hurt {DOG} 5", "wait-session 2 300", "wait 30",
                                "census 60", f"expect-hp {DOG} > 300", "expect-session 2"]},
-                    fatal=True, setup=True,
+                    fatal=True, setup=True, hp_state=whole(["host"], DOG),
                     forbid={"host": SESSION_HOLDS + [r"Bloodborne echoes: \+\d+"],
                             "guest": SESSION_HOLDS}),
             chapter("join-after-trip", "a guest that travelled on its own before any session (to "
@@ -1255,12 +1259,15 @@ SUITES = {
             chapter("restart-keeps", "the guest's game starts again in the session: it is the "
                                      "same character, so its kept pickups stay and nothing is "
                                      "backed up (Kaniel 2026-10-11: Brom's pickups wiped by "
-                                     "a restart; the review: never wipe on a bad read)",
+                                     "a restart; the review: never wipe on a bad read), and "
+                                     "from its load's end to its join takes no more than the "
+                                     "budget (phase 7: a join costs only the guest's own load)",
                     {"guest": [RESTART, START, "godmode", "wait-session 2 420", "wait 10",
                                "sync rk-back", "expect-session 2"],
                      "host": ["sync rk-back", "expect-session 2"]},
                     forbid={"guest": [r"new character in save slot"]},
                     files_absent={"guest": ["bloodborne_party_*.bak-*"]},
+                    max_join_s={"guest": JOIN_AFTER_LOAD_S},
                     allow=CRASH_CLEANUP),
             # The team's load screen is in the world since the join's reload (#212): title-keys
             # did nothing there (rig 2026-10-22: no "menu keys toggle"). Pressed in the world from
@@ -1285,14 +1292,6 @@ SUITES = {
                      "host": ["sync gsm-done", "expect-session 2"]},
                     expect={"guest": [r"menu keys right"]},
                     forbid=holds(PARTY2)),
-            chapter("join-time", "the guest's game starts again: from its load's end to its "
-                                 "join takes no more than the budget (phase 7: a join costs only "
-                                 "the guest's own load)",
-                    {"guest": [RESTART, START, "godmode", "wait-session 2 420",
-                               "sync jt-back", "expect-session 2"],
-                     "host": ["sync jt-back", "expect-session 2"]},
-                    max_join_s={"guest": JOIN_AFTER_LOAD_S},
-                    allow=CRASH_CLEANUP),
             chapter("new-character", "a guest on a brand-new character (rig/saves/new-character) "
                                      "joins where it stands: its kept lists start clean once, "
                                      "the old ones backed up first",
@@ -1658,6 +1657,7 @@ def compile_suite(suite: dict, only: list[str] | None = None) -> dict:
     checks = ("about", "expect", "forbid", "allow", "same_hp", "same_hp_census", "hp_sums_hits",
               "max_hp_lag", "max_hp_lag_each", "killed", "max_kill_lag", "max_join_s", "moves",
               "grounded", "overlay_textures", "console_expect", "console_forbid", "known_bug", "known_problems",
+              "hp_state",
               "files_present",
               "files_absent")
     return {

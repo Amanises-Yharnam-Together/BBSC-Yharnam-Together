@@ -685,6 +685,7 @@ namespace Coop {
 // The character the kept progress belongs to: the save slot the game opened last (see
 // CharacterSlotOfSavePath), -1 until it opened one.
 std::atomic<int> character_slot{-1};
+std::atomic<bool> phantom_keys_forgotten{false};
 
 } // namespace Coop
 
@@ -849,6 +850,11 @@ void ForgetSlotIfNewCharacter() {
     std::filesystem::remove(Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
                                 SlotFileName("resume", character_slot.load()),
                             error);
+    // And the key items the old character gained as a phantom (GiveBackPhantomKeyItems).
+    std::filesystem::remove(Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
+                                SlotFileName("phantom_keys", character_slot.load()),
+                            error);
+    phantom_keys_forgotten.store(true);
     RefuseServerResumePoint(); // the old character's place in its team's world (phase 7)
     LOG_INFO(Debug,
              "Bloodborne party: new character in save slot {} ({} event flags set, {} kept); its "
@@ -1133,7 +1139,17 @@ size_t SetGuestWorldChanges(bool keep) {
     const s64 now_ms = SteadyMilliseconds();
     std::string yielded;
     size_t yielded_count = 0;
+    // A save loaded alone has its own world back: the team's world as this guest saw it stays
+    // out of it, and in the list for its next team load (KeptChangeStaysWithTeam).
+    const bool team_mode = TeamModeOn();
+    const bool plays_in_team = SavePlaysInTeam();
+    size_t left_to_team = 0;
     for (auto it = world.begin(); it != world.end();) {
+        if (KeptChangeStaysWithTeam(it->first, team_mode, plays_in_team)) {
+            ++left_to_team;
+            ++it;
+            continue;
+        }
         const auto kept = guest_world_kept_ms.find(it->first);
         if (!team_blocks.empty() && KeptChangeYieldsToTeam(it->first,
                                                            kept != guest_world_kept_ms.end()
@@ -1157,6 +1173,12 @@ size_t SetGuestWorldChanges(bool keep) {
         }
     }
     SaveGuestWorldChanges();
+    if (left_to_team > 0) {
+        LOG_INFO(Debug,
+                 "Bloodborne party: this save plays alone: {} of the session's world changes "
+                 "stay with the team's world, not set in its own",
+                 left_to_team);
+    }
     if (yielded_count > 0) {
         LOG_INFO(Debug,
                  "Bloodborne party: {} of the session's story steps left to the team's world "

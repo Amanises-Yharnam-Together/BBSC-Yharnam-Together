@@ -799,6 +799,9 @@ struct MapItemSpot {
 std::vector<std::pair<float, MapItemSpot>> UsableMapItemsNear(const std::array<float, 3>& from);
 void LogItemButtonAndMapItems();
 extern std::atomic<int> character_slot;
+// Set when a slot's kept lists are dropped for a new character (ForgetSlotIfNewCharacter): the
+// key items owed to the old one (PhantomKeyItemLedger) are read again from the slot's file.
+extern std::atomic<bool> phantom_keys_forgotten;
 
 // Sets the kept world changes in the guest's world: how many took. The ones that took are done
 // unless `keep` (a trip's load: the game puts its own saved world back after it, so the trip's
@@ -1038,6 +1041,9 @@ void ApplyTeamWorldOnLoad(bool trip = false);
 std::vector<s32> TeamWorldFlagsOnForGuest();
 // The blocks the team's world covers, for a team guest (none otherwise).
 std::vector<u32> TeamWorldBlocksForGuest();
+// Whether the save loaded now plays in a team (its Start's party, until it loads alone from the
+// title or leaves its team in play).
+bool SavePlaysInTeam();
 // Puts lamps (entities, LampOfActiveFlag) on this character's lamp list, so they stay lit for it.
 void ListLamps(std::span<const s32> lamps);
 // The lamps KeepGuestLampsLit lit again are no world changes (WithoutRelitLamps).

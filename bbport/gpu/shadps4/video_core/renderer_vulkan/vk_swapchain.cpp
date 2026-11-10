@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <algorithm>
+#include <cstdio>
 #include <limits>
+#include <vector>
 #include "common/assert.h"
 #include "common/logging/log.h"
+#include "bbport_present_mode.h"
 #include "bbport_settings.h"
 #include "core/emulator_settings.h"
 #include "imgui/renderer/imgui_core.h"
@@ -228,26 +231,28 @@ void Swapchain::FindPresentMode() {
         return;
     }
 
+    // bbport: the mode asked for, else its stand-ins (bbport_present_mode.h). AMD's Windows
+    // driver has no Mailbox, and the fallback used to be FIFO (V-Sync): a hard 30 FPS on a 60 Hz
+    // monitor as soon as a frame took over 16.7 ms.
     const auto requested_mode = EmulatorSettings.GetPresentMode();
-    if (requested_mode == "Mailbox") {
-        present_mode = vk::PresentModeKHR::eMailbox;
-    } else if (requested_mode == "Fifo") {
-        present_mode = vk::PresentModeKHR::eFifo;
-    } else if (requested_mode == "Immediate") {
-        present_mode = vk::PresentModeKHR::eImmediate;
-    } else {
-        LOG_ERROR(Render_Vulkan, "Unknown present mode {}, defaulting to Mailbox.",
-                  EmulatorSettings.GetPresentMode());
-        present_mode = vk::PresentModeKHR::eMailbox;
+    int requested = BbPresentMode::Requested(requested_mode);
+    if (requested < 0) {
+        LOG_ERROR(Render_Vulkan, "Unknown present mode {}, defaulting to Mailbox.", requested_mode);
+        requested = BbPresentMode::Mailbox;
     }
-
-    if (std::ranges::find(modes, present_mode) == modes.cend()) {
-        // FIFO is guaranteed to be supported by the Vulkan spec.
-        constexpr auto fallback = vk::PresentModeKHR::eFifo;
+    std::vector<int> supported;
+    for (const auto mode : modes) {
+        supported.push_back(static_cast<int>(mode));
+    }
+    const int chosen = BbPresentMode::Choose(requested, supported);
+    present_mode = static_cast<vk::PresentModeKHR>(chosen);
+    if (chosen != requested) {
         LOG_WARNING(Render, "Requested present mode {} is not supported, falling back to {}.",
-                    vk::to_string(present_mode), vk::to_string(fallback));
-        present_mode = fallback;
+                    BbPresentMode::Name(requested), vk::to_string(present_mode));
     }
+    std::printf("Swapchain: present mode %s%s\n", BbPresentMode::Name(chosen),
+                chosen != requested ? " (the one asked for is not supported by this GPU's driver)"
+                                    : "");
 }
 
 void Swapchain::SetSurfaceProperties() {

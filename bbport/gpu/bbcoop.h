@@ -267,6 +267,10 @@ void bbcoop_file_opened(const char *guest_path);
 /* The game unlocked a trophy itself; party members get it too. */
 void bbcoop_trophy_unlocked(int32_t trophy_id);
 
+/* The map this game is on (packed, as the co-op log prints it; 0: none yet), for the port's
+ * diagnostics lines. Reads the game's memory: not every frame. */
+uint32_t bbcoop_current_map(void);
+
 /* Phase 5, the team lobby (always on with co-op), for the game's own menu
  * (the team screen, bbport_overlay.cpp). Names are UTF-8; `id` is what a request names (a
  * player's lobby member, a team's id). */

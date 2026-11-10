@@ -718,6 +718,24 @@ def frame_rate_fixes(names, image_bytes, segments, env=os.environ):
     return named
 
 
+def crash_guards(image_bytes, segments, env=os.environ):
+    """[(name, offset, data)]: the crash guards (crash_guards.py, from Supermedo's bloodborne_pc
+    f1999924: the game's own unchecked pointers that crashed players), at any frame rate. Skipped
+    when the site holds other code or the code segment's last page is not free; BB_CRASH_GUARDS=0
+    turns them off."""
+    if env.get('BB_CRASH_GUARDS')=='0':
+        return []
+    sys.path.insert(0,str(Path(__file__).resolve().parent))
+    import code_cave, crash_guards as guards
+    try:
+        code_cave.check_segments(segments)
+        guards.check_original(image_bytes)
+    except ValueError as error:
+        print(f'Patches: {error}; crash guards skipped')
+        return []
+    return [('Crash guards',offset,data) for offset,data in guards.code_writes()]
+
+
 def report_coop_conflicts(conflicts, out=sys.stderr):
     """Says, loudly, which game patch breaks which co-op feature (the launcher shows this output
     and keeps it in last_run.log)."""
@@ -844,6 +862,11 @@ def main():
         fixes=frame_rate_fixes(names,lambda start,end: eboot_bytes(elf,start,end),segments)
         named+=fixes
         names+=list(dict.fromkeys(name for name,_,_ in fixes))
+    # Crash guards: at any frame rate, wherever the guarded code is the 01.09 build's (they check it).
+    elf=(a.out/'eboot.elf').read_bytes()
+    guards=crash_guards(lambda start,end: eboot_bytes(elf,start,end),segments)
+    named+=guards
+    names+=list(dict.fromkeys(name for name,_,_ in guards))
     try:
         report_coop_conflicts(coop_conflicts(named))
     except (OSError, ValueError, KeyError) as error:
