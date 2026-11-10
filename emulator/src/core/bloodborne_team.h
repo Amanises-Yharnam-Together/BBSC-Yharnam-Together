@@ -337,6 +337,17 @@ std::vector<std::pair<s32, bool>> TeamStoryToFollow(const WorldFlags& before,
 inline constexpr s64 KeptChangeReportMs = 20'000;
 bool KeptChangeYieldsToTeam(s32 flag, std::optional<s64> kept_ms, s64 now_ms,
                             std::span<const u32> team_blocks, u32 flags_per_block);
+// A guest's kept session change that stays out of a save loaded alone: with teams (`team_mode`),
+// a save that plays in no team (`plays_in_team` off: alone from the title, or out of its team in
+// play) has its own world back (ApplyTeamWorldOnLoad), and a kept change to a world flag
+// (IsWorldFlag: a boss, a door, a lamp, a story step) is the team's world as the guest saw it.
+// Set at home it made the team host's world this save's own progress: a guest that left its
+// team and played on had the team's bosses dead and its lamps lit in its own world (the same
+// bug as Supermedo's bloodborne_pc 1.9.8.3, "the host's world written into a guest is no longer
+// kept as the guest's own progress"). The change stays in the list for the save's next team
+// load. A flag of the player's own (PerPlayer: a gift, a gesture) goes home as before, and so
+// does everything without teams (the old party's shared progression).
+bool KeptChangeStaysWithTeam(s32 flag, bool team_mode, bool plays_in_team);
 
 // Phase 6: the team join without signs or a bell (docs/native-netcode/session.md, "Team join").
 // The team's host opens its game session itself (NetSync CreateSession) once it stands in its

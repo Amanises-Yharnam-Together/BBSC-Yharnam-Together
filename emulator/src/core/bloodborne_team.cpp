@@ -786,6 +786,10 @@ bool KeptChangeYieldsToTeam(s32 flag, std::optional<s64> kept_ms, s64 now_ms,
            (!kept_ms || now_ms - *kept_ms >= KeptChangeReportMs);
 }
 
+bool KeptChangeStaysWithTeam(s32 flag, bool team_mode, bool plays_in_team) {
+    return team_mode && !plays_in_team && IsWorldFlag(flag);
+}
+
 TeamJoin::Action TeamJoin::Tick(const Frame& frame) {
     if (!frame.host) {
         if (frame.matching_state == MatchingStateSummonedGuest && frame.session_members <= 1) {

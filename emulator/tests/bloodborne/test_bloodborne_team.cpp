@@ -573,6 +573,26 @@ TEST(TeamWorld, AKeptStoryStepYieldsToTheTeamsWorld) {
     EXPECT_FALSE(KeptChangeYieldsToTeam(1205, std::nullopt, Now, blocks, 0));
 }
 
+// Supermedo's bloodborne_pc 1.9.8.3: "the host's world written into a guest is no longer kept as
+// the guest's own progress". Ours: a team guest's kept session changes (the team host's world as
+// it saw it) were set "at home" in a save that left its team in play or loaded alone from the
+// title in the same run (its role stays a guest's), over its own world put back just before.
+TEST(TeamWorld, AKeptWorldChangeStaysOutOfASaveLoadedAlone) {
+    EXPECT_TRUE(KeptChangeStaysWithTeam(12401800, true, false)) << "a map's flag (a boss, a door)";
+    EXPECT_TRUE(KeptChangeStaysWithTeam(12407810, true, false)) << "a lamp the team lit";
+    EXPECT_TRUE(KeptChangeStaysWithTeam(7240, true, false)) << "a story step";
+    EXPECT_FALSE(KeptChangeStaysWithTeam(12401800, true, true))
+        << "in its team: on top of the team's world, as before";
+    EXPECT_FALSE(KeptChangeStaysWithTeam(12401800, false, false))
+        << "no teams (the old party): shared progression goes home";
+    EXPECT_FALSE(KeptChangeStaysWithTeam(6744, true, false))
+        << "a gesture given is the player's own: it goes home";
+    EXPECT_FALSE(KeptChangeStaysWithTeam(12101022, true, false))
+        << "a Dream messenger's gift is the player's own";
+    EXPECT_FALSE(KeptChangeStaysWithTeam(52800170, true, false))
+        << "a pickup is the character's own (its own list)";
+}
+
 // Kaniel's playtest 2026-10-20: Lisara's game took the host's "light the Witch's Abode lamp"
 // request (72200201) as a story step, and her own lamp never lit. A lamp's light request is each
 // player's own; the lit lamp reaches the party by its active flags and the lamp lists.

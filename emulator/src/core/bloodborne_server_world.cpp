@@ -3036,6 +3036,11 @@ std::vector<u32> TeamWorldBlocksForGuest() {
     return WorldFlagsOf(*team_world).blocks;
 }
 
+bool SavePlaysInTeam() {
+    std::scoped_lock lock{team_mutex};
+    return team_switch && !team_party.empty();
+}
+
 std::vector<s32> TeamWorldFlagsOnForGuest() {
     std::scoped_lock lock{team_mutex};
     if (!team_switch || team_host || !team_world || !team_world->exists()) {

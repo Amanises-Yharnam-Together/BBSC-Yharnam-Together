@@ -21,6 +21,10 @@ so a new flag rule is a new table row, nothing else.
 - **Session**: only for this session or this map visit. Never carried home, never shared.
 
 Every flag not in the table is **Host, carried home** (quest steps, NPCs, the Dream).
+With teams, "home" is the save's next load in its team: a save loaded alone (from the title, or
+out of its team in play) has its own world back, and the kept changes to world flags stay in the
+list for its next team load (`KeptChangeStaysWithTeam`); only a per-player flag's change goes into
+it.
 A guest in a team also follows the host's changes to these (outside the maps' 12xxxxxx-13xxxxxx
 and the item flags) as the host's world reports reach it, between loads (`TeamStoryToFollow`).
 
