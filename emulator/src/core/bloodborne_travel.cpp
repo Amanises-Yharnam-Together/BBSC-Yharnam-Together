@@ -269,7 +269,10 @@ namespace {
 std::optional<std::chrono::steady_clock::time_point> guest_trip_fixup_at;
 std::optional<std::chrono::steady_clock::time_point> guest_lamp_touch_at;
 // The lamp the trip in flight was placed at (see ArrivalNeedsMove), if any.
-const LampPoint* guest_trip_planned{};
+std::optional<LampPoint> guest_trip_planned;
+// The arrival's move tries left (ArrivalMoveTries: the lamp may resolve only once the dungeon's
+// blocks loaded).
+int guest_trip_fixup_tries = 0;
 
 } // namespace
 
@@ -290,17 +293,24 @@ void TickGuestLampTrip() {
                  "Bloodborne party guest trip: position after arrival known={} ({}, {}, {}) "
                  "planned at the lamp={}",
                  at.has_value(), at ? (*at)[0] : 0.0f, at ? (*at)[1] : 0.0f, at ? (*at)[2] : 0.0f,
-                 guest_trip_planned != nullptr);
-        if (ArrivalNeedsMove(guest_trip_planned, at)) {
-            MoveToRespawnPoint(true);
+                 guest_trip_planned.has_value());
+        if (ArrivalNeedsMove(guest_trip_planned ? &*guest_trip_planned : nullptr, at) &&
+            !MoveToRespawnPoint(true) && ++guest_trip_fixup_tries < ArrivalMoveTries) {
+            LOG_INFO(Debug,
+                     "Bloodborne party guest trip: the lamp is not loaded yet; again in a "
+                     "second (try {} of {})",
+                     guest_trip_fixup_tries + 1, ArrivalMoveTries);
+            guest_trip_fixup_at = now + std::chrono::seconds{1};
+            return;
         }
+        guest_trip_fixup_tries = 0;
         // The summon warp byte the lamp's placement set is spent (the pre-match warp waits on it).
         if (const u64 global = GetGlobalState();
             guest_trip_planned && global >= 0x10000 && ReadValue<u8>(global, 0x1520) != 0) {
             LOG_INFO(Debug, "Bloodborne party guest trip: summon warp byte still set; cleared");
             WriteValue(global, 0x1520, u8{0});
         }
-        guest_trip_planned = nullptr;
+        guest_trip_planned.reset();
     }
     if (guest_lamp_touch_at && now >= *guest_lamp_touch_at) {
         guest_lamp_touch_at.reset();
@@ -2176,6 +2186,7 @@ void TickPartyTrip() {
         if (guest_trip_in_flight) {
             guest_trip_in_flight = false;
             guest_trip_fixup_at = std::chrono::steady_clock::now() + std::chrono::seconds{1};
+            guest_trip_fixup_tries = 0;
         }
         ScheduleWipeRespawn();
     }

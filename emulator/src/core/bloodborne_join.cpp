@@ -705,7 +705,9 @@ bool WarpGuestToLampPoint(const LampPoint& point) {
     return reinterpret_cast<StageTransition>(image_base + StageTransitionOffset)() != 0;
 }
 
-const LampPoint* StartTripToLamp(s32 warp_point) {
+std::optional<LampPoint> chalice_trip_lamp;
+
+std::optional<LampPoint> StartTripToLamp(s32 warp_point) {
     // As the events do with SetPlayerRespawnPoint: the lamp a death respawns at. The summon warp
     // byte (+0x1520, SetSosSignWarp) makes the placement selector use the summon placement
     // (0x01332BC0): clear for the lamp lookup's trip, set by WarpGuestToLampPoint.
@@ -715,15 +717,23 @@ const LampPoint* StartTripToLamp(s32 warp_point) {
         WriteValue(global, 0x1528, warp_point);
         WriteValue(global, 0x1520, u8{0});
     }
-    const LampPoint* lamp = FindLampPoint(warp_point);
-    if (lamp == nullptr || !WarpGuestToLampPoint(*lamp)) {
-        lamp = nullptr;
+    // A chalice dungeon's lamp, where it resolved just before this trip (one trip only: the same
+    // lamp id is in every dungeon).
+    const std::optional<LampPoint> chalice = TakeChaliceTripLamp(chalice_trip_lamp, warp_point);
+    std::optional<LampPoint> lamp;
+    if (const LampPoint* known = FindLampPoint(warp_point)) {
+        lamp = *known;
+    } else {
+        lamp = chalice;
+    }
+    if (!lamp || !WarpGuestToLampPoint(*lamp)) {
+        lamp.reset();
         using WarpNextStageBonfire = void PS4_SYSV_ABI (*)(u64 unused, s32 warp_point);
         reinterpret_cast<WarpNextStageBonfire>(image_base + WarpNextStageBonfireOffset)(0,
                                                                                         warp_point);
     }
     LOG_INFO(Debug, "Bloodborne party guest warps to {} ({:#x}) placed at the lamp={}", warp_point,
-             PackedMapOfWarpPoint(warp_point), lamp != nullptr);
+             PackedMapOfWarpPoint(warp_point), lamp.has_value());
     return lamp;
 }
 

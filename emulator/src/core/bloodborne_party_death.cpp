@@ -431,7 +431,8 @@ namespace Coop {
 // that resets the map (party death's wipe), wherever the lamp is.
 // A guest in a party session wakes at the host's point instead, unless its death was special (see
 // PartyDeathPoint): the party wakes together.
-void MoveToRespawnPoint(bool arriving_from_trip) {
+bool MoveToRespawnPoint(bool arriving_from_trip) {
+    chalice_trip_lamp.reset(); // only the trip this respawn schedules (below) is placed by it
     const bool void_fall = party_death_void_fall.exchange(false) && !arriving_from_trip;
     const DeathReset call =
         arriving_from_trip ? DeathReset::None : party_death_reset.TakeAtRespawn();
@@ -465,7 +466,7 @@ void MoveToRespawnPoint(bool arriving_from_trip) {
     const u64 blocks = ReadValue<u64>(image_base + LoadedBlocksPointerOffset, 0);
     const u64 player = GetLocalPlayer();
     if (blocks < 0x10000 || player < 0x10000) {
-        return;
+        return !arriving_from_trip;
     }
     alignas(16) std::array<float, 4> position{};
     alignas(16) std::array<float, 4> rotation{};
@@ -481,11 +482,22 @@ void MoveToRespawnPoint(bool arriving_from_trip) {
     switch (respawn) {
     case DeathRespawn::StayPut:
         LOG_INFO(Debug, "Bloodborne revive: respawn point {} not reachable; staying put", point);
-        return;
+        return !arriving_from_trip || point <= 0;
     case DeathRespawn::Travel:
         guest_trip_point = point;
         if (point != own_point) {
             party_death_trip_point = point;
+        }
+        // A wipe in a chalice dungeon: its lamp is in no map file, the trip lands at the lamp
+        // only if told where it is (else at the map's origin, falling).
+        chalice_trip_lamp =
+            ChaliceTripLamp(point, GetCurrentPackedMap(), in_loaded_block, position, rotation);
+        if (chalice_trip_lamp) {
+            LOG_INFO(
+                Debug,
+                "Bloodborne revive: the chalice dungeon's lamp {} is at ({}, {}, {}); the trip "
+                "is placed there",
+                point, position[0], position[1], position[2]);
         }
         // Right away: getting up where the player fell first looked like a second respawn.
         guest_lamp_trip_at = std::chrono::steady_clock::now() + std::chrono::milliseconds{200};
@@ -493,16 +505,17 @@ void MoveToRespawnPoint(bool arriving_from_trip) {
                  "Bloodborne revive: respawn point {} is on map {:#x}; travelling there "
                  "(reset={}, void fall={})",
                  point, PackedMapOfWarpPoint(point), reset, void_fall);
-        return;
+        return true;
     case DeathRespawn::MoveToPoint:
         break;
     }
     if (!PlaceLocalPlayer(position, rotation, "revive teleport")) {
-        return;
+        return !arriving_from_trip;
     }
     LOG_INFO(Debug,
              "Bloodborne revive: moved to last lamp {} at ({}, {}, {}) rotation ({}, {}, {})",
              point, position[0], position[1], position[2], rotation[0], rotation[1], rotation[2]);
+    return true;
 }
 
 } // namespace Coop
