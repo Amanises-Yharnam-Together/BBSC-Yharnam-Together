@@ -35,13 +35,28 @@ TEST(SignIn, AFailedSignInIsKeptUntilOneWorks) {
 
 TEST(SignIn, TheServersOwnRefusalComesBeforeTheFailureItCaused) {
     // A link the server refused (another release) never answers the sign-in.
-    EXPECT_EQ(ShownSignInProblem(SignInProblem::NoAnswer, true), SignInProblem::Refused);
-    EXPECT_EQ(ShownSignInProblem(SignInProblem::Other, true), SignInProblem::Refused);
-    EXPECT_EQ(ShownSignInProblem(SignInProblem::NoAnswer, false), SignInProblem::NoAnswer);
-    EXPECT_EQ(ShownSignInProblem(SignInProblem::WrongLogin, false), SignInProblem::WrongLogin);
+    constexpr std::string_view another_build =
+        "another build: everyone needs the same release (this game runs 1.3.2)";
+    EXPECT_EQ(ShownSignInProblem(SignInProblem::NoAnswer, another_build), SignInProblem::Refused);
+    EXPECT_EQ(ShownSignInProblem(SignInProblem::Other, another_build), SignInProblem::Refused);
+    EXPECT_EQ(ShownSignInProblem(SignInProblem::NoAnswer, ""), SignInProblem::NoAnswer);
+    EXPECT_EQ(ShownSignInProblem(SignInProblem::WrongLogin, ""), SignInProblem::WrongLogin);
     // Signed in (or offline by choice): nothing to say, whatever the link last heard.
-    EXPECT_EQ(ShownSignInProblem(SignInProblem::None, false), SignInProblem::None);
-    EXPECT_EQ(ShownSignInProblem(SignInProblem::None, true), SignInProblem::None);
+    EXPECT_EQ(ShownSignInProblem(SignInProblem::None, ""), SignInProblem::None);
+    EXPECT_EQ(ShownSignInProblem(SignInProblem::None, another_build), SignInProblem::None);
+}
+
+TEST(SignIn, TheServerRefusingTheAccountIsAWrongLogin) {
+    // The rig, 2026-11-10: a wrong password on a local server is refused on the link ("another
+    // player has this id"), and the screens told the player to update the game.
+    EXPECT_EQ(ShownSignInProblem(SignInProblem::NoAnswer,
+                                 "sign-in refused: another player has this id (rig_host)"),
+              SignInProblem::WrongLogin);
+    EXPECT_EQ(ShownSignInProblem(SignInProblem::NoAnswer, "account: sign in in the launcher first"),
+              SignInProblem::WrongLogin);
+    EXPECT_EQ(ShownSignInProblem(SignInProblem::NoAnswer,
+                                 "the region's directory does not answer: try again in a minute"),
+              SignInProblem::Refused);
 }
 
 TEST(SignIn, TheGamesPlayStationNetworkTextsAreTheOnesReplaced) {

@@ -4337,11 +4337,14 @@ void Screen() {
     // "Reaching..." for ever (and the game "not signed in to PlayStation Network"). The reason
     // the sign-in failed, with the server's address, and under it what to check.
     BbGameMenu::SignInWords sign_in;
-    // (The server's own refusal is the notice line's already.)
-    const bool sign_in_failed =
-        !lobby.signed_in && !lobby.notice[0] && BbGameMenu::SignInNotice(sign_in, false);
-    if (sign_in_failed) {
+    const bool sign_in_failed = !lobby.signed_in && BbGameMenu::SignInNotice(sign_in, false);
+    // A server's refusal is the notice line's already (at the bottom): up here only what to check,
+    // not "Reaching..." for ever.
+    const bool reason_below = sign_in_failed && lobby.notice[0];
+    if (sign_in_failed && !reason_below) {
         status = sign_in.what;
+    } else if (reason_below) {
+        status.clear();
     } else if (!lobby.signed_in) {
         status = T("Reaching the co-op server...", "Подключение к кооп-серверу...");
     } else if (!lobby.in_team) {
@@ -4361,10 +4364,17 @@ void Screen() {
                   sign_in_failed ? ImU32(IM_COL32(220, 150, 110, 255)) : Gold(0.85f), status.c_str());
     ImGui::PopFont();
     if (sign_in_failed) {
+        // The longest languages' line (Italian, Spanish: 145 letters) on a narrow window (4:3):
+        // smaller, never wider than the window.
         ImGui::PushFont(MenuArt::Font(), 17.0f);
-        const ImVec2 cs = ImGui::CalcTextSize(sign_in.check.c_str());
-        draw->AddText(ImVec2(win.x + (size.x - cs.x) * 0.5f, status_y + S(24.0f)), Plain(0.8f),
-                      sign_in.check.c_str());
+        ImVec2 cs = ImGui::CalcTextSize(sign_in.check.c_str());
+        if (const float room = size.x - S(48.0f); cs.x > room && cs.x > 0.0f) {
+            ImGui::PopFont();
+            ImGui::PushFont(MenuArt::Font(), 17.0f * room / cs.x);
+            cs = ImGui::CalcTextSize(sign_in.check.c_str());
+        }
+        draw->AddText(ImVec2(win.x + (size.x - cs.x) * 0.5f, status_y + (reason_below ? 0.0f : S(24.0f))),
+                      Plain(0.8f), sign_in.check.c_str());
         ImGui::PopFont();
     }
 

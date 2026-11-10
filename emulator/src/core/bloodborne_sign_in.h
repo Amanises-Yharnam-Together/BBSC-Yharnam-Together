@@ -65,19 +65,33 @@ inline SignInNotes& SignInNotesOfThisGame() {
     return notes;
 }
 
-// What the screens say of a failed sign-in: the server's own refusal (the build check on join)
-// comes before the failure it caused (the sign-in through a link that refused never answers).
-inline SignInProblem ShownSignInProblem(SignInProblem noted, bool link_refused) {
+// The server refusing the account itself (a wrong password on a local server, a Global account
+// not signed in in the launcher): a wrong login, not another release (the rig, 2026-11-10).
+inline bool IsAccountRefusal(std::string_view link_refusal) {
+    return link_refusal.starts_with("sign-in refused") || link_refusal.starts_with("account:");
+}
+
+// What the screens say of a failed sign-in: the server's own refusal of the link (the build check
+// on join, the account) comes before the failure it caused (the sign-in through a link that
+// refused never answers).
+inline SignInProblem ShownSignInProblem(SignInProblem noted, std::string_view link_refusal) {
     if (noted == SignInProblem::None) {
         return SignInProblem::None;
     }
-    return link_refused ? SignInProblem::Refused : noted;
+    if (link_refusal.empty()) {
+        return noted;
+    }
+    return IsAccountRefusal(link_refusal) ? SignInProblem::WrongLogin : SignInProblem::Refused;
 }
 
 // The game's own texts for "not signed in to PlayStation Network" (MsgRepository category and
 // id, eboot 1.09; every language's file has them at the same place): the ones the port's lookup
 // hook answers with the co-op server's reason while a sign-in failure is noted.
-inline constexpr std::array<std::pair<u32, u32>, 0> PsnSignInTexts{};
+inline constexpr std::array<std::pair<u32, u32>, 1> PsnSignInTexts{{
+    // SP_Dialog: 'You are currently not signed into "PlayStation Network". Please sign in to use
+    // the online features.'
+    {204, 401203},
+}};
 
 inline bool IsPsnSignInText(u32 category, u32 id) {
     for (const auto& [text_category, text_id] : PsnSignInTexts) {

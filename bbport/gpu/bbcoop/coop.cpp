@@ -573,14 +573,16 @@ extern "C" int bbcoop_sign_in_problem(char* server, size_t server_size, char* re
     const Core::Bloodborne::SignInFailure failure =
         Core::Bloodborne::SignInNotesOfThisGame().Last();
     const std::string refusal = Libraries::Net::ServerLinkRefusal();
-    const auto problem = Core::Bloodborne::ShownSignInProblem(failure.problem, !refusal.empty());
+    const auto problem = Core::Bloodborne::ShownSignInProblem(failure.problem, refusal);
     if (problem == Core::Bloodborne::SignInProblem::None) {
         return BBCOOP_SIGN_IN_OK;
     }
     if (server_size != 0) {
         CopyName(server, server_size, failure.server);
     }
-    if (reason_size != 0 && problem == Core::Bloodborne::SignInProblem::Refused) {
+    // A refusal (of this release, or of the account: then a wrong login) is said in the server's
+    // own words.
+    if (reason_size != 0 && !refusal.empty()) {
         CopyName(reason, reason_size, Core::Bloodborne::LinkRefusalNotice(refusal));
     }
     return static_cast<int>(problem);

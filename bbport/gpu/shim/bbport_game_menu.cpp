@@ -990,6 +990,12 @@ bool SignInNotice(SignInWords& words, bool game_language) {
                  "Кооп-сервер %s не принял ваш логин или пароль");
         check = T("Check them in the launcher's co-op settings, then start the game again.",
                   "Проверьте их в настройках кооператива в лаунчере и запустите игру снова.");
+        if (reason[0]) {
+            // The server refused the account on the link: its own words (as the team screen's).
+            words.what = reason;
+            words.check = check;
+            return true;
+        }
         break;
     default:
         what = T("Could not sign in to the co-op server at %s", "Не удалось войти на кооп-сервер %s");
