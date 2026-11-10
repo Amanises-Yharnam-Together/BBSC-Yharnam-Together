@@ -1312,7 +1312,6 @@ void BurnRigTick() {
     const auto until = now + std::chrono::duration_cast<std::chrono::steady_clock::duration>(
                                  std::chrono::duration<double, std::milli>(burn_ms));
     while (std::chrono::steady_clock::now() < until) {
-        __builtin_ia32_pause();
     }
 }
 
