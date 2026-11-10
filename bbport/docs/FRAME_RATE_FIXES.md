@@ -26,8 +26,8 @@ size.
 From Supermedo's bloodborne_pc windows-v1.9.6: [Supermedo/bloodborne_pc](https://github.com/Supermedo/bloodborne_pc)
 commits 3b99b54 and c8f68fc (effects), 7a39487, 03094a7 and 0d38fc9 (cloth), e0bf9f4 (plants) and
 a83f591 (jumps), GPL-2.0-or-later. Their caves keep the same addresses here. The parts of that page
-their port uses for its own features (Quit to Desktop, crash guards, Rebirth, PC Settings) stay
-unused here. `probe.c`'s `patchable` comes from the same release. Thanks to Supermedo.
+their port uses for its own features (Quit to Desktop, Rebirth, PC Settings) stay unused here;
+its crash guards are in [CRASH_GUARDS.md](CRASH_GUARDS.md). `probe.c`'s `patchable` comes from the same release. Thanks to Supermedo.
 
 ## Late frames in the game's own modes
 
