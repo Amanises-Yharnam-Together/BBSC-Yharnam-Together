@@ -4,6 +4,7 @@
 // Spectating teammates and the free camera (Kaniel 2026-10-25): who is watched, what ends it, the
 // pads, and the cameras.
 
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <numbers>
@@ -391,4 +392,100 @@ TEST(BloodborneSpectate, TheBodyOnlyGoesWhereTheTeammateStoodOnTheGround) {
     EXPECT_LE((*moved)[0], 10.0f) << "the last spot on the ground";
     EXPECT_EQ((*moved)[1], 0.0f);
     EXPECT_EQ(follow.Samples(), 9u) << "none in the air";
+}
+
+// Discord audit A10 (Provi 2026-10-23, v1.1.x): a guest killed in Rom's fight while the host fought
+// on woke at its lamp with her bar still on screen (rig rom-retry-guest-alone: a spectator's
+// give-up moves it to its lamp without a reload, and the game never takes the bar down). The bars
+// go away at the wake and come back once the player is in that boss's fight again, its boss alive.
+namespace {
+std::array<u8, BossGaugeSlots * BossGaugeSize> RomsBar() {
+    std::array<u8, BossGaugeSlots * BossGaugeSize> gauges{};
+    ClearBossGauges(gauges);
+    const s32 name = 510000;
+    const s32 handle = 0x1003004c;
+    std::memcpy(gauges.data(), &name, sizeof(name));
+    std::memcpy(gauges.data() + 4, &handle, sizeof(handle));
+    gauges[8] = 0x2a;
+    gauges[0x10] = 1;
+    return gauges;
+}
+} // namespace
+
+TEST(BloodborneAwayBossBars, AWokenSpectatorsBarsGoAwayAndComeBackInTheFight) {
+    auto gauges = RomsBar();
+    const auto shown = gauges;
+    AwayBossBars away;
+    ASSERT_TRUE(away.PutAway(gauges, 0x20000000));
+    EXPECT_FALSE(BossBarsUp(gauges)) << "none at the lamp";
+    EXPECT_TRUE(away.Holding());
+    EXPECT_EQ(away.Handle(), 0x1003004cu);
+    const LampPosition rom{-534.0f, -271.0f, 362.0f};
+    const LampPosition lamp{-400.5f, -180.8f, 414.6f};
+    EXPECT_EQ(away.Tick(gauges, 0x20000000, rom, false, lamp), AwayBossBars::Outcome::Away);
+    EXPECT_FALSE(BossBarsUp(gauges));
+    // Dived back in, 30 m from her: her bar as it was.
+    EXPECT_EQ(away.Tick(gauges, 0x20000000, rom, false, LampPosition{-504.0f, -271.0f, 362.0f}),
+              AwayBossBars::Outcome::Back);
+    EXPECT_EQ(gauges, shown);
+    EXPECT_FALSE(away.Holding());
+}
+
+TEST(BloodborneAwayBossBars, NoBarsUpNothingPutAway) {
+    std::array<u8, BossGaugeSlots * BossGaugeSize> gauges{};
+    ClearBossGauges(gauges);
+    AwayBossBars away;
+    EXPECT_FALSE(away.PutAway(gauges, 0x20000000));
+    EXPECT_FALSE(away.Holding());
+}
+
+TEST(BloodborneAwayBossBars, DroppedWhenTheFightIsOverForThisPlayer) {
+    const LampPosition rom{-534.0f, -271.0f, 362.0f};
+    {
+        // Her death: never back.
+        auto gauges = RomsBar();
+        AwayBossBars away;
+        away.PutAway(gauges, 0x20000000);
+        EXPECT_EQ(away.Tick(gauges, 0x20000000, rom, true, rom), AwayBossBars::Outcome::Dropped);
+        EXPECT_FALSE(BossBarsUp(gauges));
+        EXPECT_FALSE(away.Holding());
+    }
+    {
+        // Another map (a trip): never back.
+        auto gauges = RomsBar();
+        AwayBossBars away;
+        away.PutAway(gauges, 0x20000000);
+        EXPECT_EQ(away.Tick(gauges, 0x18010000, std::nullopt, false, rom),
+                  AwayBossBars::Outcome::Dropped);
+        EXPECT_FALSE(BossBarsUp(gauges));
+    }
+    {
+        // The game shows bars of its own again (a new fight after a wipe): those stay.
+        auto gauges = RomsBar();
+        AwayBossBars away;
+        away.PutAway(gauges, 0x20000000);
+        const auto again = RomsBar();
+        gauges = again;
+        EXPECT_EQ(away.Tick(gauges, 0x20000000, rom, false, rom), AwayBossBars::Outcome::Dropped);
+        EXPECT_EQ(gauges, again);
+    }
+    {
+        // A death's respawn or the party's wipe: dropped outright.
+        auto gauges = RomsBar();
+        AwayBossBars away;
+        away.PutAway(gauges, 0x20000000);
+        away.Drop();
+        EXPECT_FALSE(away.Holding());
+        EXPECT_EQ(away.Tick(gauges, 0x20000000, rom, false, rom), AwayBossBars::Outcome::Dropped);
+        EXPECT_FALSE(BossBarsUp(gauges));
+    }
+    {
+        // Its boss not found now (out of the loaded blocks): kept, not back.
+        auto gauges = RomsBar();
+        AwayBossBars away;
+        away.PutAway(gauges, 0x20000000);
+        EXPECT_EQ(away.Tick(gauges, 0x20000000, std::nullopt, false, rom),
+                  AwayBossBars::Outcome::Away);
+        EXPECT_TRUE(away.Holding());
+    }
 }
