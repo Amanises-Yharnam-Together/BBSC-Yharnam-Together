@@ -311,7 +311,12 @@ void ApplyPreMatchCrossMapGuestWarp();
 bool WarpGuestToLampPoint(const LampPoint& point);
 // A trip to a warp point (a guest's own, the rig's): at the lamp's own point when it is known
 // (returned), else the lamp lookup's trip.
-const LampPoint* StartTripToLamp(s32 warp_point);
+// The lamp the trip is placed at (a copy: the trip's own), if any.
+std::optional<LampPoint> StartTripToLamp(s32 warp_point);
+// The lamp a death respawn's trip within a chalice dungeon is placed at (ChaliceTripLamp), set
+// by MoveToRespawnPoint for that trip's StartTripToLamp: the next trip takes it, whatever its
+// point (TakeChaliceTripLamp); game thread.
+extern std::optional<LampPoint> chalice_trip_lamp;
 bool StartPlayerSummonSearch(u64 player, s32 effect_id);
 void ResumePreMatchCrossMapResponder();
 extern std::optional<PartyController> party_controller;
@@ -431,7 +436,9 @@ bool BringBackWhatTheHostBroughtBack(std::span<const u32> handles);
 // When the session host last moved to another game (SteadyMilliseconds, 0: never): see
 // HoldsBringBacks.
 extern std::atomic<s64> session_host_moved_ms;
-void MoveToRespawnPoint(bool arriving_from_trip);
+// False when a trip's arrival found its lamp in no loaded block yet (TickGuestLampTrip tries
+// again).
+bool MoveToRespawnPoint(bool arriving_from_trip);
 // The respawn load's restock of vials and bullets from the storage box, for the deaths and trips
 // that skip it. The game's thread only.
 bool RestockFromStorage(std::string_view why);

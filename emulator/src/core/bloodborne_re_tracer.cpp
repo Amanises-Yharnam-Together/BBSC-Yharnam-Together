@@ -19,6 +19,7 @@
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -1281,6 +1282,39 @@ void WriteWorldStateValidation(std::ostream& out, const TraceSite& site,
     out << '}';
 }
 
+// The rig only (BB_RIG_TICK_BURN_MS=N): the game's main thread spins N ms once a game frame, at
+// the co-op tick (which runs every frame, a lone host's too), as on a PC whose CPU needs that much
+// longer for a frame (rig scenario slow-frames-60). Read once, nothing when unset. With it on, the
+// frames ticked and the main thread's average frame time every 5 s ("Rig tick burn" beside the
+// port's "Frame stats").
+void BurnRigTick() {
+    static const double burn_ms = [] {
+        const char* env = std::getenv("BB_RIG_TICK_BURN_MS");
+        return env ? std::max(std::atof(env), 0.0) : 0.0;
+    }();
+    if (burn_ms <= 0.0) {
+        return;
+    }
+    const auto now = std::chrono::steady_clock::now();
+    static auto window_start = now;
+    static u64 frames = 0;
+    ++frames;
+    if (const double window = std::chrono::duration<double>(now - window_start).count();
+        window >= 5.0) {
+        std::printf("Rig tick burn: %.1f ms a frame, %llu frames in %.1f s, main thread frame "
+                    "%.2f ms\n",
+                    burn_ms, static_cast<unsigned long long>(frames), window,
+                    window * 1000.0 / static_cast<double>(frames));
+        std::fflush(stdout);
+        window_start = now;
+        frames = 0;
+    }
+    const auto until = now + std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+                                 std::chrono::duration<double, std::milli>(burn_ms));
+    while (std::chrono::steady_clock::now() < until) {
+    }
+}
+
 } // namespace
 
 namespace Coop {
@@ -1301,6 +1335,7 @@ void PS4_SYSV_ABI TraceEntry(u64 tag, const GuestRegisterSnapshot* registers) {
         ApplySummonReloadStateAtDescriptor(*registers);
     }
     if (deferred_summon_reload_hook_installed && site.offset == SosStatusUpdateOffset) {
+        BurnRigTick();
         const auto started = std::chrono::steady_clock::now();
         {
             const TickPartTimer part{"placement and summons"};

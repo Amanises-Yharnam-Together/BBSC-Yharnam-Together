@@ -2169,3 +2169,48 @@ TEST(SessionNameCache, KeepsOnlyTheLatestMembers) {
     EXPECT_EQ(cache.Lookup(0x1000 + SessionNameCache::Members * 0x100, ids, 0).plan,
               SessionNameCache::Plan::Recheck);
 }
+
+// Discord audit A6: a team's wipe in a chalice dungeon woke it in a grey void or falling through
+// the map. The rig's chalice-wipe: the trip (WarpNextStageBonfire 2902950) arrived at (0, 0, 0)
+// and fell until the arrival's move a second later. A trip within this chalice map is placed at
+// the lamp, where it resolved before the trip.
+TEST(BloodbornePartyDeath, AWipesTripInAChaliceDungeonIsPlacedAtItsLamp) {
+    const std::array<float, 4> at{39.0f, 31.5f, -49.0f, 1.0f};
+    const std::array<float, 4> turned{0.0f, 6.2831855f, 0.0f, 0.0f};
+    const auto lamp = ChaliceTripLamp(2902950, 0x1D000000, true, at, turned);
+    ASSERT_TRUE(lamp.has_value());
+    EXPECT_EQ(lamp->warp_point, 2902950);
+    EXPECT_EQ(lamp->packed_map, 0x1D000000u);
+    EXPECT_FLOAT_EQ(lamp->x, 39.0f);
+    EXPECT_FLOAT_EQ(lamp->y, 31.5f);
+    EXPECT_FLOAT_EQ(lamp->z, -49.0f);
+    EXPECT_FLOAT_EQ(lamp->heading, 6.2831855f);
+    EXPECT_EQ(ChaliceTripLamp(2902951, 0x1D000000, true, at, turned)->warp_point, 2902951);
+    EXPECT_FALSE(ChaliceTripLamp(2902950, 0x1D000000, false, at, turned)) << "not resolved";
+    EXPECT_FALSE(ChaliceTripLamp(2902950, 0x15000000, true, at, turned)) << "from the Dream";
+    EXPECT_FALSE(ChaliceTripLamp(2412950, 0x18010000, true, at, turned)) << "no chalice map";
+    EXPECT_FALSE(ChaliceTripLamp(0, 0x1D000000, true, at, turned));
+    EXPECT_FALSE(ChaliceTripLamp(-1, 0x1D000000, true, at, turned));
+    // The open world's lamps come from the map files (LampPoints): none of a chalice map's.
+    EXPECT_EQ(FindLampPoint(2902950), nullptr);
+}
+
+// The coordinator's review of 391d0309: the layer lamps' ids are the same in every dungeon
+// (2902950 + layer), so the placement is for the one trip the wipe scheduled: any trip spends it,
+// and a later trip to the same id (another dungeon, the map screen's) is not placed at the old
+// spot without a fresh resolve.
+TEST(BloodbornePartyDeath, AChaliceTripsPlacementIsForOneTripOnly) {
+    const std::array<float, 4> at{39.0f, 31.5f, -49.0f, 1.0f};
+    const std::array<float, 4> turned{0.0f, 1.5f, 0.0f, 0.0f};
+    std::optional<LampPoint> pending = ChaliceTripLamp(2902950, 0x1D000000, true, at, turned);
+    const auto first = TakeChaliceTripLamp(pending, 2902950);
+    ASSERT_TRUE(first.has_value());
+    EXPECT_FLOAT_EQ(first->z, -49.0f);
+    EXPECT_FALSE(pending.has_value());
+    EXPECT_FALSE(TakeChaliceTripLamp(pending, 2902950)) << "a second trip to the same id";
+    pending = ChaliceTripLamp(2902950, 0x1D000000, true, at, turned);
+    EXPECT_FALSE(TakeChaliceTripLamp(pending, 2902951)) << "another lamp's trip";
+    EXPECT_FALSE(TakeChaliceTripLamp(pending, 2902950)) << "spent by that other trip";
+    std::optional<LampPoint> none;
+    EXPECT_FALSE(TakeChaliceTripLamp(none, 2902950));
+}

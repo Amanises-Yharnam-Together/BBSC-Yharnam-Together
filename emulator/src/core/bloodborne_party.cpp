@@ -344,6 +344,22 @@ const LampPoint* FindLampPoint(s32 warp_point) {
     return found != LampPoints.end() && found->warp_point == warp_point ? &*found : nullptr;
 }
 
+std::optional<LampPoint> ChaliceTripLamp(s32 point, u32 current_map, bool resolved,
+                                         const std::array<float, 4>& position,
+                                         const std::array<float, 4>& rotation) {
+    constexpr u32 ChaliceArea = 0x1D;
+    const u32 map = point > 0 ? PackedMapOfWarpPoint(point) : 0;
+    if (!resolved || map >> 24 != ChaliceArea || current_map != map) {
+        return std::nullopt;
+    }
+    return LampPoint{point, map, position[0], position[1], position[2], rotation[1]};
+}
+
+std::optional<LampPoint> TakeChaliceTripLamp(std::optional<LampPoint>& pending, s32 warp_point) {
+    const std::optional<LampPoint> lamp = std::exchange(pending, std::nullopt);
+    return lamp && lamp->warp_point == warp_point ? lamp : std::nullopt;
+}
+
 bool ArrivalNeedsMove(const LampPoint* planned, const std::optional<LampPosition>& at) {
     if (planned == nullptr || !at) {
         return true;

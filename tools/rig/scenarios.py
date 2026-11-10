@@ -1655,6 +1655,38 @@ SCENARIOS = {
         "allow": CRASH_CLEANUP,
         "timeout": 900,
     },
+    # Players 2026-10-24 to 2026-11-07 ("my save rolled back"): the host of a world made from its
+    # own save played alone and the save took back the world it had before its first team (lamps
+    # gone, bosses alive). The world a save made is its home world: alone, the save keeps it, and
+    # what it does alone is the team's at its next hunt. One game, by the title: a new world from
+    # its save; the same world again, where it sets TEAM_WORLD_FLAG; alone, the flag is still on
+    # (it went off with the save's old world before), and it turns it off; its team again: still
+    # off (its save leads; the server's copy from before had it on).
+    "home-world": {
+        "about": "the host of a world its save made plays alone and keeps the team's progress, "
+                 "and what it does alone is in its team's world after",
+        "roles": {
+            "host": ["team-create", "team-start", START, "wait 25",
+                     "quit-title", "title-wait 10",
+                     "team-create", "team-start", START, "wait 10",
+                     f"set-flag {TEAM_WORLD_FLAG} 1", "wait 15",
+                     "quit-title", "title-wait 10",
+                     "team-alone", START, "wait 10", f"expect-flag {TEAM_WORLD_FLAG} 1",
+                     f"set-flag {TEAM_WORLD_FLAG} 0", "wait 5",
+                     "quit-title", "title-wait 10",
+                     "team-create", "team-start", START, "wait 15",
+                     f"expect-flag {TEAM_WORLD_FLAG} 0"],
+        },
+        "expect": {
+            "host": [r"Co-op team world: world \w+ is made from slot \d+'s save: its home world",
+                     r"Co-op team world: this host's save is its home world's latest",
+                     r"Co-op team world: this host's world to the server"],
+        },
+        "forbid": {"host": [r"Co-op team world: slot \d+'s own world kept aside",
+                            r"its own world is back"]},
+        "allow": CRASH_CLEANUP,
+        "timeout": 600,
+    },
     # Kaniel's play test 2026-10-18: krolebord joined the team and his lamps listed only Cathedral
     # Ward. A lamp stays lit only for a character whose lamp list holds it (the game clears its
     # active flag otherwise), and the team world's lamps went into the guest's flags at its load,
@@ -3218,6 +3250,232 @@ def CHALICE3_BACK(role: str) -> list[str]:
     return [f"travel {HUNTERS_DREAM}", "wait 15", f"expect-map {HUNTERS_DREAM_MAP}",
             f"log {role} back in the Dream", f"shot {role}-back-in-dream"]
 
+
+# Discord audit A6 (1.3.1-1.4.0): a team of two dies in a chalice dungeon and wakes in a grey
+# void, somewhere else, or falls through the map. The wipe's respawn must put both back in the
+# same dungeon on its ground, by the layer's lamp (where they came in), alive and standing.
+# The wipe's trip in the dungeon: the game's lamp lookup has no chalice lamp and put the player at
+# the map's origin, in the air (main 7c8fe442: "arrived map=0x1d000000 at=(0, 0, 0)", y falling
+# until the arrival's move a second later). Placed at the lamp instead, as the entry from the
+# altar is.
+CHALICE_TRIP_AT_ORIGIN = r"party trip: arrived map=0x1d000000 at=\(0, 0, 0\)"
+CHALICE_TRIP_AT_LAMP = r"guest warps to 29029\d\d \(0x1d000000\) placed at the lamp=true"
+
+
+def CHALICE_AFTER_DEATH(role: str) -> list[str]:
+    """After the respawn: the map, then where the player stands, sampled for some seconds (a fall
+    through the map shows as a dropping y)."""
+    return ["wait-vital up 150", "wait 15", f"log {role} woke after the death",
+            *[step for _ in range(4) for step in ("snapshot", "wait 3")],
+            f"expect-map {CHALICE_DUNGEON}", "expect-standing 10 3", "expect-near-spot 20",
+            f"log {role} stands by the layer's lamp"]
+
+
+SCENARIOS["chalice-wipe"] = {
+    "about": "a team of two in the story Pthumeru dungeon (host's ritual, guest from its own "
+             "altar); the guest goes down, the host dies: the party's wipe wakes both in the "
+             "dungeon by its lamp, standing",
+    "settings": PARTY_DEATH,
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 10", *CHALICE_ENTER("host"), "spot-mark",
+                 "wait-members 2 400", "wait 20", "snapshot", "sync cw-in",
+                 "sync cw-guest-down", "godmode off", *LETHAL_FALL, "wait-vital dead 30",
+                 *CHALICE_AFTER_DEATH("host"), "wait-members 2 240", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                  *["wait 30"] * 5, *CHALICE_FROM_OWN_ALTAR("guest"), "spot-mark", "wait-members 2 300",
+                  "wait 20", "snapshot", "sync cw-in", "godmode off", *LETHAL_FALL,
+                  "wait-vital down 30", "sync cw-guest-down", "wait-vital dead 90",
+                  *CHALICE_AFTER_DEATH("guest"), "wait-members 2 240", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "chalice-wipe", "roles": ["host", "guest"]}
+              for name in ("cw-in", "cw-guest-down")},
+    "expect": {role: [rf"{role} in the dungeon", rf"{role} woke after the death",
+                      rf"{role} stands by the layer's lamp",
+                      CHALICE_TRIP_AT_LAMP]
+               for role in ("host", "guest")},
+    "forbid": {role: [*SESSION_HOLDS, CHALICE_TRIP_AT_ORIGIN] for role in ("host", "guest")},
+    "allow": CRASH_CLEANUP,
+    "timeout": 1500,
+}
+
+# The same wipe on Layer Two: both go back to the Dream and take the layer warp (the Dream's event
+# 12107200 slot 1: flag 72100301 warps to the layer's lamp 2902951 and sets the layer flag 9002,
+# as the altar's "Layer Two" does), then die there.
+def CHALICE_LAYER_TWO(role: str) -> list[str]:
+    return [f"travel {HUNTERS_DREAM}", "wait 15", f"expect-map {HUNTERS_DREAM_MAP}",
+            "set-flag 72100301 1", f"wait-map {CHALICE_DUNGEON} 180", "wait 15", "snapshot",
+            "flags 9001 9002 9003 72100301", "spot-mark", f"log {role} on layer two"]
+
+
+SCENARIOS["chalice-wipe-layer2"] = {
+    "about": "the team's wipe on Layer Two of the story Pthumeru dungeon: both wake there by its "
+             "lamp, standing",
+    "settings": PARTY_DEATH,
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 10", *CHALICE_ENTER("host"),
+                 "wait-members 2 400", "wait 10", "sync cw2-in", *CHALICE_LAYER_TWO("host"),
+                 "wait-members 2 300", "wait 10", "sync cw2-there", "sync cw2-guest-down",
+                 "godmode off", *LETHAL_FALL, "wait-vital dead 30",
+                 *CHALICE_AFTER_DEATH("host"), "wait-members 2 240", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                  *["wait 30"] * 5, *CHALICE_FROM_OWN_ALTAR("guest"), "wait-members 2 300",
+                  "wait 10", "sync cw2-in", *CHALICE_LAYER_TWO("guest"), "wait-members 2 300",
+                  "wait 10", "sync cw2-there", "godmode off", *LETHAL_FALL,
+                  "wait-vital down 30", "sync cw2-guest-down", "wait-vital dead 90",
+                  *CHALICE_AFTER_DEATH("guest"), "wait-members 2 240", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "chalice-wipe-layer2", "roles": ["host", "guest"]}
+              for name in ("cw2-in", "cw2-there", "cw2-guest-down")},
+    "expect": {role: [rf"{role} on layer two", rf"{role} woke after the death",
+                      rf"{role} stands by the layer's lamp",
+                      CHALICE_TRIP_AT_LAMP] for role in ("host", "guest")},
+    "forbid": {role: [*SESSION_HOLDS, CHALICE_TRIP_AT_ORIGIN] for role in ("host", "guest")},
+    "allow": CRASH_CLEANUP,
+    "timeout": 1800,
+}
+
+# The same death with the teammate in the Dream (no wipe: the dying member's own map resets).
+SCENARIOS["chalice-death-apart"] = {
+    "about": "the host alone in the team's chalice dungeon dies while the guest stands in the "
+             "Dream: the host wakes in the dungeon by its lamp, standing",
+    "settings": PARTY_DEATH,
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 10", *CHALICE_ENTER("host"), "spot-mark",
+                 "wait 10", "snapshot", "sync cda-in", "godmode off", *LETHAL_FALL,
+                 # Alone on its map: party death has no one to revive it, it dies at once.
+                 "wait-vital dead 60", *CHALICE_AFTER_DEATH("host"),
+                 "sync cda-done", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                  f"travel {HUNTERS_DREAM}", "wait 10", "sync cda-in", "sync cda-done",
+                  "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "chalice-death-apart", "roles": ["host", "guest"]}
+              for name in ("cda-in", "cda-done")},
+    "expect": {"host": [r"host in the dungeon", r"host woke after the death", CHALICE_TRIP_AT_LAMP,
+                        r"host stands by the layer's lamp"]},
+    "forbid": {"host": [*SESSION_HOLDS, CHALICE_TRIP_AT_ORIGIN], "guest": SESSION_HOLDS},
+    "allow": CRASH_CLEANUP,
+    "timeout": 1200,
+}
+
+# For comparison: a lone player (no party) dies in the dungeon: the game's own death reload.
+SCENARIOS["chalice-death-solo"] = {
+    "about": "a lone player's death in the story Pthumeru dungeon: the game's own respawn by the "
+             "layer's lamp",
+    "roles": {"host": [START, "godmode", *CHALICE_ENTER("host"), "spot-mark", "wait 5", "godmode off",
+                       *LETHAL_FALL, "wait-vital dead 60", *CHALICE_AFTER_DEATH("host")]},
+    "settings": PARTY_DEATH,
+    "expect": {"host": [r"host in the dungeon", r"host woke after the death",
+                        r"host stands by the layer's lamp"]},
+    "timeout": 600,
+}
+
+# Discord audit A6: a door one teammate opens in the team's dungeon stays closed for the other.
+# The story Pthumeru layout's doors are flags of the chalice map's view: a door event's "done"
+# flag (12900323 slots 0 and 1, 12900331 slot 0, as m29_10_90_00's event 0 starts them; the next
+# load opens the door by it), set here as the door's event would. All are off as the team comes
+# in (12900315/12900316 are not: those events end at the load). The other member in the same
+# dungeon has it at once, and a member that comes in later finds it set too. Main 7c8fe442: the
+# view is altar 1's copy (12900323 and 14100323 change together).
+CHALICE_DOOR_FLAGS = (12900323, 12900324, 12900331)
+ALTAR_COPIES = [f"{12900000 + (11 + altar) * 100000 + flag % 100000}"
+                for flag in CHALICE_DOOR_FLAGS for altar in range(7)]
+
+
+def DOOR_FLAGS(when: str) -> list[str]:
+    return [f"log door flags {when}", f"flags {' '.join(map(str, CHALICE_DOOR_FLAGS))} "
+                                      f"{' '.join(ALTAR_COPIES)}"]
+
+
+def DOORS_SHUT(when: str) -> list[str]:
+    return [*DOOR_FLAGS(when), *[f"expect-flag {flag} 0" for flag in CHALICE_DOOR_FLAGS]]
+
+
+SCENARIOS["chalice-door-shared"] = {
+    "about": "a team of two in the story Pthumeru dungeon: a door the host opens is open for the "
+             "guest, one the guest opens is open for the host, and one opened while the host is "
+             "in the Dream is open when it comes back",
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 10", *CHALICE_ENTER("host"),
+                 "wait-members 2 400", "wait 20", *DOORS_SHUT("host before"), "sync cds-in",
+                 f"set-flag {CHALICE_DOOR_FLAGS[0]} 1", "wait 3", *DOOR_FLAGS("host opened"),
+                 "sync cds-host-opened", f"wait-flag {CHALICE_DOOR_FLAGS[1]} 1 60",
+                 "log host sees the guest's door", f"travel {HUNTERS_DREAM}", "wait 15",
+                 f"expect-map {HUNTERS_DREAM_MAP}", "sync cds-host-away", "sync cds-guest-opened",
+                 *CHALICE_FROM_OWN_ALTAR("host", hold=False), "wait-members 2 300", "wait 10",
+                 *DOOR_FLAGS("host back"), f"expect-flag {CHALICE_DOOR_FLAGS[2]} 1",
+                 "log host found the door opened while away", "sync cds-done",
+                 "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                  *["wait 30"] * 5, *CHALICE_FROM_OWN_ALTAR("guest"), "wait-members 2 300",
+                  "wait 20", *DOORS_SHUT("guest before"), "sync cds-in", "sync cds-host-opened",
+                  f"wait-flag {CHALICE_DOOR_FLAGS[0]} 1 60", "log guest sees the host's door",
+                  f"set-flag {CHALICE_DOOR_FLAGS[1]} 1", "wait 3", *DOOR_FLAGS("guest opened"),
+                  "sync cds-host-away", f"set-flag {CHALICE_DOOR_FLAGS[2]} 1", "wait 10",
+                  "sync cds-guest-opened", "wait-members 2 300", "sync cds-done",
+                  *DOOR_FLAGS("guest at the end"), "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "chalice-door-shared", "roles": ["host", "guest"]}
+              for name in ("cds-in", "cds-host-opened", "cds-host-away", "cds-guest-opened",
+                           "cds-done")},
+    "expect": {"host": [r"host in the dungeon", r"host sees the guest's door",
+                        r"host found the door opened while away"],
+               "guest": [r"guest in the dungeon", r"guest sees the host's door"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "allow": CRASH_CLEANUP,
+    "timeout": 1500,
+}
+
+# Discord audit A6 (1.3.0, 10-29): travelling out of a dungeon reset its layer lamps, cleared
+# layers not kept. A layer's boss beaten is 12901800 + layer (event 12901693's param 0), a layer
+# lamp lit its active flag 12907810 + lamp * 20 (the view's; altar k keeps 14k0xxxx). The host
+# beats layer 1 and lights its second lamp, the guest beats layer 2; both go to the Dream and
+# come back by the Dream's layer warp (72100300, event 12107200: the altar's menu lists the beaten
+# layers, so the rig's fixed presses do not pick Layer One there): everything is still so for both.
+CHALICE_PROGRESS = {"host": (12901801, 12907830), "guest": (12901802,)}
+CHALICE_PROGRESS_ALL = sorted(flag for flags in CHALICE_PROGRESS.values() for flag in flags)
+
+
+def CHALICE_PROGRESS_KEPT(role: str) -> list[str]:
+    return [*DOOR_FLAGS(f"{role} progress"), f"flags {' '.join(map(str, CHALICE_PROGRESS_ALL))}",
+            *[f"expect-flag {flag} 1" for flag in CHALICE_PROGRESS_ALL]]
+
+
+SCENARIOS["chalice-layers-kept"] = {
+    "about": "a team of two in the story Pthumeru dungeon beats layers and lights a lamp, goes to "
+             "the Dream and comes back: beaten layers and lit lamps are kept for both",
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 10", *CHALICE_ENTER("host"),
+                 "wait-members 2 400", "wait 20", "sync clk-in",
+                 *[f"set-flag {flag} 1" for flag in CHALICE_PROGRESS["host"]], "wait 5",
+                 "sync clk-set", f"travel {HUNTERS_DREAM}", "wait 15",
+                 f"expect-map {HUNTERS_DREAM_MAP}", "sync clk-out",
+                 "set-flag 72100300 1", f"wait-map {CHALICE_DUNGEON} 180", "wait 10", "log host in the dungeon again", "wait-members 2 300", "wait 15",
+                 *CHALICE_PROGRESS_KEPT("host"), "log host kept the dungeon's progress",
+                 "sync clk-done", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                  *["wait 30"] * 5, *CHALICE_FROM_OWN_ALTAR("guest"), "wait-members 2 300",
+                  "wait 20", "sync clk-in",
+                  *[f"set-flag {flag} 1" for flag in CHALICE_PROGRESS["guest"]], "wait 5",
+                  "sync clk-set", f"travel {HUNTERS_DREAM}", "wait 15",
+                  f"expect-map {HUNTERS_DREAM_MAP}", "sync clk-out",
+                  "set-flag 72100300 1", f"wait-map {CHALICE_DUNGEON} 180", "wait 10", "log guest in the dungeon again", "wait-members 2 300", "wait 15",
+                  *CHALICE_PROGRESS_KEPT("guest"), "log guest kept the dungeon's progress",
+                  "sync clk-done", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "chalice-layers-kept", "roles": ["host", "guest"]}
+              for name in ("clk-in", "clk-set", "clk-out", "clk-done")},
+    "expect": {role: [rf"{role} in the dungeon", rf"{role} kept the dungeon's progress"]
+               for role in ("host", "guest")},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "allow": CRASH_CLEANUP,
+    "timeout": 1500,
+}
 
 SCENARIOS["chalice-team3"] = {
     "about": "a team of three: the host's ritual with both guests watching (not taken along), "
@@ -4976,6 +5234,274 @@ SCENARIOS["doll-level-up-host"] = {
     "timeout": 300,
 }
 
+# A host whose CPU cannot keep 60 FPS in co-op's 60 FPS mode (players 2026-10-26..11-06: 60 FPS
+# alone, 30 "the moment someone joins"). The rig's tick burn (BB_RIG_TICK_BURN_MS: the game's
+# main thread spins that long once a frame, at the co-op tick) stands in for the slower CPU. Run
+# it drawn (not --headless): a headless game never waits for its flips. Measured 2026-11-10
+# (RTX 4070 Ti, drawn, 5 s windows): up to 6 ms of burn the game stays at 59.4 FPS with or without
+# late flips; at 12 ms it falls gradually, to 47-55 FPS with flips on vblank ticks only
+# (BB_LATE_FLIPS=0, p99 34-51 ms) and to 55-56 FPS with late flips (p99 20-21 ms). No burn gave a
+# hard 30. So this is a smoothing check, not the players' 30. The walk's two snapshots tell the
+# game's speed against the wall clock (the stick is held 1500 ms): 5.2-5.4 m at 50-72 FPS.
+SCENARIOS["slow-frames-60"] = {
+    "about": "a slower CPU (the main thread spins 12 ms a frame) in co-op's 60 FPS mode: late "
+             "frames keep it at 53-59 FPS (flips on vblank ticks only gave 47-55, p99 34-51 ms)",
+    "roles": {
+        "host": [START, "wait 5", "snapshot", "stick 128 0 1500", "wait 1", "snapshot",
+                 "stick 128 255 1500", "wait 20", "snapshot"],
+    },
+    # BB_FRAME_STATS: the frame rate every 5 s (the "Perf:" line comes every 30 s).
+    "settings": {"BB_FPS": "60", "BB_RIG_TICK_BURN_MS": "12", "BB_FRAME_STATS": "1"},
+    "draws": True,  # a headless game never waits for its flips
+    "console_expect": {"host": [r"VideoOut: vblank 60 Hz, frame limit 0 FPS, late frames shown",
+                                r"Rig tick burn: 12\.0 ms a frame",
+                                r"Frame stats: 5[3-9]\.\d FPS, worst frame [\d.]+ ms "
+                                r"\(vblank 60 Hz\)"]},
+    "timeout": 300,
+}
+
+# A10 probes (2026-11-10): where Rom and Ludwig stand and what their fights set.
+BYRGENWERTH = "0x20000000"
+BYRGENWERTH_LAMP = 3202950
+ROM_DEFEATED = 13201800
+ROM_DIVE = "-487.4 -188.0 378.9"  # region 3202800 (the lake's dive, event 13204820)
+ROM_FLAGS = "flags 13201800 13201802 13204800 13204802 13204811 13204812 13204801"
+SCENARIOS["a10-rom-look"] = {
+    "about": "probe: host dives into Rom's lake, guest after it; census and fight flags",
+    "settings": PARTY_DEATH,
+    "roles": {
+        role: [START, f"ensure-map {BYRGENWERTH} {BYRGENWERTH_LAMP}", "godmode",
+               f"expect-flag {ROM_DEFEATED} 0", "wait-session 2 240", "wait 5",
+               *(["sync rl-in"] if role == "guest" else [f"teleport {ROM_DIVE}", "sync rl-in"]),
+               "wait 5", *([f"teleport {ROM_DIVE}"] if role == "guest" else []), "wait 25",
+               "census 150", ROM_FLAGS, "wait 20", "census 150", ROM_FLAGS, "sync rl-done",
+               "expect-session 2"]
+        for role in ("host", "guest")
+    },
+    "syncs": {sync: {"chapter": "a10-rom-look", "roles": ["host", "guest"]}
+              for sync in ("rl-in", "rl-done")},
+    "timeout": 300,
+}
+LUDWIG_DEFEATED = 13401800
+LUDWIG_ARENA_LAMP = 3402952  # Nightmare Church: lit by his defeat (13407840)
+LUDWIG_NEAR_LAMP = 3402951
+LUDWIG_FLAGS = "flags 9471 13401800 13401801 13404808 13404810 13404825 13404824 13407840"
+SCENARIOS["a10-ludwig-look"] = {
+    "about": "probe: Ludwig alive again in Kaniel's save; host and guest by his arena: census",
+    "saves": "kaniel-1103-host",
+    "settings": PARTY_DEATH,
+    "roles": {
+        role: [*(TEAM_HOST if role == "host" else TEAM_GUEST), "set-flag 9471 0",
+               f"set-flag {LUDWIG_DEFEATED} 0", "wait 3", f"travel {LUDWIG_NEAR_LAMP}",
+               "wait-members 2 240", "wait 10", LUDWIG_FLAGS, "census 200",
+               "sync ll-near", "teleport -406.8 1505.0 -735.0", "wait 10", "census 120",
+               LUDWIG_FLAGS, "sync ll-done", "expect-session 2"]
+        for role in ("host", "guest")
+    },
+    "syncs": {sync: {"chapter": "a10-ludwig-look", "roles": ["host", "guest"]}
+              for sync in ("ll-near", "ll-done")},
+    "allow": CRASH_CLEANUP,
+    "timeout": 420,
+}
+
+# Discord audit A10 (Xose 2026-11-01, cominforyachips 11-04, v1.3.x): after a wipe in Ludwig's
+# fight he "died by himself while we were respawning" (no echoes), and back in the arena he stood
+# in his second phase, the lamp there, invulnerable. m34_00: his first body 3400800 (24987 HP);
+# at half HP 13404824 then 13404825 play the change (cutscene 34000030), switch 3400800 off and
+# bring up the second, 3400801. His defeat event 13401800 waits for 3400800 dead (or 3400801 once
+# 13400999 is on), so a party kill applied to his copy is his defeat; it lights the arena lamp
+# (3402952, 13407840) and sets 9471. Kaniel's save has him dead: both games put that off before
+# the trip there. A plain session, not a team: a team world keeps its defeat flags on.
+LUDWIG = "0x10038078"
+LUDWIG_SECOND = "0x10038079"
+LUDWIG_FULL_HP = 24987
+LUDWIG_FRESH = ["set-flag 9471 0", f"set-flag {LUDWIG_DEFEATED} 0", "set-flag 13407840 0"]
+# Outside his fog (o349001 at -407.9 1503.8 -716.5, he waits 32 m inside): facing it, X.
+THROUGH_LUDWIG_FOG = ["teleport -407.9 1504.0 -713.8 3.1416", "wait 3", "press cross 300",
+                      "wait 10"]
+LUDWIG_START = [START, *LUDWIG_FRESH, "godmode", "wait-session 2 300", "wait 5",
+                f"travel {LUDWIG_NEAR_LAMP}", "wait-members 2 240", "wait 10",
+                f"expect-flag {LUDWIG_DEFEATED} 0"]
+LUDWIG_STANDS = [f"expect-flag {LUDWIG_DEFEATED} 0", "expect-flag 9471 0",
+                 "expect-flag 13407840 0", "expect-flag 13404825 0"]
+LUDWIG_WHOLE = [f"expect-hp {LUDWIG} == {LUDWIG_FULL_HP}", *LUDWIG_STANDS]
+
+
+def _ludwig_retry(chapter: str, during_change: bool) -> dict:
+    """Host and guest fight Ludwig into his phase change, then die (the guest first, it
+    spectates; then the host, the party's wipe), wake at the lamp, wait there and walk back:
+    he stands in his first phase at full HP, takes a hit, no defeat flag or lamp, in both games.
+    `during_change`: the host dies while the change plays, not after it."""
+    prefix = chapter[:3]
+    change = (["wait 2"] if during_change else
+              ["wait-flag 13404825 1 120", LUDWIG_FLAGS])
+    back = ["wait-vital up 150", "godmode", "wait-members 2 240", "wait 30", LUDWIG_FLAGS,
+            *LUDWIG_STANDS, f"sync {prefix}-woke", *THROUGH_LUDWIG_FOG, "wait 5", "census 80",
+            LUDWIG_FLAGS, *LUDWIG_WHOLE]
+    return {
+        "about": f"Ludwig retry: both through his fog, hurt under half HP, the guest killed "
+                 f"(spectates), then the host {'during' if during_change else 'after'} the "
+                 f"phase change; after the wipe and the walk back he stands at full HP in his "
+                 f"first phase, no defeat or lamp, and takes damage, in both games",
+        "saves": "kaniel-1103-host",
+        "settings": PARTY_DEATH,
+        "game_kill": True,
+        "roles": {
+            "host": [*LUDWIG_START, *THROUGH_LUDWIG_FOG, f"sync {prefix}-in", "wait 5",
+                     "census 60", f"approach {LUDWIG} 5 0", f"hit {LUDWIG} 30", "wait 5",
+                     f"hurt {LUDWIG} 11000", f"sync {prefix}-hurt", *change,
+                     f"sync {prefix}-changed", "wait-member-vital spectate 60",
+                     "godmode off", "kill self", "wait-vital dead 30", *back,
+                     f"sync {prefix}-back", f"approach {LUDWIG} 4 0", f"hit {LUDWIG} 30",
+                     "wait 3", f"expect-hp {LUDWIG} < {LUDWIG_FULL_HP}", *LUDWIG_STANDS,
+                     f"sync {prefix}-done", "expect-session 2"],
+            # Killed as the change begins: his second phase's swings put it down (rig
+            # 2026-11-10), and a kill of a downed body is no spectate.
+            "guest": [*LUDWIG_START, f"sync {prefix}-in", *THROUGH_LUDWIG_FOG, "wait 5",
+                      f"sync {prefix}-hurt", "godmode off", "kill self",
+                      "wait-vital spectate 20", f"sync {prefix}-changed",
+                      "wait-vital dead 120", *back,
+                      f"sync {prefix}-back", "wait 10", LUDWIG_FLAGS, *LUDWIG_STANDS,
+                      f"sync {prefix}-done", "expect-session 2"],
+        },
+        "syncs": {f"{prefix}-{name}": {"chapter": chapter, "roles": ["host", "guest"]}
+                  for name in ("in", "hurt", "changed", "woke", "back", "done")},
+        "expect": {"host": [r"party death: died for real on map 0x22000000 \(reset=true\)"]},
+        "forbid": {role: SESSION_HOLDS + [rf"kill board gets [^\n]*{LUDWIG}",
+                                          rf"hid \d+ enemies[^\n]*0x22000000, [1-9]"]
+                   for role in ("host", "guest")},
+        "timeout": 900,
+    }
+
+
+# Discord audit A10 (Provi 2026-10-23, a guest): after a death and a retry at Rom the boss bar
+# stayed up at the lamp, the old spiders were still there and her next phase "spammed the raining
+# stones" (her fight's m32 4xxx flags never put off). m32_00: Rom 3200800 (6352 HP), 30 spiders
+# 3200200-3200229 (317 HP) by her; at 3/4 HP 13204807 moves her and sets 13204811, at 1/2 HP
+# 13204812; 13204808/09 call more spiders at 1/2 and 1/4. Her lamp (3202950) is on her map.
+ROM = "0x1003004c"
+ROM_FULL_HP = 6352
+ROM_FIGHT_OFF = [f"expect-flag {flag} 0" for flag in (ROM_DEFEATED, 13204811, 13204812)]
+ROM_START = [START, f"ensure-map {BYRGENWERTH} {BYRGENWERTH_LAMP}", "godmode",
+             f"expect-flag {ROM_DEFEATED} 0", "wait-session 2 240", "wait 5"]
+# The dive (13204820 makes the diver invincible for the fall and starts her fight).
+ROM_DIVE_IN = [f"teleport {ROM_DIVE}", "wait 25"]
+ROM_BACK = ["wait-vital up 150", "godmode", "wait-members 2 240", "wait 20", ROM_FLAGS,
+            *ROM_FIGHT_OFF, "census 150"]
+SCENARIOS["rom-retry"] = {
+    "about": "Rom retry: both dive into her lake, the host hurts her under half HP (her later "
+             "phases), the guest is killed (spectates), then the host: the wipe. At the lamp no "
+             "boss bar and her fight's flags off; dived again she is at full HP in her first "
+             "phase, the spiders as on a first visit, in both games",
+    "settings": PARTY_DEATH,
+    "game_kill": True,
+    "roles": {
+        "host": [*ROM_START, *ROM_DIVE_IN, "sync rr-in", "census 150",
+                 f"approach {ROM} 5 0", f"hit {ROM} 30", "wait 5", f"hurt {ROM} 2800",
+                 "wait-flag 13204812 1 60", "wait 15", ROM_FLAGS, "census 150", "sync rr-hurt",
+                 "wait-member-vital spectate 60", "godmode off", "kill self",
+                 "wait-vital dead 30", *ROM_BACK, "sync rr-woke", *ROM_DIVE_IN, "census 150",
+                 ROM_FLAGS, f"expect-hp {ROM} == {ROM_FULL_HP}", *ROM_FIGHT_OFF[1:],
+                 "sync rr-done", "expect-session 2"],
+        "guest": [*ROM_START, "sync rr-in", "wait 5", *ROM_DIVE_IN, "sync rr-hurt",
+                  f"approach {ROM} 6 3.14", "wait 2", "godmode off", "kill self",
+                  "wait-vital spectate 20", "wait-vital dead 90", *ROM_BACK, "sync rr-woke",
+                  "wait 5", *ROM_DIVE_IN, "census 150", ROM_FLAGS,
+                  f"expect-hp {ROM} == {ROM_FULL_HP}", *ROM_FIGHT_OFF[1:], "sync rr-done",
+                  "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "rom-retry", "roles": ["host", "guest"]}
+              for sync in ("rr-in", "rr-hurt", "rr-woke", "rr-done")},
+    "expect": {"host": [r"party death: died for real on map 0x20000000 \(reset=true\)"],
+               "guest": [r"spectate: the party's wipe ends spectating; dies \(reset=true"]},
+    "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
+    "timeout": 900,
+}
+
+# Discord audit A10 (ruskisss 2026-10-30): a guest went through Father Gascoigne's fog after two
+# teammates were already inside and was alone in the arena. m24_01: his fog o240308 (entity
+# 2411810, -50.2 -40.8 70.8; he waits at -37.1 -40.9 89.4): the host's walk through it
+# (12414810) sets 12414800 and starts him (12414802), a phantom's (12414811, patched to accept a
+# party guest) walks it through. Teammates are checked within 60 m: he chases one across his
+# arena (46 m off in a rig run 2026-11-10). The fog is up only once he was met (12411802; the
+# rig's saves never met him, so a first visit's walk into region 2412815 plays his cutscene
+# instead): on, then a lamp trip loads the map with it.
+# His fog part is turned -134.5 degrees; its action button (2410041) is a box 1.2 m deep on the
+# fog model's dummy poly: X walks through from 1.0 m out on the side away from him, facing it
+# (rig probe a10-gascoigne-fog-look 2026-11-10: 0.5 and 1.0 m did, 2.0 m and farther did not).
+THROUGH_GASCOIGNE_FOG = ["teleport -50.91 -40.8 70.10 -0.794", "wait 3", "press cross 300",
+                         "wait 10"]
+GASCOIGNE_IN = [START, f"set-flag {GASCOIGNE_DEFEATED} 0", "set-flag 12411802 1", "godmode",
+                "wait-session 3 420", "wait 5", f"travel {CENTRAL_YHARNAM_LAMP_2}",
+                "wait-members 3 240", "wait 10", "object 2411810", "flags 12411802 12414800"]
+SCENARIOS["gascoigne-late-guest"] = {
+    "about": "host and guest walk through Gascoigne's fog and fight him; guest2 walks through "
+             "it 30 s later: it is in the same fight (his bar up, his HP the hurt one, both "
+             "teammates beside it)",
+    "roles": {
+        "host": [*GASCOIGNE_IN, *THROUGH_GASCOIGNE_FOG, "sync gl-host-in",
+                 "wait-flag 12414800 1 30", f"approach {GASCOIGNE} 4 0", f"hit {GASCOIGNE} 30",
+                 "wait 3", f"hurt {GASCOIGNE} 1500", "wait 5", "census 60", "sync gl-fight",
+                 "sync gl-late-in", "wait 10", "census 60", "expect-others-near 2 60",
+                 "sync gl-done", "expect-session 3"],
+        "guest": [*GASCOIGNE_IN, "sync gl-host-in", "wait 3", *THROUGH_GASCOIGNE_FOG,
+                  f"approach {GASCOIGNE} 5 3.14", "sync gl-fight", "sync gl-late-in", "wait 10",
+                  "census 60", "expect-others-near 2 60", "sync gl-done", "expect-session 3"],
+        "guest2": [*GASCOIGNE_IN, "sync gl-host-in", "sync gl-fight", "wait 30",
+                   *THROUGH_GASCOIGNE_FOG, "wait 5", "sync gl-late-in", "wait 10",
+                   "flags 12414800 12414801 12414223", "census 60",
+                   f"expect-hp {GASCOIGNE} < 4000", "expect-others-near 2 60", "sync gl-done",
+                   "expect-session 3"],
+    },
+    "syncs": {sync: {"chapter": "gascoigne-late-guest", "roles": ["host", "guest", "guest2"]}
+              for sync in ("gl-host-in", "gl-fight", "gl-late-in", "gl-done")},
+    "expect": {role: [r"party death: the boss bars are up"] for role in ("host", "guest", "guest2")},
+    "forbid": {role: SESSION_HOLDS for role in ("host", "guest", "guest2")},
+    "timeout": 600,
+}
+
+# The guest alone dies while the host fights on: it spectates, gives up (Circle held) and wakes at
+# its lamp without a reload, as a death respawn would put it there. No boss bar may follow it
+# there; dived again it is in the host's fight (her HP the host's).
+SCENARIOS["rom-retry-guest-alone"] = {
+    "about": "Rom: the guest is killed in her later phase while the host fights on, spectates, "
+             "gives up and wakes at her lamp: no boss bar there; it dives back into the same "
+             "fight (her hurt HP, the bar up again)",
+    "settings": PARTY_DEATH,
+    "game_kill": True,
+    "roles": {
+        # Her swings put a host beside her down, godmode or not (rig 2026-11-10, twice): one hit,
+        # then 20 m off at once (still in her fight, 45 m) before her later phases. A downed host
+        # makes the guest's death the party's wipe, no spectate: the guest checks it stands.
+        "host": [*ROM_START, *ROM_DIVE_IN, "sync ra-in", f"approach {ROM} 5 0",
+                 f"hit {ROM} 30", f"approach {ROM} 20 0", "wait 3", f"hurt {ROM} 2800",
+                 "wait-flag 13204812 1 60", f"approach {ROM} 20 0", "wait 5", "sync ra-hurt",
+                 "wait-member-vital spectate 60",
+                 "wait-member-vital up 90", "sync ra-woke", "sync ra-back", "wait 5",
+                 "census 150", ROM_FLAGS, f"expect-hp {ROM} < 3000", "sync ra-done",
+                 "expect-session 2"],
+        "guest": [*ROM_START, "sync ra-in", "wait 5", *ROM_DIVE_IN, "sync ra-hurt",
+                  "wait-member-vital up 5", "godmode off", "kill self", "wait-vital spectate 20", "wait 5",
+                  "press circle 3600", "wait-vital up 30", "godmode", "wait 3", "shot lamp",
+                  "wait 12", "sync ra-woke", ROM_FLAGS, "census 150", *ROM_DIVE_IN,
+                  "sync ra-back", "wait 5", "census 150", ROM_FLAGS, f"expect-hp {ROM} < 3000",
+                  "sync ra-done", "expect-session 2"],
+    },
+    "syncs": {sync: {"chapter": "rom-retry-guest-alone", "roles": ["host", "guest"]}
+              for sync in ("ra-in", "ra-hurt", "ra-woke", "ra-back", "ra-done")},
+    "expect": {"guest": [r"spectate: giving up wakes this player at its own lamp",
+                         r"(?s)giving up wakes this player at its own lamp.*"
+                         r"party death: the boss bars are down.*autoplay: step \d+/\d+ sync ra-woke",
+                         rf"(?s)sync ra-woke.*spectate: boss bars back: {ROM}"]},
+    "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
+    "timeout": 600,
+}
+
+SCENARIOS["ludwig-retry"] = _ludwig_retry("ludwig-retry", during_change=False)
+SCENARIOS["ludwig-retry-mid-change"] = _ludwig_retry("ludwig-retry-mid-change",
+                                                     during_change=True)
+
+
 # Discord 2026-11-06 (1.4.0, Moab): backing out of the Doll's level up with Circle left the player
 # kneeling for good. m21_00 12100112 stands the player up once 72100100 is off again, at the
 # earliest 54 frames after its kneel (72100101 on), and only while 6700 is on; 6700 was cleared
@@ -5076,7 +5602,9 @@ def _host_death_kills(name: str, far: bool) -> dict:
             f"sync {tag}-killed", "wait 5", "census 60", *_party_kills_down(3)]
     if far:
         host += [f"teleport {HOST_DEATH_FAR_SPOT}", "wait 5"]
-    death = [*LETHAL_FALL, "wait-vital dead 30"] if far else GIVE_UP
+    # 60 s: on a loaded PC (rig 2026-11-10, 12 FPS and 7 s frames) the death came 35 s after the
+    # fall.
+    death = [*LETHAL_FALL, "wait-vital dead 60"] if far else GIVE_UP
     host += ["godmode off", *death, "log host died", "wait-vital up 90", "wait 10",
              "census 60", *_party_kills_down(30), "census 60", f"sync {tag}-checked",
              "expect-session 2"]
@@ -5136,6 +5664,118 @@ SCENARIOS["nameplate-roles"] = {
 }
 
 
+# Bug audit 24 (Provi 2026-10-29): a guest's frenzy build-up in the Nightmare areas showed its
+# effect, damage and sound over and over on the host's screen. SpEffect 5299 is a frenzy build-up
+# aura (registCurse 5 every 2 s, as a Winter Lantern's gaze gives); the guest stands in it for
+# 20 s, the host watches its copy of the guest (effects added and removed, HP) the whole time.
+FRENZY_AURA = 5299
+FRENZY_FULL = 6421
+SCENARIOS["frenzy-guest-look"] = {
+    "about": "probe: the guest builds up frenzy (SpEffect 5299 for 20 s); both games log the "
+             "guest's effects: what the host's copy of it adds again and again",
+    "roles": {
+        "host": [START, "godmode", "wait-session 2 300", "wait 10", "sync fz-ready",
+                 "watch-effects player 60", "sync fz-done", "wait 5", "expect-session 2"],
+        "guest": [START, "wait-session 2 300", "wait 10", "sync fz-ready",
+                  "watch-effects self 60",
+                  *[step for _ in range(10) for step in (f"add-effect {FRENZY_AURA}", "wait 2")],
+                  # Rig 2026-11-10: 5299 changed neither game's effect list; 6421 is a full
+                  # build-up at once (registCurse 99999) with frenzy's 70% HP damage.
+                  f"add-effect {FRENZY_FULL}", "wait 20", "sync fz-done", "wait 5", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "frenzy-guest-look", "roles": ["host", "guest"]}
+              for name in ("fz-ready", "fz-done")},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300,
+}
+
+
+# Bug audit 24 (Redichoti 2026-10-30, heavy connection lag): enemy and boss HP differed per player
+# and his kills took a while to die for his friends. Over a lossy link (5% of every game's packets
+# lost; run it with a long ping, --ping 150-300) the guest kills an enemy the host's game runs with
+# real hits (its hits go to the owner), the host one of its own; a census a second on both games
+# gives the HP each shows over time (compare the two logs). Both kills land on both games.
+# (Rig 2026-11-10: "hurt" on a guest only rewrites its own copy, which the owner's HP puts back:
+# it is no hit there.)
+LOSSY_LINK = {"SHADPS4_P2P_LOSS_PERCENT": "5"}
+SCENARIOS["hp-lossy-link"] = {
+    "about": "over a lossy link (5% loss, long ping) the guest kills an enemy the host's game runs "
+             "and the host kills another, with real hits; both kills land on both games (census "
+             "a second for the HP each game shows)",
+    "settings": LOSSY_LINK,
+    "roles": {
+        "host": [START, "godmode", "wait-session 2 300", "wait 10", "census 60", "sync hpl-ready",
+                 *[step for _ in range(10) for step in ("wait 1", "census 60")],
+                 *attack(SECOND_ENEMY), "sync hpl-done",
+                 *[step for _ in range(15) for step in ("wait 1", "census 60")],
+                 f"expect-hp {ENEMY} <= 0", f"expect-hp {SECOND_ENEMY} <= 0", "sync hpl-checked",
+                 "expect-session 2"],
+        "guest": [START, "godmode", "wait-session 2 300", "wait 10", "census 60", "sync hpl-ready",
+                  *attack(ENEMY), "sync hpl-done",
+                  *[step for _ in range(15) for step in ("wait 1", "census 60")],
+                  f"expect-hp {ENEMY} <= 0", f"expect-hp {SECOND_ENEMY} <= 0",
+                  "sync hpl-checked", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "hp-lossy-link", "roles": ["host", "guest"]}
+              for name in ("hpl-ready", "hpl-done", "hpl-checked")},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "timeout": 300,
+}
+
+
+# Bug audit 24 (DXZao 2026-10-23, 1.0.x): after a crash and rejoin, world items already taken
+# could be picked up again. A map item pickup is each character's own (#229, team-world-pickups).
+# The guest takes the item by the first lamp (goods 1500, item flag 52410140), its game dies (the
+# rig stops it as a crash would) and starts again, straight into the session: the item stays
+# taken for it (rig 2026-11-10 on main: the flag was off again and the guest took it twice; its
+# kept pickups were only set in its own world at home).
+LAMP_ITEM_FLAG = 52410140
+SCENARIOS["pickup-after-guest-crash"] = {
+    "about": "the guest picks up the item by the lamp, its game dies and rejoins the session: "
+             "the item stays taken for it",
+    "roles": {
+        "host": [START, "godmode", "wait-session 2 300", "sync pac-picked", "wait-solo 200",
+                 "wait-session 2 420", "sync pac-checked", "expect-session 2"],
+        "guest": [[START, "godmode", "wait-session 2 300", "wait 5",
+                   f"expect-flag {LAMP_ITEM_FLAG} 0", "pickup 20", "wait 5",
+                   f"expect-flag {LAMP_ITEM_FLAG} 1", "wait 15", "sync pac-picked", "done"],
+                  [START, "godmode", "wait-session 2 420", f"wait-flag {LAMP_ITEM_FLAG} 1 30",
+                   "wait 5", "snapshot", "sync pac-checked", "expect-session 2"]],
+    },
+    "syncs": {name: {"chapter": "pickup-after-guest-crash", "roles": ["host", "guest"]}
+              for name in ("pac-picked", "pac-checked")},
+    "expect": {"guest": [r"guest picked up item flag 52410140"]},
+    "allow": CRASH_CLEANUP,
+    "timeout": 300,
+}
+
+
+# A10 2026-11-10: where X at Gascoigne's fog walks the host through. Its action button
+# (2410041) is a box 1.2 m deep, 3.2 m wide on the fog model's dummy poly 191, so the spot
+# depends on that model: X from 3.5 m to 0.5 m on the side away from him (the fog part turned
+# -134.5 degrees), then from his side; 12414800 logged after each.
+def _fog_tries() -> list[str]:
+    steps = []
+    nx, nz = -0.7133, -0.7009  # the fog part's outward normal (rot -134.5 degrees)
+    for side, heading in ((1, -0.794), (-1, 2.348)):
+        for d in (3.5, 3.0, 2.0, 1.0, 0.5):
+            x, z = -50.2 + side * d * nx, 70.8 + side * d * nz
+            steps += [f"log fog try side {side} at {d} m",
+                      f"teleport {x:.2f} -40.8 {z:.2f} {heading}", "wait 2", "press cross 300",
+                      "wait 6", "flags 12414800 12414812"]
+    return steps
+
+
+SCENARIOS["a10-gascoigne-fog-look"] = {
+    "about": "probe: where X at Gascoigne's fog walks the host through (12414800)",
+    "roles": {"host": [START, f"set-flag {GASCOIGNE_DEFEATED} 0", "set-flag 12411802 1",
+                       "godmode", f"travel {CENTRAL_YHARNAM_LAMP_2}", "wait 10",
+                       "object 2411810",
+                       *_fog_tries()]},
+    "timeout": 420,
+}
+
+
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
 # look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
 # --play <name>) and in no tier.
@@ -5160,5 +5800,13 @@ PROBE_NAMES = (
     "join3-uncap",
     # the test audit (2026-11-10): pictures and censuses to look at, no check of their own
     "clinic", "button-icons", "map-team",
+    # A10 boss retries: where Rom and Ludwig stand
+    "a10-rom-look", "a10-ludwig-look", "a10-gascoigne-fog-look",
+    # A10: a guest through Gascoigne's fog after the others. Valid run on main 0edace82
+    # (2026-11-10): the late guest was in the same fight (his bar up, his hurt HP, teammates
+    # near); the rig's frame guard tripped on a busy PC, so no clean green yet: in no tier
+    "gascoigne-late-guest",
+    # bug audit 24: a guest's frenzy on the host's screen
+    "frenzy-guest-look",
 )
 PROBES = {name: SCENARIOS.pop(name) for name in PROBE_NAMES}

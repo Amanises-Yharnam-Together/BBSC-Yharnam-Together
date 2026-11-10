@@ -58,6 +58,7 @@ VERBS = {
     # 1.3.2 (BBSC): open teams, codes and quick match from the title; duels between teams.
     "team-open", "team-join-open", "team-wait-open", "team-code-share", "team-join-code",
     "team-quick", "duel-propose-teams",
+    "spot-mark", "expect-near-spot", "expect-standing",  # A6 audit 2026-11-10: a wipe in a dungeon
     "team-rules", "team-wait-rules",  # Kaniel 2026-11-05: the team rules from the team screen
 }
 VITALS = {"up", "down", "dead", "spectate"}
