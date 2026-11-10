@@ -416,6 +416,74 @@ void ClearBossBarsAfterDeath() {
     }
 }
 
+// See AwayBossBars: a spectator woken at its lamp has its boss bars put away until it is in that
+// fight again. WakeAtOwnLamp puts them away, the boss fight's tick brings them back or drops
+// them, a death's respawn drops them.
+std::mutex away_boss_bars_mutex;
+AwayBossBars away_boss_bars;
+
+std::span<u8> BossGaugesNow() {
+    const u64 holder = ReadValue<u64>(image_base + BossGaugesPointerOffset, 0);
+    constexpr std::size_t Size = BossGaugeSlots * BossGaugeSize;
+    if (holder < 0x10000 ||
+        !HasMemoryAccess(holder + BossGaugesOffset, Size, MemoryProt::CpuWrite)) {
+        return {};
+    }
+    return {reinterpret_cast<u8*>(holder + BossGaugesOffset), Size};
+}
+
+void PutBossBarsAway(u32 map) {
+    const std::span<u8> gauges = BossGaugesNow();
+    std::scoped_lock lock{away_boss_bars_mutex};
+    if (!gauges.empty() && away_boss_bars.PutAway(gauges, map)) {
+        LOG_INFO(Debug,
+                 "Bloodborne spectate: boss bars put away at the lamp: {:#x} (back once this "
+                 "player is in its fight again)",
+                 away_boss_bars.Handle().value_or(0));
+    }
+}
+
+void DropAwayBossBars() {
+    std::scoped_lock lock{away_boss_bars_mutex};
+    away_boss_bars.Drop();
+}
+
+// Each party death tick: the put-away bars back once this player is within BossLeaveMetres of
+// their boss again, dropped once it is dead or this player is on another map.
+void TickAwayBossBars(u32 map) {
+    std::scoped_lock lock{away_boss_bars_mutex};
+    if (!away_boss_bars.Holding()) {
+        return;
+    }
+    const std::span<u8> gauges = BossGaugesNow();
+    const std::optional<u32> handle = away_boss_bars.Handle();
+    if (gauges.empty() || !handle) {
+        return;
+    }
+    std::optional<LampPosition> boss;
+    bool boss_dead = false;
+    if (const u64 world = ReadValue<u64>(image_base + CandidateLocalStatePointerOffset, 0);
+        world >= 0x10000) {
+        Coop::ForEachWorldCharacter(world, [&](u64 character) {
+            if (!boss && !boss_dead && ReadValue<u32>(character, 0x08) == *handle) {
+                boss_dead = Coop::CharacterHp(character) <= 0 ||
+                            IsDeadInItsWorld(ReadValue<u8>(character, 0x1E3));
+                boss = Coop::CharacterPosition(character);
+            }
+        });
+    }
+    switch (away_boss_bars.Tick(gauges, map, boss, boss_dead, Coop::LocalPlayerPosition())) {
+    case AwayBossBars::Outcome::Back:
+        LOG_INFO(Debug, "Bloodborne spectate: boss bars back: {:#x} (in its fight again)", *handle);
+        break;
+    case AwayBossBars::Outcome::Dropped:
+        LOG_INFO(Debug, "Bloodborne spectate: put-away boss bars dropped: {:#x}", *handle);
+        break;
+    case AwayBossBars::Outcome::Away:
+        break;
+    }
+}
+
 } // namespace
 
 namespace Coop {
@@ -437,6 +505,7 @@ void MoveToRespawnPoint(bool arriving_from_trip) {
         arriving_from_trip ? DeathReset::None : party_death_reset.TakeAtRespawn();
     const bool reset = call != DeathReset::None;
     if (!arriving_from_trip) {
+        DropAwayBossBars();
         ClearBossBarsAfterDeath();
     }
     if (call == DeathReset::OwnMap) {
@@ -1803,6 +1872,8 @@ void FollowWatched(PartyDeathRun& run, const DeathTick& tick) {
 // in a loaded block, else by the lamp's trip (ChooseDeathRespawn, as a death's respawn).
 void WakeAtOwnLamp(PartyDeathRun& run, const DeathTick& tick, SpectateEnd why) {
     EndSpectating(run, tick.player, tick.data);
+    // Out of the fight: its boss bars wait until it is in that fight again (AwayBossBars).
+    PutBossBarsAway(tick.map);
     const u8 flags = ReadValue<u8>(tick.data, 0x200);
     run.grace_flags = DownedNoDamageFlags & static_cast<u8>(~flags);
     WriteValue(tick.data, 0x200, static_cast<u8>(flags | DownedNoDamageFlags));
@@ -2090,6 +2161,7 @@ void TickPartyDeath() {
     // Kaniel 2026-10-25: a boss fight with a teammate in it (its deaths spectate).
     {
         const TickStepTimer step{"TickPartyDeath: boss fight"};
+        TickAwayBossBars(tick.map);
         const u64 holder = ReadValue<u64>(image_base + BossGaugesPointerOffset, 0);
         constexpr std::size_t Size = BossGaugeSlots * BossGaugeSize;
         const bool bars_up =
