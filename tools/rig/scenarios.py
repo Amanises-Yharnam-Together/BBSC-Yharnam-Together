@@ -1694,6 +1694,38 @@ SCENARIOS = {
         "allow": CRASH_CLEANUP,
         "timeout": 900,
     },
+    # Players 2026-10-24 to 2026-11-07 ("my save rolled back"): the host of a world made from its
+    # own save played alone and the save took back the world it had before its first team (lamps
+    # gone, bosses alive). The world a save made is its home world: alone, the save keeps it, and
+    # what it does alone is the team's at its next hunt. One game, by the title: a new world from
+    # its save; the same world again, where it sets TEAM_WORLD_FLAG; alone, the flag is still on
+    # (it went off with the save's old world before), and it turns it off; its team again: still
+    # off (its save leads; the server's copy from before had it on).
+    "home-world": {
+        "about": "the host of a world its save made plays alone and keeps the team's progress, "
+                 "and what it does alone is in its team's world after",
+        "roles": {
+            "host": ["team-create", "team-start", START, "wait 25",
+                     "quit-title", "title-wait 10",
+                     "team-create", "team-start", START, "wait 10",
+                     f"set-flag {TEAM_WORLD_FLAG} 1", "wait 15",
+                     "quit-title", "title-wait 10",
+                     "team-alone", START, "wait 10", f"expect-flag {TEAM_WORLD_FLAG} 1",
+                     f"set-flag {TEAM_WORLD_FLAG} 0", "wait 5",
+                     "quit-title", "title-wait 10",
+                     "team-create", "team-start", START, "wait 15",
+                     f"expect-flag {TEAM_WORLD_FLAG} 0"],
+        },
+        "expect": {
+            "host": [r"Co-op team world: world \w+ is made from slot \d+'s save: its home world",
+                     r"Co-op team world: this host's save is its home world's latest",
+                     r"Co-op team world: this host's world to the server"],
+        },
+        "forbid": {"host": [r"Co-op team world: slot \d+'s own world kept aside",
+                            r"its own world is back"]},
+        "allow": CRASH_CLEANUP,
+        "timeout": 600,
+    },
     # Kaniel's play test 2026-10-18: krolebord joined the team and his lamps listed only Cathedral
     # Ward. A lamp stays lit only for a character whose lamp list holds it (the game clears its
     # active flag otherwise), and the team world's lamps went into the guest's flags at its load,

@@ -7176,6 +7176,13 @@ class Launcher:
             except (OSError, ValueError) as error:
                 self.ui_calls.put(lambda failure=error: self.coop_update_failed(failure))
                 return
+            # the saves as they are, in the Restore saves list, before a setup writes over the install
+            # (red, 2026-11-06: "I updated with the installer and lost our save files"); a backup that
+            # cannot be written (a full disk) does not stop the update, which leaves the saves alone
+            try:
+                bbport_coop.back_up_saves(PORT_DIR, 'before an update', prune=False)
+            except OSError:
+                pass
             self.ui_calls.put(lambda: self.coop_run_setup(setup))
         threading.Thread(target=work, daemon=True).start()
 

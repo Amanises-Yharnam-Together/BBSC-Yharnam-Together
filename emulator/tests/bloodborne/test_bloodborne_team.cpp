@@ -330,6 +330,98 @@ TEST(TeamWorld, ThePersonalWorldFileRoundTripsAndACutOneIsNone) {
     EXPECT_FALSE(ParseWorldFlags("blocks\n1\non\nx\nend\n"));
 }
 
+// Players 2026-10-24 to 2026-11-07 (luisguareschi, seixas' host, cominforyachips, BigPeloConcha):
+// the host played alone and its save "rolled back" (the DLC's lamps gone, a boss alive again):
+// alone, the save took back the world it had before its first team, though the team's world was
+// made from this very save. A save keeps the list of the worlds it made (its home worlds): among
+// them its own world is the team's, nothing is kept aside and nothing comes back over it.
+TEST(HomeWorlds, TheFileRoundTripsAndABrokenOneIsNone) {
+    HomeWorlds home;
+    EXPECT_TRUE(home.Add("a1b2"));
+    EXPECT_TRUE(home.Add("c3d4"));
+    EXPECT_FALSE(home.Add("a1b2")) << "once";
+    EXPECT_TRUE(home.NoteVersion("c3d4", 7));
+    EXPECT_FALSE(home.NoteVersion("c3d4", 7));
+    EXPECT_FALSE(home.NoteVersion("none", 3)) << "not a world of this save";
+    const std::string text = FormatHomeWorlds(home);
+    EXPECT_EQ(ParseHomeWorlds(text), home);
+    EXPECT_TRUE(home.Has("a1b2"));
+    EXPECT_FALSE(home.Has("a1"));
+    EXPECT_FALSE(home.Has(""));
+    EXPECT_EQ(home.Version("c3d4"), 7u);
+    EXPECT_EQ(home.Version("a1b2"), 0u);
+    EXPECT_FALSE(ParseHomeWorlds(""));
+    EXPECT_FALSE(ParseHomeWorlds(text.substr(0, text.size() - 4))) << "no \"end\"";
+    EXPECT_FALSE(ParseHomeWorlds("worlds\na1b2 x\nend\n"));
+    // A save that made none (looked at once: an old save's check is not made again).
+    EXPECT_EQ(ParseHomeWorlds(FormatHomeWorlds({})), HomeWorlds{});
+}
+
+TEST(HomeWorlds, AnIdThatIsNoWordIsNeverKeptAndTheListStaysShort) {
+    HomeWorlds home;
+    EXPECT_FALSE(home.Add(""));
+    EXPECT_FALSE(home.Add("two words"));
+    EXPECT_FALSE(home.Add("a\nb"));
+    EXPECT_FALSE(home.Add(std::string(200, 'a')));
+    for (size_t i = 0; i < MaxHomeWorlds + 3; ++i) {
+        EXPECT_TRUE(home.Add("w" + std::to_string(i)));
+    }
+    EXPECT_EQ(home.worlds.size(), MaxHomeWorlds);
+    EXPECT_FALSE(home.Has("w0")) << "the oldest go";
+    EXPECT_TRUE(home.Has("w" + std::to_string(MaxHomeWorlds + 2)));
+}
+
+TEST(HomeWorlds, AWorldsIdIsItsPartyKeys) {
+    EXPECT_EQ(WorldIdOfParty("world:a1b2"), "a1b2");
+    EXPECT_EQ(WorldIdOfParty("team:t1/w1"), "");
+    EXPECT_EQ(WorldIdOfParty("world:"), "");
+    EXPECT_EQ(WorldIdOfParty(""), "");
+}
+
+// Another save's world: this save's own goes aside as before and comes back when it plays alone.
+// Its home world: nothing aside. And the host of its home world whose save was the last to
+// report it (the server's copy is at the version this save saw) leads with its save, so what it
+// did alone since is the team's too; a server copy another host moved on is taken.
+TEST(HomeWorlds, HowASaveTakesATeamsWorld) {
+    HomeWorlds home;
+    home.Add("mine");
+    home.NoteVersion("mine", 12);
+    EXPECT_EQ(HowToTakeTeamWorld(home, "theirs", true, 12), TeamWorldTake::Aside);
+    EXPECT_EQ(HowToTakeTeamWorld(home, "theirs", false, 12), TeamWorldTake::Aside);
+    EXPECT_EQ(HowToTakeTeamWorld({}, "mine", true, 12), TeamWorldTake::Aside);
+    EXPECT_EQ(HowToTakeTeamWorld(home, "mine", true, 12), TeamWorldTake::SaveLeads);
+    EXPECT_EQ(HowToTakeTeamWorld(home, "mine", true, 13), TeamWorldTake::Home)
+        << "another host played it since";
+    EXPECT_EQ(HowToTakeTeamWorld(home, "mine", false, 12), TeamWorldTake::Home)
+        << "a guest in its own world follows the host";
+    home.Add("new");
+    EXPECT_EQ(HowToTakeTeamWorld(home, "new", true, 0), TeamWorldTake::Home)
+        << "no version known: never over the server's";
+}
+
+// A save from before the list (its own world kept aside, no list): the world it last played is
+// its home world when that world's host character, as the server has it, is this one; another's
+// name: it was a guest there; a world this server does not list, or no word from the lobby: not
+// known, nothing changes.
+TEST(HomeWorlds, AnOldSavesLastWorldIsItsOwnWhenItsCharacterHostedIt) {
+    bbcoop::LobbyState lobby;
+    bbcoop::TeamWorldInfo& mine = *lobby.add_worlds();
+    mine.set_id("w1");
+    mine.set_character("Eileen");
+    bbcoop::TeamWorldInfo& theirs = *lobby.add_worlds();
+    theirs.set_id("w2");
+    theirs.set_character("Gascoigne");
+    EXPECT_EQ(OldSavesWorld(&lobby, "w1", "Eileen"), OldSaveWorld::Made);
+    EXPECT_EQ(OldSavesWorld(&lobby, "w2", "Eileen"), OldSaveWorld::Visited);
+    EXPECT_EQ(OldSavesWorld(&lobby, "w3", "Eileen"), OldSaveWorld::Unknown);
+    EXPECT_EQ(OldSavesWorld(&lobby, "", "Eileen"), OldSaveWorld::Unknown);
+    EXPECT_EQ(OldSavesWorld(nullptr, "w1", "Eileen"), OldSaveWorld::Unknown);
+    EXPECT_EQ(OldSavesWorld(&lobby, "w1", ""), OldSaveWorld::Unknown) << "its name not read yet";
+    theirs.set_character("");
+    EXPECT_EQ(OldSavesWorld(&lobby, "w2", "Eileen"), OldSaveWorld::Unknown)
+        << "a world no host reported yet";
+}
+
 // Kaniel's playtest 2026-10-17: the night fell only in the host's world (Vicar Amelia's skull). A
 // guest away from the cutscene takes the team world's time of day (9800 evening, 9801 night,
 // 9802 blood moon), never turning one back.
