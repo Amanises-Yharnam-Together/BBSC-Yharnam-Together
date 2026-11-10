@@ -71,5 +71,42 @@ class DoorFlags(unittest.TestCase):
         self.assertEqual(tool.map_door_flags(files), [12400170])
 
 
+    def test_a_chalice_layout_starts_m29s_door_events(self):
+        """Discord audit A6: m29.emevd holds the dungeons' door events, each layout's file starts
+        them with its own flags; a flag one layout's switch clears is left out of every one."""
+        m29 = build_emevd({12900315: gate_event(),
+                           12900400: [obj_act_done(12900520), set_flag(12900520, False)]},
+                          {12900315: [(0, 0, 0, 4), (1, 4, 4, 4)]})
+        story = build_emevd({0: [start(0, 12900315, 2901019, 12900516),
+                                 start(1, 12900315, 2901020, 12900520)]})
+        root = build_emevd({0: [start(0, 12900315, 2901019, 12900530),
+                                start(0, 12904700, 2901019, 12904701)]})
+        self.assertEqual(tool.chalice_door_flags(m29, {'m29_10_90_00.emevd.dcx': story,
+                                                       'm29_10_00_00.emevd.dcx': root}),
+                         [12900315, 12900316, 12900516, 12900530])
+
+
+    def test_a_chalice_chest_or_trap_is_each_players_own(self):
+        """Loot is each player's own: a chest's or coffin's event (12900000: its object act, then
+        the treasure 2005:4) and a trap's (12904338: an enemy woken 2004:1) give no door, and
+        their flags stay out even where another layout's door uses them. Neither is another
+        event's own id (the bell-ringing woman's 12901000). What stays (ChaliceDoorFlags): doors
+        and gates (12900089-12900356), lever doors (12900189, 12901705), a passage (12904374),
+        the doors that join the navmesh (12901447) and barriers (12901697-12901717)."""
+        m29 = build_emevd({12900000: [obj_act_done(0), (2005, 4, struct.pack('<ii', 0, 1))],
+                           12904338: [obj_act_done(0), (2004, 1, struct.pack('<ii', 0, 1))],
+                           12900323: gate_event(),
+                           12901000: [set_flag(12901001, True)]},
+                          {12900000: [(0, 4, 0, 4)], 12904338: [(0, 4, 0, 4)],
+                           12900323: [(0, 0, 0, 4), (1, 4, 4, 4)]})
+        chests = build_emevd({0: [start(0, 12900000, 12900009), start(0, 12904338, 12900557),
+                                  start(0, 12900323, 2901019, 12900400)]})
+        doors = build_emevd({0: [start(0, 12900323, 2901020, 12900009),
+                                 start(1, 12900323, 2901021, 12901000)]})
+        self.assertEqual(tool.chalice_door_flags(m29, {'m29_10_00_00.emevd.dcx': chests,
+                                                       'm29_10_90_00.emevd.dcx': doors}),
+                         [12900323, 12900324, 12900400])
+
+
 if __name__ == '__main__':
     unittest.main()

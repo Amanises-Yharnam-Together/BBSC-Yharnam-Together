@@ -504,3 +504,39 @@ TEST(BloodborneAltar, AnAltarEmptiedInTheDreamIsARemoval) {
     reset.Reset(); // another session or character
     EXPECT_TRUE(reset.Observe(after, true).empty());
 }
+
+// Discord audit A6 (review of 391d0309): a teammate's chalice doors (altar k's copy, 14k0xxxx) go
+// only into the same dungeon: this game's altar k record names the team world's (its first 8
+// bytes: the dungeon word and the ChannelId), never a member's own other dungeon on that altar.
+TEST(BloodborneAltar, ATeammatesDoorsGoOnlyIntoTheSameDungeon) {
+    EXPECT_EQ(AltarOfDungeonCopy(14000323), 0);
+    EXPECT_EQ(AltarOfDungeonCopy(14101447), 1);
+    EXPECT_EQ(AltarOfDungeonCopy(14609999), 6);
+    EXPECT_EQ(AltarOfDungeonCopy(14010000), std::nullopt) << "not the view's part";
+    EXPECT_EQ(AltarOfDungeonCopy(14700323), std::nullopt) << "no altar 7";
+    EXPECT_EQ(AltarOfDungeonCopy(12900323), std::nullopt) << "the view itself";
+    // Altar 1's record 1D 0A 5A 00, channel 2000000010 (0x77359412), then progress bits.
+    std::vector<u8> mine(750, 0);
+    const std::array<u8, 8> head{0x1D, 0x0A, 0x5A, 0x00, 0x77, 0x35, 0x94, 0x12};
+    std::ranges::copy(head, mine.begin());
+    mine[700] = 0xFF; // progress: each member's own
+    std::vector<s32> team_on;
+    const s32 base = AltarFlagBase(1);
+    for (s32 bit = 0; bit < 64; ++bit) {
+        if (head[bit / 8] & (0x80 >> (bit % 8))) {
+            team_on.push_back(base + bit);
+        }
+    }
+    team_on.push_back(AltarFlagBase(2)); // another altar's flags do not count
+    std::ranges::sort(team_on);
+    EXPECT_TRUE(SameAltarDungeon(mine, team_on, 1));
+    EXPECT_FALSE(SameAltarDungeon(mine, team_on, 0)) << "the team's altar 0 holds none";
+    auto other = mine;
+    other[3] = 0x01; // another layout
+    EXPECT_FALSE(SameAltarDungeon(other, team_on, 1));
+    other = mine;
+    other[7] = 0x13; // another channel (another root dungeon of the same chalice)
+    EXPECT_FALSE(SameAltarDungeon(other, team_on, 1));
+    EXPECT_FALSE(SameAltarDungeon(mine, {}, 1)) << "the team world has no record there";
+    EXPECT_FALSE(SameAltarDungeon(std::span<const u8>{mine}.first(4), team_on, 1));
+}

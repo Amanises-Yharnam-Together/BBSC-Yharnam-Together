@@ -389,10 +389,13 @@ AltarRemovals altar_removals;
 // map's view 1290xxxx and its items 5290xxxx, + (11 + k) * 100000: 14k0xxxx, 54k0xxxx). A chalice
 // taken off ends the dungeon: its lamps lit (Shared, the team world relit them), bosses and
 // items go, so the next chalice placed there starts it new on every game.
+// Its shared doors' clears go to the party too (a load-sized change is not shared): the team's
+// log would set them again in the next dungeon on that altar.
 constexpr s32 ChaliceDungeonFlags = 10'000;
 size_t ClearAltarDungeon(s32 altar) {
     using SetFlag = void PS4_SYSV_ABI (*)(u64, s32, bool);
     size_t cleared = 0;
+    std::vector<s32> shared;
     for (const s32 view : {12900000, 52900000}) {
         const s32 base = view + (11 + altar) * 100000;
         for (s32 byte = 0; byte < ChaliceDungeonFlags / 8; ++byte) {
@@ -402,12 +405,19 @@ size_t ClearAltarDungeon(s32 altar) {
             }
             for (u32 bit = 0; bit < 8; ++bit) {
                 if ((*bits & (0x80u >> bit)) != 0) {
-                    reinterpret_cast<SetFlag>(image_base + PartyGhostSetEventFlagOffset)(
-                        0, base + byte * 8 + static_cast<s32>(bit), false);
+                    const s32 flag = base + byte * 8 + static_cast<s32>(bit);
+                    reinterpret_cast<SetFlag>(image_base + PartyGhostSetEventFlagOffset)(0, flag,
+                                                                                         false);
                     ++cleared;
+                    if (SharesClearsWithParty(flag)) {
+                        shared.push_back(flag);
+                    }
                 }
             }
         }
+    }
+    if (!shared.empty() && InPartySession()) {
+        PostWorldChanges(FlagChanges{{}, std::move(shared)});
     }
     return cleared;
 }
@@ -1775,6 +1785,40 @@ std::shared_ptr<const FlagStore> flags_compared;
 std::atomic<bool> flags_shared_now{false};
 
 // What the changes do in the game and the party: on the game thread.
+// Discord audit A6: whether this game's altar `altar` holds the team's dungeon (the team world's
+// record, the host's; a host, or a party with no team world, always): a chalice dungeon's shared
+// doors (ChaliceDoorFlags, altar k's copy) go out and come in only then, never into a member's own
+// other dungeon on that altar (its older one, or one its game left out).
+class TeamDungeonCheck {
+public:
+    bool Holds(s32 altar) {
+        if (!IsPartyGuestRole() || altar < 0 || altar >= RitualAltarCount) {
+            return true;
+        }
+        if (!known[altar]) {
+            if (!team_read) {
+                team_read = true;
+                team_world = !TeamWorldBlocksForGuest().empty();
+                team_on = team_world ? TeamWorldFlagsOnForGuest() : std::vector<s32>{};
+            }
+            const auto mine = team_world ? ReadAltarFlags(AltarFlagBase(altar)) : std::nullopt;
+            known[altar] = !team_world || (mine && SameAltarDungeon(*mine, team_on, altar));
+        }
+        return *known[altar];
+    }
+    // Whether a shared door of another dungeon than the team's (leave it out).
+    bool OtherDungeons(s32 flag) {
+        const auto altar = AltarOfDungeonCopy(flag);
+        return altar && SharedWithParty(flag) && !Holds(*altar);
+    }
+
+private:
+    bool team_read = false;
+    bool team_world = false;
+    std::vector<s32> team_on;
+    std::array<std::optional<bool>, RitualAltarCount> known{};
+};
+
 void ActOnFlagChanges(std::vector<s32> set, std::vector<s32> cleared, const FlagStore& current) {
     const auto list = [](std::span<const s32> flags) {
         std::string text;
@@ -1806,6 +1850,12 @@ void ActOnFlagChanges(std::vector<s32> set, std::vector<s32> cleared, const Flag
                  "shared",
                  set.size() + cleared.size());
     } else {
+        TeamDungeonCheck team_dungeon;
+        const auto other = [&](s32 flag) { return team_dungeon.OtherDungeons(flag); };
+        if (std::erase_if(set, other) + std::erase_if(cleared, other) != 0) {
+            LOG_INFO(Debug, "Bloodborne chalice map: doors of a dungeon that is not the team's "
+                            "stay in this game");
+        }
         const FlagChanges changes = LeaveOutRelitLamps({std::move(set), std::move(cleared)});
         if (IsPartyGuestRole()) {
             KeepWorldChanges(changes);
@@ -2034,7 +2084,15 @@ void SetPartyWorldChanges(bool sharing) {
     }
     using SetFlag = void PS4_SYSV_ABI (*)(u64, s32, bool);
     size_t set = 0;
+    TeamDungeonCheck team_dungeon;
     for (const auto& [flag, on] : pending) {
+        if (team_dungeon.OtherDungeons(flag)) {
+            LOG_INFO(Debug,
+                     "Bloodborne chalice map: a teammate's door {} left out: this game's altar {} "
+                     "holds another dungeon than the team's",
+                     flag, *AltarOfDungeonCopy(flag));
+            continue;
+        }
         if (SharesClearsWithParty(flag) || EventFlagOn(flag) != on) {
             reinterpret_cast<SetFlag>(image_base + PartyGhostSetEventFlagOffset)(0, flag, on);
             ++set;

@@ -27,6 +27,7 @@
 #include "coop/build_fingerprint.h"
 #include "coop/packet_routes.h"
 #include "coop/world_log.h"
+#include "core/bloodborne_lamp_points.h"
 #include "core/bloodborne_patch_sites.h"
 
 namespace Core::Bloodborne {
@@ -422,6 +423,23 @@ const LampPoint* FindLampPoint(s32 warp_point);
 // is moved to the lamp after arrival (MoveToRespawnPoint), and the textures there load late.
 bool ArrivalNeedsMove(const LampPoint* planned, const std::optional<LampPosition>& at);
 constexpr float ArrivedAtLampMeters = 3.0f;
+// Discord audit A6 (1.3.1-1.4.0: a team's wipe in a chalice dungeon woke it in a grey void or
+// falling through the map): a chalice dungeon's lamps are in no map file (the layout builds the
+// dungeon), so the trip of a death respawn (WarpNextStageBonfire) put the player at the map's
+// origin, in the air, and only the arrival's move (MoveToRespawnPoint) took it to the lamp, if
+// the lamp resolved a second after the load. A trip that stays on this chalice map (area 0x1D)
+// knows where the lamp is, as it resolved before the trip: that spot is the trip's placement
+// (WarpGuestToLampPoint), as a known lamp's is. None for any other trip or an unresolved lamp.
+std::optional<LampPoint> ChaliceTripLamp(s32 point, u32 current_map, bool resolved,
+                                         const std::array<float, 4>& position,
+                                         const std::array<float, 4>& rotation);
+// The chalice lamp a trip to `warp_point` is placed at: `pending` (ChaliceTripLamp, for the trip
+// just scheduled) if it names that point; `pending` is spent by any trip, so a later trip to the
+// same lamp id (another dungeon's, another layout's) is never placed at an old spot.
+std::optional<LampPoint> TakeChaliceTripLamp(std::optional<LampPoint>& pending, s32 warp_point);
+// How many times the arrival's move to the lamp is tried, a second apart, while the player still
+// stands away from it (the dungeon's blocks can load after the first look).
+constexpr int ArrivalMoveTries = 8;
 
 struct LampRest;
 

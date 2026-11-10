@@ -1014,6 +1014,47 @@ TEST(BloodborneFlagRules, AChaliceMapsFlagsAreTheCurrentAltarsView) {
     EXPECT_FALSE(SharedWithParty(14707810)) << "no altar 7";
 }
 
+// Discord audit A6 (1.3.1-1.4.0): a door one teammate opened in the team's dungeon stayed shut for
+// the other. A chalice dungeon's door flags (ChaliceDoorFlags: m29.emevd's door events as the
+// layouts start them) are shared as altar k keeps them (14k0xxxx), with their clears (a chalice
+// taken off ends the dungeon); the view (1290xxxx) stays each game's own, and so does any other
+// flag of the altar's copy (the layers' bosses, an event's switch).
+TEST(BloodborneFlagRules, AChaliceDungeonsDoorsAreSharedAsTheirAltarKeepsThem) {
+    ASSERT_TRUE(std::ranges::is_sorted(ChaliceDoorFlags));
+    ASSERT_GT(ChaliceDoorFlags.size(), 300u);
+    for (const s32 offset : ChaliceDoorFlags) {
+        ASSERT_GE(offset, 0);
+        ASSERT_LT(offset, 4000) << "no load-reset nor lamp flag";
+    }
+    // A door event's "done" flags (12900323 slots 0 and 1, the story Pthumeru layout's; the next
+    // load opens the door by them) and a navmesh door's (12901447).
+    for (const s32 offset : {323, 324, 1447}) {
+        ASSERT_TRUE(std::ranges::binary_search(ChaliceDoorFlags, offset)) << offset;
+    }
+    // Never a chest's or coffin's (12900000's object acts 12900009-12900099, 12903000-12903409),
+    // nor another event's own id (the bell-ringing woman's 12901000, a layer boss's reward
+    // 12901693): loot and rewards are each player's own.
+    for (const s32 offset : {9, 50, 99, 1000, 1693, 3000, 3409}) {
+        EXPECT_FALSE(std::ranges::binary_search(ChaliceDoorFlags, offset)) << offset;
+    }
+    for (s32 altar = 0; altar < 7; ++altar) {
+        const s32 base = 14000000 + altar * 100000;
+        for (const s32 offset : {323, 324, 1447}) {
+            EXPECT_TRUE(SharedWithParty(base + offset)) << base + offset;
+            EXPECT_TRUE(SharesClearsWithParty(base + offset)) << base + offset;
+            EXPECT_TRUE(IsWorldFlag(base + offset)) << base + offset;
+            EXPECT_TRUE(CarriesToGuestWorld(base + offset)) << base + offset;
+            EXPECT_FALSE(SharedWithParty(12900000 + offset)) << "the view stays each game's own";
+        }
+        // A flag an event turns back off in some layout (a switch: 12900004, 12900516), the
+        // layers' bosses, the load-reset part (12904700) and one past the doors' part.
+        for (const s32 flag : {base, base + 4, base + 516, base + 1800, base + 4700, base + 5000}) {
+            EXPECT_FALSE(SharedWithParty(flag)) << flag;
+        }
+    }
+    EXPECT_FALSE(SharedWithParty(14700323)) << "no altar 7";
+}
+
 // The team's lamps lit again at a guest's load and each second are the shared ones: the chalice
 // map's view lamps were an earlier dungeon's (Kaniel's playtest 2026-10-28: 7 lamps lit as the
 // party entered).
