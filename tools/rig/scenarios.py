@@ -5068,6 +5068,8 @@ SCENARIOS["far-trips-soak"] = {
              "Yahar'gul) without the Dream, the guest after the host: null table pointers and GX "
              "heap refusals per trip (BB_RIG_FAR_TRIP_ROUNDS rounds, 6 by default)",
     "roles": {role: far_trips(role) for role in ("host", "guest")},
+    "syncs": {f"fts-{round_}-{i}": {"chapter": "far-trips-soak", "roles": ["host", "guest"]}
+              for round_ in range(FAR_TRIP_ROUNDS) for i in range(len(FAR_TRIPS))},
     "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
     "timeout": 300 + FAR_TRIP_ROUNDS * len(FAR_TRIPS) * 120,
 }
