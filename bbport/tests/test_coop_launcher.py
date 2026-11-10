@@ -482,7 +482,10 @@ class FindGameTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             make_game(root / 'drive' / 'CUSA00001', title='CUSA00001')
-            self.assertIsNone(coop.search_game(root / 'install', drives=[root / 'drive'], homes=[]))
+            # The install two folders deep: the search also looks beside the install's parent, which
+            # was the PC's own %TEMP% here (a real CUSA03173 left there by another test run was found).
+            install = root / 'Programs' / 'Yharnam Together'
+            self.assertIsNone(coop.search_game(install, drives=[root / 'drive'], homes=[]))
 
 
 @unittest.skipUnless(sys.platform == 'win32', 'folder links (junctions) are Windows')
@@ -1105,6 +1108,23 @@ class UpdateTests(unittest.TestCase):
         command = coop.setup_command(Path('C:/Temp/Setup.exe'), Path('C:/Games/Co-op'))
         self.assertIn('/CLOSEAPPLICATIONS', command)
         self.assertIn(f'/DIR={Path("C:/Games/Co-op")}', command)
+
+    def test_the_update_backs_the_saves_up_first(self):
+        # red, 2026-11-06: "I updated with the installer and lost our save files": the launcher's update
+        # keeps the saves as they were in the Restore saves list before the setup runs
+        source = (Path(__file__).resolve().parents[1] / 'launcher' / 'bbport_launcher_win.py').read_text(encoding='utf-8')
+        update = source.split('def coop_update_failed', 1)[0].rsplit('def work():', 1)[1]
+        self.assertIn('bbport_coop.download_update(', update)
+        backup = update.index("bbport_coop.back_up_saves(PORT_DIR, 'before an update'")
+        self.assertLess(backup, update.index('self.coop_run_setup(setup)'))
+        with tempfile.TemporaryDirectory() as folder:
+            install = Path(folder)
+            save = install / 'user' / 'savedata' / '1' / 'CUSA03173' / 'SPRJ0005' / 'userdata0000'
+            save.parent.mkdir(parents=True)
+            save.write_bytes(b'a save')
+            kept = coop.back_up_saves(install, 'before an update', prune=False)
+            self.assertIsNotNone(kept)
+            self.assertEqual(coop.save_backups(install)[0]['note'], 'before an update')
 
     def test_a_portable_folder_stays_portable(self):
         # Provi 2026-10-30: the portable zip updates with the setup, which then makes no uninstaller or shortcuts

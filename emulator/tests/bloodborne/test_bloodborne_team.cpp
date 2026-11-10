@@ -330,6 +330,104 @@ TEST(TeamWorld, ThePersonalWorldFileRoundTripsAndACutOneIsNone) {
     EXPECT_FALSE(ParseWorldFlags("blocks\n1\non\nx\nend\n"));
 }
 
+// Players 2026-10-24 to 2026-11-07 (luisguareschi, seixas' host, cominforyachips, BigPeloConcha):
+// the host played alone and its save "rolled back" (the DLC's lamps gone, a boss alive again):
+// alone, the save took back the world it had before its first team, though the team's world was
+// made from this very save. A save keeps the list of the worlds it made (its home worlds): among
+// them its own world is the team's, nothing is kept aside and nothing comes back over it.
+TEST(HomeWorlds, TheFileRoundTripsAndABrokenOneIsNone) {
+    HomeWorlds home;
+    EXPECT_TRUE(home.Add("a1b2"));
+    EXPECT_TRUE(home.Add("c3d4"));
+    EXPECT_FALSE(home.Add("a1b2")) << "once";
+    EXPECT_TRUE(home.NoteVersion("c3d4", 7));
+    EXPECT_FALSE(home.NoteVersion("c3d4", 7));
+    EXPECT_FALSE(home.NoteVersion("none", 3)) << "not a world of this save";
+    const std::string text = FormatHomeWorlds(home);
+    EXPECT_EQ(ParseHomeWorlds(text), home);
+    EXPECT_TRUE(home.Has("a1b2"));
+    EXPECT_FALSE(home.Has("a1"));
+    EXPECT_FALSE(home.Has(""));
+    EXPECT_EQ(home.Version("c3d4"), 7u);
+    EXPECT_EQ(home.Version("a1b2"), 0u);
+    EXPECT_FALSE(ParseHomeWorlds(""));
+    EXPECT_FALSE(ParseHomeWorlds(text.substr(0, text.size() - 4))) << "no \"end\"";
+    EXPECT_FALSE(ParseHomeWorlds("worlds\na1b2 x\nend\n"));
+    // A save that made none (looked at once: an old save's check is not made again).
+    EXPECT_EQ(ParseHomeWorlds(FormatHomeWorlds({})), HomeWorlds{});
+}
+
+TEST(HomeWorlds, AnIdThatIsNoWordIsNeverKeptAndTheListStaysShort) {
+    HomeWorlds home;
+    EXPECT_FALSE(home.Add(""));
+    EXPECT_FALSE(home.Add("two words"));
+    EXPECT_FALSE(home.Add("a\nb"));
+    EXPECT_FALSE(home.Add(std::string(200, 'a')));
+    for (size_t i = 0; i < MaxHomeWorlds + 3; ++i) {
+        EXPECT_TRUE(home.Add("w" + std::to_string(i)));
+    }
+    EXPECT_EQ(home.worlds.size(), MaxHomeWorlds);
+    EXPECT_FALSE(home.Has("w0")) << "the oldest go";
+    EXPECT_TRUE(home.Has("w" + std::to_string(MaxHomeWorlds + 2)));
+}
+
+TEST(HomeWorlds, AWorldsIdIsItsPartyKeys) {
+    EXPECT_EQ(WorldIdOfParty("world:a1b2"), "a1b2");
+    EXPECT_EQ(WorldIdOfParty("team:t1/w1"), "");
+    EXPECT_EQ(WorldIdOfParty("world:"), "");
+    EXPECT_EQ(WorldIdOfParty(""), "");
+}
+
+// Another save's world: this save's own goes aside as before and comes back when it plays alone.
+// Its home world: nothing aside. And the host of its home world that played alone since, whose
+// save was the last to report it (the server's copy is at the version this save saw), leads with
+// its save, so what it did alone is the team's too; a server copy another host moved on is taken.
+TEST(HomeWorlds, HowASaveTakesATeamsWorld) {
+    HomeWorlds home;
+    home.Add("mine");
+    home.NoteVersion("mine", 12);
+    EXPECT_EQ(HowToTakeTeamWorld(home, "theirs", true, 12), TeamWorldTake::Aside);
+    EXPECT_EQ(HowToTakeTeamWorld(home, "theirs", false, 12), TeamWorldTake::Aside);
+    EXPECT_EQ(HowToTakeTeamWorld({}, "mine", true, 12), TeamWorldTake::Aside);
+    // Rig team-world 2026-11-10: the host's game closed before it saved; the flag of that session
+    // was only on the server, and the save leading took it back for the whole team. A save that
+    // did not play alone since has nothing the server lacks: the server's goes in.
+    EXPECT_EQ(HowToTakeTeamWorld(home, "mine", true, 12), TeamWorldTake::Home);
+    home.alone = true;
+    EXPECT_EQ(ParseHomeWorlds(FormatHomeWorlds(home)), home);
+    EXPECT_EQ(HowToTakeTeamWorld(home, "mine", true, 12), TeamWorldTake::SaveLeads);
+    EXPECT_EQ(HowToTakeTeamWorld(home, "mine", true, 13), TeamWorldTake::Home)
+        << "another host played it since";
+    EXPECT_EQ(HowToTakeTeamWorld(home, "mine", false, 12), TeamWorldTake::Home)
+        << "a guest in its own world follows the host";
+    home.Add("new");
+    EXPECT_EQ(HowToTakeTeamWorld(home, "new", true, 0), TeamWorldTake::Home)
+        << "no version known: never over the server's";
+}
+
+// A save from before the list (its own world kept aside, no list): the world it last played is
+// its home world when that world's host character, as the server has it, is this one; another's
+// name: it was a guest there; a world this server does not list, or no word from the lobby: not
+// known, nothing changes.
+TEST(HomeWorlds, AnOldSavesLastWorldIsItsOwnWhenItsCharacterHostedIt) {
+    bbcoop::LobbyState lobby;
+    bbcoop::TeamWorldInfo& mine = *lobby.add_worlds();
+    mine.set_id("w1");
+    mine.set_character("Eileen");
+    bbcoop::TeamWorldInfo& theirs = *lobby.add_worlds();
+    theirs.set_id("w2");
+    theirs.set_character("Gascoigne");
+    EXPECT_EQ(OldSavesWorld(&lobby, "w1", "Eileen"), OldSaveWorld::Made);
+    EXPECT_EQ(OldSavesWorld(&lobby, "w2", "Eileen"), OldSaveWorld::Visited);
+    EXPECT_EQ(OldSavesWorld(&lobby, "w3", "Eileen"), OldSaveWorld::Unknown);
+    EXPECT_EQ(OldSavesWorld(&lobby, "", "Eileen"), OldSaveWorld::Unknown);
+    EXPECT_EQ(OldSavesWorld(nullptr, "w1", "Eileen"), OldSaveWorld::Unknown);
+    EXPECT_EQ(OldSavesWorld(&lobby, "w1", ""), OldSaveWorld::Unknown) << "its name not read yet";
+    theirs.set_character("");
+    EXPECT_EQ(OldSavesWorld(&lobby, "w2", "Eileen"), OldSaveWorld::Unknown)
+        << "a world no host reported yet";
+}
+
 // Kaniel's playtest 2026-10-17: the night fell only in the host's world (Vicar Amelia's skull). A
 // guest away from the cutscene takes the team world's time of day (9800 evening, 9801 night,
 // 9802 blood moon), never turning one back.
@@ -473,6 +571,26 @@ TEST(TeamWorld, AKeptStoryStepYieldsToTheTeamsWorld) {
     EXPECT_FALSE(KeptChangeYieldsToTeam(3500, std::nullopt, Now, blocks, 1000))
         << "a block the team's world does not cover";
     EXPECT_FALSE(KeptChangeYieldsToTeam(1205, std::nullopt, Now, blocks, 0));
+}
+
+// Supermedo's bloodborne_pc 1.9.8.3: "the host's world written into a guest is no longer kept as
+// the guest's own progress". Ours: a team guest's kept session changes (the team host's world as
+// it saw it) were set "at home" in a save that left its team in play or loaded alone from the
+// title in the same run (its role stays a guest's), over its own world put back just before.
+TEST(TeamWorld, AKeptWorldChangeStaysOutOfASaveLoadedAlone) {
+    EXPECT_TRUE(KeptChangeStaysWithTeam(12401800, true, false)) << "a map's flag (a boss, a door)";
+    EXPECT_TRUE(KeptChangeStaysWithTeam(12407810, true, false)) << "a lamp the team lit";
+    EXPECT_TRUE(KeptChangeStaysWithTeam(7240, true, false)) << "a story step";
+    EXPECT_FALSE(KeptChangeStaysWithTeam(12401800, true, true))
+        << "in its team: on top of the team's world, as before";
+    EXPECT_FALSE(KeptChangeStaysWithTeam(12401800, false, false))
+        << "no teams (the old party): shared progression goes home";
+    EXPECT_FALSE(KeptChangeStaysWithTeam(6744, true, false))
+        << "a gesture given is the player's own: it goes home";
+    EXPECT_FALSE(KeptChangeStaysWithTeam(12101022, true, false))
+        << "a Dream messenger's gift is the player's own";
+    EXPECT_FALSE(KeptChangeStaysWithTeam(52800170, true, false))
+        << "a pickup is the character's own (its own list)";
 }
 
 // Kaniel's playtest 2026-10-20: Lisara's game took the host's "light the Witch's Abode lamp"
@@ -628,6 +746,87 @@ TEST(PhantomKeyItems, TheGuestsOwnKeyItemsGoInThePhantomsList) {
         last_look.push_back(put);
     }
     EXPECT_TRUE(PhantomKeyItemsToGiveBack(phantom, last_look, own).empty());
+}
+
+// Discord 2026-10-26 (Omegadash: no Sword Hunter Badge from the Cleric Beast, no key from
+// Gascoigne) and 2026-11-07 (NickolTesla, back on their own save after the friend quit: no hunter
+// badges, no Workshop Tool): the game closed while the guest was still a phantom, so its own list
+// never came back in that run and what it had gained was never given back. What is owed is kept
+// for the save slot and comes back in the next run of the game.
+TEST(PhantomKeyItems, WhatWasGainedComesBackAfterTheGameStartsAgain) {
+    PhantomKeyItemLedger first_run;
+    EXPECT_EQ(first_run.LookAtOwn(0x1000, {{4103, 1}}), std::vector<HeldGoods>{});
+    // The join: the phantom's list gets the guest's own Saw Hunter Badge.
+    EXPECT_EQ(first_run.LookAtPhantom(0x2000, {}), (std::vector<HeldGoods>{{4103, 1}}));
+    // The Cleric Beast's badge, Gascoigne's key and the Workshop Tool, gained as a phantom.
+    EXPECT_TRUE(
+        first_run.LookAtPhantom(0x2000, {{4103, 1}, {4114, 1}, {4000, 1}, {4110, 1}}).empty());
+    const std::string file = EncodeOwedKeyItems(first_run.Owed());
+    EXPECT_EQ(file, "4103 1 1\n4114 1 1\n4000 1 1\n4110 1 1\n");
+
+    // The game closed there. Started again, the guest's own list has none of the three.
+    PhantomKeyItemLedger next_run;
+    next_run.Load(ParseOwedKeyItems(file));
+    EXPECT_EQ(next_run.LookAtOwn(0x3000, {{4103, 1}}),
+              (std::vector<HeldGoods>{{4114, 1}, {4000, 1}, {4110, 1}}));
+    next_run.GaveBack();
+    EXPECT_TRUE(next_run.Owed().empty()) << "given once: the file goes";
+    EXPECT_EQ(next_run.LookAtOwn(0x3000, {{4103, 1}, {4114, 1}, {4000, 1}, {4110, 1}}),
+              std::vector<HeldGoods>{});
+}
+
+// The game started again straight into the team's session: the new phantom's list gets what the
+// last one gained, and the trip home after it gives it to the guest's own list.
+TEST(PhantomKeyItems, WhatIsOwedGoesInTheNextPhantomsListToo) {
+    PhantomKeyItemLedger ledger;
+    ledger.Load({{4114, 1, 1}});
+    EXPECT_EQ(ledger.LookAtPhantom(0x2000, {}), (std::vector<HeldGoods>{{4114, 1}}));
+    EXPECT_EQ(ledger.Owed(), (std::vector<OwedKeyItem>{{4114, 1, 1}})) << "not put in yet";
+    EXPECT_TRUE(ledger.LookAtPhantom(0x2000, {{4114, 1}}).empty());
+    EXPECT_EQ(ledger.Owed(), (std::vector<OwedKeyItem>{{4114, 1, 1}}));
+    EXPECT_EQ(ledger.LookAtOwn(0x3000, {}), (std::vector<HeldGoods>{{4114, 1}}));
+    ledger.GaveBack();
+    EXPECT_TRUE(ledger.Owed().empty());
+}
+
+// A phantom's list right after another (a session made again) with no look at the guest's own
+// list between them: the first one's gains are still owed.
+TEST(PhantomKeyItems, APhantomsListAfterAnotherKeepsWhatIsOwed) {
+    PhantomKeyItemLedger ledger;
+    EXPECT_TRUE(ledger.LookAtPhantom(0x2000, {}).empty());
+    EXPECT_TRUE(ledger.LookAtPhantom(0x2000, {{4114, 1}}).empty());
+    EXPECT_EQ(ledger.LookAtPhantom(0x2100, {}), (std::vector<HeldGoods>{{4114, 1}}));
+    EXPECT_EQ(ledger.Owed(), (std::vector<OwedKeyItem>{{4114, 1, 1}}));
+    // In the new list, then handed over there (the Doll takes the Small Hair Ornament): owed no
+    // more.
+    EXPECT_TRUE(ledger.LookAtPhantom(0x2100, {{4114, 1}}).empty());
+    EXPECT_TRUE(ledger.LookAtPhantom(0x2100, {}).empty());
+    EXPECT_TRUE(ledger.Owed().empty());
+    EXPECT_EQ(ledger.LookAtOwn(0x3000, {}), std::vector<HeldGoods>{});
+}
+
+// While the guest is no phantom any more but its list is still the phantom's, nothing is given
+// (the game would drop it with that list); the same run's trip home gives as before.
+TEST(PhantomKeyItems, NothingIsGivenIntoThePhantomsList) {
+    PhantomKeyItemLedger ledger;
+    EXPECT_TRUE(ledger.LookAtPhantom(0x2000, {}).empty());
+    EXPECT_TRUE(ledger.LookAtPhantom(0x2000, {{4114, 1}}).empty());
+    EXPECT_EQ(ledger.LookAtOwn(0x2000, {{4114, 1}}), std::nullopt);
+    EXPECT_EQ(ledger.Owed(), (std::vector<OwedKeyItem>{{4114, 1, 1}}));
+    EXPECT_EQ(ledger.LookAtOwn(0x3000, {}), (std::vector<HeldGoods>{{4114, 1}}));
+}
+
+TEST(PhantomKeyItems, TheOwedFileReadsBackAndSkipsWhatDoesNotRead) {
+    const std::vector<OwedKeyItem> owed{{4114, 1, 1}, {4001, 1, 2}};
+    EXPECT_EQ(ParseOwedKeyItems(EncodeOwedKeyItems(owed)), owed);
+    EXPECT_TRUE(ParseOwedKeyItems("").empty());
+    // Windows line ends read; a torn line, a bell, a count that cannot be, a goods twice do not.
+    EXPECT_EQ(ParseOwedKeyItems("4114 1 1\r\n4000 1\nx\n200 1 1\n4001 0 1\n4002 2 1\n4114 3 3\n"),
+              (std::vector<OwedKeyItem>{{4114, 1, 1}}));
+    EXPECT_EQ(SlotFileName("phantom_keys", 3), "bloodborne_party_phantom_keys_slot3.txt");
+    EXPECT_NE(std::ranges::find(CharacterSlotFiles, std::string_view{"phantom_keys"}),
+              CharacterSlotFiles.end())
+        << "a new character in the slot is owed nothing of the old one's";
 }
 
 // Kaniel 2026-10-23: a joining guest's own key items went into the phantom's list each with the

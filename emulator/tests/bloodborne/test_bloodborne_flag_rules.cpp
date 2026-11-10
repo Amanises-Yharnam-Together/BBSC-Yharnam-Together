@@ -604,6 +604,36 @@ TEST(BloodborneFlagRules, TheDollsBlessingFlagsAreEachGamesOwn) {
     }
 }
 
+// Supermedo's bloodborne_pc 1.9.8.3: "Bath Messengers' hat flags are per player". The messengers'
+// attire (Messenger Top Hat, Head Bandage, Urn Dance...): the Dream stump's talk lists the attire
+// this player received (6071-6085: m21_00 12100020 from the player's goods 4900-4914, 12105064's
+// gifts) and asks for one (72100141-72100155, 72100140 "take it off"), m21_00 12105060/12105070
+// (each game's own events) put 6011-6025 to the pick, and the messengers wear it. As the host's,
+// a teammate's pick dressed this player's messengers, and the team's world put the host's attire
+// and the host's list in every guest's save.
+TEST(BloodborneFlagRules, TheMessengersAttireIsEachPlayersOwn) {
+    for (const s32 flag : {6011, 6018, 6025, 6071, 6080, 6085}) {
+        EXPECT_EQ(RuleFor(flag).owner, FlagOwner::PerPlayer) << flag;
+        EXPECT_TRUE(RuleFor(flag).Has(FlagCarriesHome)) << flag << ": the player's lasting pick";
+        EXPECT_FALSE(IsWorldFlag(flag)) << flag;
+        EXPECT_TRUE(KeepsLocalFlag(true, flag)) << flag;
+        EXPECT_FALSE(TakesHostMapFlag(flag)) << flag;
+        EXPECT_FALSE(SharedWithParty(flag)) << flag;
+    }
+    for (const s32 flag : {72100140, 72100141, 72100155}) {
+        EXPECT_EQ(RuleFor(flag).owner, FlagOwner::PerPlayer) << flag;
+        EXPECT_FALSE(RuleFor(flag).Has(FlagCarriesHome))
+            << flag << ": a request, cleared by its event";
+        EXPECT_FALSE(IsWorldFlag(flag)) << flag;
+        EXPECT_TRUE(KeepsLocalFlag(true, flag)) << flag;
+        EXPECT_FALSE(CarriesToGuestWorld(flag)) << flag;
+        EXPECT_FALSE(SharedWithParty(flag)) << flag;
+    }
+    for (const s32 flag : {6010, 6026, 6070, 6086, 72100139, 72100156}) {
+        EXPECT_EQ(RuleFor(flag).owner, FlagOwner::Host) << flag;
+    }
+}
+
 // Rig iosefka-gift (failing since 2026-10-20's live team story): the host talked to Iosefka first,
 // its talk's steps (first talk done 72410300, gift given this visit 72410301, gift talks
 // 72410302-72410304) reached the guest, and the guest's talk took her "already gave" branch: no
@@ -644,29 +674,95 @@ TEST(BloodborneFlagRules, TheLevellersOwnBlessingStepsGoThrough) {
 // Kaniel 2026-11-03: a second "Level Up" in the same Dream visit opened no menu. Her talk sets
 // 6700 as her level-up menu opens and skips the menu while it is on; nothing in the game cleared
 // it before the next map load (rig on Kaniel's PC, a lone player too). It goes off once her
-// blessing is over: this game's own 72100100 back off after it was on, 6700 still on.
+// blessing is over: this game's own 72100100 back off after it was on, her blessing's steps
+// (72100101, 72100102) off too, 6700 still on.
 TEST(BloodborneFlagRules, TheDollsLevelUpFlagGoesOffOnceHerBlessingIsOver) {
     DollLevelUpClear clear;
-    EXPECT_FALSE(clear.Tick(true, true, false)) << "her menu open";
-    EXPECT_FALSE(clear.Tick(true, true, true)) << "her blessing";
-    EXPECT_FALSE(clear.Tick(true, true, true));
-    EXPECT_TRUE(clear.Tick(true, true, false)) << "her blessing over";
-    EXPECT_FALSE(clear.Tick(true, false, false)) << "once";
+    EXPECT_FALSE(clear.Tick(true, true, false, false)) << "her menu open";
+    EXPECT_FALSE(clear.Tick(true, true, true, false)) << "her blessing";
+    EXPECT_FALSE(clear.Tick(true, true, true, true));
+    EXPECT_TRUE(clear.Tick(true, true, false, false)) << "her blessing over";
+    EXPECT_FALSE(clear.Tick(true, false, false, false)) << "once";
     // The menu again: the same once more.
-    EXPECT_FALSE(clear.Tick(true, true, false));
-    EXPECT_FALSE(clear.Tick(true, true, true));
-    EXPECT_TRUE(clear.Tick(true, true, false));
+    EXPECT_FALSE(clear.Tick(true, true, false, false));
+    EXPECT_FALSE(clear.Tick(true, true, true, true));
+    EXPECT_TRUE(clear.Tick(true, true, false, false));
+}
+
+// Discord 2026-11-06 (1.4.0, Moab): backing out of her level up with Circle left the player
+// kneeling for good. m21_00 12100112 stands the player up (2003:18 101272) only once 72100100 is
+// off, up to 54 frames after its kneel, and its animations run only while 6700 is on
+// (OWN_ANIMATION_EVENTS): 6700 cleared the frame 72100100 went off, the stand-up was skipped.
+// 12100112 clears its step 72100101 after the stand-up, 12100113 its 72100102 after her turn
+// back: 6700 stays on until both are off.
+TEST(BloodborneFlagRules, TheDollsLevelUpFlagStaysOnUntilThePlayerStoodUp) {
+    DollLevelUpClear clear;
+    EXPECT_FALSE(clear.Tick(true, true, true, false)) << "her blessing";
+    EXPECT_FALSE(clear.Tick(true, true, true, true)) << "kneeling";
+    EXPECT_FALSE(clear.Tick(true, true, false, true)) << "her menu closed, still kneeling";
+    EXPECT_FALSE(clear.Tick(true, true, false, true));
+    EXPECT_TRUE(clear.Tick(true, true, false, false)) << "stood up";
+    EXPECT_FALSE(clear.Tick(true, true, false, false)) << "once";
 }
 
 TEST(BloodborneFlagRules, TheDollsLevelUpFlagStaysWithoutABlessingOrOutOfCoop) {
     DollLevelUpClear clear;
-    EXPECT_FALSE(clear.Tick(true, true, false));
-    EXPECT_FALSE(clear.Tick(true, true, false)) << "no blessing yet";
-    EXPECT_FALSE(clear.Tick(true, false, true));
-    EXPECT_FALSE(clear.Tick(true, false, false)) << "6700 already off";
+    EXPECT_FALSE(clear.Tick(true, true, false, false));
+    EXPECT_FALSE(clear.Tick(true, true, false, false)) << "no blessing yet";
+    EXPECT_FALSE(clear.Tick(true, true, false, true)) << "a step alone is no blessing";
+    EXPECT_FALSE(clear.Tick(true, true, false, false));
+    EXPECT_FALSE(clear.Tick(true, false, true, false));
+    EXPECT_FALSE(clear.Tick(true, false, false, false)) << "6700 already off";
+    EXPECT_FALSE(clear.Tick(true, true, false, false)) << "that blessing is done with";
     DollLevelUpClear solo;
-    EXPECT_FALSE(solo.Tick(false, true, true));
-    EXPECT_FALSE(solo.Tick(false, true, false)) << "the co-op mode only";
+    EXPECT_FALSE(solo.Tick(false, true, true, false));
+    EXPECT_FALSE(solo.Tick(false, true, false, false)) << "the co-op mode only";
+    EXPECT_FALSE(solo.Tick(true, true, false, false)) << "a blessing out of it is forgotten";
+}
+
+// Discord 2026-11-06 (vPeppy): "stuck interacting with the doll if your friend attacks her". A hit
+// on the Doll ends her talk where it stands (rig doll-hit-during-level-up: 72100100, 72100101 and
+// 72100102 all stayed on, the player knelt for good): her talk's "72100100 off" never runs. A
+// drop of her HP while this game's blessing is on ends the blessing here.
+TEST(BloodborneFlagRules, AHitOnTheDollEndsHerBlessing) {
+    DollHitEndsBlessing hit;
+    EXPECT_FALSE(hit.Tick(true, true, 900)) << "her HP first seen";
+    EXPECT_FALSE(hit.Tick(true, true, 900));
+    EXPECT_TRUE(hit.Tick(true, true, 586)) << "hit during her blessing";
+    EXPECT_FALSE(hit.Tick(true, true, 586)) << "once a hit";
+    EXPECT_FALSE(hit.Tick(true, true, 900)) << "healed";
+    EXPECT_TRUE(hit.Tick(true, true, 0)) << "killed";
+}
+
+TEST(BloodborneFlagRules, AHitOnTheDollOutsideHerBlessingChangesNothing) {
+    DollHitEndsBlessing hit;
+    EXPECT_FALSE(hit.Tick(true, false, 900));
+    EXPECT_FALSE(hit.Tick(true, false, 586)) << "no blessing";
+    EXPECT_FALSE(hit.Tick(true, true, 586)) << "hit before her blessing";
+    EXPECT_FALSE(hit.Tick(true, true, std::nullopt)) << "no Doll here";
+    EXPECT_FALSE(hit.Tick(true, true, 300)) << "another map's Doll is not a hit";
+    EXPECT_TRUE(hit.Tick(true, true, 200));
+    DollHitEndsBlessing solo;
+    EXPECT_FALSE(solo.Tick(false, true, 900));
+    EXPECT_FALSE(solo.Tick(false, true, 586)) << "the co-op mode only";
+    EXPECT_FALSE(solo.Tick(true, true, 400)) << "nothing kept from outside it";
+}
+
+// Discord 2026-11-06 (1.4.0, markmon93): with the Small Hair Ornament the Doll offered no "Give",
+// host and guests alike. m21_00 12100121 sets 12100122 while the player holds the ornament (goods
+// 4300); in a session that set reaches the game as a flag message, which keeps a per-player flag
+// as it was (rig doll-ornament-give: "kept flag 12100122 off against the other player's"). It
+// follows what this player holds, as the held-item flags do.
+TEST(BloodborneFlagRules, TheDollsGiveFollowsThePlayersOrnament) {
+    EXPECT_EQ(DollGiveFlag, 12100122);
+    EXPECT_EQ(SmallHairOrnamentGoods, 4300u);
+    EXPECT_EQ(RuleFor(DollGiveFlag).owner, FlagOwner::PerPlayer);
+    EXPECT_TRUE(KeepsLocalFlag(true, DollGiveFlag));
+    EXPECT_EQ(DollGiveFix(true, false, true), std::optional<bool>{true});
+    EXPECT_EQ(DollGiveFix(true, true, false), std::optional<bool>{false});
+    EXPECT_EQ(DollGiveFix(true, true, true), std::nullopt);
+    EXPECT_EQ(DollGiveFix(true, false, false), std::nullopt);
+    EXPECT_EQ(DollGiveFix(false, false, true), std::nullopt) << "the co-op mode only";
 }
 
 // m21_00 12105020-12105024 (01.09): on while any of the headstone's lamps is lit.
@@ -946,6 +1042,47 @@ TEST(BloodborneFlagRules, AChaliceMapsFlagsAreTheCurrentAltarsView) {
         }
     }
     EXPECT_FALSE(SharedWithParty(14707810)) << "no altar 7";
+}
+
+// Discord audit A6 (1.3.1-1.4.0): a door one teammate opened in the team's dungeon stayed shut for
+// the other. A chalice dungeon's door flags (ChaliceDoorFlags: m29.emevd's door events as the
+// layouts start them) are shared as altar k keeps them (14k0xxxx), with their clears (a chalice
+// taken off ends the dungeon); the view (1290xxxx) stays each game's own, and so does any other
+// flag of the altar's copy (the layers' bosses, an event's switch).
+TEST(BloodborneFlagRules, AChaliceDungeonsDoorsAreSharedAsTheirAltarKeepsThem) {
+    ASSERT_TRUE(std::ranges::is_sorted(ChaliceDoorFlags));
+    ASSERT_GT(ChaliceDoorFlags.size(), 300u);
+    for (const s32 offset : ChaliceDoorFlags) {
+        ASSERT_GE(offset, 0);
+        ASSERT_LT(offset, 4000) << "no load-reset nor lamp flag";
+    }
+    // A door event's "done" flags (12900323 slots 0 and 1, the story Pthumeru layout's; the next
+    // load opens the door by them) and a navmesh door's (12901447).
+    for (const s32 offset : {323, 324, 1447}) {
+        ASSERT_TRUE(std::ranges::binary_search(ChaliceDoorFlags, offset)) << offset;
+    }
+    // Never a chest's or coffin's (12900000's object acts 12900009-12900099, 12903000-12903409),
+    // nor another event's own id (the bell-ringing woman's 12901000, a layer boss's reward
+    // 12901693): loot and rewards are each player's own.
+    for (const s32 offset : {9, 50, 99, 1000, 1693, 3000, 3409}) {
+        EXPECT_FALSE(std::ranges::binary_search(ChaliceDoorFlags, offset)) << offset;
+    }
+    for (s32 altar = 0; altar < 7; ++altar) {
+        const s32 base = 14000000 + altar * 100000;
+        for (const s32 offset : {323, 324, 1447}) {
+            EXPECT_TRUE(SharedWithParty(base + offset)) << base + offset;
+            EXPECT_TRUE(SharesClearsWithParty(base + offset)) << base + offset;
+            EXPECT_TRUE(IsWorldFlag(base + offset)) << base + offset;
+            EXPECT_TRUE(CarriesToGuestWorld(base + offset)) << base + offset;
+            EXPECT_FALSE(SharedWithParty(12900000 + offset)) << "the view stays each game's own";
+        }
+        // A flag an event turns back off in some layout (a switch: 12900004, 12900516), the
+        // layers' bosses, the load-reset part (12904700) and one past the doors' part.
+        for (const s32 flag : {base, base + 4, base + 516, base + 1800, base + 4700, base + 5000}) {
+            EXPECT_FALSE(SharedWithParty(flag)) << flag;
+        }
+    }
+    EXPECT_FALSE(SharedWithParty(14700323)) << "no altar 7";
 }
 
 // The team's lamps lit again at a guest's load and each second are the shared ones: the chalice

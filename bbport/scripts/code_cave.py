@@ -5,8 +5,9 @@
 The code segment ends at CODE_END; up to its 4 KiB page end nothing is there, and the page is
 mapped with the segment (probe.c lets patches write there: `patchable`). The frame-rate fixes from
 Supermedo's bloodborne_pc windows-v1.9.6 (cloth_time.py, cloth.py, foliage_time.py, air_drag.py,
-effect_time.py) keep their caves at the same addresses as there; the parts of the page their port
-uses for its own features (Quit to Desktop, crash guards, Rebirth, PC Settings) stay unused here.
+effect_time.py) and its crash guards (crash_guards.py, f1999924) keep their caves at the same
+addresses as there; the parts of the page their port uses for its own features (Quit to Desktop,
+Rebirth, PC Settings) stay unused here.
 `Code` is the small assembler helper of their quit_menu.py.
 """
 import struct

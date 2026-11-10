@@ -640,6 +640,12 @@ add_executable(frame-slots-test EXCLUDE_FROM_ALL ../tests/test_frame_slots.cpp)
 target_compile_options(frame-slots-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(frame-slots-test PRIVATE shim)
 
+# The swapchain's present mode: never V-Sync by fallback while a mode that lets a late frame
+# through is offered (shim/bbport_present_mode.h).
+add_executable(present-mode-test EXCLUDE_FROM_ALL ../tests/test_present_mode.cpp)
+target_compile_options(present-mode-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(present-mode-test PRIVATE shim)
+
 add_executable(async-claim-test EXCLUDE_FROM_ALL ../tests/test_async_claim.cpp)
 target_compile_options(async-claim-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(async-claim-test PRIVATE shim)
@@ -648,6 +654,16 @@ target_include_directories(async-claim-test PRIVATE shim)
 add_executable(srt-fault-test EXCLUDE_FROM_ALL ../tests/test_srt_fault.cpp)
 target_compile_options(srt-fault-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(srt-fault-test PRIVATE shim)
+
+# A walker's null roots are checked before the walk: no fault for them (shim/bbport_srt_roots.h).
+add_executable(srt-null-root-test EXCLUDE_FROM_ALL ../tests/test_srt_null_root.cpp)
+target_compile_options(srt-null-root-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(srt-null-root-test PRIVATE shim)
+
+# The console line for draws with null resource tables (shim/bbport_null_tables.h).
+add_executable(null-tables-test EXCLUDE_FROM_ALL ../tests/test_null_tables.cpp)
+target_compile_options(null-tables-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(null-tables-test PRIVATE shim)
 
 # The push constant block the shaders read (header only: bbgpu's include directories, no link).
 add_executable(push-data-test EXCLUDE_FROM_ALL ../tests/test_push_data.cpp)
@@ -727,6 +743,10 @@ target_compile_options(translation-memory-test PRIVATE -UNDEBUG -fPIC)
 set_source_files_properties(../tests/test_translation_memory.cpp PROPERTIES
     COMPILE_OPTIONS "-fvisibility=hidden;-fvisibility-inlines-hidden")
 target_link_libraries(translation-memory-test PRIVATE bbgpu)
+if(WIN32)  # the compat layer and onecore, as the renderer tests above
+    target_sources(translation-memory-test PRIVATE ../src/compat_win.c)
+    target_link_libraries(translation-memory-test PRIVATE onecore -pthread)
+endif()
 
 # bbport: FSR 4 benchmark outside the game (tools/fsr4_bench.cpp): ninja -C out/gpu fsr4-bench.
 add_executable(upscaler-support-test EXCLUDE_FROM_ALL ../tests/test_upscaler_support.cpp
@@ -748,3 +768,12 @@ target_link_libraries(map-art-test PRIVATE miniz::miniz)
 add_executable(map-art-tool EXCLUDE_FROM_ALL tools/map_art_tool.cpp shim/bbport_map_art.cpp shim/bbport_map_collision.cpp
     shim/bbport_game_art.cpp)
 target_link_libraries(map-art-tool PRIVATE miniz::miniz)
+
+# bbport: one file read from two threads, pread next to seek + read: ninja -C out/gpu
+# file-positions-test, then run it in the source tree (it writes under out/). No GPU, no game.
+if (WIN32)
+    add_executable(file-positions-test EXCLUDE_FROM_ALL ../tests/test_file_positions.c ../src/compat_win.c)
+    target_include_directories(file-positions-test PRIVATE ../src ..)
+    target_compile_options(file-positions-test PRIVATE -UNDEBUG)
+    target_link_libraries(file-positions-test PRIVATE bcrypt -pthread)
+endif()

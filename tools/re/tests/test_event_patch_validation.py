@@ -82,6 +82,17 @@ class ValidatePassesTheIntendedPatches(unittest.TestCase):
     def test_an_unpatched_file_is_valid(self):
         tool.validate(shop_file(), shop_file(), [])
 
+    def test_an_empty_event_may_give_any_instruction_offset(self):
+        """Mods' event files (written by event editors) give an event without instructions the
+        offset -1; the game reads nothing there. The tool refused such a file, so co-op did not
+        start with that mod (Supermedo's 1.9.8.1 fix)."""
+        EMPTY = 10008890
+        emevd = bytearray(build_emevd({SHOP: shop_lines(), EMPTY: []}, SHOP_PARAMETERS))
+        at, entry = event_entry(bytes(emevd), EMPTY)
+        self.assertEqual(entry[1], 0)
+        struct.pack_into('<q', emevd, at + 16, -1)
+        tool.validate(bytes(emevd), bytes(emevd), [])
+
     def test_a_local_event_with_its_parameters_moved_along(self):
         edits = []
         patched, count = tool.make_events_local(shop_file(), {SHOP}, edits)

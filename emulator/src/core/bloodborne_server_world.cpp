@@ -124,6 +124,9 @@ bool team_host = false;
 // see TeamHostTookOver.
 std::atomic<bool> took_over{false};
 bool personal_world_due = false;
+// How this session's loads take the team's world (HowToTakeTeamWorld), decided at the first load
+// that has the server's copy; none before, and alone.
+std::optional<TeamWorldTake> team_take;
 // The clear counts this game's loads saw per save slot, and a load found to be the next
 // playthrough's not yet handled (ApplyTeamWorldOnLoad keeps that save's new world).
 PlaythroughWatch playthroughs;
@@ -1606,6 +1609,7 @@ bool HoldTitleLoadForTeam(u32 slot, bool fresh) {
         }
         team_world_due = decision.start.has_value();
         team_world_taken = false;
+        team_take.reset();
         team_world_blocks.clear();
         team_host = decision.start && decision.start->host() == me;
         personal_world_due = !decision.start.has_value();
@@ -1935,6 +1939,7 @@ void LeaveTeamInPlay(u64 manager) {
         team_session.reset();
         team_world_due = false;
         team_world_taken = false;
+        team_take.reset();
         team_world_blocks.clear();
         team_host = false;
         personal_world_due = true;
@@ -2039,6 +2044,7 @@ void AdoptTeamInPlay(const bbcoop::TeamStart& start) {
         team_session.reset();
         team_world_due = true;
         team_world_taken = false;
+        team_take.reset();
         team_world_blocks.clear();
         team_host = start.host() == me;
         personal_world_due = false;
@@ -2463,6 +2469,11 @@ std::optional<bbcoop::LobbyState> TeamLobbyState() {
     return team_gate.Lobby();
 }
 
+std::string TeamSessionHost() {
+    std::scoped_lock lock{team_mutex};
+    return team_session ? team_session->host() : std::string{};
+}
+
 std::string TeamLobbyMember() {
     std::scoped_lock lock{team_mutex};
     return lobby_member;
@@ -2613,6 +2624,35 @@ void WriteWholeFile(const std::filesystem::path& path, const std::string& text) 
     }
 }
 
+// The worlds this slot's save made (HomeWorlds); none: no list yet (a save from before it, or one
+// that never took a team's world).
+std::filesystem::path HomeWorldFile(int slot) {
+    return Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
+           SlotFileName("home_world", slot);
+}
+
+std::optional<HomeWorlds> ReadHomeWorlds(int slot) {
+    return ParseHomeWorlds(ReadWholeFile(HomeWorldFile(slot)));
+}
+
+// The save's own world is a team's from now on (it made the team's world): the one kept aside
+// from before is over. Out of the way, never deleted (the launcher's save backups take it too).
+void RetireOwnWorld(int slot) {
+    std::error_code error;
+    if (!std::filesystem::exists(PersonalWorldFile(slot), error)) {
+        return;
+    }
+    const std::filesystem::path old = Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
+                                      SlotFileName("personal_world_before_home", slot);
+    std::filesystem::remove(old, error);
+    std::filesystem::rename(PersonalWorldFile(slot), old, error);
+    if (error) {
+        LOG_ERROR(Debug, "Co-op team world: could not move slot {}'s old own world aside: {}", slot,
+                  error.message());
+        std::filesystem::remove(PersonalWorldFile(slot), error);
+    }
+}
+
 struct WorldStore {
     FlagStore store;
     std::vector<FlagBlockBits> blocks;
@@ -2643,6 +2683,50 @@ size_t SetWorldFlags(const WorldStore& world, const WorldFlags& target) {
         LOG_INFO(Debug, "Co-op team world: flags set to the world's (-off):{}", which);
     }
     return changes.size();
+}
+
+// This save's own world back where another's was in it, block by block as the loads bring them
+// (the file keeps the blocks still to come): alone again, or back in a world it made. Whether
+// any flag store block was looked at (the caller's copy of the store is old then). team_mutex
+// held.
+bool PutOwnWorldBack(int slot, std::string_view why) {
+    const std::string text = ReadWholeFile(PersonalWorldFile(slot));
+    if (text.empty()) {
+        personal_world_due = false;
+        return false;
+    }
+    auto own = ParseWorldFlags(text);
+    std::optional<WorldStore> store = ReadWorldStore();
+    if (!own || !store) {
+        LOG_WARNING(Debug, "Co-op team world: slot {}'s own world {}", slot,
+                    own ? "waits (the flags are not readable now)" : "does not read: left");
+        personal_world_due = own.has_value();
+        return false;
+    }
+    std::erase_if(store->blocks, [&](const FlagBlockBits& block) {
+        return !std::binary_search(own->blocks.begin(), own->blocks.end(), block.id);
+    });
+    if (store->blocks.empty()) {
+        return false;
+    }
+    const size_t changed = SetWorldFlags(*store, *own);
+    const u32 per_block = store->store.flags_per_block;
+    for (const FlagBlockBits& block : store->blocks) {
+        std::erase(own->blocks, block.id);
+        std::erase_if(own->on, [&](s32 flag) { return u32(flag) / per_block == block.id; });
+    }
+    if (own->blocks.empty()) {
+        std::error_code error;
+        std::filesystem::remove(PersonalWorldFile(slot), error);
+        personal_world_due = false;
+    } else {
+        WriteWholeFile(PersonalWorldFile(slot), FormatWorldFlags(*own));
+    }
+    LOG_INFO(Debug,
+             "Co-op team world: slot {} {}: its own world is back in {} blocks ({} flags "
+             "changed, {} blocks to come)",
+             slot, why, store->blocks.size(), changed, own->blocks.size());
+    return true;
 }
 
 } // namespace
@@ -2739,43 +2823,44 @@ void ApplyTeamWorldOnLoad(bool trip) {
     if (personal && slot >= 0) {
         // Alone again: this save's own world back where a team's was in it, block by block as
         // the loads bring them; the file keeps the blocks still to come.
-        const std::string text = ReadWholeFile(PersonalWorldFile(slot));
         std::scoped_lock lock{team_mutex};
-        if (text.empty()) {
+        // Noted with its home worlds: its next hunt as their host goes on from this save
+        // (HowToTakeTeamWorld).
+        if (auto home = ReadHomeWorlds(slot); home && !home->worlds.empty() && !home->alone) {
+            home->alone = true;
+            WriteWholeFile(HomeWorldFile(slot), FormatHomeWorlds(*home));
+        }
+        std::error_code error;
+        if (!std::filesystem::exists(PersonalWorldFile(slot), error)) {
             personal_world_due = false;
             return;
         }
-        auto own = ParseWorldFlags(text);
-        std::optional<WorldStore> store = ReadWorldStore();
-        if (!own || !store) {
-            LOG_WARNING(Debug, "Co-op team world: slot {}'s own world {}", slot,
-                        own ? "waits (the flags are not readable now)" : "does not read: left");
-            personal_world_due = own.has_value();
-            return;
+        // A save from before the home worlds (its own world aside, no list): the world it last
+        // played is its own when its character hosted it, and nothing comes back over it
+        // (seixas' host 2026-10-29: alone before his friend joined, the DLC's lamps were gone).
+        if (!ReadHomeWorlds(slot)) {
+            const std::string hint = ReadTeamWorldHint(slot);
+            const auto& lobby = team_gate.Lobby();
+            const OldSaveWorld old = OldSavesWorld(lobby ? &*lobby : nullptr, hint, lobby_name);
+            if (old == OldSaveWorld::Made) {
+                HomeWorlds home;
+                home.Add(hint);
+                WriteWholeFile(HomeWorldFile(slot), FormatHomeWorlds(home));
+                RetireOwnWorld(slot);
+                personal_world_due = false;
+                LOG_INFO(Debug,
+                         "Co-op team world: slot {} plays alone: world {} is its own (its "
+                         "character hosted it), its world stays as it is",
+                         slot, hint);
+                return;
+            }
+            LOG_INFO(Debug,
+                     "Co-op team world: slot {} plays alone, a save from before the home "
+                     "worlds: its last world {} ({})",
+                     slot, hint.empty() ? "none" : hint,
+                     old == OldSaveWorld::Visited ? "another character's" : "not known here");
         }
-        std::erase_if(store->blocks, [&](const FlagBlockBits& block) {
-            return !std::binary_search(own->blocks.begin(), own->blocks.end(), block.id);
-        });
-        if (store->blocks.empty()) {
-            return;
-        }
-        const size_t changed = SetWorldFlags(*store, *own);
-        const u32 per_block = store->store.flags_per_block;
-        for (const FlagBlockBits& block : store->blocks) {
-            std::erase(own->blocks, block.id);
-            std::erase_if(own->on, [&](s32 flag) { return u32(flag) / per_block == block.id; });
-        }
-        if (own->blocks.empty()) {
-            std::error_code error;
-            std::filesystem::remove(PersonalWorldFile(slot), error);
-            personal_world_due = false;
-        } else {
-            WriteWholeFile(PersonalWorldFile(slot), FormatWorldFlags(*own));
-        }
-        LOG_INFO(Debug,
-                 "Co-op team world: slot {} plays alone: its own world is back in {} "
-                 "blocks ({} flags changed, {} blocks to come)",
-                 slot, store->blocks.size(), changed, own->blocks.size());
+        PutOwnWorldBack(slot, "plays alone");
         return;
     }
     if (!due) {
@@ -2786,6 +2871,7 @@ void ApplyTeamWorldOnLoad(bool trip) {
         return; // the next call (the flags readable, the slot known)
     }
     std::scoped_lock lock{team_mutex};
+    const std::string world_id{WorldIdOfParty(team_party)};
     if (!world->exists()) {
         if (!team_world_taken) {
             LOG_INFO(Debug, "Co-op team world: the team has no world yet: {}",
@@ -2798,6 +2884,70 @@ void ApplyTeamWorldOnLoad(bool trip) {
             for (const FlagBlockBits& block : store->blocks) {
                 team_world_blocks.insert(block.id);
             }
+            // It is this save's home world from here: alone, the save keeps it.
+            HomeWorlds home = ReadHomeWorlds(slot).value_or(HomeWorlds{});
+            if (home.Add(world_id)) {
+                WriteWholeFile(HomeWorldFile(slot), FormatHomeWorlds(home));
+                RetireOwnWorld(slot);
+                LOG_INFO(Debug,
+                         "Co-op team world: world {} is made from slot {}'s save: its home "
+                         "world ({} in all)",
+                         world_id, slot, home.worlds.size());
+            }
+        }
+        team_world_taken = true;
+        return;
+    }
+    if (!team_take) {
+        std::optional<HomeWorlds> home = ReadHomeWorlds(slot);
+        // A save from before the home worlds, hosting the world its own character's reports
+        // made: its home world.
+        if (!home && team_host && !lobby_name.empty() && world->character() == lobby_name) {
+            home.emplace();
+            if (home->Add(world_id)) {
+                WriteWholeFile(HomeWorldFile(slot), FormatHomeWorlds(*home));
+                RetireOwnWorld(slot);
+                LOG_INFO(Debug,
+                         "Co-op team world: world {} is slot {}'s home world (its character "
+                         "hosted it before the home worlds were kept)",
+                         world_id, slot);
+            }
+        }
+        team_take =
+            HowToTakeTeamWorld(home.value_or(HomeWorlds{}), world_id, team_host, world->version());
+        // In a team again: decided for this session, and the next one starts from the server's.
+        if (home && home->alone) {
+            home->alone = false;
+            WriteWholeFile(HomeWorldFile(slot), FormatHomeWorlds(*home));
+        }
+        LOG_INFO(Debug, "Co-op team world: slot {} takes world {} (version {}) as {}", slot,
+                 world_id, world->version(),
+                 *team_take == TeamWorldTake::Aside  ? "another's: its own goes aside"
+                 : *team_take == TeamWorldTake::Home ? "its home world: the server's goes in"
+                                                     : "its home world: this save leads");
+    }
+    if (*team_take != TeamWorldTake::Aside) {
+        // Its own world kept aside while it visited another's comes back first: the home world
+        // goes on from it.
+        std::error_code error;
+        if (std::filesystem::exists(PersonalWorldFile(slot), error) &&
+            PutOwnWorldBack(slot, "is back in its home world")) {
+            store = ReadWorldStore();
+            if (!store) {
+                return;
+            }
+        }
+    }
+    if (*team_take == TeamWorldTake::SaveLeads) {
+        // As the host whose save made it: never the server's copy over the save's.
+        for (const FlagBlockBits& block : store->blocks) {
+            team_world_blocks.insert(block.id);
+        }
+        if (!team_world_taken) {
+            LOG_INFO(Debug,
+                     "Co-op team world: this host's save is its home world's latest ({} "
+                     "blocks): it goes to the server as it is",
+                     store->blocks.size());
         }
         team_world_taken = true;
         return;
@@ -2831,8 +2981,16 @@ void ApplyTeamWorldOnLoad(bool trip) {
         return;
     }
     // This save's own world aside first, block by block as the loads bring them: a block the file
-    // has already (a save that held a team's before) keeps what the file says.
-    {
+    // has already (a save that held a team's before) keeps what the file says. Never in its home
+    // world: its own world is that one.
+    if (*team_take == TeamWorldTake::Aside) {
+        // A world kept aside from here on has a list beside it (an empty one for a save that made
+        // no world): only a save from before the lists has the one without the other.
+        std::error_code error;
+        if (!std::filesystem::exists(PersonalWorldFile(slot), error) &&
+            !std::filesystem::exists(HomeWorldFile(slot), error)) {
+            WriteWholeFile(HomeWorldFile(slot), FormatHomeWorlds({}));
+        }
         WorldFlags own =
             ParseWorldFlags(ReadWholeFile(PersonalWorldFile(slot))).value_or(WorldFlags{});
         std::vector<FlagBlockBits> new_blocks;
@@ -2878,6 +3036,11 @@ std::vector<u32> TeamWorldBlocksForGuest() {
     return WorldFlagsOf(*team_world).blocks;
 }
 
+bool SavePlaysInTeam() {
+    std::scoped_lock lock{team_mutex};
+    return team_switch && !team_party.empty();
+}
+
 std::vector<s32> TeamWorldFlagsOnForGuest() {
     std::scoped_lock lock{team_mutex};
     if (!team_switch || team_host || !team_world || !team_world->exists()) {
@@ -2892,6 +3055,24 @@ void TickTeamWorld(s64 now_ms) {
     }
     {
         std::scoped_lock lock{team_mutex};
+        // The host of its home world (NoteVersion: no other world's is kept): the server's copy
+        // as it stands is this save's (its own reports', or taken at this session's loads). Kept
+        // with the list, so its next session knows the server's copy for its own
+        // (HowToTakeTeamWorld).
+        static u64 noted_version = 0;
+        static std::string noted_world;
+        if (team_host && team_world_taken && team_world && team_world->exists()) {
+            const std::string world_id{WorldIdOfParty(team_party)};
+            const int slot = character_slot.load();
+            if (slot >= 0 && (team_world->version() != noted_version || world_id != noted_world)) {
+                noted_version = team_world->version();
+                noted_world = world_id;
+                if (auto home = ReadHomeWorlds(slot);
+                    home && home->NoteVersion(world_id, noted_version)) {
+                    WriteWholeFile(HomeWorldFile(slot), FormatHomeWorlds(*home));
+                }
+            }
+        }
         if (!team_host || team_party.empty() || !team_world_taken || !team_world ||
             now_ms - team_world_reported_ms < TeamWorldReportMs) {
             return;

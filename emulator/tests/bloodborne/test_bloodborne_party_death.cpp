@@ -317,6 +317,40 @@ TEST(BloodbornePartyHud, TheNameplateOfADownedMemberShowsItsRevive) {
         << "a member without an online id goes by its board name";
 }
 
+// Bug audit 24 (I_Eat_Toast 2026-10-30): both players' nameplates said "Host". The role line was
+// the game's, from the role each game sends (a guest's game held the host's role after its own
+// reload); now it is the party's: Host over the member hosting the team's session, Guest over
+// every other member. A name the panel does not know, or no known host, keeps the game's line.
+TEST(BloodbornePartyHud, TheNameplateRoleIsTheTeamsHostOrAGuest) {
+    PartyPanel panel;
+    panel.members.push_back(PanelMember{.member = "rig_host", .name = "rig_host", .here = true});
+    panel.members.push_back(
+        PanelMember{.member = "rig_guest", .name = "rig_guest", .shown = "Lady Maria"});
+    panel.members.push_back(PanelMember{.member = "b2", .name = ""});
+    EXPECT_EQ(NameplateRoleOf(panel, "rig_host", false, "rig_host"), NameplateRole::Host);
+    EXPECT_EQ(NameplateRoleOf(panel, "rig_guest", false, "rig_host"), NameplateRole::Guest);
+    EXPECT_EQ(NameplateRoleOf(panel, "Lady Maria", false, "rig_host"), NameplateRole::Guest)
+        << "the game names a member by its character in a party";
+    EXPECT_EQ(NameplateRoleOf(panel, "b2", false, "rig_host"), NameplateRole::Guest)
+        << "a member without an online id goes by its board name";
+    EXPECT_EQ(NameplateRoleOf(panel, "rig_host", false, "rig_guest"), NameplateRole::Guest)
+        << "the session host moved to the guest";
+    EXPECT_EQ(NameplateRoleOf(panel, "Lady Maria", false, "rig_guest"), NameplateRole::Host);
+    EXPECT_EQ(NameplateRoleOf(panel, "someone", false, "rig_host"), std::nullopt);
+    EXPECT_EQ(NameplateRoleOf(panel, "", false, "rig_host"), std::nullopt);
+    EXPECT_EQ(NameplateRoleOf(panel, "rig_guest", false, ""), std::nullopt) << "no known host";
+    // The host's own game: every other member is its guest, whatever the server said last.
+    EXPECT_EQ(NameplateRoleOf(panel, "rig_host", true, ""), NameplateRole::Guest);
+    EXPECT_EQ(NameplateRoleOf(panel, "rig_guest", true, "rig_guest"), NameplateRole::Guest);
+    EXPECT_EQ(NameplateRoleOf(panel, "someone", true, ""), std::nullopt);
+    // The words: the game's own texts for the roles (Host and Guest in English, the player's own
+    // language else), as html; none when the game has no text.
+    EXPECT_EQ(NameplateRoleText(NameplateRole::Host, u"Host", u"Guest"), "Host");
+    EXPECT_EQ(NameplateRoleText(NameplateRole::Guest, u"Host", u"Guest"), "Guest");
+    EXPECT_EQ(NameplateRoleText(NameplateRole::Guest, u"Hôte", u"Invité <1>"), "Invité &lt;1&gt;");
+    EXPECT_EQ(NameplateRoleText(NameplateRole::Host, u"", u"Guest"), std::nullopt);
+}
+
 // The native party list: the first three members as the game's own nameplate tags, under the
 // game's quick items: HP while up, the revive while down, the role line saying what is going on.
 TEST(BloodbornePartyHud, ThePartyListShowsEachMembersState) {
@@ -1340,11 +1374,43 @@ TEST(BloodbornePartyDeath, AGuestBringsBackWhatTheHostsGeneratorBroughtBack) {
         {0x1002c043, Now - 1'000},  // died here just now: the host may not know yet
         {0x1002c044, Now - 60'000}, // not on the host's board
     };
-    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {0x1002c042}, Now),
+    // The host's board had each of them dead after this guest's copy died (its generator's
+    // victims: the host's kill, then the generator's revive).
+    std::unordered_map<u32, s64> host_dead;
+    for (const DeadCopy& copy : dead_here) {
+        host_dead[copy.handle] = copy.dead_since_ms;
+    }
+    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {0x1002c042}, host_dead, Now),
               std::vector<u32>{0x1002c03d});
-    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {}, Now + BringBackAfterMs),
+    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {}, host_dead, Now + BringBackAfterMs),
               (std::vector<u32>{0x1002c03d, 0x1002c042, 0x1002c043}));
-    EXPECT_TRUE(BroughtBackByTheHost({}, dead_here, {}, Now).empty());
+    EXPECT_TRUE(BroughtBackByTheHost({}, dead_here, {}, host_dead, Now).empty());
+}
+
+// Bug audit 24 (rig host-death-kills 2026-11-10, 1.3.1 on): the guest killed an enemy the host's
+// game runs (0x10014000, 32 m off). Its own copy died at once; the kill reached the owner and came
+// back over the server about 5 s later, so for those seconds the host's board still had it alive,
+// and 3 s after its death the guest "brought back" its own kill. The bonfire respawn that did it
+// woke more of the map: party kills stood again and died again, paying echoes ("enemies only one
+// of us sees", "the whole area respawned"). Only an enemy the host's board had dead (no earlier
+// than shortly before this copy died) and has alive again is the host's generator's.
+TEST(BloodbornePartyDeath, AGuestNeverBringsBackItsOwnKillTheHostHasNotSeenYet) {
+    constexpr s64 Now = 100'000;
+    const std::vector<CharacterShown> host{
+        {.handle = 0x10014000}, {.handle = 0x1000801b}, {.handle = 0x1000801c}};
+    const std::vector<DeadCopy> dead_here{
+        {0x10014000, Now - BringBackAfterMs}, // this guest's kill, not round yet
+        {0x1000801b, Now - 30'000},           // killed by the host, back in its game
+        {0x1000801c, Now - 30'000},           // dead there long before: a kill made here since
+    };
+    const std::unordered_map<u32, s64> host_dead{
+        {0x1000801b, Now - 29'000},
+        {0x1000801c, Now - 30'000 - HostDeadBeforeCopyMs - 1},
+    };
+    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {}, host_dead, Now),
+              std::vector<u32>{0x1000801b});
+    EXPECT_TRUE(BroughtBackByTheHost(host, dead_here, {}, {}, Now).empty())
+        << "the host's board never had any of them dead";
 }
 
 // Rig shadows-look 2026-11-04: both games killed the 2nd Shadow (0x10024060) at once. The host
@@ -1358,7 +1424,10 @@ TEST(BloodbornePartyDeath, ABossDeadHereIsNeverBroughtBack) {
         {0x10024060, Now - 60'000, true},
         {0x1002c03d, Now - 60'000},
     };
-    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {}, Now), std::vector<u32>{0x1002c03d});
+    const std::unordered_map<u32, s64> host_dead{{0x10024060, Now - 60'000},
+                                                 {0x1002c03d, Now - 60'000}};
+    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {}, host_dead, Now),
+              std::vector<u32>{0x1002c03d});
 }
 
 // Kaniel's DLC playtest 2026-10-28 (1.3.1): the host left, the session went to Lisara, whose copy
@@ -2099,4 +2168,49 @@ TEST(SessionNameCache, KeepsOnlyTheLatestMembers) {
     EXPECT_EQ(cache.Lookup(0x1000, ids, 0).plan, SessionNameCache::Plan::Scan) << "the oldest";
     EXPECT_EQ(cache.Lookup(0x1000 + SessionNameCache::Members * 0x100, ids, 0).plan,
               SessionNameCache::Plan::Recheck);
+}
+
+// Discord audit A6: a team's wipe in a chalice dungeon woke it in a grey void or falling through
+// the map. The rig's chalice-wipe: the trip (WarpNextStageBonfire 2902950) arrived at (0, 0, 0)
+// and fell until the arrival's move a second later. A trip within this chalice map is placed at
+// the lamp, where it resolved before the trip.
+TEST(BloodbornePartyDeath, AWipesTripInAChaliceDungeonIsPlacedAtItsLamp) {
+    const std::array<float, 4> at{39.0f, 31.5f, -49.0f, 1.0f};
+    const std::array<float, 4> turned{0.0f, 6.2831855f, 0.0f, 0.0f};
+    const auto lamp = ChaliceTripLamp(2902950, 0x1D000000, true, at, turned);
+    ASSERT_TRUE(lamp.has_value());
+    EXPECT_EQ(lamp->warp_point, 2902950);
+    EXPECT_EQ(lamp->packed_map, 0x1D000000u);
+    EXPECT_FLOAT_EQ(lamp->x, 39.0f);
+    EXPECT_FLOAT_EQ(lamp->y, 31.5f);
+    EXPECT_FLOAT_EQ(lamp->z, -49.0f);
+    EXPECT_FLOAT_EQ(lamp->heading, 6.2831855f);
+    EXPECT_EQ(ChaliceTripLamp(2902951, 0x1D000000, true, at, turned)->warp_point, 2902951);
+    EXPECT_FALSE(ChaliceTripLamp(2902950, 0x1D000000, false, at, turned)) << "not resolved";
+    EXPECT_FALSE(ChaliceTripLamp(2902950, 0x15000000, true, at, turned)) << "from the Dream";
+    EXPECT_FALSE(ChaliceTripLamp(2412950, 0x18010000, true, at, turned)) << "no chalice map";
+    EXPECT_FALSE(ChaliceTripLamp(0, 0x1D000000, true, at, turned));
+    EXPECT_FALSE(ChaliceTripLamp(-1, 0x1D000000, true, at, turned));
+    // The open world's lamps come from the map files (LampPoints): none of a chalice map's.
+    EXPECT_EQ(FindLampPoint(2902950), nullptr);
+}
+
+// The coordinator's review of 391d0309: the layer lamps' ids are the same in every dungeon
+// (2902950 + layer), so the placement is for the one trip the wipe scheduled: any trip spends it,
+// and a later trip to the same id (another dungeon, the map screen's) is not placed at the old
+// spot without a fresh resolve.
+TEST(BloodbornePartyDeath, AChaliceTripsPlacementIsForOneTripOnly) {
+    const std::array<float, 4> at{39.0f, 31.5f, -49.0f, 1.0f};
+    const std::array<float, 4> turned{0.0f, 1.5f, 0.0f, 0.0f};
+    std::optional<LampPoint> pending = ChaliceTripLamp(2902950, 0x1D000000, true, at, turned);
+    const auto first = TakeChaliceTripLamp(pending, 2902950);
+    ASSERT_TRUE(first.has_value());
+    EXPECT_FLOAT_EQ(first->z, -49.0f);
+    EXPECT_FALSE(pending.has_value());
+    EXPECT_FALSE(TakeChaliceTripLamp(pending, 2902950)) << "a second trip to the same id";
+    pending = ChaliceTripLamp(2902950, 0x1D000000, true, at, turned);
+    EXPECT_FALSE(TakeChaliceTripLamp(pending, 2902951)) << "another lamp's trip";
+    EXPECT_FALSE(TakeChaliceTripLamp(pending, 2902950)) << "spent by that other trip";
+    std::optional<LampPoint> none;
+    EXPECT_FALSE(TakeChaliceTripLamp(none, 2902950));
 }

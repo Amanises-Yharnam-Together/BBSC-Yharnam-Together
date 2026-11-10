@@ -84,8 +84,8 @@ struct AutoplayRun {
     bool step_begun = false;
     std::optional<std::chrono::steady_clock::time_point> hold_until;
     u32 travel_map = 0;
-    std::optional<double> travel_fixed_at;     // seconds into the step it was moved to the lamp
-    const LampPoint* travel_planned = nullptr; // the lamp the travel was placed at, if any
+    std::optional<double> travel_fixed_at;   // seconds into the step it was moved to the lamp
+    std::optional<LampPoint> travel_planned; // the lamp the travel was placed at, if any
     u32 attack_handle = 0;
     std::optional<u32> attack_placed; // the attack cycle the player was last put in place for
     s32 noted_max_hp = 0;             // note-max-hp: the player's max HP then
@@ -98,9 +98,12 @@ struct AutoplayRun {
     // chapter <name> <seconds>: when the chapter's time budget runs out (the rig's, 2026-10-15).
     std::optional<std::chrono::steady_clock::time_point> chapter_deadline;
     double chapter_budget = 0.0;
-    bool keep_going = false;   // keep-going on: a failed step gives up only its chapter
-    bool failed = false;       // a step failed and the script went on: "done (failed)"
-    LampPosition glide_from{}; // glide: where the player was when it began
+    bool keep_going = false;          // keep-going on: a failed step gives up only its chapter
+    bool failed = false;              // a step failed and the script went on: "done (failed)"
+    LampPosition glide_from{};        // glide: where the player was when it began
+    std::optional<LampPosition> spot; // spot-mark: where the player stood then
+    float standing_from_y = 0.0f;     // expect-standing: y when it began
+    float standing_low_y = 0.0f;      // expect-standing: its lowest y since
     // watch-unseen: the character watched and until when, and how often it was seen drawn.
     u32 watch_handle = 0;
     std::optional<std::chrono::steady_clock::time_point> watch_until;
@@ -522,7 +525,7 @@ void BeginAutoplayTravel(const AutoplayStep& step, s32 point) {
         return;
     }
     // A guest's own trip (TickGuestLampTrip), at the lamp when it is known.
-    const LampPoint* planned = StartTripToLamp(point);
+    std::optional<LampPoint> planned = StartTripToLamp(point);
     // As a guest's own lamp trip in a session does; out of one it is the game's own travel,
     // as a player's at a lamp.
     if (IsPartyGuestRole() && InPartySession()) {
@@ -542,14 +545,14 @@ void FixAutoplayTravelArrival(const AutoplayStep& step, s32 point) {
         WriteValue(global, 0x1528, point);
     }
     const auto at = LocalPlayerPosition();
-    const LampPoint* planned = nullptr;
+    std::optional<LampPoint> planned;
     {
         std::scoped_lock lock{autoplay_mutex};
         planned = autoplay_run.travel_planned;
     }
     LOG_INFO(Debug, "Bloodborne autoplay: travel arrived at ({}, {}, {}) planned at the lamp={}",
-             at ? (*at)[0] : 0.0f, at ? (*at)[1] : 0.0f, at ? (*at)[2] : 0.0f, planned != nullptr);
-    if (ArrivalNeedsMove(planned, at)) {
+             at ? (*at)[0] : 0.0f, at ? (*at)[1] : 0.0f, at ? (*at)[2] : 0.0f, planned.has_value());
+    if (ArrivalNeedsMove(planned ? &*planned : nullptr, at)) {
         MoveToRespawnPoint(true);
     }
     std::scoped_lock lock{autoplay_mutex};
@@ -818,6 +821,83 @@ bool AutoplayExpectWalks(const AutoplayStep& step) {
     }
     autoplay_sticks.store(0x80800080); // lx 0x80, ly 0x00: straight ahead
     return false;
+}
+
+// spot-mark: where the player stands now, for expect-near-spot (A6 audit 2026-11-10: where a
+// chalice dungeon's layer put the team, its lamp, to find them there again after a wipe).
+bool AutoplaySpotMark(const AutoplayStep& step) {
+    const auto at = LocalPlayerPosition();
+    if (!at) {
+        step.failure = "no player";
+        return false;
+    }
+    {
+        std::scoped_lock lock{autoplay_mutex};
+        autoplay_run.spot = *at;
+    }
+    LOG_INFO(Debug, "Bloodborne autoplay: spot marked at ({:.1f}, {:.1f}, {:.1f}) map {:#x}",
+             (*at)[0], (*at)[1], (*at)[2], GetCurrentPackedMap());
+    return true;
+}
+
+// expect-near-spot [<metres>]: the player stands within `metres` (15) of the marked spot.
+bool AutoplayExpectNearSpot(const AutoplayStep& step) {
+    const auto at = LocalPlayerPosition();
+    std::optional<LampPosition> spot;
+    {
+        std::scoped_lock lock{autoplay_mutex};
+        spot = autoplay_run.spot;
+    }
+    if (!spot || !at) {
+        step.failure = !spot ? "no spot marked" : "no player";
+        return false;
+    }
+    const float distance = std::sqrt(((*at)[0] - (*spot)[0]) * ((*at)[0] - (*spot)[0]) +
+                                     ((*at)[1] - (*spot)[1]) * ((*at)[1] - (*spot)[1]) +
+                                     ((*at)[2] - (*spot)[2]) * ((*at)[2] - (*spot)[2]));
+    LOG_INFO(Debug,
+             "Bloodborne autoplay: {:.1f} m from the marked spot, at ({:.1f}, {:.1f}, {:.1f})",
+             distance, (*at)[0], (*at)[1], (*at)[2]);
+    if (distance > static_cast<float>(step.Number(0, 15))) {
+        step.failure = fmt::format("{:.1f} m from the marked spot", distance);
+        return false;
+    }
+    return true;
+}
+
+// expect-standing [<seconds> [<metres>]]: for `seconds` (8) the player is in the world and its y
+// drops no more than `metres` (3) below where it began: no fall through the map, no grey void.
+bool AutoplayExpectStanding(const AutoplayStep& step) {
+    const auto at = LocalPlayerPosition();
+    if (!at) {
+        step.failure = "no player position (a grey void?)";
+        return false;
+    }
+    float from = 0.0f;
+    float low = 0.0f;
+    {
+        std::scoped_lock lock{autoplay_mutex};
+        if (!step.begun) {
+            autoplay_run.standing_from_y = (*at)[1];
+            autoplay_run.standing_low_y = (*at)[1];
+        }
+        autoplay_run.standing_low_y = std::min(autoplay_run.standing_low_y, (*at)[1]);
+        from = autoplay_run.standing_from_y;
+        low = autoplay_run.standing_low_y;
+    }
+    const float drop = from - low;
+    if (drop > static_cast<float>(step.Number(1, 3)) || (*at)[1] < -500.0f) {
+        step.failure = fmt::format("fell {:.1f} m (y {:.1f} -> {:.1f}) in {:.1f} s", drop, from,
+                                   (*at)[1], step.elapsed);
+        return false;
+    }
+    if (step.elapsed < step.Number(0, 8)) {
+        return false;
+    }
+    LOG_INFO(Debug,
+             "Bloodborne autoplay: stood {:.1f} s at ({:.1f}, {:.1f}, {:.1f}), dropped {:.1f} m",
+             step.elapsed, (*at)[0], (*at)[1], (*at)[2], drop);
+    return true;
 }
 
 // glide <x y z>...: from where the player is along those points at walking pace, by small
@@ -2489,6 +2569,9 @@ constexpr auto AutoplayVerbs = std::to_array<std::pair<std::string_view, Autopla
     {"hit", AutoplayHit},
     {"teleport", AutoplayTeleport},
     {"expect-walks", AutoplayExpectWalks},
+    {"spot-mark", AutoplaySpotMark},
+    {"expect-near-spot", AutoplayExpectNearSpot},
+    {"expect-standing", AutoplayExpectStanding},
     {"place", AutoplayPlace},
     {"glide", AutoplayGlide},
     {"pickup", AutoplayPickup},

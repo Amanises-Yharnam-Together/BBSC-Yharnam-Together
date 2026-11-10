@@ -416,6 +416,74 @@ void ClearBossBarsAfterDeath() {
     }
 }
 
+// See AwayBossBars: a spectator woken at its lamp has its boss bars put away until it is in that
+// fight again. WakeAtOwnLamp puts them away, the boss fight's tick brings them back or drops
+// them, a death's respawn drops them.
+std::mutex away_boss_bars_mutex;
+AwayBossBars away_boss_bars;
+
+std::span<u8> BossGaugesNow() {
+    const u64 holder = ReadValue<u64>(image_base + BossGaugesPointerOffset, 0);
+    constexpr std::size_t Size = BossGaugeSlots * BossGaugeSize;
+    if (holder < 0x10000 ||
+        !HasMemoryAccess(holder + BossGaugesOffset, Size, MemoryProt::CpuWrite)) {
+        return {};
+    }
+    return {reinterpret_cast<u8*>(holder + BossGaugesOffset), Size};
+}
+
+void PutBossBarsAway(u32 map) {
+    const std::span<u8> gauges = BossGaugesNow();
+    std::scoped_lock lock{away_boss_bars_mutex};
+    if (!gauges.empty() && away_boss_bars.PutAway(gauges, map)) {
+        LOG_INFO(Debug,
+                 "Bloodborne spectate: boss bars put away at the lamp: {:#x} (back once this "
+                 "player is in its fight again)",
+                 away_boss_bars.Handle().value_or(0));
+    }
+}
+
+void DropAwayBossBars() {
+    std::scoped_lock lock{away_boss_bars_mutex};
+    away_boss_bars.Drop();
+}
+
+// Each party death tick: the put-away bars back once this player is within BossLeaveMetres of
+// their boss again, dropped once it is dead or this player is on another map.
+void TickAwayBossBars(u32 map) {
+    std::scoped_lock lock{away_boss_bars_mutex};
+    if (!away_boss_bars.Holding()) {
+        return;
+    }
+    const std::span<u8> gauges = BossGaugesNow();
+    const std::optional<u32> handle = away_boss_bars.Handle();
+    if (gauges.empty() || !handle) {
+        return;
+    }
+    std::optional<LampPosition> boss;
+    bool boss_dead = false;
+    if (const u64 world = ReadValue<u64>(image_base + CandidateLocalStatePointerOffset, 0);
+        world >= 0x10000) {
+        Coop::ForEachWorldCharacter(world, [&](u64 character) {
+            if (!boss && !boss_dead && ReadValue<u32>(character, 0x08) == *handle) {
+                boss_dead = Coop::CharacterHp(character) <= 0 ||
+                            IsDeadInItsWorld(ReadValue<u8>(character, 0x1E3));
+                boss = Coop::CharacterPosition(character);
+            }
+        });
+    }
+    switch (away_boss_bars.Tick(gauges, map, boss, boss_dead, Coop::LocalPlayerPosition())) {
+    case AwayBossBars::Outcome::Back:
+        LOG_INFO(Debug, "Bloodborne spectate: boss bars back: {:#x} (in its fight again)", *handle);
+        break;
+    case AwayBossBars::Outcome::Dropped:
+        LOG_INFO(Debug, "Bloodborne spectate: put-away boss bars dropped: {:#x}", *handle);
+        break;
+    case AwayBossBars::Outcome::Away:
+        break;
+    }
+}
+
 } // namespace
 
 namespace Coop {
@@ -431,12 +499,14 @@ namespace Coop {
 // that resets the map (party death's wipe), wherever the lamp is.
 // A guest in a party session wakes at the host's point instead, unless its death was special (see
 // PartyDeathPoint): the party wakes together.
-void MoveToRespawnPoint(bool arriving_from_trip) {
+bool MoveToRespawnPoint(bool arriving_from_trip) {
+    chalice_trip_lamp.reset(); // only the trip this respawn schedules (below) is placed by it
     const bool void_fall = party_death_void_fall.exchange(false) && !arriving_from_trip;
     const DeathReset call =
         arriving_from_trip ? DeathReset::None : party_death_reset.TakeAtRespawn();
     const bool reset = call != DeathReset::None;
     if (!arriving_from_trip) {
+        DropAwayBossBars();
         ClearBossBarsAfterDeath();
     }
     if (call == DeathReset::OwnMap) {
@@ -465,7 +535,7 @@ void MoveToRespawnPoint(bool arriving_from_trip) {
     const u64 blocks = ReadValue<u64>(image_base + LoadedBlocksPointerOffset, 0);
     const u64 player = GetLocalPlayer();
     if (blocks < 0x10000 || player < 0x10000) {
-        return;
+        return !arriving_from_trip;
     }
     alignas(16) std::array<float, 4> position{};
     alignas(16) std::array<float, 4> rotation{};
@@ -481,11 +551,22 @@ void MoveToRespawnPoint(bool arriving_from_trip) {
     switch (respawn) {
     case DeathRespawn::StayPut:
         LOG_INFO(Debug, "Bloodborne revive: respawn point {} not reachable; staying put", point);
-        return;
+        return !arriving_from_trip || point <= 0;
     case DeathRespawn::Travel:
         guest_trip_point = point;
         if (point != own_point) {
             party_death_trip_point = point;
+        }
+        // A wipe in a chalice dungeon: its lamp is in no map file, the trip lands at the lamp
+        // only if told where it is (else at the map's origin, falling).
+        chalice_trip_lamp =
+            ChaliceTripLamp(point, GetCurrentPackedMap(), in_loaded_block, position, rotation);
+        if (chalice_trip_lamp) {
+            LOG_INFO(
+                Debug,
+                "Bloodborne revive: the chalice dungeon's lamp {} is at ({}, {}, {}); the trip "
+                "is placed there",
+                point, position[0], position[1], position[2]);
         }
         // Right away: getting up where the player fell first looked like a second respawn.
         guest_lamp_trip_at = std::chrono::steady_clock::now() + std::chrono::milliseconds{200};
@@ -493,16 +574,17 @@ void MoveToRespawnPoint(bool arriving_from_trip) {
                  "Bloodborne revive: respawn point {} is on map {:#x}; travelling there "
                  "(reset={}, void fall={})",
                  point, PackedMapOfWarpPoint(point), reset, void_fall);
-        return;
+        return true;
     case DeathRespawn::MoveToPoint:
         break;
     }
     if (!PlaceLocalPlayer(position, rotation, "revive teleport")) {
-        return;
+        return !arriving_from_trip;
     }
     LOG_INFO(Debug,
              "Bloodborne revive: moved to last lamp {} at ({}, {}, {}) rotation ({}, {}, {})",
              point, position[0], position[1], position[2], rotation[0], rotation[1], rotation[2]);
+    return true;
 }
 
 } // namespace Coop
@@ -1803,6 +1885,8 @@ void FollowWatched(PartyDeathRun& run, const DeathTick& tick) {
 // in a loaded block, else by the lamp's trip (ChooseDeathRespawn, as a death's respawn).
 void WakeAtOwnLamp(PartyDeathRun& run, const DeathTick& tick, SpectateEnd why) {
     EndSpectating(run, tick.player, tick.data);
+    // Out of the fight: its boss bars wait until it is in that fight again (AwayBossBars).
+    PutBossBarsAway(tick.map);
     const u8 flags = ReadValue<u8>(tick.data, 0x200);
     run.grace_flags = DownedNoDamageFlags & static_cast<u8>(~flags);
     WriteValue(tick.data, 0x200, static_cast<u8>(flags | DownedNoDamageFlags));
@@ -2090,6 +2174,7 @@ void TickPartyDeath() {
     // Kaniel 2026-10-25: a boss fight with a teammate in it (its deaths spectate).
     {
         const TickStepTimer step{"TickPartyDeath: boss fight"};
+        TickAwayBossBars(tick.map);
         const u64 holder = ReadValue<u64>(image_base + BossGaugesPointerOffset, 0);
         constexpr std::size_t Size = BossGaugeSlots * BossGaugeSize;
         const bool bars_up =
@@ -2239,6 +2324,23 @@ void NoteNameplate(int index, const std::string& name) {
     }
 }
 
+// Which role line each tag got (the trace for the rig's nameplate checks), on change.
+void NoteNameplateRole(int index, const std::string& name, std::optional<NameplateRole> role) {
+    static std::array<std::string, 16> last;
+    const std::string note = fmt::format("{} {}", name,
+                                         !role                          ? "game's"
+                                         : *role == NameplateRole::Host ? "Host"
+                                                                        : "Guest");
+    if (index < 0 || static_cast<size_t>(index) >= last.size() || last[index] == note) {
+        return;
+    }
+    last[index] = note;
+    static std::atomic<u32> logged{0};
+    if (logged.fetch_add(1) < 200) {
+        LOG_INFO(Debug, "Bloodborne party HUD: nameplate {} role line: {}", index, note);
+    }
+}
+
 // An element's text as html, with its own SetText (the object interface's UTF-8 one).
 void SetElementText(u64 element, const std::string& html) {
     if (!HasMemoryAccess(element, 0x50, MemoryProt::CpuRead) ||
@@ -2276,11 +2378,21 @@ void PS4_SYSV_ABI WriteNameplateRoleLine(u64, const GuestRegisterSnapshot* regis
     if (line) {
         SetElementText(tag + HudTagNameLineAt, *line);
     }
-    if (!panel_has_downed.load(std::memory_order_relaxed)) {
+    if (panel_has_downed.load(std::memory_order_relaxed)) {
+        if (const auto downed = NameplateRoleLine(panel, name)) {
+            SetElementText(tag + HudTagRoleLineAt, *downed);
+            return;
+        }
+    }
+    // Bug audit 24: Host or Guest as the party has it, not the role the member's game sent.
+    if (!InPartySession()) {
         return;
     }
-    if (const auto line = NameplateRoleLine(panel, name)) {
-        SetElementText(tag + HudTagRoleLineAt, *line);
+    const bool hosting = !IsPartyGuestRole();
+    const auto role = NameplateRoleOf(panel, name, hosting, hosting ? "" : TeamSessionHost());
+    NoteNameplateRole(*index, name, role);
+    if (const auto text = role ? PartyNameplateRoleText(*role) : std::nullopt) {
+        SetElementText(tag + HudTagRoleLineAt, *text);
     }
 }
 #endif

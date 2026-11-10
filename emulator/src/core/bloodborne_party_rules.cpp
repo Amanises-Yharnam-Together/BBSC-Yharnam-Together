@@ -552,6 +552,42 @@ std::size_t PolishMessages() {
 
 namespace Coop {
 
+// The game's texts of the nameplate roles (see NameplateRoleText), looked up every two seconds:
+// the HUD writes the line on every frame, and a reloaded message file moves them.
+std::optional<std::string> PartyNameplateRoleText(NameplateRole role) {
+    static std::mutex mutex;
+    static std::chrono::steady_clock::time_point looked{};
+    static std::u16string host_text, guest_text;
+    std::scoped_lock lock{mutex};
+    if (const auto now = std::chrono::steady_clock::now();
+        now - looked >= std::chrono::seconds{2}) {
+        looked = now;
+        host_text.clear();
+        guest_text.clear();
+        const u64 repository = ReadValue<u64>(image_base + MsgRepositoryPointerOffset, 0);
+        if (repository >= 0x10000 && HasMemoryAccess(repository, 0x10, MemoryProt::CpuRead)) {
+            const auto read = [&](s32 id) {
+                const char16_t* text = GameMessage(repository, EventTextOverrideCategory, id);
+                if (text == nullptr) {
+                    text = GameMessage(repository, EventTextCategory, id);
+                }
+                std::u16string out;
+                const u64 at = reinterpret_cast<u64>(text);
+                for (size_t i = 0;
+                     text != nullptr && i < 32 &&
+                     HasMemoryAccess(at + i * 2, 2, MemoryProt::CpuRead) && text[i] != u'\0';
+                     ++i) {
+                    out += text[i];
+                }
+                return out;
+            };
+            host_text = read(NameplateHostMessage);
+            guest_text = read(NameplateGuestMessage);
+        }
+    }
+    return NameplateRoleText(role, host_text, guest_text);
+}
+
 // Multiplayer UI polish for a party (Kaniel 2026-10-11): Host/Guest text, a name for guest role 6
 // and no bell icons, in the loaded message files, the role table and SpEffectParam. Checked every
 // second: a reloaded file gets it again.
