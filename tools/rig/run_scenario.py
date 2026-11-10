@@ -148,6 +148,8 @@ def use_engine(name: str):
 # addresses are in its own settings).
 PING = None
 DELAYED_PORT_OFFSET = 1000
+# Where a role with no game server finds it: port 9 (discard), which nothing on the PC listens on.
+NO_GAME_SERVER_PORT = 9
 
 
 def use_ping(ping: tuple[int, int] | None):
@@ -1130,7 +1132,12 @@ def launch(role: str, script: list[str] | None, party: str = "rig:hunters",
     headless_roles = settings.pop("rig.headless_roles", "").split(",")
     if role in headless_roles:
         settings.update(HEADLESS)
-    ENGINE.prepare(role, backend_port=server_port(BACKEND_PORT), ini=ini)
+    # "rig.no_game_server_roles": those roles' game server (port 20443's) does not answer, as for
+    # a player whose router or filter (AdGuard, Discord audit A1) lets the server link through
+    # but not the game's own server.
+    no_game_server = role in settings.pop("rig.no_game_server_roles", "").split(",")
+    ENGINE.prepare(role, backend_port=NO_GAME_SERVER_PORT if no_game_server
+                   else server_port(BACKEND_PORT), ini=ini)
     build_lock.refuse_if_memory_low(f"the {role} game")  # leaked memory froze the PC
     build_lock.wait_for_builds()  # beside builds unless BB_BUILD_BESIDE_GAMES=0
     env = game_environment(role, script_path, party, settings)

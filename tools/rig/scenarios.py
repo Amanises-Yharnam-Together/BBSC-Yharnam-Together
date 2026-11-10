@@ -238,6 +238,9 @@ GUEST_JOINS = (r"(?:auto-rejoin started search effect=9005|"
                r"Bloodborne team join: joining the host's session .* joined=true)")
 # The session must hold: a game that leaves the room (LeaveRoom) broke it.
 SESSION_HOLDS = [r"sceNpMatching2LeaveRoom: called"]
+# Discord audit A1: a game whose save opened with no sign-in to the game's own server (its
+# teammates never see it). No rig game with a game server may say so.
+GAME_SERVER_OFFLINE = r"save opened with no game server sign-in"
 # Kaniel 2026-11-05: the team screen's rules text (ScreenRulesText): no Rot, travel or boss tempo,
 # Fixed enemies of x2 HP, x1.25 damage, x2 poise.
 TEAM_RULES_FIXED = "0,0,0,0,0,2,1.25,2"
@@ -1063,7 +1066,8 @@ SCENARIOS = {
                      r"team lobby: a save's load waits for the team's Start"],
             "guest": [r"Co-op team lobby: the save plays in team \w+ as its guest"],
         },
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+        "forbid": {"host": SESSION_HOLDS + [GAME_SERVER_OFFLINE],
+                   "guest": SESSION_HOLDS + [GAME_SERVER_OFFLINE]},
         "timeout": 300,
     },
     # Kaniel 2026-10-17: a cutscene both see (Vicar Amelia's entrance, m24_00 12401802: the host
@@ -2024,9 +2028,33 @@ SCENARIOS = {
                       f"expect-map {CENTRAL_YHARNAM}"],
         },
         "expect": {
-            "guest": [r"Co-op team menu: this save joins team \w+ where it stands, as its guest"],
+            "guest": [r"Co-op team menu: this save joins team \w+ where it stands, as its guest",
+                      r"Co-op: the game server sign-in is done"],
+            "host": [r"Co-op: the game server sign-in is done"],
         },
+        "forbid": {"host": [GAME_SERVER_OFFLINE], "guest": [GAME_SERVER_OFFLINE]},
         "timeout": 300,
+    },
+    # Discord audit A1 (bugs 3 and 22, 1.0.0-1.4.0, Ozi's logs of 2026-11-01): one teammate never
+    # sees the other, its hits do not kill and the enemies leave it be, one way. The unseen one's
+    # game had never signed in to the game's own server (port 20443: no ss.info, no login) while
+    # its server link worked, and nothing said so. Here the guest's game server does not answer
+    # (a filter or router that lets the server link through but not 20443): its game says the
+    # sign-in failed (rig 2026-11-10: it stays at the title, asking ss.info again and again).
+    "no-game-server-said": {
+        "about": "the guest's game server does not answer (its server link does): its game "
+                 "says its sign-in to the game server failed",
+        "settings": {"rig.no_game_server_roles": "guest"},
+        "roles": {
+            "host": [START, "wait 10", "done"],
+            "guest": ["title-wait 45", "done"],
+        },
+        "expect": {
+            "guest": [r"Co-op: the game server sign-in is failed \(failed /bb-eu/ss.info\)"],
+            "host": [r"Co-op: the game server sign-in is done"],
+        },
+        "forbid": {"host": [GAME_SERVER_OFFLINE]},
+        "timeout": 240,
     },
     # Kaniel 2026-10-31: three teams on one server, each in its own world, never touch each
     # other's progress. Team A (host and guest) plays in Central Yharnam, team B (guest2) in the

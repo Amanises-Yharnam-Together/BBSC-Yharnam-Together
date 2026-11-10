@@ -28,6 +28,7 @@
 #include "coop/team_code.h"
 #include "core/bloodborne_compass.h"
 #include "core/bloodborne_crash_dump.h"
+#include "core/bloodborne_game_server.h"
 #include "core/bloodborne_map.h"
 #include "core/bloodborne_party.h"
 #include "core/bloodborne_pings.h"
@@ -578,10 +579,13 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
     bool in_hunt = false;
     lobby->playing = Coop::TeamPlaying(&in_hunt) ? 1 : 0;
     lobby->in_hunt = in_hunt ? 1 : 0;
-    // Another installation than the others' links; the screen says so (Kaniel 2026-10-25).
+    // Another installation than the others' links; the screen says so (Kaniel 2026-10-25). Before
+    // it, a game not signed in to the game's own server (Discord audit A1: its teammates never
+    // see it).
     CopyName(lobby->notice, sizeof(lobby->notice),
              Core::Bloodborne::TeamScreenNotice(state->notice(),
-                                                Libraries::Net::ServerLinkWarning()));
+                                                Libraries::Net::ServerLinkWarning(),
+                                                Core::Bloodborne::TheGameServerSignIn().Notice()));
     {
         // Kaniel 2026-10-25: the host rules the hunt plays by.
         const Core::Bloodborne::HostRules rules = Coop::ActiveHostRules();
