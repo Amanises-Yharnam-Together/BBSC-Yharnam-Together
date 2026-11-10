@@ -3279,6 +3279,232 @@ def CHALICE3_BACK(role: str) -> list[str]:
             f"log {role} back in the Dream", f"shot {role}-back-in-dream"]
 
 
+# Discord audit A6 (1.3.1-1.4.0): a team of two dies in a chalice dungeon and wakes in a grey
+# void, somewhere else, or falls through the map. The wipe's respawn must put both back in the
+# same dungeon on its ground, by the layer's lamp (where they came in), alive and standing.
+# The wipe's trip in the dungeon: the game's lamp lookup has no chalice lamp and put the player at
+# the map's origin, in the air (main 7c8fe442: "arrived map=0x1d000000 at=(0, 0, 0)", y falling
+# until the arrival's move a second later). Placed at the lamp instead, as the entry from the
+# altar is.
+CHALICE_TRIP_AT_ORIGIN = r"party trip: arrived map=0x1d000000 at=\(0, 0, 0\)"
+CHALICE_TRIP_AT_LAMP = r"guest warps to 29029\d\d \(0x1d000000\) placed at the lamp=true"
+
+
+def CHALICE_AFTER_DEATH(role: str) -> list[str]:
+    """After the respawn: the map, then where the player stands, sampled for some seconds (a fall
+    through the map shows as a dropping y)."""
+    return ["wait-vital up 150", "wait 15", f"log {role} woke after the death",
+            *[step for _ in range(4) for step in ("snapshot", "wait 3")],
+            f"expect-map {CHALICE_DUNGEON}", "expect-standing 10 3", "expect-near-spot 20",
+            f"log {role} stands by the layer's lamp"]
+
+
+SCENARIOS["chalice-wipe"] = {
+    "about": "a team of two in the story Pthumeru dungeon (host's ritual, guest from its own "
+             "altar); the guest goes down, the host dies: the party's wipe wakes both in the "
+             "dungeon by its lamp, standing",
+    "settings": PARTY_DEATH,
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 10", *CHALICE_ENTER("host"), "spot-mark",
+                 "wait-members 2 400", "wait 20", "snapshot", "sync cw-in",
+                 "sync cw-guest-down", "godmode off", *LETHAL_FALL, "wait-vital dead 30",
+                 *CHALICE_AFTER_DEATH("host"), "wait-members 2 240", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                  *["wait 30"] * 5, *CHALICE_FROM_OWN_ALTAR("guest"), "spot-mark", "wait-members 2 300",
+                  "wait 20", "snapshot", "sync cw-in", "godmode off", *LETHAL_FALL,
+                  "wait-vital down 30", "sync cw-guest-down", "wait-vital dead 90",
+                  *CHALICE_AFTER_DEATH("guest"), "wait-members 2 240", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "chalice-wipe", "roles": ["host", "guest"]}
+              for name in ("cw-in", "cw-guest-down")},
+    "expect": {role: [rf"{role} in the dungeon", rf"{role} woke after the death",
+                      rf"{role} stands by the layer's lamp",
+                      CHALICE_TRIP_AT_LAMP]
+               for role in ("host", "guest")},
+    "forbid": {role: [*SESSION_HOLDS, CHALICE_TRIP_AT_ORIGIN] for role in ("host", "guest")},
+    "allow": CRASH_CLEANUP,
+    "timeout": 1500,
+}
+
+# The same wipe on Layer Two: both go back to the Dream and take the layer warp (the Dream's event
+# 12107200 slot 1: flag 72100301 warps to the layer's lamp 2902951 and sets the layer flag 9002,
+# as the altar's "Layer Two" does), then die there.
+def CHALICE_LAYER_TWO(role: str) -> list[str]:
+    return [f"travel {HUNTERS_DREAM}", "wait 15", f"expect-map {HUNTERS_DREAM_MAP}",
+            "set-flag 72100301 1", f"wait-map {CHALICE_DUNGEON} 180", "wait 15", "snapshot",
+            "flags 9001 9002 9003 72100301", "spot-mark", f"log {role} on layer two"]
+
+
+SCENARIOS["chalice-wipe-layer2"] = {
+    "about": "the team's wipe on Layer Two of the story Pthumeru dungeon: both wake there by its "
+             "lamp, standing",
+    "settings": PARTY_DEATH,
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 10", *CHALICE_ENTER("host"),
+                 "wait-members 2 400", "wait 10", "sync cw2-in", *CHALICE_LAYER_TWO("host"),
+                 "wait-members 2 300", "wait 10", "sync cw2-there", "sync cw2-guest-down",
+                 "godmode off", *LETHAL_FALL, "wait-vital dead 30",
+                 *CHALICE_AFTER_DEATH("host"), "wait-members 2 240", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                  *["wait 30"] * 5, *CHALICE_FROM_OWN_ALTAR("guest"), "wait-members 2 300",
+                  "wait 10", "sync cw2-in", *CHALICE_LAYER_TWO("guest"), "wait-members 2 300",
+                  "wait 10", "sync cw2-there", "godmode off", *LETHAL_FALL,
+                  "wait-vital down 30", "sync cw2-guest-down", "wait-vital dead 90",
+                  *CHALICE_AFTER_DEATH("guest"), "wait-members 2 240", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "chalice-wipe-layer2", "roles": ["host", "guest"]}
+              for name in ("cw2-in", "cw2-there", "cw2-guest-down")},
+    "expect": {role: [rf"{role} on layer two", rf"{role} woke after the death",
+                      rf"{role} stands by the layer's lamp",
+                      CHALICE_TRIP_AT_LAMP] for role in ("host", "guest")},
+    "forbid": {role: [*SESSION_HOLDS, CHALICE_TRIP_AT_ORIGIN] for role in ("host", "guest")},
+    "allow": CRASH_CLEANUP,
+    "timeout": 1800,
+}
+
+# The same death with the teammate in the Dream (no wipe: the dying member's own map resets).
+SCENARIOS["chalice-death-apart"] = {
+    "about": "the host alone in the team's chalice dungeon dies while the guest stands in the "
+             "Dream: the host wakes in the dungeon by its lamp, standing",
+    "settings": PARTY_DEATH,
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 10", *CHALICE_ENTER("host"), "spot-mark",
+                 "wait 10", "snapshot", "sync cda-in", "godmode off", *LETHAL_FALL,
+                 # Alone on its map: party death has no one to revive it, it dies at once.
+                 "wait-vital dead 60", *CHALICE_AFTER_DEATH("host"),
+                 "sync cda-done", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                  f"travel {HUNTERS_DREAM}", "wait 10", "sync cda-in", "sync cda-done",
+                  "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "chalice-death-apart", "roles": ["host", "guest"]}
+              for name in ("cda-in", "cda-done")},
+    "expect": {"host": [r"host in the dungeon", r"host woke after the death", CHALICE_TRIP_AT_LAMP,
+                        r"host stands by the layer's lamp"]},
+    "forbid": {"host": [*SESSION_HOLDS, CHALICE_TRIP_AT_ORIGIN], "guest": SESSION_HOLDS},
+    "allow": CRASH_CLEANUP,
+    "timeout": 1200,
+}
+
+# For comparison: a lone player (no party) dies in the dungeon: the game's own death reload.
+SCENARIOS["chalice-death-solo"] = {
+    "about": "a lone player's death in the story Pthumeru dungeon: the game's own respawn by the "
+             "layer's lamp",
+    "roles": {"host": [START, "godmode", *CHALICE_ENTER("host"), "spot-mark", "wait 5", "godmode off",
+                       *LETHAL_FALL, "wait-vital dead 60", *CHALICE_AFTER_DEATH("host")]},
+    "settings": PARTY_DEATH,
+    "expect": {"host": [r"host in the dungeon", r"host woke after the death",
+                        r"host stands by the layer's lamp"]},
+    "timeout": 600,
+}
+
+# Discord audit A6: a door one teammate opens in the team's dungeon stays closed for the other.
+# The story Pthumeru layout's doors are flags of the chalice map's view: a door event's "done"
+# flag (12900323 slots 0 and 1, 12900331 slot 0, as m29_10_90_00's event 0 starts them; the next
+# load opens the door by it), set here as the door's event would. All are off as the team comes
+# in (12900315/12900316 are not: those events end at the load). The other member in the same
+# dungeon has it at once, and a member that comes in later finds it set too. Main 7c8fe442: the
+# view is altar 1's copy (12900323 and 14100323 change together).
+CHALICE_DOOR_FLAGS = (12900323, 12900324, 12900331)
+ALTAR_COPIES = [f"{12900000 + (11 + altar) * 100000 + flag % 100000}"
+                for flag in CHALICE_DOOR_FLAGS for altar in range(7)]
+
+
+def DOOR_FLAGS(when: str) -> list[str]:
+    return [f"log door flags {when}", f"flags {' '.join(map(str, CHALICE_DOOR_FLAGS))} "
+                                      f"{' '.join(ALTAR_COPIES)}"]
+
+
+def DOORS_SHUT(when: str) -> list[str]:
+    return [*DOOR_FLAGS(when), *[f"expect-flag {flag} 0" for flag in CHALICE_DOOR_FLAGS]]
+
+
+SCENARIOS["chalice-door-shared"] = {
+    "about": "a team of two in the story Pthumeru dungeon: a door the host opens is open for the "
+             "guest, one the guest opens is open for the host, and one opened while the host is "
+             "in the Dream is open when it comes back",
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 10", *CHALICE_ENTER("host"),
+                 "wait-members 2 400", "wait 20", *DOORS_SHUT("host before"), "sync cds-in",
+                 f"set-flag {CHALICE_DOOR_FLAGS[0]} 1", "wait 3", *DOOR_FLAGS("host opened"),
+                 "sync cds-host-opened", f"wait-flag {CHALICE_DOOR_FLAGS[1]} 1 60",
+                 "log host sees the guest's door", f"travel {HUNTERS_DREAM}", "wait 15",
+                 f"expect-map {HUNTERS_DREAM_MAP}", "sync cds-host-away", "sync cds-guest-opened",
+                 *CHALICE_FROM_OWN_ALTAR("host", hold=False), "wait-members 2 300", "wait 10",
+                 *DOOR_FLAGS("host back"), f"expect-flag {CHALICE_DOOR_FLAGS[2]} 1",
+                 "log host found the door opened while away", "sync cds-done",
+                 "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                  *["wait 30"] * 5, *CHALICE_FROM_OWN_ALTAR("guest"), "wait-members 2 300",
+                  "wait 20", *DOORS_SHUT("guest before"), "sync cds-in", "sync cds-host-opened",
+                  f"wait-flag {CHALICE_DOOR_FLAGS[0]} 1 60", "log guest sees the host's door",
+                  f"set-flag {CHALICE_DOOR_FLAGS[1]} 1", "wait 3", *DOOR_FLAGS("guest opened"),
+                  "sync cds-host-away", f"set-flag {CHALICE_DOOR_FLAGS[2]} 1", "wait 10",
+                  "sync cds-guest-opened", "wait-members 2 300", "sync cds-done",
+                  *DOOR_FLAGS("guest at the end"), "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "chalice-door-shared", "roles": ["host", "guest"]}
+              for name in ("cds-in", "cds-host-opened", "cds-host-away", "cds-guest-opened",
+                           "cds-done")},
+    "expect": {"host": [r"host in the dungeon", r"host sees the guest's door",
+                        r"host found the door opened while away"],
+               "guest": [r"guest in the dungeon", r"guest sees the host's door"]},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "allow": CRASH_CLEANUP,
+    "timeout": 1500,
+}
+
+# Discord audit A6 (1.3.0, 10-29): travelling out of a dungeon reset its layer lamps, cleared
+# layers not kept. A layer's boss beaten is 12901800 + layer (event 12901693's param 0), a layer
+# lamp lit its active flag 12907810 + lamp * 20 (the view's; altar k keeps 14k0xxxx). The host
+# beats layer 1 and lights its second lamp, the guest beats layer 2; both go to the Dream and
+# come back by the Dream's layer warp (72100300, event 12107200: the altar's menu lists the beaten
+# layers, so the rig's fixed presses do not pick Layer One there): everything is still so for both.
+CHALICE_PROGRESS = {"host": (12901801, 12907830), "guest": (12901802,)}
+CHALICE_PROGRESS_ALL = sorted(flag for flags in CHALICE_PROGRESS.values() for flag in flags)
+
+
+def CHALICE_PROGRESS_KEPT(role: str) -> list[str]:
+    return [*DOOR_FLAGS(f"{role} progress"), f"flags {' '.join(map(str, CHALICE_PROGRESS_ALL))}",
+            *[f"expect-flag {flag} 1" for flag in CHALICE_PROGRESS_ALL]]
+
+
+SCENARIOS["chalice-layers-kept"] = {
+    "about": "a team of two in the story Pthumeru dungeon beats layers and lights a lamp, goes to "
+             "the Dream and comes back: beaten layers and lit lamps are kept for both",
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 10", *CHALICE_ENTER("host"),
+                 "wait-members 2 400", "wait 20", "sync clk-in",
+                 *[f"set-flag {flag} 1" for flag in CHALICE_PROGRESS["host"]], "wait 5",
+                 "sync clk-set", f"travel {HUNTERS_DREAM}", "wait 15",
+                 f"expect-map {HUNTERS_DREAM_MAP}", "sync clk-out",
+                 "set-flag 72100300 1", f"wait-map {CHALICE_DUNGEON} 180", "wait 10", "log host in the dungeon again", "wait-members 2 300", "wait 15",
+                 *CHALICE_PROGRESS_KEPT("host"), "log host kept the dungeon's progress",
+                 "sync clk-done", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300",
+                  *["wait 30"] * 5, *CHALICE_FROM_OWN_ALTAR("guest"), "wait-members 2 300",
+                  "wait 20", "sync clk-in",
+                  *[f"set-flag {flag} 1" for flag in CHALICE_PROGRESS["guest"]], "wait 5",
+                  "sync clk-set", f"travel {HUNTERS_DREAM}", "wait 15",
+                  f"expect-map {HUNTERS_DREAM_MAP}", "sync clk-out",
+                  "set-flag 72100300 1", f"wait-map {CHALICE_DUNGEON} 180", "wait 10", "log guest in the dungeon again", "wait-members 2 300", "wait 15",
+                  *CHALICE_PROGRESS_KEPT("guest"), "log guest kept the dungeon's progress",
+                  "sync clk-done", "expect-session 2"],
+    },
+    "syncs": {name: {"chapter": "chalice-layers-kept", "roles": ["host", "guest"]}
+              for name in ("clk-in", "clk-set", "clk-out", "clk-done")},
+    "expect": {role: [rf"{role} in the dungeon", rf"{role} kept the dungeon's progress"]
+               for role in ("host", "guest")},
+    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "allow": CRASH_CLEANUP,
+    "timeout": 1500,
+}
+
 SCENARIOS["chalice-team3"] = {
     "about": "a team of three: the host's ritual with both guests watching (not taken along), "
              "each enters the dungeon in turn from its own altar, the host kills an enemy "
