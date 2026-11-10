@@ -221,13 +221,15 @@ class CloseOnPlayTests(unittest.TestCase):
 
     def drain(self, close_on_play, lines):
         scheduled = []
+        self.released = []  # the co-op server handed to the watcher that stops it after the game (A15)
         window = types.SimpleNamespace(
             ui_calls=queue.Queue(), output=queue.Queue(), app={'close_on_play': close_on_play}, process=object(),
             job=None, close_scheduled=False, drain_output=lambda: None,
             root=types.SimpleNamespace(after=lambda ms, fn: scheduled.append((ms, fn)), destroy=lambda: None),
             status=types.SimpleNamespace(configure=lambda **kwargs: None),
             set_running=lambda *args, **kwargs: None, append=lambda text: None, refresh_status=lambda: None,
-            coop_watch_line=lambda line: None, coop_game_ended=lambda: None)
+            coop_watch_line=lambda line: None, coop_game_ended=lambda: None,
+            coop_release_server=lambda: self.released.append(True))
         for line in lines:
             window.output.put(line)
         launcher.Launcher.drain_output(window)
@@ -235,9 +237,11 @@ class CloseOnPlayTests(unittest.TestCase):
 
     def test_it_closes_once_when_the_window_is_up(self):
         self.assertEqual(self.drain(True, self.PREPARATION + self.UP), [launcher.CLOSE_AFTER_UP_MS])
+        self.assertEqual(self.released, [True], 'the server stays for the game and stops after it')
 
     def test_it_never_closes_during_the_preparation(self):
         self.assertEqual(self.drain(True, self.PREPARATION), [])
+        self.assertEqual(self.released, [])
 
     def test_the_game_closing_the_launcher_needs_the_switch(self):
         self.assertEqual(self.drain(False, self.PREPARATION + self.UP), [])

@@ -37,6 +37,12 @@ TESTED_TITLE = 'CUSA03173'
 # others work as hosts). The Unlock Game Region patch needs no warning since #357.
 UNTESTED_EDITION_TEXT = ('Co-op is tested on the EU edition (CUSA03173) only: {} should work, but it was not '
                          'tested properly. If something goes wrong, send your user\\log folder.')
+# The editions sold with The Old Hunters (Game of the Year, The Old Hunters Edition: US, EU, Japan, Asia):
+# the game is told the add-on is installed, as a console that installed the disc tells it. Dinkles
+# 2026-10-31: a Game of the Year dump showed the DLC as "Not installed". The other editions need the
+# DLC's own package (its licence), as before.
+DLC_EDITIONS = ('CUSA03179', 'CUSA03173', 'CUSA03014', 'CUSA03023')
+OLD_HUNTERS_LABEL = 'SPEXPANSIONDLC03'
 GAME_VERSION = '01.09'
 SHADNET_PORT, WEBAPI_PORT, MATCHING_PORT, BACKEND_PORT = 31313, 31315, 31314, 20443
 GAME_SERVER = 'https://ss4.scej-network.jp:20443'
@@ -723,6 +729,14 @@ def game_version(folder):
     return (str(sfo.get('TITLE_ID', '')), str(sfo.get('APP_VER', ''))) if sfo else None
 
 
+def edition_addcont(folder):
+    """The Old Hunters' entitlement label when the game in `folder` is an edition sold with it, else ''."""
+    if not folder:
+        return ''
+    title = (game_version(folder) or ('', ''))[0]
+    return OLD_HUNTERS_LABEL if title in DLC_EDITIONS else ''
+
+
 def untested_warning(title):
     """(text, format args) of the warning for a game co-op was not tested on, None for the tested one."""
     if title and title != TESTED_TITLE:
@@ -1154,6 +1168,60 @@ def needs_prepare(install, settings):
             or not events_current(install))
 
 
+def can_play_unattended(settings):
+    """Whether Bloodborne.exe or a Steam shortcut may start co-op with no window: the co-op setup was
+    finished once and nothing it asks is missing (on the public server, a sign-in that still holds)."""
+    return settings.get('confirmed') == '1' and not missing(settings)
+
+
+class UnknownServer(RuntimeError):
+    """No address for the server's name `host` (UNKNOWN_SERVER_TEXT, which the launcher says in its language)."""
+
+    def __init__(self, host):
+        super().__init__(UNKNOWN_SERVER_TEXT.format(host))
+        self.host = host
+
+
+def launch_settings(install, settings, say=print, on_prepared=None):
+    """What PLAY does between its button and the game, the same from the window and from Bloodborne.exe
+    or a Steam shortcut (LeWhiske 2026-11-05: started from those, the game had none of this and could
+    not reach the server): the game folder is prepared when it needs it, the server's name becomes its
+    address with this player's id for it, and the game's own server is pointed at the host.
+
+    `settings` are played_settings(); `on_prepared(key)` is told when the folder was prepared, to save
+    it. Returns (the settings the game starts with, the coop-game folder, a note for the player);
+    raises RuntimeError with a message for the player (UnknownServer for a name without an address)."""
+    install = Path(install)
+    settings = dict(settings)
+    root, note = view_root(install), ''
+    if needs_prepare(install, settings):
+        root, note = prepare(install, settings, say=say)
+        settings['prepared'] = prepared_key(settings)
+        if on_prepared:
+            on_prepared(settings['prepared'])
+    else:
+        copy_events(install, root)
+    # A public server's name is looked up once: the link and the HTTP ports go to its address, as to a
+    # host's IP. A region's directory (https://...) names the shard: the least loaded, or the player's
+    # own (docs/SCALING.md); the shards send the game on by themselves later.
+    if settings.get('server_type') == 'global':
+        settings = global_game_settings(settings)
+    elif region_url(settings['host_ip']):
+        settings = region_settings(settings)
+    else:
+        address = resolve_host(settings['host_ip'])
+        if not address:
+            raise UnknownServer(settings['host_ip'])
+        # The id for this server: its own when it refused the player's one id (coop_watch_line).
+        account, secret = player_id_for(settings, settings['host_ip'])
+        settings = dict(settings, host_ip=address, server=settings['host_ip'], account=account,
+                        password=secret, link_key=link_key_for(settings, settings['host_ip']))
+    user = install / 'user'
+    user.mkdir(parents=True, exist_ok=True)
+    (user / 'host_overrides.custom.json').write_text(host_overrides(settings['host_ip']), encoding='utf-8')
+    return settings, root, note
+
+
 def host_overrides(host_ip):
     """user\\host_overrides.custom.json: the game's own server is the host's backend."""
     return json.dumps({GAME_SERVER: f'http://{host_ip}:{BACKEND_PORT}'}, indent=2) + '\n'
@@ -1344,6 +1412,9 @@ def game_environment(env, settings, install, root):
         'SHADPS4_BLOODBORNE_SEAMLESS_COOP': '1',
         'SHADPS4_BLOODBORNE_RE_TRACE': '0',
     })
+    # An edition sold with The Old Hunters has it; the player's own DLC package (the launcher's label) wins.
+    if not env.get('BB_ADDCONT', '').strip() and edition_addcont(root / 'CUSA03173'):
+        env['BB_ADDCONT'] = edition_addcont(root / 'CUSA03173')
     # The server's key, when one is known for it (link_key_for); else the game trusts the first one.
     env.pop('BB_SHADNET_SERVER_KEY', None)
     if valid_link_key(settings.get('link_key', '')):
@@ -1561,29 +1632,41 @@ def console_text(data):
     return data.decode('latin-1')
 
 
-def our_processes(install):
-    """(pid, name, command line) of this install's shadnet (its watchdog too) and backend."""
-    install = str(Path(install).resolve()).lower()
+def process_rows():
+    """(pid, name, executable path, command line) of every process that may be this release's: the
+    co-op server, the backend, the launcher in each of its roles, and the game. None when Windows
+    could not be asked."""
     # UTF-8 out, so an install path in any language comes back as it is (not through the OEM code page).
     script = ("[Console]::OutputEncoding = [Text.Encoding]::UTF8; "
               "Get-CimInstance Win32_Process -Filter \"Name='shadnet.exe' OR Name='BLauncher.exe' OR "
-              "Name='python.exe' OR Name='pythonw.exe'\" | ForEach-Object { \"$($_.ProcessId)|$($_.Name)|"
-              "$($_.ExecutablePath)|$($_.CommandLine)\" }")
+              "Name='bb-probe.exe' OR Name='python.exe' OR Name='pythonw.exe'\" | ForEach-Object { "
+              "\"$($_.ProcessId)|$($_.Name)|$($_.ExecutablePath)|$($_.CommandLine)\" }")
     try:
         out = console_text(subprocess.run(['powershell', '-NoProfile', '-Command', script], capture_output=True,
                                           timeout=20, creationflags=NO_WINDOW).stdout)
     except (OSError, subprocess.TimeoutExpired):
-        return []
-    found = []
+        return None
+    rows = []
     for line in out.splitlines():
         parts = line.split('|', 3)
-        if len(parts) < 4:
-            continue
-        pid, name, path, command = parts
+        if len(parts) == 4 and parts[0].strip().isdigit():
+            rows.append((int(parts[0]), parts[1], parts[2], parts[3]))
+    return rows
+
+
+def our_processes(install, rows=None):
+    """(pid, name, command line) of this install's shadnet (its watchdog too) and backend, and of the
+    launchers waiting to stop them (stop_servers_when_unused), never this process."""
+    install = str(Path(install).resolve()).lower() if rows is None else str(install).lower()
+    found = []
+    for pid, name, path, command in (process_rows() or []) if rows is None else rows:
         if name.lower() == 'shadnet.exe' and path.lower().startswith(install):
-            found.append((int(pid), name, command))
+            found.append((pid, name, command))
         elif 'bb_dummy_server.py' in command and install in command.lower():
-            found.append((int(pid), name, command))
+            found.append((pid, name, command))
+        elif (name.lower() == 'blauncher.exe' and path.lower().startswith(install) and STOP_WHEN_UNUSED in command
+              and pid != os.getpid()):
+            found.append((pid, name, command))
     return found
 
 
@@ -1598,6 +1681,108 @@ def stop_servers(install):
         subprocess.run(['taskkill', '/PID', str(pid), '/F'], capture_output=True, creationflags=NO_WINDOW)
         stopped += 1
     return stopped
+
+
+# --- the server goes with the launcher ------------------------------------------------------------
+# Provi 2026-10-21, Omegadash 2026-10-30: the host's server kept running after the launcher was closed.
+# A closing launcher leaves BLauncher.exe --coop-stop-servers behind when a server runs: it waits until
+# no game and no launcher window of this install is left (the game outlives the launcher with "Close
+# the launcher when the game starts", or when the player closes the window while playing), then stops
+# the server as Stop server does.
+STOP_WHEN_UNUSED = '--coop-stop-servers'
+# The launcher's roles that play nothing and show no window: they never keep the server.
+IDLE_ROLES = ('--script', STOP_WHEN_UNUSED, '--coop-uninstall', '--install-update')
+
+
+def install_users(rows, install, own_pid=None):
+    """The pids that still use this install's server: its game (run.py's launch and bb-probe.exe) and
+    its launcher windows (Bloodborne.exe's --play too)."""
+    folder = str(install).lower().rstrip('\\/')
+    users = []
+    for pid, name, path, command in rows:
+        inside = path.lower().startswith((folder + '\\', folder + '/'))
+        if not inside or pid == own_pid:
+            continue
+        if name.lower() == 'bb-probe.exe':
+            users.append(pid)
+        elif name.lower() == 'blauncher.exe' and not any(role in command for role in IDLE_ROLES):
+            users.append(pid)
+    return users
+
+
+def pid_alive(pid):
+    """False once the process `pid` is known to be gone."""
+    if os.name != 'nt':
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except OSError:
+            return True
+        return True
+    import ctypes
+    kernel32 = ctypes.windll.kernel32
+    SYNCHRONIZE, WAIT_TIMEOUT, ACCESS_DENIED = 0x00100000, 0x102, 5
+    kernel32.OpenProcess.restype = ctypes.c_void_p
+    handle = kernel32.OpenProcess(SYNCHRONIZE, False, pid)
+    if not handle:
+        return kernel32.GetLastError() == ACCESS_DENIED
+    try:
+        return kernel32.WaitForSingleObject(ctypes.c_void_p(handle), 0) == WAIT_TIMEOUT
+    finally:
+        kernel32.CloseHandle(ctypes.c_void_p(handle))
+
+
+def close_router_ports(install):
+    """What Stop server does for the router: the ports Start server opened there are closed again."""
+    if wants_router(read_settings(install).get('host_ip', '')):
+        import bbport_upnp
+        bbport_upnp.close_ports()
+
+
+# How often the watcher looks at the processes it waits for (a handle check, no load), and how many
+# times in a row Windows may fail to list the processes before it gives up.
+UNUSED_POLL_S = 3.0
+SCAN_TRIES = 5
+
+
+def stop_servers_when_unused(install, scan=process_rows, alive=pid_alive, sleep=time.sleep, stop=None,
+                             own_pid=None, router=None):
+    """BLauncher.exe --coop-stop-servers: waits until nothing uses this install's server, then stops it;
+    returns how many processes it stopped. When Windows cannot say what runs, the server stays: a
+    server left running costs less than a session cut off."""
+    own_pid = os.getpid() if own_pid is None else own_pid
+    failures = 0
+    sleep(UNUSED_POLL_S)  # the launcher that started this is still closing
+    while True:
+        rows = scan()
+        if rows is None:
+            failures += 1
+            if failures >= SCAN_TRIES:
+                return 0
+            sleep(UNUSED_POLL_S)
+            continue
+        failures = 0
+        users = install_users(rows, install, own_pid)
+        if not users:
+            break
+        while any(alive(pid) for pid in users):
+            sleep(UNUSED_POLL_S)
+    try:
+        router() if router else close_router_ports(install)
+    except Exception:  # noqa: BLE001 - the forwards stay until the next Stop; the server stops regardless
+        pass
+    return (stop or stop_servers)(install)
+
+
+def stop_servers_later(install, command):
+    """Leaves `command` (this launcher as --coop-stop-servers) behind when a co-op server runs on this
+    PC; False when none does."""
+    if not servers_running():
+        return False
+    subprocess.Popen(command, cwd=str(install), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, creationflags=NO_WINDOW | DETACHED)
+    return True
 
 
 # --- the uninstall (setup.iss [UninstallRun]: BLauncher.exe --coop-uninstall) --------------------

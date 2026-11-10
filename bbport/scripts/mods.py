@@ -345,6 +345,11 @@ def new_view(folder, game, owner):
     return overlay
 
 
+# What the game reads from its folder: anything else there (a player's own file or folder) is optional
+# in a view.
+GAME_PARTS = ('eboot.bin', 'sce_module', 'sce_sys', 'dvdroot_ps4')
+
+
 def build_overlay(game, out, mods, beside=True, owner=None):
     """beside: with the game on another drive than out, the overlay goes beside the game (beside_game); False
     keeps it in out (files are then copied, folders linked). owner: the process the view is for (the launch that
@@ -388,7 +393,19 @@ def build_overlay(game, out, mods, beside=True, owner=None):
         overlay = new_view(out, game, owner)
     try:
         for entry in game.iterdir():
-            make_link(overlay / entry.name, entry)
+            try:
+                make_link(overlay / entry.name, entry)
+            except OSError as error:
+                # Xenix005 2026-10-30: PLAY ended on "[Errno 13] Permission denied" for a CUSA03173-UPDATE
+                # entry in the game folder. Only a part of the game stops the start.
+                if entry.name.casefold() in GAME_PARTS:
+                    raise
+                try:
+                    (overlay / entry.name).unlink(missing_ok=True)  # what a copy that failed half way left
+                except OSError:
+                    pass
+                print(f'Mods: {entry.name} in the game folder is not part of the game and could not be '
+                      f'linked ({error.strerror or error}); left out', file=sys.stderr)
         replaced = added = 0
         for relative, source in replacements:
             # Each component takes the game's spelling when it exists in another case.
