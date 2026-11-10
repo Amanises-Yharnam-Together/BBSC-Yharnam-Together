@@ -3454,8 +3454,10 @@ SCENARIOS["key-items-after-quit"] = {
                    f"travel {CENTRAL_YHARNAM_LAMP}", "wait 15",
                    f"expect-held {SWORD_HUNTER_BADGE} 1 20", "expect-session 2"]],
     },
-    "expect": {"guest": [r"save slot \d+ is owed 1 key items gained as a phantom in an earlier "
-                         r"game"]},
+    # The owed count also takes the guest's own key items put into the phantom's list (2 on the
+    # rig's save: goods 4000 and the badge); only the badge is missing at home, so only it is given.
+    "expect": {"guest": [r"save slot \d+ is owed \d+ key items gained as a phantom in an earlier "
+                         r"game[\s\S]*gave back 1 x goods 4114: gained as a phantom"]},
     "allow": CRASH_CLEANUP,
     "timeout": 900,
 }
