@@ -45,3 +45,16 @@ a slower CPU): up to 6 ms the game stays at 59.4 FPS either way. At 12 ms it fal
 the players' 30 FPS "the moment someone joins" (Discord, 2026-10-26 to 11-06). The game's speed
 does not change with the frame rate (the same distance walked at 50-72 FPS). A headless game
 never waits for its flips: run `slow-frames-60` drawn.
+
+## The display's own V-Sync (present mode)
+
+The launcher's Presentation default is Mailbox: a finished frame never waits for the display.
+AMD's Windows driver does not offer Mailbox, and the fallback used to be FIFO, which is V-Sync: a
+frame that misses the display's refresh waits for the next one, so on a 60 Hz monitor the game
+drops to 30 FPS as soon as a frame takes over 16.7 ms. An AMD player's log (2026-10-27) has
+"Requested present mode Mailbox is not supported, falling back to Fifo" in every session. The
+stand-ins for a mode the driver lacks are now chosen by `BbPresentMode::Choose`
+(`shim/bbport_present_mode.h`): for Mailbox it is FIFO Relaxed (V-Sync while frames are on time, a
+late frame at once), then Immediate, and FIFO only when nothing else is offered. A player who
+picks FIFO keeps it. The launcher's FIFO Relaxed choice, which the game did not know, now works.
+The console says which mode the swapchain took ("Swapchain: present mode ...").

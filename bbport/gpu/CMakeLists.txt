@@ -640,6 +640,12 @@ add_executable(frame-slots-test EXCLUDE_FROM_ALL ../tests/test_frame_slots.cpp)
 target_compile_options(frame-slots-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(frame-slots-test PRIVATE shim)
 
+# The swapchain's present mode: never V-Sync by fallback while a mode that lets a late frame
+# through is offered (shim/bbport_present_mode.h).
+add_executable(present-mode-test EXCLUDE_FROM_ALL ../tests/test_present_mode.cpp)
+target_compile_options(present-mode-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(present-mode-test PRIVATE shim)
+
 add_executable(async-claim-test EXCLUDE_FROM_ALL ../tests/test_async_claim.cpp)
 target_compile_options(async-claim-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(async-claim-test PRIVATE shim)
