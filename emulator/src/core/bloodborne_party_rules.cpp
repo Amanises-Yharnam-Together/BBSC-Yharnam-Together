@@ -381,6 +381,41 @@ bool ScaleParam(ScaledParam& kept, u64 address, std::span<u8> table,
 
 } // namespace
 
+// See RescaleLoadedHp: every enemy copy loaded now (not the players) takes the new HP rate.
+// Bug audit 24: every game then makes the same max for an enemy, whenever its copy loaded.
+std::size_t RescaleLoadedEnemies(float old_rate, float new_rate) {
+    const u64 world = ReadValue<u64>(image_base + CandidateLocalStatePointerOffset, 0);
+    if (world < 0x10000 || old_rate == new_rate) {
+        return 0;
+    }
+    const u64 player = GetLocalPlayer();
+    std::size_t rescaled = 0;
+    ForEachWorldCharacter(world, [&](u64 character) {
+        const u32 handle = ReadValue<u32>(character, 0x08);
+        // Players: 0x10044000 and up (the rig's census); their HP is no NpcParam's.
+        if (character == player || (handle & 0xFFFFF000u) == 0x10044000u) {
+            return;
+        }
+        const u64 modules = ReadValue<u64>(character, 0x3B0);
+        const u64 data = modules >= 0x10000 ? ReadValue<u64>(modules, 0x20) : 0;
+        if (data < 0x10000 ||
+            !HasMemoryAccess(data + 0xF8, EnemyBaseMaxHpAt + 4 - 0xF8, MemoryProt::CpuWrite)) {
+            return;
+        }
+        const auto hp =
+            RescaleLoadedHp(ReadValue<s32>(data, EnemyBaseMaxHpAt), ReadValue<s32>(data, 0xFC),
+                            ReadValue<s32>(data, 0xF8), old_rate, new_rate);
+        if (!hp) {
+            return;
+        }
+        WriteValue(data, EnemyBaseMaxHpAt, hp->base);
+        WriteValue(data, 0xFC, hp->max);
+        WriteValue(data, 0xF8, hp->hp);
+        ++rescaled;
+    });
+    return rescaled;
+}
+
 void MakeEnemiesHarder() {
     // Kaniel 2026-10-25: with the enemy scaling rule the team's size on this map picks the rate,
     // over the player's own setting.
@@ -433,6 +468,8 @@ void MakeEnemiesHarder() {
         // What this step changes: the harder rate (or its table) and the boss turn speed.
         const bool rate_changes = !SameRate(npc_kept.rate, wanted) || npc_kept.table != npc;
         const bool turn_changes = npc_kept.turn != turn || (npc_kept.table != npc && turn != 1.0f);
+        // The HP rate the copies loaded until now were made with (a fresh table is the game's).
+        const float old_hp_rate = npc_kept.table == npc && npc_kept.rate ? npc_kept.rate->hp : 1.0f;
         if (ScaleParam(npc_kept, npc, *table, marker, wanted, turn,
                        [&](std::span<u8> param, const std::optional<HarderEnemies>& rate) {
                            rows = rate ? MakeNpcParamHarder(param, *rate) : 0;
@@ -440,12 +477,16 @@ void MakeEnemiesHarder() {
                        })) {
             npc_kept.marker = HarderEnemiesMarker(*table, NpcHpOffset, NpcPoiseOffset);
             if (rate_changes) {
-                LOG_INFO(Debug,
-                         "Bloodborne harder enemies: {} NpcParam rows, {} (Father Gascoigne HP "
-                         "{}, poise {}){}",
-                         rows, RateText(wanted), npc_kept.marker ? (*npc_kept.marker)[0] : -1,
-                         npc_kept.marker ? (*npc_kept.marker)[1] : -1,
-                         in_world ? "; enemies already on this map keep their old stats" : "");
+                const float new_hp_rate = wanted ? wanted->hp : 1.0f;
+                const std::size_t rescaled =
+                    in_world ? RescaleLoadedEnemies(old_hp_rate, new_hp_rate) : 0;
+                LOG_INFO(
+                    Debug,
+                    "Bloodborne harder enemies: {} NpcParam rows, {} (Father Gascoigne HP "
+                    "{}, poise {}); {} enemies already on this map rescaled x{:.2f} -> x{:.2f}",
+                    rows, RateText(wanted), npc_kept.marker ? (*npc_kept.marker)[0] : -1,
+                    npc_kept.marker ? (*npc_kept.marker)[1] : -1, rescaled, old_hp_rate,
+                    new_hp_rate);
             }
             if (turn_changes) {
                 float gascoigne = 0.0f;

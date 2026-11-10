@@ -1422,9 +1422,13 @@ bool AutoplayExpectHp(const AutoplayStep& step) {
         return false;
     }
     const s32 hp = ReadValue<s32>(found->data, 0xF8);
-    const auto holds = CompareAutoplay(hp, step.Arg(1), static_cast<s64>(step.Number(2, 0)));
+    // "max": its own max HP in this game (bug audit 24: whole is hp == max on every game, whatever
+    // max each copy has).
+    const s32 max = ReadValue<s32>(found->data, 0xFC);
+    const s64 limit = step.Arg(2) == "max" ? max : static_cast<s64>(step.Number(2, 0));
+    const auto holds = CompareAutoplay(hp, step.Arg(1), limit);
     if (!holds || !*holds) {
-        step.failure = fmt::format("hp is {}", hp);
+        step.failure = fmt::format("hp is {} of {}", hp, max);
         return false;
     }
     return true;
@@ -1463,7 +1467,8 @@ bool AutoplayDump(const AutoplayStep& step) {
     dump("modules", modules, 0x100);
     // Each module's first bytes: what draws the character is in one of them.
     for (u64 index = 0; modules >= 0x10000 && index < 0x20; ++index) {
-        dump(fmt::format("module{:02x}", index).c_str(), ReadValue<u64>(modules, index * 8), 0x100);
+        dump(fmt::format("module{:02x}", index).c_str(), ReadValue<u64>(modules, index * 8),
+             index == 4 ? 0x300 : 0x100); // the data module (HP, max HP and what they come from)
     }
     return true;
 }
