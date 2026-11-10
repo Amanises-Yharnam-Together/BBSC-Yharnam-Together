@@ -1425,13 +1425,17 @@ def game_environment(env, settings, install, root):
     # Co-op is the fixed 60 FPS mode for everyone (a host above 60 made the guests see everyone
     # freeze and fly): no frame cap from the launcher. The opt-in unlocked frame rate keeps the
     # launcher's mode and cap (settings 'unlocked_fps' '1': the launcher picked Unlocked or 90,
-    # unlocked_fps); run.py then caps it and paces the game's packets.
+    # unlocked_fps); run.py then caps it and paces the game's packets. The PS4's own 30 FPS mode
+    # stays when picked (Discord 2026-10-26: it did nothing, the game ran at 60): a PC that cannot
+    # hold 60 plays the fixed 60 FPS step in slow motion.
     env.pop('BB_ONLINE_UNLOCKED_FPS', None)
     if settings.get('unlocked_fps') == '1':
         env['BB_FPS'] = launcher_fps
         env['BB_ONLINE_UNLOCKED_FPS'] = '1'
     else:
         env.pop('BB_FPS_LIMIT', None)
+        if launcher_fps == '30':
+            env['BB_FPS'] = '30'
     for key in ('SHADPS4_P2P_PORT', 'SHADPS4_BLOODBORNE_HARDER_ENEMIES', 'SHADPS4_BLOODBORNE_PARTY_DEATH',
                 'BB_COMMUNITY_SERVER', 'SHADPS4_BLOODBORNE_HOST_RULES',
                 'SHADPS4_BLOODBORNE_NO_PHANTOM_GLOW'):

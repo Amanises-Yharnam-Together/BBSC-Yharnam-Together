@@ -935,6 +935,16 @@ def reason_text(reason):
     return _(reason, UPSCALER_REASONS_RU.get(reason))
 
 
+def experimental_hint():
+    """The note under the Experimental features switch: what it unlocks for now."""
+    return _('Unlocks options that are still being tested and marked (experimental). For now: frame generation '
+             '(it can crash the game), FSR 4.1.1, and object motion vectors on AMD graphics cards, which can '
+             'lower the frame rate or draw some objects wrong.',
+             'Открывает функции, которые ещё проверяются и помечены (экспериментально). Пока это генерация кадров '
+             '(с ней игра может вылетать), FSR 4.1.1 и векторы движения объектов на видеокартах AMD: они могут '
+             'снижать FPS или неправильно рисовать объекты.')
+
+
 def object_motion_hint(experimental):
     """The note under 'Object motion vectors'. On AMD graphics cards the game keeps it off, unless
     Experimental features (Advanced) is on and the player turns on the AMD switch below it."""
@@ -1218,7 +1228,9 @@ def game_environment(s, frame_generation=None):
         frame_generation = ini.get('frame_generation') == '1'
     # Auto caps the game only while frame generation can run: the game turns it off with the
     # upscaler off or with HDR output, and the cap would then only cost frames.
-    frame_generation = (frame_generation
+    # Frame generation is hidden until it works (Discord 2026-10-21..11-01: toggling it crashed the
+    # game, and it did nothing at co-op's 60 FPS): only Experimental features offer it.
+    frame_generation = (frame_generation and bool(s.get('experimental'))
                         and ini.get('upscaler', INI_DEFAULTS['upscaler']) != 'off')
     env = dict(os.environ)
     env['BB_GAME_DIR'] = s['game_dir']
@@ -1266,6 +1278,11 @@ def game_environment(s, frame_generation=None):
     if s.get('experimental') and s.get('object_motion_amd') \
             and ini.get('object_motion', INI_DEFAULTS['object_motion']) == '1':
         env['BB_OBJECT_MOTION_AMD'] = '1'
+    # The game keeps frame generation off and shows no rows for it (BbSettings::FrameGenHidden).
+    if s.get('experimental'):
+        env.pop('BB_FRAME_GEN_HIDDEN', None)
+    else:
+        env['BB_FRAME_GEN_HIDDEN'] = '1'
     # FSR 4.1.1 (fsr4vk) is experimental: its DLL sits in the install's fsr4vk folder and is loaded only
     # while the switch is on.
     env['BB_FSR4VK_DIR'] = str(fsr4vk_dir())
@@ -3269,17 +3286,19 @@ class Launcher:
 
     def grey_with_upscaler(self, row, *notes):
         """Frame generation works on top of an upscaler: the switch is greyed while the upscaler is Off
-        (its value is kept)."""
-        upscaler = self.var('upscaler', 'ini')
+        (its value is kept), and while Experimental features (Advanced) are off: it is hidden in the
+        game until it works."""
+        upscaler, experimental = self.var('upscaler', 'ini'), self.var('experimental', 'app')
 
         def apply(*_args):
-            on = upscaler.get() != 'off'
+            on = upscaler.get() != 'off' and bool(experimental.get())
             row.knob.set_enabled(on)
             row.caption.configure(fg=TEXT if on else DIM)
             for note in notes:
                 if note is not None:
                     note.configure(fg=MUTED if on else DIM)
         upscaler.trace_add('write', apply)
+        experimental.trace_add('write', apply)
         apply()
 
     def note(self, parent, text, top=12):
@@ -3784,6 +3803,13 @@ class Launcher:
         for var in (generation, cap):
             var.trace_add('write', show_note)
         show_note()
+        experimental = self.var('experimental', 'app')
+
+        def offer(*_args, cell=holder):
+            """The Simple page shows the switch only while Experimental features (Advanced) offer it."""
+            cell.grid() if experimental.get() else cell.grid_remove()
+        experimental.trace_add('write', offer)
+        offer()
         for key in ('fps_mode', 'upscaler', 'output_res'):
             self.vars[key].trace_add('write', lambda *_a: self.refresh_status())
         self.build_map_card(page)
@@ -5617,10 +5643,12 @@ class Launcher:
         hint = self.label(holder, '', 'small', MUTED, wraplength=self.px(560), justify='left')
         hint.pack(anchor='w', pady=(self.px(6), 0))
         generation, cap = self.var('frame_generation', 'ini'), self.var('frame_cap', 'app')
+        experimental = self.var('experimental', 'app')  # frame generation runs only with it on
 
         def show_hint(*_args):
-            hint.configure(text=advanced_cap_hint(cap.get(), generation.get(), display_refresh()))
-        for var in (generation, cap):
+            hint.configure(text=advanced_cap_hint(cap.get(), generation.get() and experimental.get(),
+                                                  display_refresh()))
+        for var in (generation, cap, experimental):
             var.trace_add('write', show_hint)
         show_hint()
         self.row(f, _('Frame cap (unlocked mode)', 'Ограничение FPS (режим без ограничения)'), holder,
@@ -6130,11 +6158,7 @@ class Launcher:
                              'Если игра показывает только чёрный экран, обычно это помогает.'), 'small', MUTED).pack(
             side='left', padx=px(12))
         f = self.card(page, _('Performance', 'Производительность'))
-        self.check(f, 'experimental', 'app', _('Experimental features', 'Экспериментальные функции'),
-                   _('Unlocks options that are still being tested and marked (experimental). For now: FSR 4.1.1, and '
-                     'object motion vectors on AMD graphics cards, which can lower the frame rate or draw some objects wrong.',
-                     'Открывает функции, которые ещё проверяются и помечены (экспериментально). Пока это FSR 4.1.1 и '
-                     'векторы движения объектов на видеокартах AMD: они могут снижать FPS или неправильно рисовать объекты.'))
+        self.check(f, 'experimental', 'app', _('Experimental features', 'Экспериментальные функции'), experimental_hint())
         self.row(f, _('Two-stage GPU pipeline', 'Двухстадийный конвейер GPU'), self.choice(f, 'draw_pipe', 'app', DRAW_PIPE),
                  _('20–30% faster; switch it off if the game is unstable.', 'Быстрее на 20–30%; при нестабильности выключите.'))
         self.row(f, _('GPU readbacks', 'Чтение данных GPU'), self.choice(f, 'readbacks', 'app', READBACKS),
