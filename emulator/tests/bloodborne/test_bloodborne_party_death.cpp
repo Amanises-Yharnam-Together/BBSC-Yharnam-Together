@@ -1340,11 +1340,43 @@ TEST(BloodbornePartyDeath, AGuestBringsBackWhatTheHostsGeneratorBroughtBack) {
         {0x1002c043, Now - 1'000},  // died here just now: the host may not know yet
         {0x1002c044, Now - 60'000}, // not on the host's board
     };
-    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {0x1002c042}, Now),
+    // The host's board had each of them dead after this guest's copy died (its generator's
+    // victims: the host's kill, then the generator's revive).
+    std::unordered_map<u32, s64> host_dead;
+    for (const DeadCopy& copy : dead_here) {
+        host_dead[copy.handle] = copy.dead_since_ms;
+    }
+    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {0x1002c042}, host_dead, Now),
               std::vector<u32>{0x1002c03d});
-    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {}, Now + BringBackAfterMs),
+    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {}, host_dead, Now + BringBackAfterMs),
               (std::vector<u32>{0x1002c03d, 0x1002c042, 0x1002c043}));
-    EXPECT_TRUE(BroughtBackByTheHost({}, dead_here, {}, Now).empty());
+    EXPECT_TRUE(BroughtBackByTheHost({}, dead_here, {}, host_dead, Now).empty());
+}
+
+// Bug audit 24 (rig host-death-kills 2026-11-10, 1.3.1 on): the guest killed an enemy the host's
+// game runs (0x10014000, 32 m off). Its own copy died at once; the kill reached the owner and came
+// back over the server about 5 s later, so for those seconds the host's board still had it alive,
+// and 3 s after its death the guest "brought back" its own kill. The bonfire respawn that did it
+// woke more of the map: party kills stood again and died again, paying echoes ("enemies only one
+// of us sees", "the whole area respawned"). Only an enemy the host's board had dead (no earlier
+// than shortly before this copy died) and has alive again is the host's generator's.
+TEST(BloodbornePartyDeath, AGuestNeverBringsBackItsOwnKillTheHostHasNotSeenYet) {
+    constexpr s64 Now = 100'000;
+    const std::vector<CharacterShown> host{
+        {.handle = 0x10014000}, {.handle = 0x1000801b}, {.handle = 0x1000801c}};
+    const std::vector<DeadCopy> dead_here{
+        {0x10014000, Now - BringBackAfterMs}, // this guest's kill, not round yet
+        {0x1000801b, Now - 30'000},           // killed by the host, back in its game
+        {0x1000801c, Now - 30'000},           // dead there long before: a kill made here since
+    };
+    const std::unordered_map<u32, s64> host_dead{
+        {0x1000801b, Now - 29'000},
+        {0x1000801c, Now - 30'000 - HostDeadBeforeCopyMs - 1},
+    };
+    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {}, host_dead, Now),
+              std::vector<u32>{0x1000801b});
+    EXPECT_TRUE(BroughtBackByTheHost(host, dead_here, {}, {}, Now).empty())
+        << "the host's board never had any of them dead";
 }
 
 // Rig shadows-look 2026-11-04: both games killed the 2nd Shadow (0x10024060) at once. The host
@@ -1358,7 +1390,10 @@ TEST(BloodbornePartyDeath, ABossDeadHereIsNeverBroughtBack) {
         {0x10024060, Now - 60'000, true},
         {0x1002c03d, Now - 60'000},
     };
-    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {}, Now), std::vector<u32>{0x1002c03d});
+    const std::unordered_map<u32, s64> host_dead{{0x10024060, Now - 60'000},
+                                                 {0x1002c03d, Now - 60'000}};
+    EXPECT_EQ(BroughtBackByTheHost(host, dead_here, {}, host_dead, Now),
+              std::vector<u32>{0x1002c03d});
 }
 
 // Kaniel's DLC playtest 2026-10-28 (1.3.1): the host left, the session went to Lisara, whose copy

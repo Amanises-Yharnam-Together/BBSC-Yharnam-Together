@@ -1940,15 +1940,17 @@ void UpscalerTab() {
              "Точное движение анимированных объектов: одежда и оружие меньше рассыпаются в "
              "движении. Применяется после перезапуска игры."),
            upscaler_on);
-    Toggle("frame_generation", T("Frame generation", "Генерация кадров"), s.frame_generation,
-           T("Frames made between the game's own: FSR 3.1 doubles the frame rate on any GPU, DLSS "
-             "makes up to three on a GeForce RTX 50 (4x). Adds a little input lag and uses some "
-             "video memory; best from 60 FPS. Off by default.",
-             "Кадры между кадрами игры: FSR 3.1 удваивает частоту кадров на любой видеокарте, DLSS "
-             "делает до трёх на GeForce RTX 50 (4x). Немного добавляет задержки ввода и занимает "
-             "видеопамять; лучше от 60 FPS. По умолчанию выключено."),
-           upscaler_on);
-    FrameGenRows(upscaler_on && s.frame_generation);
+    if (!BbSettings::FrameGenHidden()) { // hidden until it works, unless the launcher offers it
+        Toggle("frame_generation", T("Frame generation", "Генерация кадров"), s.frame_generation,
+               T("Frames made between the game's own: FSR 3.1 doubles the frame rate on any GPU, "
+                 "DLSS makes up to three on a GeForce RTX 50 (4x). Adds a little input lag and "
+                 "uses some video memory; best from 60 FPS. Off by default.",
+                 "Кадры между кадрами игры: FSR 3.1 удваивает частоту кадров на любой видеокарте, "
+                 "DLSS делает до трёх на GeForce RTX 50 (4x). Немного добавляет задержки ввода и "
+                 "занимает видеопамять; лучше от 60 FPS. По умолчанию выключено."),
+               upscaler_on);
+        FrameGenRows(upscaler_on && s.frame_generation);
+    }
     if (BbSettings::IsFsr4(s.upscaler)) {
         Toggle("fsr4_exposure", T("FSR 4: auto exposure", "FSR 4: автоэкспозиция"), s.fsr4_auto_exposure,
                T("The FSR 4 network normalises colour by exposure and uses it to decide when to "

@@ -187,17 +187,100 @@ def vulkan_layers(read=registry_layers):
     return layers
 
 
+# Overlay and capture tools whose Vulkan layer crashes the game while it makes its device, before the first
+# frame: (tool, the loader glob of its layer, what its layer's name or manifest path holds, lower case).
+#   HudSight (a crosshair overlay): VK_LAYER_HudSight2 in vulkan-1.dll+0x45a10 under hudsightvk64.dll, and
+#     XeSS's device setup through it; a player's game closed on every start (2026-10-25).
+#   FPS Monitor: a player's game closed on every start until fpsmonvk64.json in FPS Monitor\tools was
+#     renamed (Discord 2026-11-01).
+#   Bandicam: the game did not start while it was installed and running (Discord 2026-10-24).
+#   GOG Galaxy's overlay: support had players turn it off (Discord 2026-11-05); it has no use in this game.
+CRASHING_OVERLAYS = (
+    ('HudSight', '*HudSight*', ('hudsight',)),
+    ('FPS Monitor', '*fpsmon*', ('fpsmon', 'fps monitor')),
+    ('Bandicam', '*bandicam*', ('bandicam', 'bdcam')),
+    ('GOG Galaxy overlay', '*GalaxyOverlay*', ('galaxyoverlay', 'galaxy_overlay', 'gog.com', 'gog galaxy')),
+)
+CRASHING_VK_LAYERS = tuple(glob for _tool, glob, _marks in CRASHING_OVERLAYS)
+# The graphics drivers' own layers (laptop GPU switching, the driver's frame pacing): never an overlay.
+# Steam's fossilize layer only records shaders.
+DRIVER_LAYER_PREFIXES = ('vk_layer_nv_', 'vk_layer_amd_', 'vk_layer_intel_', 'vk_layer_valve_steam_fossilize')
+# ReShade installed for every Vulkan game (its own setup, ProgramData\\ReShade): kept out while the launcher's
+# own ReShade is on, or the game would load two.
+GLOBAL_RESHADE_LAYER = 'VK_LAYER_reshade'
+
+
+def loader_skips(name, globs):
+    """Whether the Vulkan loader leaves the layer NAME out for these VK_LOADER_LAYERS_DISABLE globs (it
+    compares without case; ~implicit~ and ~all~ name every overlay layer)."""
+    import fnmatch
+    name = name.lower()
+    return any(glob.lower() in ('~implicit~', '~all~') or fnmatch.fnmatchcase(name, glob.lower()) for glob in globs)
+
+
+def crashing_overlay(name, manifest):
+    """The tool of CRASHING_OVERLAYS a layer belongs to, by its name or its manifest's path, or None."""
+    text = f'{name}\n{manifest}'.lower()
+    for tool, _glob, marks in CRASHING_OVERLAYS:
+        if any(mark in text for mark in marks):
+            return tool
+    return None
+
+
+def layers_to_skip(inherited, layers, reshade=False):
+    """VK_LOADER_LAYERS_DISABLE for a game run: what was set already, the known crashers' globs, and the
+    installed crashers' layers by their own names (LAYERS as vulkan_layers() gives them) in case a new
+    version of a tool named its layer differently."""
+    skipped = [item for item in inherited.split(',') if item]
+    skipped += [glob for glob in CRASHING_VK_LAYERS if glob not in skipped]
+    if reshade and GLOBAL_RESHADE_LAYER not in skipped:  # RESHADE: the launcher's own is on for this run
+        skipped.append(GLOBAL_RESHADE_LAYER)
+    for name, manifest, on in layers:
+        if on and name != '?' and crashing_overlay(name, manifest) and not loader_skips(name, skipped):
+            skipped.append(name)
+    return ','.join(skipped)
+
+
+def overlay_suspects(layers, disabled):
+    """The other tools' layers the game still loaded (on, not skipped, not the graphics driver's): what a
+    game that closed while starting may blame. A layer whose manifest could not be read shows its path."""
+    globs = [item for item in disabled.split(',') if item]
+    suspects = []
+    for name, manifest, on in layers:
+        if not on or name.lower().startswith(DRIVER_LAYER_PREFIXES):
+            continue
+        if name == '?':
+            if not loader_skips('', [glob for glob in globs if glob.startswith('~')]):
+                suspects.append(manifest)
+        elif not loader_skips(name, globs) and name not in suspects:  # 64-bit and 32-bit manifests: once
+            suspects.append(name)
+    return suspects
+
+
+# run.py prints this just before it starts the game's executable: a run that ends before it failed in the
+# preparation (mods, patches), where no Vulkan layer is loaded.
+GAME_STARTING_LINE = 'run.py: starting the game'
+
+
+def start_crash_suspects(code, started, was_up, stopped, layers, disabled, reshade=False):
+    """What to name to the player after a game run: the suspects when the game's executable STARTED and
+    closed by itself with an error before its window was ready (not after Stop, not after a clean exit),
+    else nothing. RESHADE: the launcher's own ReShade layer was on for the run."""
+    if code == 0 or not started or was_up or stopped:
+        return []
+    return (['ReShade'] if reshade else []) + overlay_suspects(layers, disabled)
+
+
 def overlay_log_line(layers, disabled):
     """The game log's first line: the overlay layers, those the launcher skips (DISABLED, the
     VK_LOADER_LAYERS_DISABLE globs) and those switched off marked."""
-    import fnmatch
     globs = [item for item in disabled.split(',') if item]
     parts = []
     for name, manifest, on in layers:
         text = name if name != '?' else f'? ({manifest})'
         if not on:
             text += ' (off)'
-        elif any(fnmatch.fnmatchcase(name, glob) for glob in globs):
+        elif loader_skips(name, globs):
             text += ' (skipped)'
         parts.append(text)
     return f'Launcher: Vulkan overlay layers: {", ".join(parts) or "none"}\n'

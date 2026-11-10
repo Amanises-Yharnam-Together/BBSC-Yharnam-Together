@@ -4905,7 +4905,8 @@ bool RespawnsInWorldRespawn(WorldRespawnKind kind, const RespawnCandidate& chara
 
 std::vector<u32> BroughtBackByTheHost(std::span<const CharacterShown> host,
                                       std::span<const DeadCopy> dead_here,
-                                      const std::unordered_set<u32>& party_kills, s64 now_ms) {
+                                      const std::unordered_set<u32>& party_kills,
+                                      const std::unordered_map<u32, s64>& host_dead, s64 now_ms) {
     std::unordered_set<u32> alive_at_host;
     for (const CharacterShown& character : host) {
         if (!character.hidden && !character.disabled && !character.distant && !character.dead) {
@@ -4914,8 +4915,11 @@ std::vector<u32> BroughtBackByTheHost(std::span<const CharacterShown> host,
     }
     std::vector<u32> back;
     for (const DeadCopy& copy : dead_here) {
+        const auto dead_there = host_dead.find(copy.handle);
         if (!copy.boss && alive_at_host.contains(copy.handle) &&
-            !party_kills.contains(copy.handle) && now_ms - copy.dead_since_ms >= BringBackAfterMs) {
+            !party_kills.contains(copy.handle) && now_ms - copy.dead_since_ms >= BringBackAfterMs &&
+            dead_there != host_dead.end() &&
+            dead_there->second >= copy.dead_since_ms - HostDeadBeforeCopyMs) {
             back.push_back(copy.handle);
         }
     }

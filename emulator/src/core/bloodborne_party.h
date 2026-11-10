@@ -535,9 +535,17 @@ struct DeadCopy {
     bool boss = false;
 };
 constexpr s64 BringBackAfterMs = 3'000;
+// Bug audit 24 (rig host-death-kills 2026-11-10): the host's "alive" alone is no bring-back. A
+// guest's own kill of an enemy the host's game runs reaches the host and comes back over the
+// server seconds later; until then the host's board has it alive, and the guest brought back its
+// own kill (the respawn woke more of the map, party kills stood again and paid echoes). Only one
+// the host's board had dead (`host_dead`: when the guest last saw it so this visit), no earlier
+// than HostDeadBeforeCopyMs before this copy died, is the host's generator's.
+constexpr s64 HostDeadBeforeCopyMs = 15'000;
 std::vector<u32> BroughtBackByTheHost(std::span<const CharacterShown> host,
                                       std::span<const DeadCopy> dead_here,
-                                      const std::unordered_set<u32>& party_kills, s64 now_ms);
+                                      const std::unordered_set<u32>& party_kills,
+                                      const std::unordered_map<u32, s64>& host_dead, s64 now_ms);
 // Kaniel's DLC playtest 2026-10-28 (1.3.1): the host left, the session went to Lisara (#403), and
 // her copy had krolebord's dead enemies alive. His game brought them back every BringBackEvery,
 // and each time they died again at once by the game's own kill (and other enemies the respawn

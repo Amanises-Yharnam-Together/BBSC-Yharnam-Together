@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import pathlib
+import socketserver
 import ssl
 import subprocess
 import sys
@@ -18,6 +19,7 @@ import tempfile
 import threading
 import time
 import unittest
+import urllib.request
 from pathlib import Path
 from unittest import mock
 
@@ -133,6 +135,9 @@ class AuthTests(unittest.TestCase):
         with self.assertRaises(auth.AuthError) as refused:
             auth.sign_in(self.server.url, 'kaniel', PASSWORD)
         self.assertEqual(refused.exception.text(), auth.CERTIFICATE_TEXT)
+        # The reason the TLS layer gave goes along, for a report (2026-11-06: 1.4.0 sign-in said only
+        # "not valid").
+        self.assertTrue(refused.exception.args[1])
         self.assertEqual(self.server.httpd.seen, [])
         # Another host name than the certificate's.
         wrong_host = self.server.url.replace('localhost', '127.0.0.2')
@@ -227,6 +232,92 @@ class AuthTests(unittest.TestCase):
                     self.assertNotIn(b'ABCD-EFGH', data, path)
             for text in (out.getvalue(), err.getvalue(), logs.getvalue()):
                 self.assertNotIn(PASSWORD, text)
+
+
+class NotTls(socketserver.BaseRequestHandler):
+    def handle(self):
+        self.request.recv(1024)
+        self.request.sendall(b'HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n')
+
+
+class TlsErrorTests(unittest.TestCase):
+    """2026-11-06: every TLS failure said "The server's certificate is not valid", the reason lost."""
+
+    def test_a_connection_that_is_not_tls_is_not_called_a_bad_certificate(self):
+        server = socketserver.TCPServer(('127.0.0.1', 0), NotTls)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            with self.assertRaises(auth.AuthError) as refused:
+                auth.sign_in(f'https://127.0.0.1:{server.server_address[1]}', 'kaniel', PASSWORD)
+        finally:
+            server.shutdown()
+            server.server_close()
+        self.assertEqual(refused.exception.text(), auth.CONNECTION_TEXT)
+        self.assertTrue(refused.exception.args[1])
+
+    def test_the_reason_goes_into_the_text(self):
+        verify = ssl.SSLCertVerificationError(1, 'certificate verify failed')
+        verify.verify_message, verify.reason = 'unable to get local issuer certificate', 'CERTIFICATE_VERIFY_FAILED'
+        error = auth._tls_error(verify)
+        self.assertEqual(error.args, (auth.CERTIFICATE_TEXT, 'unable to get local issuer certificate'))
+        alert = ssl.SSLError(1, 'alert')
+        alert.reason = 'TLSV1_ALERT_PROTOCOL_VERSION'
+        self.assertEqual(auth._tls_error(alert).args, (auth.CONNECTION_TEXT, 'TLSV1_ALERT_PROTOCOL_VERSION'))
+        self.assertEqual(auth._tls_error(ssl.SSLEOFError()).args, (auth.CONNECTION_TEXT, 'SSLEOFError'))
+        for text in (auth.CERTIFICATE_TEXT, auth.CONNECTION_TEXT):
+            self.assertIn('not sent', text.format('x'))
+
+
+class TrustContext(ssl.SSLContext):
+    pass
+
+
+class SystemCertificateTests(unittest.TestCase):
+    """2026-11-06: 1.4.0 sign-in refused seamlesshunt.com on PCs whose Windows store had no ISRG Root X1
+    yet: Check for updates went through truststore, sign-in through Python's own store."""
+
+    def tearDown(self):
+        urllib.request.install_opener(None)
+
+    @staticmethod
+    def contexts(opener):
+        return [handler._context for handler in (opener.handlers if opener else ())
+                if isinstance(handler, urllib.request.HTTPSHandler)]
+
+    def test_sign_in_checks_certificates_through_truststore(self):
+        with mock.patch.dict(sys.modules, {'truststore': mock.Mock(SSLContext=TrustContext)}):
+            [context] = self.contexts(auth._opener(None))
+        self.assertIsInstance(context, TrustContext)
+        self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+        self.assertTrue(context.check_hostname)
+
+    def test_without_truststore_sign_in_still_checks_certificates(self):
+        for truststore in (None, mock.Mock(SSLContext=mock.Mock(side_effect=FileNotFoundError('none')))):
+            with mock.patch.dict(sys.modules, {'truststore': truststore}):
+                [context] = self.contexts(auth._opener(None))
+            self.assertNotIsInstance(context, TrustContext)
+            self.assertEqual(context.verify_mode, ssl.CERT_REQUIRED)
+            self.assertTrue(context.check_hostname)
+
+    def test_sign_in_and_every_urlopen_take_the_same_truststore_path(self):
+        made = []
+
+        def truststore_context():
+            made.append(TrustContext(ssl.PROTOCOL_TLS_CLIENT))
+            return made[-1]
+
+        with mock.patch.object(auth, 'truststore_context', truststore_context):
+            self.assertTrue(coop.use_system_certificates())
+            [updates] = self.contexts(urllib.request._opener)
+            [sign_in] = self.contexts(auth._opener(None))
+        self.assertEqual(made, [updates, sign_in])
+        # And with no truststore context, both keep a default that still checks.
+        with mock.patch.object(auth, 'truststore_context', lambda: None):
+            urllib.request.install_opener(None)
+            self.assertFalse(coop.use_system_certificates())
+            self.assertIsNone(urllib.request._opener)
+            [sign_in] = self.contexts(auth._opener(None))
+        self.assertEqual(sign_in.verify_mode, ssl.CERT_REQUIRED)
 
 
 class OfflineTests(unittest.TestCase):
