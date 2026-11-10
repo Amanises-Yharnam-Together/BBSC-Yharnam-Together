@@ -681,6 +681,17 @@ class PlayTests(unittest.TestCase):
         self.assertNotIn('BB_FPS_LIMIT', env)
         self.assertNotIn('BB_ONLINE_UNLOCKED_FPS', env)
 
+    def test_the_30_fps_choice_is_kept_in_co_op(self):
+        # Discord 2026-10-26 (Serge, three more players): 30 FPS picked in the launcher did nothing in
+        # co-op, the game ran at 60. A PC that cannot hold 60 runs the fixed 60 FPS step slow, so the
+        # PS4's own 30 FPS mode stays (run.py's frame_mode keeps it online); no frame cap goes with it.
+        install = Path('C:/Co-op')
+        settings = dict(coop.DEFAULTS, host_ip='26.1.2.3', account='Lisara', password='pw')
+        env = coop.game_environment({'BB_FPS': '30', 'BB_FPS_LIMIT': '144'}, settings, install, install)
+        self.assertEqual(env['BB_FPS'], '30')
+        self.assertNotIn('BB_FPS_LIMIT', env)
+        self.assertNotIn('BB_ONLINE_UNLOCKED_FPS', env)
+
     def test_the_frame_rate_choice_unlocks_co_op(self):
         # Kaniel 2026-10-22: no switch (unintuitive); the frame rate choice itself unlocks co-op,
         # with a warning when it is picked. 60 and 30 keep the fixed step.

@@ -357,6 +357,12 @@ int FpsLimitIndex(int limit);
 /// BB_ONLINE_FPS_CAP). The menus' FPS limit rows are then disabled and no limit applies.
 bool FrameRateLocked(const char* online, const char* online_cap = nullptr);
 bool FrameRateLocked();
+/// Whether frame generation is hidden (`hidden` "1": BB_FRAME_GEN_HIDDEN, set by the Windows
+/// launcher unless its Experimental features switch is on). Players' reports of 2026-10-21 to
+/// 11-01: toggling it crashed the game and it did nothing at co-op's 60 FPS. Hidden, Load() keeps
+/// it off whatever the file or BB_FRAME_GEN says, and the menu shows no rows for it.
+bool FrameGenHidden(const char* hidden);
+bool FrameGenHidden();
 /// The DLSS model row's choice for a preset value, 0 (NVIDIA's default) if not offered.
 int DlssModelIndex(int preset);
 /// The HDR rows' choices for a brightness: the nearest offered value.
