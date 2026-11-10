@@ -11,6 +11,7 @@
 #include "core/bloodborne_re_internal.h"
 #include "core/bloodborne_send_pace.h"
 #include "core/bloodborne_team.h"
+#include "core/bloodborne_titles.h"
 #include "core/bloodborne_trade.h"
 #include "core/bloodborne_write_watch.h"
 
@@ -1842,20 +1843,25 @@ bool SeamlessCoreInstalled() {
            healing_fountain_host_availability_hook_installed;
 }
 
-// Whether this game is the one the seamless patches are for: Bloodborne CUSA03173 at 01.09.
+// Whether this game is the one the seamless patches are for: Bloodborne at 01.09, any release
+// (bloodborne_titles.h). A refusal is said in the log, a production one too: the launcher gives
+// the game the party HUD either way, and without co-op's code it flashes its placeholders.
 bool IsSeamlessCoopGame() {
-    if (MemoryPatcher::g_game_serial != "CUSA03173") {
-        return false;
-    }
     const auto* param_sfo = Common::Singleton<PSF>::Instance();
     const std::string_view app_version = param_sfo->GetString("APP_VER").value_or("Unknown");
-    if (app_version != "01.09") {
+    const CoopGame game = SeamlessCoopGameFor(MemoryPatcher::g_game_serial, app_version);
+    if (game == CoopGame::OtherGame) {
         LOG_ERROR(Debug,
-                  "Bloodborne seamless patches require CUSA03173 01.09; loaded version is {}",
-                  app_version);
-        return false;
+                  "Bloodborne seamless patches are for Bloodborne 01.09; the game's param.sfo says "
+                  "\"{}\" {}: no seamless co-op",
+                  MemoryPatcher::g_game_serial, app_version);
+    } else if (game == CoopGame::OtherVersion) {
+        LOG_WARNING(Debug,
+                    "Bloodborne seamless patches are for 01.09 and {}'s param.sfo says {}: the "
+                    "site check decides by the executable itself",
+                    MemoryPatcher::g_game_serial, app_version);
     }
-    return true;
+    return GetsSeamlessCoop(game);
 }
 
 // The RE tracer's site at `offset` (Sites), or null.

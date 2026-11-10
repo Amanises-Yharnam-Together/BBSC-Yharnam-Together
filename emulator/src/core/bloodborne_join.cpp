@@ -9,6 +9,7 @@
 #include "core/bloodborne_party.h"
 #include "core/bloodborne_re.h"
 #include "core/bloodborne_re_internal.h"
+#include "core/bloodborne_titles.h"
 #include "core/bloodborne_write_watch.h"
 
 #include <algorithm>
@@ -1564,7 +1565,7 @@ void ClearSeamlessHostPlacementHeader() {
 }
 
 void TraceMatching2LeaveRoom(std::uintptr_t return_address, std::uint64_t room_id) {
-    if (image_base == 0 || MemoryPatcher::g_game_serial != "CUSA03173") {
+    if (image_base == 0 || !IsBloodborneTitle(MemoryPatcher::g_game_serial)) {
         return;
     }
 
