@@ -8,6 +8,7 @@
 #include "core/bloodborne_party.h"
 #include "core/bloodborne_re.h"
 #include "core/bloodborne_re_internal.h"
+#include "core/bloodborne_titles.h"
 #include "core/bloodborne_write_watch.h"
 
 #include <algorithm>
@@ -1851,7 +1852,7 @@ void InstallReverseEngineeringTrace() {
     if (installed || !EnvFlagEnabled("SHADPS4_BLOODBORNE_RE_TRACE")) {
         return;
     }
-    if (MemoryPatcher::g_game_serial != "CUSA03173") {
+    if (!IsBloodborneTitle(MemoryPatcher::g_game_serial)) {
         LOG_WARNING(Debug, "Bloodborne RE trace ignored for title {}",
                     MemoryPatcher::g_game_serial);
         return;
@@ -1860,7 +1861,7 @@ void InstallReverseEngineeringTrace() {
     const auto* param_sfo = Common::Singleton<PSF>::Instance();
     const std::string_view app_version = param_sfo->GetString("APP_VER").value_or("Unknown");
     if (app_version != "01.09") {
-        LOG_ERROR(Debug, "Bloodborne RE trace requires CUSA03173 01.09; loaded version is {}",
+        LOG_ERROR(Debug, "Bloodborne RE trace requires Bloodborne 01.09; loaded version is {}",
                   app_version);
         return;
     }

@@ -683,6 +683,52 @@ class SkipNetworkChoiceTests(unittest.TestCase):
         log, writes = self.compile({'BB_SKIP_NETWORK_CHOICE': '0'})
         self.assertNotIn(patches.SKIP_NETWORK_CHOICE, log)
         self.assertNotIn(self.ADDRESS - EBOOT_BASE, writes)
+class LanguageRegionTests(unittest.TestCase):
+    """Brazilian Portuguese (PS4 language 17) and Latin American Spanish (20): the game picks text and
+    voice by its sell region, and a European copy turns them into Portugal Portuguese and Spain's
+    Spanish with English voice. With one of the two chosen the game runs as the American release,
+    which has both with their own voice; with any other language the region stays (the American
+    release has no German, Italian, Russian... text)."""
+    ADDRESS = 0x023b9190
+
+    def test_only_the_two_american_languages_switch_the_region(self):
+        self.assertTrue(patches.language_region({'BB_LANGUAGE': '17'}))
+        self.assertTrue(patches.language_region({'BB_LANGUAGE': '20'}))
+        self.assertTrue(patches.language_region({'BB_LANGUAGE': ' 17 '}))
+        for value in (None, '', '1', '3', '7', '8', '18', '170', 'pt_BR'):
+            with self.subTest(value=value):
+                self.assertFalse(patches.language_region({} if value is None else {'BB_LANGUAGE': value}))
+
+    def test_the_environment_turns_it_off(self):
+        self.assertFalse(patches.language_region({'BB_LANGUAGE': '17', 'BB_LANGUAGE_REGION': '0'}))
+        self.assertTrue(patches.language_region({'BB_LANGUAGE': '17', 'BB_LANGUAGE_REGION': '1'}))
+
+    def test_patch_only_makes_the_region_american(self):
+        meta = [m for m in ET.parse(XML).getroot().iter('Metadata')
+                if m.get('Name') == patches.LANGUAGE_REGION and m.get('AppVer') == '01.09']
+        self.assertEqual(len(meta), 1)
+        self.assertEqual(meta[0].get('isEnabled'), 'false')  # only patches.py's switch turns it on
+        writes = compile_patches(XML, [patches.LANGUAGE_REGION], '01.09', SEGMENTS)
+        # mov eax, 1 (North America); ret. The confirm button stays X as on a European copy.
+        self.assertEqual([(offset + EBOOT_BASE, data.hex()) for offset, data in writes],
+                         [(self.ADDRESS, 'b801000000c3')])
+
+    def test_it_leaves_the_coop_sites_alone(self):
+        named = patches.compile_named(XML, [patches.LANGUAGE_REGION], '01.09', SEGMENTS)
+        self.assertEqual(patches.coop_conflicts(named), [])
+
+    def test_main_applies_it_for_the_two_languages_only(self):
+        compile = SkipNetworkChoiceTests.compile
+        for language in ('17', '20'):
+            log, writes = compile(self, {'BB_LANGUAGE': language})
+            self.assertIn(patches.LANGUAGE_REGION, log)
+            self.assertEqual(writes[self.ADDRESS - EBOOT_BASE].hex(), 'b801000000c3')
+        for env in ({}, {'BB_LANGUAGE': '7'}, {'BB_LANGUAGE': '17', 'BB_LANGUAGE_REGION': '0'}):
+            log, writes = compile(self, env)
+            self.assertNotIn(patches.LANGUAGE_REGION, log)
+            self.assertNotIn(self.ADDRESS - EBOOT_BASE, writes)
+
+
 class NetworkChoiceTests(unittest.TestCase):
     def test_skipped_by_default(self):
         self.assertTrue(patches.skip_network_choice({}))

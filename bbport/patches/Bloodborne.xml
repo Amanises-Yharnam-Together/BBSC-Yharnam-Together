@@ -3778,6 +3778,11 @@
             <Line Type="bytes" Address="0x01f39030" Value="554889e5534883ec184889fb488d05ed2d80034889042448897424084889e6e87c0c01004889d84883c4185b5dc3"/>
         </PatchList>
     </Metadata>
+    <Metadata Title="Bloodborne" Name="North American Region (Brazilian Portuguese, Latin American Spanish)" Author="bbport" Note="The game runs as the North American release: its sell region function (0x1fb9190) returns 1. That region has Brazilian Portuguese and Latin American Spanish text with their own voice; a European copy shows Portugal Portuguese and Spain's Spanish instead. It has no German, Italian, Russian or other European text, so the port turns it on only while one of the two languages is chosen." PatchVer="1.0" AppVer="01.09" AppElf="eboot.bin" isEnabled="false">
+        <PatchList>
+            <Line Type="bytes" Address="0x023b9190" Value="b801000000c3"/>
+        </PatchList>
+    </Metadata>
     <Metadata Title="Bloodborne" Name="Larger GX Per-Frame Command Heap" Author="bbport" Note="Each GX swap-chain command buffer gets a 1 MiB per-frame heap instead of 256 KiB, covering the unchecked NULL command allocations at guest 0x2199310 and 0x21d5b40 (deadinside28 #162, PR #224)." PatchVer="1.0" AppVer="01.09" AppElf="eboot.bin" isEnabled="false">
         <PatchList>
             <Line Type="bytes" Address="0x02595c0a" Value="00001000"/>

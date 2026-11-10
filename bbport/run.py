@@ -600,6 +600,8 @@ def main():
                    '--patches', str(out / 'patches.bin'), '--app0', str(game),
                    '--user', str(user_dir),
                    '--timeout', env.get('BB_TIMEOUT', '0'), *args]
+        # The launcher reads this line (bbport_support.GAME_STARTING_LINE): the preparation is over.
+        print('run.py: starting the game', flush=True)
         # No stdin: an inherited pipe (shells such as Git Bash) cost the game its console output.
         return subprocess.run(command, stdin=subprocess.DEVNULL, creationflags=no_console()).returncode
     finally:

@@ -5279,6 +5279,63 @@ SCENARIOS["ludwig-retry"] = _ludwig_retry("ludwig-retry", during_change=False)
 SCENARIOS["ludwig-retry-mid-change"] = _ludwig_retry("ludwig-retry-mid-change",
                                                      during_change=True)
 
+# Bug audit 24 (Lisara 2026-11-04, STEVE 2026-11-03, Provi 2026-10-29; 1.3.1 on): when the host,
+# whose game runs the enemies, dies for real, enemies the party killed come back for one player
+# ("the whole area may get respawned"), and the host's death respawn kills them again, paying
+# echoes. Both kill two ordinary enemies by the first lamp; the host goes down and gives up while
+# the guest stays on the map. Every kill stays down on both games, nothing is brought back on the
+# guest and no kill pays echoes after the death. "-far": the host dies outright from a fall 130 m
+# from its lamp, no down first (rig 2026-11-10: its respawn moves it to the lamp, no reload).
+HOST_DEATH_HOST_KILLS = (BY_THE_LAMP, ENEMY)
+HOST_DEATH_GUEST_KILLS = (SECOND_ENEMY, CLINIC)
+HOST_DEATH_FAR_SPOT = "-150.0 -40.0 300.0"  # PING_MAP_SPOT, about 130 m from the first lamp
+# Kill rewards after the death (a kill the death respawn put down again pays nothing: QuietKills).
+PAID_AFTER_HOST_DEATH = r"autoplay log: host died[\s\S]*Bloodborne echoes: \+[1-9]\d* \(rates"
+
+
+def _party_kills_down(seconds: int) -> list[str]:
+    return _stays_dead((*HOST_DEATH_HOST_KILLS, *HOST_DEATH_GUEST_KILLS), seconds)
+
+
+def _host_death_kills(name: str, far: bool) -> dict:
+    tag = name
+    host = [START, "wait-session 2 300", "godmode", "wait 10", "census 60", f"sync {tag}-ready",
+            *(f"kill {handle}" for handle in HOST_DEATH_HOST_KILLS), "wait 5",
+            f"sync {tag}-killed", "wait 5", "census 60", *_party_kills_down(3)]
+    if far:
+        host += [f"teleport {HOST_DEATH_FAR_SPOT}", "wait 5"]
+    death = [*LETHAL_FALL, "wait-vital dead 30"] if far else GIVE_UP
+    host += ["godmode off", *death, "log host died", "wait-vital up 90", "wait 10",
+             "census 60", *_party_kills_down(30), "census 60", f"sync {tag}-checked",
+             "expect-session 2"]
+    guest = [START, "wait-session 2 300", "godmode", "wait 10", "census 60", f"sync {tag}-ready",
+             *(f"kill {handle}" for handle in HOST_DEATH_GUEST_KILLS), "wait 5",
+             f"sync {tag}-killed", "wait 5", "census 60", *_party_kills_down(3),
+             "wait-member-vital dead 120", "log host died", "wait-member-vital up 90",
+             *_party_kills_down(40), "census 60", f"sync {tag}-checked", "expect-session 2"]
+    return {
+        "about": "the host, whose game runs the enemies, dies for real "
+                 f"{'by a fall far from its lamp ' if far else ''}while the guest stays "
+                 "on the map: every enemy the party killed stays down on both games, nothing is "
+                 "brought back on the guest, and no kill pays echoes after the death",
+        "settings": PARTY_DEATH,
+        "roles": {"host": host, "guest": guest},
+        "expect": {"host": [r"party death: died for real on map 0x18010000 \(reset=false"
+                            if far else
+                            r"party death: giving up ends down \d+; dies \(reset=false"]},
+        "syncs": {f"{tag}-{step}": {"chapter": name, "roles": ["host", "guest"]}
+                  for step in ("ready", "killed", "checked")},
+        "forbid": {"host": [*SESSION_HOLDS, PAID_AFTER_HOST_DEATH],
+                   "guest": [*SESSION_HOLDS, PAID_AFTER_HOST_DEATH,
+                             r"brought back are dead here on map 0x18010000"]},
+        "timeout": 600,
+    }
+
+
+SCENARIOS["host-death-kills"] = _host_death_kills("host-death-kills", far=False)
+SCENARIOS["host-death-kills-far"] = _host_death_kills("host-death-kills-far", far=True)
+
+
 # Probes (the rig rework, Kaniel 2026-11-01): runs that measure, capture or take pictures to
 # look at, not pass/fail tests. Runnable by name like any scenario (run_scenario.py <name>,
 # --play <name>) and in no tier.
