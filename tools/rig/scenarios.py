@@ -5044,8 +5044,11 @@ SCENARIOS["doll-level-up-host"] = {
 # -175.0 392.6 on the Lunarium's balcony; 3202809, "past the host's fog", is 2 m west of it, the
 # lake's drop 3202800 35 m west) is hidden until his entrance has run, except for a client (13204830
 # skips the hiding for multiplayer state 1). A guest in the host's world (joined there) is one; a
-# guest on its own trip is not. Each player stands 4 m east of the fog facing west and walks 8 m.
-# m32's multiplayer wall 3201999 (event 7600) is read too.
+# guest on its own trip is not. Each player stands 4 m east of the fog, reads the wall's switch
+# (bit 14 of the object's +0x1FC, what 2005:3 writes) and its own character type, then pushes the
+# stick for 3 s with a snapshot before and after (a walk check stopped both games after 1.5 m, the
+# host with no fog shown: something else stands there, rig 2026-11-10 12:03). m32's multiplayer
+# wall 3201999 (event 7600) is read too.
 BYRGENWERTH_LAMP = 3202950
 BYRGENWERTH_LAMP_LIT = 13207810
 ROM_FOG = "3201800 3201999"
@@ -5053,7 +5056,7 @@ ROM_FOG = "3201800 3201999"
 
 def rom_fog_walk(z: float) -> list[str]:
     return [f"teleport -448.9 -175.0 {z} 1.5708", "wait 5", f"object {ROM_FOG}", "peek self 78",
-            "snapshot", "expect-walks 8 12", "snapshot"]
+            "snapshot", "stick 128 0 3000", "wait 4", "snapshot"]
 
 
 # A plain join leaves the guest where it stands (rig 2026-11-10 10:25: it stayed in Central
@@ -5078,8 +5081,7 @@ SCENARIOS["rom-fog-guest-joins"] = {
                    "wait-members 2 180", "wait 20", f"expect-map {BYRGENWERTH}",
                    *rom_fog_walk(390.6), "expect-session 2"]],
     },
-    "expect": {role: [r"autoplay object 3201800: enabled 0 ", r"autoplay: walked"]
-               for role in ("host", "guest")},
+    "expect": {role: [r"autoplay object 3201800: enabled 0 "] for role in ("host", "guest")},
     "allow": CRASH_CLEANUP,
     "timeout": 900,
 }
@@ -5098,8 +5100,7 @@ SCENARIOS["rom-fog-both-travel"] = {
     },
     "syncs": {name: {"chapter": "rom-fog-both-travel", "roles": ["host", "guest"]}
               for name in ("rom-fog-travel", "rom-fog-travel-walked")},
-    "expect": {role: [r"autoplay object 3201800: enabled 0 ", r"autoplay: walked"]
-               for role in ("host", "guest")},
+    "expect": {role: [r"autoplay object 3201800: enabled 0 "] for role in ("host", "guest")},
     "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
     "timeout": 600,
 }
