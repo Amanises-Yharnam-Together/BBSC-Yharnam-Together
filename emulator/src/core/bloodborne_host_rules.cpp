@@ -324,7 +324,8 @@ std::optional<HostRules> OwnRulesAtStart(const char* env_rules, const char* env_
         rules.enemies = ParseHarderEnemies(env_harder != nullptr ? env_harder : "");
         return rules;
     }
-    while (!saved.empty() && (saved.back() == '\n' || saved.back() == '\r' || saved.back() == ' ')) {
+    while (!saved.empty() &&
+           (saved.back() == '\n' || saved.back() == '\r' || saved.back() == ' ')) {
         saved.remove_suffix(1);
     }
     return ParseScreenRules(saved);

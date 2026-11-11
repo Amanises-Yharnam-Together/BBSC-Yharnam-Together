@@ -78,6 +78,28 @@ int main() {
     }
     assert(TeamScreenScale(1.0f, 1920.0f) == 1.0f && TeamScreenScale(0.75f, 1280.0f) == 0.75f);
     assert(TeamScreenScale(0.75f, 960.0f) < 0.75f);
+    // Kaniel 2026-11-11: the team settings page with the Custom enemy strength has eleven rows. At
+    // 720p (960 units high at the scale's floor) the usual rows left one line for the focused row's
+    // meaning and the next lines ran onto the key guide: there the rows are lower, and the rows,
+    // the space under them and three lines of meaning end above the key guide at every size.
+    for (const Rect frame : {Rect{0, 0, 1280, 720}, Rect{0, 0, 960, 720}, Rect{0, 0, 1366, 768},
+                             Rect{0, 0, 1920, 1080}, Rect{0, 0, 3840, 2160}, Rect{0, 0, 2560, 1080}}) {
+        const float s = TeamScreenScale(Scale(Stage(frame).h), frame.w);
+        // DrawSettings: the window is the display less 40, the rows start 130 and the ornament (31)
+        // under its top, the key guide's top is its clearance (46) and its line (27) over its bottom.
+        const float room = (frame.h / s - 40.0f) - 130.0f - 31.0f - 46.0f - 27.0f;
+        for (const int rows : {8, 11}) {
+            const SettingsRows fit = TeamSettingsRows(rows, room);
+            assert(fit.height >= SettingsRowLeast && fit.height <= SettingsRowHeight);
+            assert(rows * fit.height + (rows - 1) * fit.gap + SettingsRowsUnder + SettingsMeaningRoom <= room);
+        }
+        // Eight rows are the usual ones everywhere; eleven only where they fit (not at 720p).
+        assert(TeamSettingsRows(8, room).height == SettingsRowHeight);
+        assert(TeamSettingsRows(8, room).gap == SettingsRowGap);
+    }
+    assert(TeamSettingsRows(11, 1080.0f - 40.0f - 234.0f).height == SettingsRowHeight);
+    assert(TeamSettingsRows(11, 960.0f - 40.0f - 234.0f).height < SettingsRowHeight);
+    assert(TeamSettingsRows(11, 100.0f).height == SettingsRowLeast); // no room at all: the least
     std::puts("Party layout: PASS (1080p, 4K, 720p, small window, letterboxed, pillarboxed, 21:9, 4:3, "
               "narrow team screen)");
 }

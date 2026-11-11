@@ -3625,11 +3625,24 @@ void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
     const int invaders = settings.invaders >= 0 ? settings.invaders : invaders_now;
     const int deaths = settings.deaths >= 0 ? settings.deaths : deaths_now;
 
+    // Kaniel 2026-11-05: the team rules (were the leader's launcher's): the enemies' strength, Rot,
+    // travelling together and the boss tempo, its leader's to change here, the others' to read.
+    TeamRules rules = settings.rules && now - settings.pressed_at <= 2.0 ? *settings.rules : LobbyRules();
+    if (settings.rules && (now - settings.pressed_at > 2.0 || *settings.rules == LobbyRules())) {
+        settings.rules.reset();
+    }
+    const bool custom = settings.custom || StrengthIndex(rules) < 0;
+
     ImGui::PushFont(MenuArt::Font(), 22.0f);
     // Kaniel 2026-11-05: the team rules are here too, so the rows are lower.
-    const ImVec2 row(std::min(S(820.0f), size.x - S(160.0f)), S(50.0f));
-    const float rx = mid - row.x * 0.5f, gap = S(8.0f);
+    // Kaniel 2026-11-11: Custom's three rows make eleven: lower still where they would put the
+    // focused row's meaning onto the key guide (720p; BbPartyLayout::TeamSettingsRows).
     float y = win.y + S(130.0f) + under;
+    const float guide_top = win.y + size.y - S(BbKeyGuide::BottomClearance + 27.0f);
+    const BbPartyLayout::SettingsRows fit =
+        BbPartyLayout::TeamSettingsRows(custom ? 11 : 8, (guide_top - y) / base_scale);
+    const ImVec2 row(std::min(S(820.0f), size.x - S(160.0f)), S(fit.height));
+    const float rx = mid - row.x * 0.5f, gap = S(fit.gap);
     // Amanises 2026-10-25, open teams: how the team is joined, each press the next way (by invite
     // only, listed with its leader taking who asks, listed for anyone to join).
     const char* join_text = join == BBCOOP_JOIN_OPEN  ? T("Open to all", "Открыт всем")
@@ -3663,12 +3676,6 @@ void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
         bbcoop_lobby_request(BBCOOP_TEAM_DEATH_MODE, settings.deaths ? "1" : "0");
     }
     y += row.y + gap;
-    // Kaniel 2026-11-05: the team rules (were the leader's launcher's): the enemies' strength, Rot,
-    // travelling together and the boss tempo, its leader's to change here, the others' to read.
-    TeamRules rules = settings.rules && now - settings.pressed_at <= 2.0 ? *settings.rules : LobbyRules();
-    if (settings.rules && (now - settings.pressed_at > 2.0 || *settings.rules == LobbyRules())) {
-        settings.rules.reset();
-    }
     bool changed = false;
     if (SettingRow(draw, "rule_enemies", T("Enemies", "Враги"),
                    rules.scale ? T("Auto: stronger with each hunter", "Авто: сильнее с каждым охотником")
@@ -3678,7 +3685,6 @@ void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
         changed = true;
     }
     y += row.y + gap;
-    const bool custom = settings.custom || StrengthIndex(rules) < 0;
     const std::string strength = StrengthText(rules, custom);
     if (SettingRow(draw, "rule_strength", T("Enemy strength", "Сила врагов"), strength.c_str(), ImVec2(rx, y), row,
                    leads)) {
@@ -3736,7 +3742,7 @@ void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
         settings.pressed_at = now;
         bbcoop_lobby_request(BBCOOP_TEAM_RULES, ScreenRules(rules).c_str());
     }
-    y += row.y + S(20.0f);
+    y += row.y + S(BbPartyLayout::SettingsRowsUnder);
     ImGui::PopFont();
 
     // What the focused row means, then the host rules.
