@@ -1078,7 +1078,9 @@ def game_environment(role: str, script: pathlib.Path | None, party: str,
         env["SHADPS4_NET_FIREWALL"] = firewall_setting()
     if PING:
         env["SHADPS4_P2P_DELAY_MS"] = latency.game_setting(PING)
-        if "BB_SHADNET_SERVER" in env:
+        # Not an address the scenario names itself (sign-in-no-server's, where nothing answers:
+        # full rig 2026-11-10, the lane's server put there let the game sign in).
+        if "BB_SHADNET_SERVER" in env and "BB_SHADNET_SERVER" not in (settings or {}):
             # The link (UDP) goes straight to shadNet, which listens at the proxy's port + 1.
             env["BB_SHADNET_SERVER"] = f"127.0.0.1:{matching_udp_port()}"
             env["BB_SHADNET_WEBAPI"] = f"http://127.0.0.1:{server_port(WEBAPI_PORT)}"
