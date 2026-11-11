@@ -562,5 +562,7 @@
  "Enemy damage": "Düşman hasarı",
  "Enemy poise": "Düşman dengesi",
  "Friendly fire": "Dost ateşi",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Daha zorlu bir av için: takım arkadaşlarının saldırıları her zaman birbirine hasar verir. Bir takım arkadaşının öldürücü darbesi diğer ölümler gibi sayılır."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Daha zorlu bir av için: takım arkadaşlarının saldırıları her zaman birbirine hasar verir. Bir takım arkadaşının öldürücü darbesi diğer ölümler gibi sayılır.",
+ "Give to %s": "%s oyuncusuna ver",
+ "Give Blood Echoes to %s": "%s oyuncusuna Kan Yankısı ver"
 }

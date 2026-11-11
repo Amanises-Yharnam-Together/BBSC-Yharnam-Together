@@ -55,7 +55,7 @@ enum class MenuLanguage {
 #include "bbport_menu_texts.inc"
 #undef BB_MENU_LANG
 };
-inline constexpr int MenuLanguageCount = int(MenuLanguage::Tr) + 1;
+inline constexpr int MenuLanguageCount = int(MenuLanguage::Ar) + 1;  // the table's last language
 
 /// Game effects switched by the community patches at start (patches.py EFFECTS): ini key,
 /// menu label, default (the game's own behaviour).
@@ -292,6 +292,7 @@ const char* MenuText(const char* english, const char* russian);
 const char* Translate(MenuLanguage language, const char* english, const char* russian);
 /// The game's language: BB_LANGUAGE, the PS4 system language the game reads (English without it).
 MenuLanguage GameLanguage();
+MenuLanguage AutoMenuLanguage();
 MenuLanguage LanguageFromPs4(int id);
 /// bbport.ini's code ("en", "ru", "zh_TW", ...) and the language's own name.
 const char* LanguageCode(MenuLanguage language);

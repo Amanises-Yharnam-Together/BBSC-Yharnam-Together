@@ -22,7 +22,7 @@ SAME_EVERYWHERE = {
     'English (UK)', 'Fran\xe7ais', 'Espa\xf1ol', 'Espa\xf1ol (Latinoam\xe9rica)', 'Deutsch', 'Italiano',
     'Nederlands', 'Portugu\xeas', 'Portugu\xeas (Brasil)', 'Suomi', 'Svenska', 'Dansk', 'Norsk', 'Polski',
     'T\xfcrk\xe7e', '\u0420\u0443\u0441\u0441\u043a\u0438\u0439', '\u65e5\u672c\u8a9e', '\ud55c\uad6d\uc5b4',
-    '\u7e41\u9ad4\u4e2d\u6587', '\u7b80\u4f53\u4e2d\u6587',
+    '\u7e41\u9ad4\u4e2d\u6587', '\u7b80\u4f53\u4e2d\u6587', '\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (mod)',
 }
 
 

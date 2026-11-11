@@ -131,7 +131,8 @@ def game_view(env, game, out, data, icons):
     (BB_PARTY_HUD=0) and the glyphs are the game's own. From Supermedo's bbport (bf0878b, 9461312: their own layers
     there are Quit to Desktop's texts and the HUD layout)."""
     args = [game, '--out', out, '--mods-dir', env.get('BB_MODS_DIR', data / 'mods'),
-            '--config', env.get('BB_MODS_CONFIG', data / 'mods.json'), '--enabled', env.get('BB_MODS_ENABLED', '1')]
+            '--config', env.get('BB_MODS_CONFIG', data / 'mods.json'), '--enabled', env.get('BB_MODS_ENABLED', '1'),
+            '--language', env.get('BB_LANGUAGE', '')]
     layers = [*icons, *party_hud_args(env)]
     view = run_script('mods.py', *args, *layers, capture=True, optional=bool(layers))
     if view is None:

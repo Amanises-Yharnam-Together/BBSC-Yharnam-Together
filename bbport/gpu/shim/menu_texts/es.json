@@ -562,5 +562,7 @@
  "Enemy damage": "Daño de los enemigos",
  "Enemy poise": "Equilibrio de los enemigos",
  "Friendly fire": "Fuego amigo",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Para una cacería más dura: los ataques de los compañeros se dañan entre sí en todo momento. El golpe mortal de un compañero cuenta como cualquier otra muerte."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Para una cacería más dura: los ataques de los compañeros se dañan entre sí en todo momento. El golpe mortal de un compañero cuenta como cualquier otra muerte.",
+ "Give to %s": "Dar a %s",
+ "Give Blood Echoes to %s": "Dar Ecos de sangre a %s"
 }

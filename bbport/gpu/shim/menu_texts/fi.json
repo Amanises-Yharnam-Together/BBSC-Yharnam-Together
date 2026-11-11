@@ -562,5 +562,7 @@
  "Enemy damage": "Vihollisten vahinko",
  "Enemy poise": "Vihollisten tasapaino",
  "Friendly fire": "Oma tuli",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Vaikeampaa metsästystä varten: tiimiläisten hyökkäykset vahingoittavat toisiaan koko ajan. Tiimiläisen tappava isku lasketaan kuten mikä tahansa muu kuolema."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Vaikeampaa metsästystä varten: tiimiläisten hyökkäykset vahingoittavat toisiaan koko ajan. Tiimiläisen tappava isku lasketaan kuten mikä tahansa muu kuolema.",
+ "Give to %s": "Anna pelaajalle %s",
+ "Give Blood Echoes to %s": "Anna veren kaikuja pelaajalle %s"
 }

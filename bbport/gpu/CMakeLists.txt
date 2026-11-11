@@ -316,6 +316,27 @@ if (WIN32)
 endif()
 target_link_libraries(bbnet PUBLIC Zydis::Zydis)
 target_link_libraries(bbgpu PUBLIC bbnet)
+# Arabic in the menus (BBSC 2026-11-08): ImGui lays every line left to right, so ImFont::RenderText
+# gets two lines that hand lines holding Arabic to shim/imgui_bidi.h first (display order). ImGui is
+# a submodule here, so the lines are added at configure time, once.
+set(BB_IMGUI_DRAW "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp")
+file(READ "${BB_IMGUI_DRAW}" BB_IMGUI_DRAW_TEXT)
+# A checkout with Windows line ends (core.autocrlf) is matched as plain new lines; the file is written back so.
+string(REPLACE "\r\n" "\n" BB_IMGUI_DRAW_TEXT "${BB_IMGUI_DRAW_TEXT}")
+if(NOT BB_IMGUI_DRAW_TEXT MATCHES "imgui_bidi\\.h")
+    set(BB_IMGUI_RENDER "void ImFont::RenderText(ImDrawList* draw_list, float size,")
+    set(BB_IMGUI_BEGIN "ImDrawTextFlags flags)\n{\nbegin:\n")
+    string(FIND "${BB_IMGUI_DRAW_TEXT}" "${BB_IMGUI_BEGIN}" BB_IMGUI_AT)
+    if(BB_IMGUI_AT EQUAL -1)
+        message(FATAL_ERROR "imgui_draw.cpp: ImFont::RenderText not as expected (ImGui updated?): see shim/imgui_bidi.h")
+    endif()
+    string(REPLACE "${BB_IMGUI_RENDER}" "#include \"imgui_bidi.h\" // BBSC: right-to-left lines\n${BB_IMGUI_RENDER}"
+        BB_IMGUI_DRAW_TEXT "${BB_IMGUI_DRAW_TEXT}")
+    string(REPLACE "${BB_IMGUI_BEGIN}" "${BB_IMGUI_BEGIN}    IMGUI_BIDI_RENDER_TEXT_HOOK\n"
+        BB_IMGUI_DRAW_TEXT "${BB_IMGUI_DRAW_TEXT}")
+    file(WRITE "${BB_IMGUI_DRAW}" "${BB_IMGUI_DRAW_TEXT}")
+    message(STATUS "imgui_draw.cpp: right-to-left hook added")
+endif()
 # In-game settings menu: Dear ImGui (third_party/imgui, MIT) with its Vulkan backend, and an
 # embedded Cyrillic font (third_party/fonts).
 target_sources(bbgpu PRIVATE third_party/imgui/imgui.cpp third_party/imgui/imgui_draw.cpp

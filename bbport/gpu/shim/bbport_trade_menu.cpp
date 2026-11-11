@@ -101,6 +101,14 @@ F Game(u64 va) {
 }
 
 u32 give_name = 0, give_help = 0, give_echoes_name = 0, give_echoes_help = 0;
+u32 give_to_text = 0, give_echoes_to_text = 0;  // "Give to %s" rows in the game's language (TextNow)
+
+/// One of the "%s" texts above with a party member's name in it.
+std::string Named(u32 text, const std::string& name) {
+    std::string out = BbGameMenu::TextNow(text);
+    const std::size_t at = out.find("%s");
+    return at == std::string::npos ? out + " " + name : out.replace(at, 2, name);
+}
 // The Give rows of the item commands open now (their labels), for the select's check.
 BbTradeRows::GiveRows give_rows;
 
@@ -278,13 +286,13 @@ GAME_ABI void* OpenItemCommands(void** out, void* model, u8* factory) {
         for (int i = 0; give && i < count; ++i) {
             const std::string row = std::string("Give to ") + names[i];
             give_rows.AddItem(row);
-            AddGiveRow(model, BbGameMenu::SetDynamicText(2 + i, row.c_str()), give_help, kind, id,
+            AddGiveRow(model, BbGameMenu::SetDynamicText(2 + i, Named(give_to_text, names[i]).c_str()), give_help, kind, id,
                        goods ? 0 : handle, u32(i));
         }
         for (int i = 0; echoes && i < count; ++i) {
             const std::string row = std::string("Give Blood Echoes to ") + names[i];
             give_rows.AddEchoes(row);
-            AddGiveRow(model, BbGameMenu::SetDynamicText(5 + i, row.c_str()), give_echoes_help,
+            AddGiveRow(model, BbGameMenu::SetDynamicText(5 + i, Named(give_echoes_to_text, names[i]).c_str()), give_echoes_help,
                        EchoesKind, 0, 0, u32(i));
         }
     }
@@ -591,6 +599,8 @@ bool PatchImage(unsigned char* image_start, std::uint64_t size, std::uint8_t*& s
     give_echoes_help = BbGameMenu::AddGameText(
         "Give some of your Blood Echoes to this party member",
         "Отдать часть своих Отголосков крови этому участнику группы");
+    give_to_text = BbGameMenu::AddGameText("Give to %s", "Отдать: %s");
+    give_echoes_to_text = BbGameMenu::AddGameText("Give Blood Echoes to %s", "Отдать Отголоски крови: %s");
     // call rel32 -> a thunk: movabs rax, OpenItemCommands; jmp rax.
     u8* thunk = stubs;
     void* hook = reinterpret_cast<void*>(&OpenItemCommands);

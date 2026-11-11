@@ -21,6 +21,7 @@ BB_MENU_LANG(No, "no", "Norsk", 15)
 BB_MENU_LANG(Pl, "pl", "Polski", 16)
 BB_MENU_LANG(PtBr, "pt_BR", "Português (Brasil)", 17)
 BB_MENU_LANG(Tr, "tr", "Türkçe", 19)
+BB_MENU_LANG(Ar, "ar", "ﺍﻟﻌﺮﺑﻴﺔ", 21)
 #endif
 #ifdef BB_MENU_TEXT
 BB_MENU_TEXT("On",
@@ -41,7 +42,8 @@ BB_MENU_TEXT("On",
              "På",
              "Wł.",
              "Ligado",
-             "Açık"})
+             "Açık",
+             "ﺗﺸﻐﻴﻞ"})
 BB_MENU_TEXT("Off",
             {"OFF",
              "Désactivé",
@@ -60,7 +62,8 @@ BB_MENU_TEXT("Off",
              "Av",
              "Wył.",
              "Desligado",
-             "Kapalı"})
+             "Kapalı",
+             "ﺇﻳﻘﺎﻑ"})
 BB_MENU_TEXT("Frame generation: provider",
             {"フレーム生成：方式",
              "Génération d'images : technologie",
@@ -79,7 +82,8 @@ BB_MENU_TEXT("Frame generation: provider",
              "Bildegenerering: teknologi",
              "Generowanie klatek: technologia",
              "Geração de quadros: tecnologia",
-             "Kare oluşturma: teknoloji"})
+             "Kare oluşturma: teknoloji",
+             "ﺗﻮﻟﻴﺪ ﺍﻹﻃﺎﺭﺍﺕ: ﺍﻟﻤﺰﻭﺩ"})
 BB_MENU_TEXT("FSR 3.1: any GPU, 2x. DLSS: NVIDIA's frame generation, smoother in motion; up to 4x on a GeForce RTX 50.",
             {"FSR 3.1：どのGPUでも2x。DLSS：NVIDIAのフレーム生成で、動きがより滑らか。GeForce RTX 50では最大4x。",
              "FSR 3.1 : tout GPU, 2x. DLSS : génération d'images NVIDIA, plus fluide en mouvement ; jusqu'à 4x sur une GeForce RTX 50.",
@@ -98,7 +102,8 @@ BB_MENU_TEXT("FSR 3.1: any GPU, 2x. DLSS: NVIDIA's frame generation, smoother in
              "FSR 3.1: alle GPU-er, 2x. DLSS: NVIDIAs bildegenerering, jevnere i bevegelse; opptil 4x på et GeForce RTX 50.",
              "FSR 3.1: każdy GPU, 2x. DLSS: generowanie klatek NVIDIA, płynniejsze w ruchu; do 4x na GeForce RTX 50.",
              "FSR 3.1: qualquer placa de vídeo, 2x. DLSS: geração de quadros da NVIDIA, mais suave em movimento; até 4x em uma GeForce RTX 50.",
-             "FSR 3.1: her GPU, 2x. DLSS: NVIDIA'nın kare oluşturması, harekette daha akıcı; GeForce RTX 50'de 4x'e kadar."})
+             "FSR 3.1: her GPU, 2x. DLSS: NVIDIA'nın kare oluşturması, harekette daha akıcı; GeForce RTX 50'de 4x'e kadar.",
+             "FSR 3.1: ﺃﻱ ﺑﻄﺎﻗﺔ ﺭﺳﻮﻣﻴﺎﺕ، 2x. DLSS: ﺗﻮﻟﻴﺪ ﺇﻃﺎﺭﺍﺕ NVIDIA، ﺃﻧﻌﻢ ﻓﻲ ﺍﻟﺤﺮﻛﺔ؛ ﺣﺘﻰ 4x ﻋﻠﻰ GeForce RTX 50."})
 BB_MENU_TEXT("FSR 3.1: any GPU, 2x. DLSS Frame Generation needs a GeForce RTX 40 or newer with bbport_dlss.dll and nvngx_dlssg.dll.",
             {"FSR 3.1：どのGPUでも2x。DLSS Frame GenerationにはGeForce RTX 40以降とbbport_dlss.dll、nvngx_dlssg.dllが必要です。",
              "FSR 3.1 : tout GPU, 2x. DLSS Frame Generation nécessite une GeForce RTX 40 ou plus récente, avec bbport_dlss.dll et nvngx_dlssg.dll.",
@@ -117,7 +122,8 @@ BB_MENU_TEXT("FSR 3.1: any GPU, 2x. DLSS Frame Generation needs a GeForce RTX 40
              "FSR 3.1: alle GPU-er, 2x. DLSS Frame Generation krever et GeForce RTX 40 eller nyere med bbport_dlss.dll og nvngx_dlssg.dll.",
              "FSR 3.1: każdy GPU, 2x. DLSS Frame Generation wymaga GeForce RTX 40 lub nowszego oraz bbport_dlss.dll i nvngx_dlssg.dll.",
              "FSR 3.1: qualquer placa de vídeo, 2x. O DLSS Frame Generation exige uma GeForce RTX 40 ou mais nova, com bbport_dlss.dll e nvngx_dlssg.dll.",
-             "FSR 3.1: her GPU, 2x. DLSS Frame Generation için GeForce RTX 40 veya daha yenisi ile bbport_dlss.dll ve nvngx_dlssg.dll gerekir."})
+             "FSR 3.1: her GPU, 2x. DLSS Frame Generation için GeForce RTX 40 veya daha yenisi ile bbport_dlss.dll ve nvngx_dlssg.dll gerekir.",
+             "FSR 3.1: ﺃﻱ ﺑﻄﺎﻗﺔ ﺭﺳﻮﻣﻴﺎﺕ، 2x. ﺗﻮﻟﻴﺪ ﺇﻃﺎﺭﺍﺕ DLSS ﻳﺤﺘﺎﺝ GeForce RTX 40 ﺃﻭ ﺃﺣﺪﺙ ﻣﻊ bbport_dlss.dll ﻭnvngx_dlssg.dll."})
 BB_MENU_TEXT("Frame generation: multiplier",
             {"フレーム生成：倍率",
              "Génération d'images : multiplicateur",
@@ -136,7 +142,8 @@ BB_MENU_TEXT("Frame generation: multiplier",
              "Bildegenerering: multiplikator",
              "Generowanie klatek: mnożnik",
              "Geração de quadros: multiplicador",
-             "Kare oluşturma: çarpan"})
+             "Kare oluşturma: çarpan",
+             "ﺗﻮﻟﻴﺪ ﺍﻹﻃﺎﺭﺍﺕ: ﺍﻟﻤﻀﺎﻋﻒ"})
 BB_MENU_TEXT("Frames shown per game frame. FSR 3.1 and DLSS on a GeForce RTX 40: 2x; DLSS on a GeForce RTX 50: up to 4x. Each one more uses some video memory.",
             {"ゲームの1フレームあたりの表示フレーム数。FSR 3.1とGeForce RTX 40のDLSS：2x。GeForce RTX 50のDLSS：最大4x。1段上げるごとにビデオメモリを使います。",
              "Images affichées par image du jeu. FSR 3.1 et DLSS sur GeForce RTX 40 : 2x ; DLSS sur GeForce RTX 50 : jusqu'à 4x. Chaque palier de plus utilise un peu de mémoire vidéo.",
@@ -155,7 +162,8 @@ BB_MENU_TEXT("Frames shown per game frame. FSR 3.1 and DLSS on a GeForce RTX 40:
              "Viste bilder per spillbilde. FSR 3.1 og DLSS på et GeForce RTX 40: 2x; DLSS på et GeForce RTX 50: opptil 4x. Hvert trinn til bruker litt videominne.",
              "Klatki wyświetlane na każdą klatkę gry. FSR 3.1 i DLSS na GeForce RTX 40: 2x; DLSS na GeForce RTX 50: do 4x. Każdy kolejny stopień zajmuje trochę pamięci wideo.",
              "Quadros exibidos por quadro do jogo. FSR 3.1 e DLSS em uma GeForce RTX 40: 2x; DLSS em uma GeForce RTX 50: até 4x. Cada nível a mais usa um pouco de memória de vídeo.",
-             "Oyunun her karesi başına gösterilen kare. FSR 3.1 ve GeForce RTX 40'ta DLSS: 2x; GeForce RTX 50'de DLSS: 4x'e kadar. Her ek kademe biraz video belleği kullanır."})
+             "Oyunun her karesi başına gösterilen kare. FSR 3.1 ve GeForce RTX 40'ta DLSS: 2x; GeForce RTX 50'de DLSS: 4x'e kadar. Her ek kademe biraz video belleği kullanır.",
+             "ﺍﻹﻃﺎﺭﺍﺕ ﺍﻟﻤﻌﺮﻭﺿﺔ ﻟﻜﻞ ﺇﻃﺎﺭ ﻣﻦ ﺍﻟﻠﻌﺒﺔ. FSR 3.1 ﻭDLSS ﻋﻠﻰ GeForce RTX 40: 2x؛ DLSS ﻋﻠﻰ GeForce RTX 50: ﺣﺘﻰ 4x. ﻛﻞ ﺯﻳﺎﺩﺓ ﺗﺴﺘﻬﻠﻚ ﺑﻌﺾ ﺫﺍﻛﺮﺓ ﺍﻟﻔﻴﺪﻳﻮ."})
 BB_MENU_TEXT("Fit to display refresh",
             {"リフレッシュレートに合わせる",
              "Adapter à la fréquence de l'écran",
@@ -174,7 +182,8 @@ BB_MENU_TEXT("Fit to display refresh",
              "Tilpass skjermens oppdatering",
              "Dopasuj do odświeżania ekranu",
              "Ajustar à taxa de atualização",
-             "Ekran yenileme hızına uydur"})
+             "Ekran yenileme hızına uydur",
+             "ﻣﻄﺎﺑﻘﺔ ﺗﺤﺪﻳﺚ ﺍﻟﺸﺎﺷﺔ"})
 BB_MENU_TEXT("On: no more frames than the display shows (an uncapped game gets fewer generated frames, and the GPU does less). Off: the multiplier as chosen; past the refresh rate the display shows the newest frames. With V-Sync always fitted.",
             {"ON：ディスプレイが表示できる数以上のフレームを作りません（FPS無制限時は生成フレームが減り、GPU負荷も下がります）。OFF：選んだ倍率のまま。リフレッシュレートを超えると最新のフレームが表示されます。V-Sync使用時は常に合わせます。",
              "Activé : pas plus d'images que l'écran n'en affiche (sans limite de FPS, moins d'images générées et moins de charge GPU). Désactivé : le multiplicateur choisi ; au-delà de la fréquence de l'écran, il affiche les images les plus récentes. Toujours adapté avec la V-Sync.",
@@ -193,7 +202,8 @@ BB_MENU_TEXT("On: no more frames than the display shows (an uncapped game gets f
              "På: ikke flere bilder enn skjermen viser (uten FPS-grense genereres færre, og GPU-en belastes mindre). Av: multiplikatoren som valgt; over oppdateringsfrekvensen viser skjermen de nyeste bildene. Med V-Sync alltid tilpasset.",
              "Wł.: nie więcej klatek, niż pokazuje ekran (bez limitu FPS generuje się mniej, a GPU ma mniej pracy). Wył.: wybrany mnożnik; powyżej odświeżania ekran pokazuje najnowsze klatki. Z V-Sync zawsze dopasowane.",
              "Ligado: não mais quadros do que a tela exibe (sem limite de FPS, menos quadros gerados e menos carga na placa de vídeo). Desligado: o multiplicador escolhido; acima da taxa de atualização, a tela exibe os quadros mais novos. Com V-Sync, sempre ajustado.",
-             "Açık: ekranın gösterdiğinden fazla kare yok (sınırsız FPS'de daha az kare oluşturulur, GPU daha az yorulur). Kapalı: seçilen çarpan; yenileme hızının üstünde ekran en yeni kareleri gösterir. V-Sync ile her zaman uydurulur."})
+             "Açık: ekranın gösterdiğinden fazla kare yok (sınırsız FPS'de daha az kare oluşturulur, GPU daha az yorulur). Kapalı: seçilen çarpan; yenileme hızının üstünde ekran en yeni kareleri gösterir. V-Sync ile her zaman uydurulur.",
+             "ﺗﺸﻐﻴﻞ: ﻻ ﺇﻃﺎﺭﺍﺕ ﺃﻛﺜﺮ ﻣﻤﺎ ﺗﻌﺮﺿﻪ ﺍﻟﺸﺎﺷﺔ (ﻟﻌﺒﺔ ﺑﻼ ﺣﺪ ﺗﺤﺼﻞ ﻋﻠﻰ ﺇﻃﺎﺭﺍﺕ ﻣﻮﻟﺪﺓ ﺃﻗﻞ، ﻭﺗﻌﻤﻞ ﺍﻟﺒﻄﺎﻗﺔ ﺃﻗﻞ). ﺇﻳﻘﺎﻑ: ﺍﻟﻤﻀﺎﻋﻒ ﻛﻤﺎ ﺍﺧﺘﺮﺕ؛ ﻭﺑﻌﺪ ﻣﻌﺪﻝ ﺍﻟﺘﺤﺪﻳﺚ ﺗﻌﺮﺽ ﺍﻟﺸﺎﺷﺔ ﺃﺣﺪﺙ ﺍﻹﻃﺎﺭﺍﺕ. ﻣﻊ V-Sync ﺗﻄﺎﺑﻖ ﺩﺍﺋﻤﺎ."})
 BB_MENU_TEXT("Generating: game %d FPS, shown %d FPS (%dx)",
             {"生成中：ゲーム %d FPS、表示 %d FPS（%dx）",
              "Génération : jeu %d FPS, affiché %d FPS (%dx)",
@@ -212,7 +222,8 @@ BB_MENU_TEXT("Generating: game %d FPS, shown %d FPS (%dx)",
              "Genererer: spill %d FPS, vist %d FPS (%dx)",
              "Generuje: gra %d FPS, wyświetlane %d FPS (%dx)",
              "Gerando: jogo %d FPS, exibidos %d FPS (%dx)",
-             "Üretiliyor: oyun %d FPS, gösterilen %d FPS (%dx)"})
+             "Üretiliyor: oyun %d FPS, gösterilen %d FPS (%dx)",
+             "ﺍﻟﺘﻮﻟﻴﺪ: ﺍﻟﻠﻌﺒﺔ %d FPS، ﺍﻟﻤﻌﺮﻭﺽ %d FPS (%dx)"})
 BB_MENU_TEXT("Paused: no room on the %d Hz display at this frame rate",
             {"停止中：このフレームレートでは%d Hzディスプレイに余裕がありません",
              "En pause : pas de place sur l'écran %d Hz à cette fréquence d'images",
@@ -231,7 +242,8 @@ BB_MENU_TEXT("Paused: no room on the %d Hz display at this frame rate",
              "Pause: ikke plass på %d Hz-skjermen ved denne bildefrekvensen",
              "Wstrzymane: brak miejsca na ekranie %d Hz przy tej liczbie klatek",
              "Pausado: sem espaço na tela de %d Hz com esta taxa de quadros",
-             "Duraklatıldı: bu kare hızında %d Hz ekranda yer yok"})
+             "Duraklatıldı: bu kare hızında %d Hz ekranda yer yok",
+             "ﻣﺘﻮﻗﻒ ﻣﺆﻗﺘﺎ: ﻻ ﻣﺠﺎﻝ ﻋﻠﻰ ﺷﺎﺷﺔ %d Hz ﺑﻬﺬﺍ ﺍﻟﻤﻌﺪﻝ"})
 BB_MENU_TEXT("starting",
             {"開始中",
              "démarrage",
@@ -250,7 +262,8 @@ BB_MENU_TEXT("starting",
              "starter",
              "uruchamianie",
              "iniciando",
-             "başlatılıyor"})
+             "başlatılıyor",
+             "ﻳﺒﺪﺃ"})
 BB_MENU_TEXT("the provider refused; switch it off and on to retry",
             {"技術が拒否しました。オフにしてから再びオンにしてください",
              "la technologie a refusé ; désactivez-la puis réactivez-la pour réessayer",
@@ -269,7 +282,8 @@ BB_MENU_TEXT("the provider refused; switch it off and on to retry",
              "teknologien avviste; slå av og på for å prøve igjen",
              "technologia odmówiła; wyłącz i włącz, aby spróbować ponownie",
              "a tecnologia recusou; desligue e ligue de novo para tentar outra vez",
-             "teknoloji reddetti; yeniden denemek için kapatıp açın"})
+             "teknoloji reddetti; yeniden denemek için kapatıp açın",
+             "ﺭﻓﺾ ﺍﻟﻤﺰﻭﺩ؛ ﺃﻃﻔﺌﻪ ﻭﺷﻐﻠﻪ ﻹﻋﺎﺩﺓ ﺍﻟﻤﺤﺎﻭﻟﺔ"})
 BB_MENU_TEXT("not enough video memory",
             {"ビデオメモリが不足しています",
              "mémoire vidéo insuffisante",
@@ -288,7 +302,8 @@ BB_MENU_TEXT("not enough video memory",
              "ikke nok videominne",
              "za mało pamięci wideo",
              "memória de vídeo insuficiente",
-             "yeterli video belleği yok"})
+             "yeterli video belleği yok",
+             "ﺫﺍﻛﺮﺓ ﺍﻟﻔﻴﺪﻳﻮ ﻏﻴﺮ ﻛﺎﻓﻴﺔ"})
 BB_MENU_TEXT("no game scene (menu or loading screen)",
             {"ゲーム画面がありません（メニューまたはロード画面）",
              "pas de scène de jeu (menu ou écran de chargement)",
@@ -307,7 +322,8 @@ BB_MENU_TEXT("no game scene (menu or loading screen)",
              "ingen spillscene (meny eller lasteskjerm)",
              "brak sceny gry (menu lub ekran wczytywania)",
              "sem cena de jogo (menu ou tela de carregamento)",
-             "oyun sahnesi yok (menü veya yükleme ekranı)"})
+             "oyun sahnesi yok (menü veya yükleme ekranı)",
+             "ﻻ ﻣﺸﻬﺪ ﻟﻠﻌﺒﺔ (ﻗﺎﺋﻤﺔ ﺃﻭ ﺷﺎﺷﺔ ﺗﺤﻤﻴﻞ)"})
 BB_MENU_TEXT("the scene is rendered larger than the window",
             {"シーンがウィンドウより大きく描画されています",
              "la scène est rendue plus grande que la fenêtre",
@@ -326,7 +342,8 @@ BB_MENU_TEXT("the scene is rendered larger than the window",
              "scenen tegnes større enn vinduet",
              "scena jest renderowana większa niż okno",
              "a cena é renderizada maior que a janela",
-             "sahne pencereden büyük işleniyor"})
+             "sahne pencereden büyük işleniyor",
+             "ﺍﻟﻤﺸﻬﺪ ﻳﺮﺳﻢ ﺃﻛﺒﺮ ﻣﻦ ﺍﻟﻨﺎﻓﺬﺓ"})
 BB_MENU_TEXT("paused, presenting does not keep up",
             {"一時停止中、表示が追いついていません",
              "en pause, l'affichage ne suit pas",
@@ -345,7 +362,8 @@ BB_MENU_TEXT("paused, presenting does not keep up",
              "på pause, visningen henger ikke med",
              "wstrzymane, wyświetlanie nie nadąża",
              "em pausa, a apresentação não acompanha",
-             "duraklatıldı, görüntü aktarımı yetişemiyor"})
+             "duraklatıldı, görüntü aktarımı yetişemiyor",
+             "ﻣﺘﻮﻗﻒ ﻣﺆﻗﺘﺎ، ﺍﻟﻌﺮﺽ ﻻ ﻳﻮﺍﻛﺐ"})
 BB_MENU_TEXT("generated frames are replaced before the display shows them",
             {"生成フレームが表示される前に置き換えられています",
              "les images générées sont remplacées avant que l'écran ne les affiche",
@@ -364,7 +382,8 @@ BB_MENU_TEXT("generated frames are replaced before the display shows them",
              "genererte bilder erstattes før skjermen viser dem",
              "wygenerowane klatki są zastępowane, zanim ekran je pokaże",
              "os quadros gerados são substituídos antes de a tela exibi-los",
-             "üretilen kareler ekran göstermeden önce değiştiriliyor"})
+             "üretilen kareler ekran göstermeden önce değiştiriliyor",
+             "ﺍﻹﻃﺎﺭﺍﺕ ﺍﻟﻤﻮﻟﺪﺓ ﺗﺴﺘﺒﺪﻝ ﻗﺒﻞ ﺃﻥ ﺗﻌﺮﺿﻬﺎ ﺍﻟﺸﺎﺷﺔ"})
 BB_MENU_TEXT("On, but not generating: %s",
             {"オンですが生成していません：%s",
              "Activé, mais ne génère pas : %s",
@@ -383,7 +402,8 @@ BB_MENU_TEXT("On, but not generating: %s",
              "På, men genererer ikke: %s",
              "Włączone, ale nie generuje: %s",
              "Ligado, mas não está gerando: %s",
-             "Açık, ama üretmiyor: %s"})
+             "Açık, ama üretmiyor: %s",
+             "ﻣﻔﻌﻞ، ﻟﻜﻨﻪ ﻻ ﻳﻮﻟﺪ: %s"})
 BB_MENU_TEXT("%d (game)",
             {"%d (ゲーム)",
              "%d (jeu)",
@@ -402,7 +422,8 @@ BB_MENU_TEXT("%d (game)",
              "%d (spillet)",
              "%d (gra)",
              "%d (jogo)",
-             "%d (oyun)"})
+             "%d (oyun)",
+             "%d (ﺍﻟﻠﻌﺒﺔ)"})
 BB_MENU_TEXT("HDR: switch HDR on for this display in Windows to get the HDR options here.",
             {"HDR：WindowsでこのディスプレイのHDRをONにすると、ここにHDR設定が表示されます。",
              "HDR : activez le HDR pour cet écran dans Windows pour afficher ici les options HDR.",
@@ -421,7 +442,8 @@ BB_MENU_TEXT("HDR: switch HDR on for this display in Windows to get the HDR opti
              "HDR: slå på HDR for denne skjermen i Windows for å få HDR-valgene her.",
              "HDR: włącz HDR dla tego ekranu w Windows, aby zobaczyć tu opcje HDR.",
              "HDR: ative o HDR para esta tela no Windows para ver aqui as opções de HDR.",
-             "HDR: buradaki HDR seçenekleri için Windows'ta bu ekranda HDR'yi açın."})
+             "HDR: buradaki HDR seçenekleri için Windows'ta bu ekranda HDR'yi açın.",
+             "HDR: ﻓﻌﻞ HDR ﻟﻬﺬﻩ ﺍﻟﺸﺎﺷﺔ ﻓﻲ ﻭﻳﻨﺪﻭﺯ ﻟﺘﻈﻬﺮ ﺧﻴﺎﺭﺍﺕ HDR ﻫﻨﺎ."})
 BB_MENU_TEXT("HDR output",
             {"HDR出力",
              "Sortie HDR",
@@ -440,7 +462,8 @@ BB_MENU_TEXT("HDR output",
              "HDR-utgang",
              "Wyjście HDR",
              "Saída HDR",
-             "HDR çıkışı"})
+             "HDR çıkışı",
+             "ﺇﺧﺮﺍﺝ HDR"})
 BB_MENU_TEXT("HDR10 output: the picture's white sits at the UI brightness, its highlights reach toward the peak brightness.",
             {"HDR10出力：映像の白はUI輝度に、ハイライトはピーク輝度に向かって伸びます。",
              "Sortie HDR10 : le blanc de l'image est à la luminosité de l'interface, ses hautes lumières montent vers la luminosité de crête.",
@@ -459,7 +482,8 @@ BB_MENU_TEXT("HDR10 output: the picture's white sits at the UI brightness, its h
              "HDR10-utgang: bildets hvitt ligger på UI-lysstyrken, høylysene går mot topplysstyrken.",
              "Wyjście HDR10: biel obrazu leży na jasności interfejsu, a jasne punkty sięgają jasności szczytowej.",
              "Saída HDR10: o branco da imagem fica no brilho da interface e os realces chegam perto do brilho máximo.",
-             "HDR10 çıkışı: görüntünün beyazı arayüz parlaklığında durur, parlak noktaları tepe parlaklığa doğru uzanır."})
+             "HDR10 çıkışı: görüntünün beyazı arayüz parlaklığında durur, parlak noktaları tepe parlaklığa doğru uzanır.",
+             "ﺇﺧﺮﺍﺝ HDR10: ﺃﺑﻴﺾ ﺍﻟﺼﻮﺭﺓ ﻋﻨﺪ ﺳﻄﻮﻉ ﺍﻟﻮﺍﺟﻬﺔ، ﻭﺇﺿﺎﺀﺍﺗﻬﺎ ﺍﻟﻘﻮﻳﺔ ﺗﻘﺘﺮﺏ ﻣﻦ ﺃﻗﺼﻰ ﺳﻄﻮﻉ."})
 BB_MENU_TEXT("nits",
             {"nit",
              "nits",
@@ -478,7 +502,8 @@ BB_MENU_TEXT("nits",
              "nits",
              "nitów",
              "nits",
-             "nit"})
+             "nit",
+             "nits"})
 BB_MENU_TEXT("Auto",
             {"自動",
              "Auto",
@@ -497,7 +522,8 @@ BB_MENU_TEXT("Auto",
              "Auto",
              "Auto",
              "Auto",
-             "Otomatik"})
+             "Otomatik",
+             "ﺗﻠﻘﺎﺋﻲ"})
 BB_MENU_TEXT("HDR peak brightness",
             {"HDRピーク輝度",
              "Luminosité de crête HDR",
@@ -516,7 +542,8 @@ BB_MENU_TEXT("HDR peak brightness",
              "HDR-topplysstyrke",
              "Szczytowa jasność HDR",
              "Brilho máximo HDR",
-             "HDR tepe parlaklığı"})
+             "HDR tepe parlaklığı",
+             "ﺃﻗﺼﻰ ﺳﻄﻮﻉ HDR"})
 BB_MENU_TEXT("Your display's peak brightness. Auto: the peak the display reports (Windows HDR Calibration changes it).",
             {"ディスプレイのピーク輝度。自動：ディスプレイが報告するピーク（Windows HDR キャリブレーションで変わります）。",
              "Luminosité de crête de votre écran. Auto : la crête que l'écran annonce (l'Étalonnage HDR Windows la modifie).",
@@ -535,7 +562,8 @@ BB_MENU_TEXT("Your display's peak brightness. Auto: the peak the display reports
              "Skjermens topplysstyrke. Auto: toppen skjermen oppgir (Windows HDR-kalibrering endrer den).",
              "Szczytowa jasność ekranu. Auto: szczyt podawany przez ekran (zmienia go Kalibracja HDR w Windows).",
              "Brilho máximo da sua tela. Auto: o pico que a tela informa (a Calibração HDR do Windows o muda).",
-             "Ekranınızın tepe parlaklığı. Otomatik: ekranın bildirdiği tepe (Windows HDR Kalibrasyonu bunu değiştirir)."})
+             "Ekranınızın tepe parlaklığı. Otomatik: ekranın bildirdiği tepe (Windows HDR Kalibrasyonu bunu değiştirir).",
+             "ﺃﻗﺼﻰ ﺳﻄﻮﻉ ﻟﺸﺎﺷﺘﻚ. ﺗﻠﻘﺎﺋﻲ: ﺍﻷﻗﺼﻰ ﺍﻟﺬﻱ ﺗﺒﻠﻎ ﻋﻨﻪ ﺍﻟﺸﺎﺷﺔ (ﻣﻌﺎﻳﺮﺓ HDR ﻓﻲ ﻭﻳﻨﺪﻭﺯ ﺗﻐﻴﺮﻩ)."})
 BB_MENU_TEXT("HDR UI brightness",
             {"HDR UI輝度",
              "Luminosité interface HDR",
@@ -554,7 +582,8 @@ BB_MENU_TEXT("HDR UI brightness",
              "HDR UI-lysstyrke",
              "Jasność interfejsu HDR",
              "Brilho da interface HDR",
-             "HDR arayüz parlaklığı"})
+             "HDR arayüz parlaklığı",
+             "ﺳﻄﻮﻉ ﻭﺍﺟﻬﺔ HDR"})
 BB_MENU_TEXT("Brightness of white in the picture and the interface (paper white). Auto: as bright as the desktop (Windows' SDR content brightness); lower in a dark room.",
             {"映像とインターフェースの白の明るさ（ペーパーホワイト）。自動：デスクトップと同じ明るさ（Windows の SDR コンテンツの明るさ）、暗い部屋では低めに。",
              "Luminosité du blanc dans l'image et l'interface (blanc papier). Auto : aussi lumineux que le bureau (luminosité du contenu SDR de Windows) ; moins dans une pièce sombre.",
@@ -573,7 +602,8 @@ BB_MENU_TEXT("Brightness of white in the picture and the interface (paper white)
              "Lysstyrken til hvitt i bildet og grensesnittet (papirhvitt). Auto: like lyst som skrivebordet (Windows' lysstyrke for SDR-innhold); lavere i et mørkt rom.",
              "Jasność bieli w obrazie i interfejsie (biel papieru). Auto: tak jasno jak pulpit (jasność zawartości SDR w Windows); mniej w ciemnym pokoju.",
              "Brilho do branco na imagem e na interface (paper white). Auto: tão claro quanto a área de trabalho (brilho do conteúdo SDR do Windows); menos num quarto escuro.",
-             "Görüntüdeki ve arayüzdeki beyazın parlaklığı (kâğıt beyazı). Otomatik: masaüstü kadar parlak (Windows'un SDR içerik parlaklığı); karanlık odada daha düşük."})
+             "Görüntüdeki ve arayüzdeki beyazın parlaklığı (kâğıt beyazı). Otomatik: masaüstü kadar parlak (Windows'un SDR içerik parlaklığı); karanlık odada daha düşük.",
+             "ﺳﻄﻮﻉ ﺍﻷﺑﻴﺾ ﻓﻲ ﺍﻟﺼﻮﺭﺓ ﻭﺍﻟﻮﺍﺟﻬﺔ (ﺃﺑﻴﺾ ﺍﻟﻮﺭﻕ). ﺗﻠﻘﺎﺋﻲ: ﺑﺴﻄﻮﻉ ﺳﻄﺢ ﺍﻟﻤﻜﺘﺐ (ﺳﻄﻮﻉ ﻣﺤﺘﻮﻯ SDR ﻓﻲ ﻭﻳﻨﺪﻭﺯ)؛ ﺃﻗﻞ ﻓﻲ ﻏﺮﻓﺔ ﻣﻈﻠﻤﺔ."})
 BB_MENU_TEXT("HDR scene highlights",
             {"HDRシーンハイライト",
              "Hautes lumières HDR de la scène",
@@ -592,7 +622,8 @@ BB_MENU_TEXT("HDR scene highlights",
              "HDR-høylys fra scenen",
              "Rozbłyski HDR ze sceny",
              "Realces HDR da cena",
-             "Sahneden HDR parlamaları"})
+             "Sahneden HDR parlamaları",
+             "ﺇﺿﺎﺀﺍﺕ ﺍﻟﻤﺸﻬﺪ ﻓﻲ HDR"})
 BB_MENU_TEXT("The game's HUD stays at UI brightness, and lamps and flames may get extra brightness from the game's 16-bit scene. Off: the whole SDR picture is stretched, HUD included.",
             {"ゲームのHUDはUI輝度のまま、ランプや炎はゲームの16ビットシーンから更に明るくなることがあります。OFF：HUDを含むSDR映像全体を引き伸ばします。",
              "Le HUD du jeu reste à la luminosité de l'interface ; lampes et flammes peuvent gagner en éclat grâce à la scène 16 bits du jeu. Désactivé : toute l'image SDR est étirée, HUD compris.",
@@ -611,7 +642,8 @@ BB_MENU_TEXT("The game's HUD stays at UI brightness, and lamps and flames may ge
              "Spillets HUD blir på UI-lysstyrken, og lamper og flammer kan få ekstra lysstyrke fra spillets 16-bits scene. Av: hele SDR-bildet strekkes, HUD inkludert.",
              "HUD gry zostaje na jasności interfejsu, a lampy i płomienie mogą zyskać dodatkową jasność z 16-bitowej sceny gry. Wył.: cały obraz SDR jest rozciągany, łącznie z HUD.",
              "O HUD do jogo fica no brilho da interface, e lâmpadas e chamas podem ganhar brilho extra da cena de 16 bits do jogo. Desligado: toda a imagem SDR é esticada, HUD incluído.",
-             "Oyunun HUD'u arayüz parlaklığında kalır; lambalar ve alevler oyunun 16 bit sahnesinden ek parlaklık alabilir. Kapalı: HUD dahil tüm SDR görüntü gerilir."})
+             "Oyunun HUD'u arayüz parlaklığında kalır; lambalar ve alevler oyunun 16 bit sahnesinden ek parlaklık alabilir. Kapalı: HUD dahil tüm SDR görüntü gerilir.",
+             "ﺗﺒﻘﻰ ﻭﺍﺟﻬﺔ ﺍﻟﻠﻌﺒﺔ ﻋﻨﺪ ﺳﻄﻮﻉ ﺍﻟﻮﺍﺟﻬﺔ، ﻭﻗﺪ ﺗﺤﺼﻞ ﺍﻟﻤﺼﺎﺑﻴﺢ ﻭﺍﻟﻠﻬﺐ ﻋﻠﻰ ﺳﻄﻮﻉ ﺇﺿﺎﻓﻲ ﻣﻦ ﻣﺸﻬﺪ ﺍﻟﻠﻌﺒﺔ ﺫﻱ 16 ﺑﺖ. ﺍﻹﻳﻘﺎﻑ: ﺗﻤﺪﺩ ﺻﻮﺭﺓ SDR ﻛﻠﻬﺎ ﺑﻤﺎ ﻓﻴﻬﺎ ﺍﻟﻮﺍﺟﻬﺔ."})
 BB_MENU_TEXT("HDR highlights",
             {"HDRハイライト",
              "Hautes lumières HDR",
@@ -630,7 +662,8 @@ BB_MENU_TEXT("HDR highlights",
              "HDR-høylys",
              "Rozbłyski HDR",
              "Realces HDR",
-             "HDR parlamaları"})
+             "HDR parlamaları",
+             "ﺇﺿﺎﺀﺍﺕ HDR"})
 BB_MENU_TEXT("How bright the highlights (fire, lamps, sky) get. 0.5: white reaches the peak brightness; higher brightens more of the picture; 0 keeps the SDR picture.",
             {"ハイライト（炎、ランプ、空）の明るさ。0.5：白がピーク輝度に達する。高いほど映像の多くが明るくなる。0：SDR映像のまま。",
              "Intensité des hautes lumières (feu, lampes, ciel). 0.5 : le blanc atteint la luminosité de crête ; plus haut éclaircit davantage l'image ; 0 garde l'image SDR.",
@@ -649,7 +682,8 @@ BB_MENU_TEXT("How bright the highlights (fire, lamps, sky) get. 0.5: white reach
              "Hvor sterke høylysene (ild, lamper, himmel) blir. 0.5: hvitt når topplysstyrken; høyere lyser opp mer av bildet; 0 beholder SDR-bildet.",
              "Jak jasne są rozbłyski (ogień, lampy, niebo). 0.5: biel sięga jasności szczytowej; więcej rozjaśnia większą część obrazu; 0 zachowuje obraz SDR.",
              "Quão brilhantes ficam os realces (fogo, lâmpadas, céu). 0.5: o branco chega ao brilho máximo; mais alto clareia mais da imagem; 0 mantém a imagem SDR.",
-             "Parlamaların (ateş, lambalar, gökyüzü) ne kadar parlak olacağı. 0.5: beyaz tepe parlaklığa ulaşır; daha yüksek değer görüntünün daha fazlasını aydınlatır; 0 SDR görüntüyü korur."})
+             "Parlamaların (ateş, lambalar, gökyüzü) ne kadar parlak olacağı. 0.5: beyaz tepe parlaklığa ulaşır; daha yüksek değer görüntünün daha fazlasını aydınlatır; 0 SDR görüntüyü korur.",
+             "ﻣﺪﻯ ﺳﻄﻮﻉ ﺍﻹﺿﺎﺀﺍﺕ ﺍﻟﻘﻮﻳﺔ (ﺍﻟﻨﺎﺭ ﻭﺍﻟﻤﺼﺎﺑﻴﺢ ﻭﺍﻟﺴﻤﺎﺀ). 0.5: ﻳﺒﻠﻎ ﺍﻷﺑﻴﺾ ﺃﻗﺼﻰ ﺳﻄﻮﻉ؛ ﺍﻟﻘﻴﻢ ﺍﻷﻋﻠﻰ ﺗﺰﻳﺪ ﺳﻄﻮﻉ ﺟﺰﺀ ﺃﻛﺒﺮ ﻣﻦ ﺍﻟﺼﻮﺭﺓ؛ 0 ﻳﺒﻘﻲ ﺻﻮﺭﺓ SDR."})
 BB_MENU_TEXT("Output resolution",
             {"出力解像度",
              "Résolution de sortie",
@@ -668,7 +702,8 @@ BB_MENU_TEXT("Output resolution",
              "Utgangsoppløsning",
              "Rozdzielczość wyjściowa",
              "Resolução de saída",
-             "Çıkış çözünürlüğü"})
+             "Çıkış çözünürlüğü",
+             "ﺩﻗﺔ ﺍﻹﺧﺮﺍﺝ"})
 BB_MENU_TEXT("Size of the final frame and UI. The preset sets the scene size relative to the output: 4K Performance = 1920x1080. Applies after restarting the game.",
             {"最終フレームとUIのサイズ。プリセットは出力に対するシーンのサイズを決めます：4K Performance = 1920x1080。ゲームの再起動後に適用。",
              "Taille de l'image finale et de l'interface. Le préréglage fixe la taille de la scène par rapport à la sortie : 4K Performance = 1920x1080. S'applique après redémarrage du jeu.",
@@ -687,7 +722,8 @@ BB_MENU_TEXT("Size of the final frame and UI. The preset sets the scene size rel
              "Størrelsen på det endelige bildet og UI. Forhåndsvalget setter scenestørrelsen i forhold til utgangen: 4K Performance = 1920x1080. Gjelder etter omstart av spillet.",
              "Rozmiar końcowej klatki i interfejsu. Profil ustala rozmiar sceny względem wyjścia: 4K Performance = 1920x1080. Działa po ponownym uruchomieniu gry.",
              "Tamanho do quadro final e da interface. A predefinição define o tamanho da cena em relação à saída: 4K Performance = 1920x1080. Aplica-se após reiniciar o jogo.",
-             "Son karenin ve arayüzün boyutu. Ön ayar, sahne boyutunu çıkışa göre belirler: 4K Performance = 1920x1080. Oyun yeniden başlatıldıktan sonra uygulanır."})
+             "Son karenin ve arayüzün boyutu. Ön ayar, sahne boyutunu çıkışa göre belirler: 4K Performance = 1920x1080. Oyun yeniden başlatıldıktan sonra uygulanır.",
+             "ﺣﺠﻢ ﺍﻹﻃﺎﺭ ﺍﻟﻨﻬﺎﺋﻲ ﻭﺍﻟﻮﺍﺟﻬﺔ. ﺍﻹﻋﺪﺍﺩ ﺍﻟﻤﺴﺒﻖ ﻳﺤﺪﺩ ﺣﺠﻢ ﺍﻟﻤﺸﻬﺪ ﻧﺴﺒﺔ ﺇﻟﻰ ﺍﻹﺧﺮﺍﺝ: 4K ﺃﺩﺍﺀ = 1920x1080. ﻳﻄﺒﻖ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺗﺸﻐﻴﻞ ﺍﻟﻠﻌﺒﺔ."})
 BB_MENU_TEXT("The final frame and UI size changes at the next frame. The preset sets the scene size relative to the output: 4K Performance = 1920x1080. Changing it resets the upscaler's history (a brief pause).",
             {"最終フレームとUIのサイズは次のフレームから変わります。プリセットは出力に対するシーンのサイズを決めます：4K Performance = 1920x1080。変更するとアップスケーラーの履歴がリセットされます（一瞬停止）。",
              "La taille de l'image finale et de l'interface change à l'image suivante. Le préréglage fixe la taille de la scène par rapport à la sortie : 4K Performance = 1920x1080. Le changer réinitialise l'historique de l'upscaler (courte pause).",
@@ -706,7 +742,8 @@ BB_MENU_TEXT("The final frame and UI size changes at the next frame. The preset 
              "Størrelsen på det endelige bildet og UI endres ved neste bilde. Forhåndsvalget setter scenestørrelsen i forhold til utgangen: 4K Performance = 1920x1080. En endring nullstiller oppskalererens historikk (en kort pause).",
              "Rozmiar końcowej klatki i interfejsu zmienia się od następnej klatki. Profil ustala rozmiar sceny względem wyjścia: 4K Performance = 1920x1080. Zmiana zeruje historię upscalera (krótka pauza).",
              "O tamanho do quadro final e da interface muda no próximo quadro. A predefinição define o tamanho da cena em relação à saída: 4K Performance = 1920x1080. Mudá-la reinicia o histórico do upscaler (uma breve pausa).",
-             "Son kare ve arayüz boyutu bir sonraki karede değişir. Ön ayar, sahne boyutunu çıkışa göre belirler: 4K Performance = 1920x1080. Değiştirmek ölçekleyicinin geçmişini sıfırlar (kısa bir duraklama)."})
+             "Son kare ve arayüz boyutu bir sonraki karede değişir. Ön ayar, sahne boyutunu çıkışa göre belirler: 4K Performance = 1920x1080. Değiştirmek ölçekleyicinin geçmişini sıfırlar (kısa bir duraklama).",
+             "ﻳﺘﻐﻴﺮ ﺣﺠﻢ ﺍﻹﻃﺎﺭ ﺍﻟﻨﻬﺎﺋﻲ ﻭﺍﻟﻮﺍﺟﻬﺔ ﻓﻲ ﺍﻹﻃﺎﺭ ﺍﻟﺘﺎﻟﻲ. ﺍﻹﻋﺪﺍﺩ ﺍﻟﻤﺴﺒﻖ ﻳﺤﺪﺩ ﺣﺠﻢ ﺍﻟﻤﺸﻬﺪ ﻧﺴﺒﺔ ﺇﻟﻰ ﺍﻹﺧﺮﺍﺝ: 4K ﺃﺩﺍﺀ = 1920x1080. ﺗﻐﻴﻴﺮﻩ ﻳﻤﺴﺢ ﺳﺠﻞ ﺃﺩﺍﺓ ﺍﻟﺘﻜﺒﻴﺮ (ﺗﻮﻗﻒ ﻗﺼﻴﺮ)."})
 BB_MENU_TEXT("Auto (the output's)",
             {"自動（出力に合わせる）",
              "Auto (celui de la sortie)",
@@ -725,7 +762,8 @@ BB_MENU_TEXT("Auto (the output's)",
              "Auto (som utdata)",
              "Auto (jak wyjście)",
              "Auto (o da saída)",
-             "Otomatik (çıkışınki)"})
+             "Otomatik (çıkışınki)",
+             "ﺗﻠﻘﺎﺋﻲ (ﺣﺴﺐ ﺍﻹﺧﺮﺍﺝ)"})
 BB_MENU_TEXT("16:9 (bars)",
             {"16:9（黒帯）",
              "16:9 (bandes)",
@@ -744,7 +782,8 @@ BB_MENU_TEXT("16:9 (bars)",
              "16:9 (svarte felt)",
              "16:9 (pasy)",
              "16:9 (barras)",
-             "16:9 (şeritli)"})
+             "16:9 (şeritli)",
+             "16:9 (ﺃﺷﺮﻃﺔ)"})
 BB_MENU_TEXT("Aspect ratio",
             {"アスペクト比",
              "Format d'image",
@@ -763,7 +802,8 @@ BB_MENU_TEXT("Aspect ratio",
              "Sideforhold",
              "Proporcje obrazu",
              "Proporção",
-             "En boy oranı"})
+             "En boy oranı",
+             "ﻧﺴﺒﺔ ﺍﻟﻌﺮﺽ ﺇﻟﻰ ﺍﻻﺭﺗﻔﺎﻉ"})
 BB_MENU_TEXT("Auto: a wider screen (21:9, 32:9) shows more to the sides, a taller one (16:10, 4:3) more above and below; the HUD goes to the screen's edges. 16:9: the game's picture with black bars. Applies after restarting the game.",
             {"自動：横に広い画面（21:9、32:9）では左右が、縦に長い画面（16:10、4:3）では上下がより広く見え、HUDは画面の端に移動します。16:9：ゲーム本来の映像に黒帯が付きます。ゲームの再起動後に反映されます。",
              "Auto : un écran plus large (21:9, 32:9) montre davantage sur les côtés, un écran plus haut (16:10, 4:3) davantage en haut et en bas ; l'interface va aux bords de l'écran. 16:9 : l'image du jeu avec des bandes noires. S'applique après le redémarrage du jeu.",
@@ -782,7 +822,8 @@ BB_MENU_TEXT("Auto: a wider screen (21:9, 32:9) shows more to the sides, a talle
              "Auto: en bredere skjerm (21:9, 32:9) viser mer på sidene, en høyere (16:10, 4:3) mer over og under; HUD-en flyttes ut til skjermkantene. 16:9: spillets bilde med svarte felt. Gjelder etter at spillet er startet på nytt.",
              "Auto: szerszy ekran (21:9, 32:9) pokazuje więcej po bokach, wyższy (16:10, 4:3) więcej u góry i u dołu; interfejs przesuwa się do krawędzi ekranu. 16:9: obraz gry z czarnymi pasami. Działa po ponownym uruchomieniu gry.",
              "Auto: uma tela mais larga (21:9, 32:9) mostra mais dos lados, uma mais alta (16:10, 4:3) mais em cima e embaixo; a interface vai para as bordas da tela. 16:9: a imagem do jogo com barras pretas. Aplica-se após reiniciar o jogo.",
-             "Otomatik: daha geniş bir ekran (21:9, 32:9) yanlarda, daha yüksek bir ekran (16:10, 4:3) üstte ve altta daha fazlasını gösterir; arayüz ekranın kenarlarına gider. 16:9: oyunun görüntüsü siyah şeritlerle. Oyun yeniden başlatıldıktan sonra uygulanır."})
+             "Otomatik: daha geniş bir ekran (21:9, 32:9) yanlarda, daha yüksek bir ekran (16:10, 4:3) üstte ve altta daha fazlasını gösterir; arayüz ekranın kenarlarına gider. 16:9: oyunun görüntüsü siyah şeritlerle. Oyun yeniden başlatıldıktan sonra uygulanır.",
+             "ﺗﻠﻘﺎﺋﻲ: ﺍﻟﺸﺎﺷﺔ ﺍﻷﻋﺮﺽ (21:9، 32:9) ﺗﻈﻬﺮ ﺃﻛﺜﺮ ﻋﻠﻰ ﺍﻟﺠﺎﻧﺒﻴﻦ، ﻭﺍﻷﻃﻮﻝ (16:10، 4:3) ﺃﻛﺜﺮ ﻓﻲ ﺍﻷﻋﻠﻰ ﻭﺍﻷﺳﻔﻞ؛ ﻭﺗﺬﻫﺐ ﺍﻟﻮﺍﺟﻬﺔ ﺇﻟﻰ ﺃﻃﺮﺍﻑ ﺍﻟﺸﺎﺷﺔ. 16:9: ﺻﻮﺭﺓ ﺍﻟﻠﻌﺒﺔ ﻣﻊ ﺃﺷﺮﻃﺔ ﺳﻮﺩﺍﺀ. ﻳﻄﺒﻖ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺗﺸﻐﻴﻞ ﺍﻟﻠﻌﺒﺔ."})
 BB_MENU_TEXT("Auto: a wider screen (21:9, 32:9) shows more to the sides, a taller one (16:10, 4:3) more above and below; the HUD goes to the screen's edges. 16:9: the game's picture with black bars. Changes at the next frame.",
             {"自動：横に広い画面（21:9、32:9）では左右が、縦に長い画面（16:10、4:3）では上下がより広く見え、HUDは画面の端に移動します。16:9：ゲーム本来の映像に黒帯が付きます。次のフレームから変わります。",
              "Auto : un écran plus large (21:9, 32:9) montre davantage sur les côtés, un écran plus haut (16:10, 4:3) davantage en haut et en bas ; l'interface va aux bords de l'écran. 16:9 : l'image du jeu avec des bandes noires. Change dès l'image suivante.",
@@ -801,7 +842,8 @@ BB_MENU_TEXT("Auto: a wider screen (21:9, 32:9) shows more to the sides, a talle
              "Auto: en bredere skjerm (21:9, 32:9) viser mer på sidene, en høyere (16:10, 4:3) mer over og under; HUD-en flyttes ut til skjermkantene. 16:9: spillets bilde med svarte felt. Endres fra neste bilde.",
              "Auto: szerszy ekran (21:9, 32:9) pokazuje więcej po bokach, wyższy (16:10, 4:3) więcej u góry i u dołu; interfejs przesuwa się do krawędzi ekranu. 16:9: obraz gry z czarnymi pasami. Zmienia się od następnej klatki.",
              "Auto: uma tela mais larga (21:9, 32:9) mostra mais dos lados, uma mais alta (16:10, 4:3) mais em cima e embaixo; a interface vai para as bordas da tela. 16:9: a imagem do jogo com barras pretas. Muda a partir do próximo quadro.",
-             "Otomatik: daha geniş bir ekran (21:9, 32:9) yanlarda, daha yüksek bir ekran (16:10, 4:3) üstte ve altta daha fazlasını gösterir; arayüz ekranın kenarlarına gider. 16:9: oyunun görüntüsü siyah şeritlerle. Sonraki karede değişir."})
+             "Otomatik: daha geniş bir ekran (21:9, 32:9) yanlarda, daha yüksek bir ekran (16:10, 4:3) üstte ve altta daha fazlasını gösterir; arayüz ekranın kenarlarına gider. 16:9: oyunun görüntüsü siyah şeritlerle. Sonraki karede değişir.",
+             "ﺗﻠﻘﺎﺋﻲ: ﺍﻟﺸﺎﺷﺔ ﺍﻷﻋﺮﺽ (21:9، 32:9) ﺗﻈﻬﺮ ﺃﻛﺜﺮ ﻋﻠﻰ ﺍﻟﺠﺎﻧﺒﻴﻦ، ﻭﺍﻷﻃﻮﻝ (16:10، 4:3) ﺃﻛﺜﺮ ﻓﻲ ﺍﻷﻋﻠﻰ ﻭﺍﻷﺳﻔﻞ؛ ﻭﺗﺬﻫﺐ ﺍﻟﻮﺍﺟﻬﺔ ﺇﻟﻰ ﺃﻃﺮﺍﻑ ﺍﻟﺸﺎﺷﺔ. 16:9: ﺻﻮﺭﺓ ﺍﻟﻠﻌﺒﺔ ﻣﻊ ﺃﺷﺮﻃﺔ ﺳﻮﺩﺍﺀ. ﻳﺘﻐﻴﺮ ﻓﻲ ﺍﻹﻃﺎﺭ ﺍﻟﺘﺎﻟﻲ."})
 BB_MENU_TEXT("Auto (by GPU)",
             {"自動（GPUで判定）",
              "Auto (selon le GPU)",
@@ -820,7 +862,8 @@ BB_MENU_TEXT("Auto (by GPU)",
              "Auto (etter GPU)",
              "Auto (wg GPU)",
              "Auto (pela GPU)",
-             "Otomatik (GPU'ya göre)"})
+             "Otomatik (GPU'ya göre)",
+             "ﺗﻠﻘﺎﺋﻲ (ﺣﺴﺐ ﺑﻄﺎﻗﺔ ﺍﻟﺮﺳﻮﻣﻴﺎﺕ)"})
 BB_MENU_TEXT("Off (faster)",
             {"OFF（高速）",
              "Désactivé (plus rapide)",
@@ -839,7 +882,8 @@ BB_MENU_TEXT("Off (faster)",
              "Av (raskere)",
              "Wył. (szybciej)",
              "Desligado (mais rápido)",
-             "Kapalı (daha hızlı)"})
+             "Kapalı (daha hızlı)",
+             "ﺇﻳﻘﺎﻑ (ﺃﺳﺮﻉ)"})
 BB_MENU_TEXT("Live resolution changes",
             {"解像度の即時変更",
              "Résolution modifiable en direct",
@@ -858,7 +902,8 @@ BB_MENU_TEXT("Live resolution changes",
              "Endre oppløsning i sanntid",
              "Zmiana rozdzielczości na żywo",
              "Mudar resolução ao vivo",
-             "Canlı çözünürlük değişimi"})
+             "Canlı çözünürlük değişimi",
+             "ﺗﻐﻴﻴﺮ ﺍﻟﺪﻗﺔ ﺃﺛﻨﺎﺀ ﺍﻟﻠﻌﺐ"})
 BB_MENU_TEXT("On: output resolution and preset change without restarting, but the game's post-processing stays at 1080p (slower on the Steam Deck and older GPUs). Off: everything renders at the preset's size, changes need a restart. Auto turns it on for strong discrete GPUs. Applies after restarting the game.",
             {"ON：出力解像度とプリセットを再起動なしで変更できますが、ゲームのポストプロセスは1080pのままです（Steam Deckや古いGPUでは低速）。OFF：すべてプリセットのサイズで描画し、変更には再起動が必要。自動は高性能な単体GPUでONにします。ゲームの再起動後に適用。",
              "Activé : la résolution de sortie et le préréglage changent sans redémarrer, mais le post-traitement du jeu reste en 1080p (plus lent sur Steam Deck et les GPU anciens). Désactivé : tout est rendu à la taille du préréglage, les changements demandent un redémarrage. Auto l'active sur les GPU dédiés puissants. S'applique après redémarrage du jeu.",
@@ -877,7 +922,8 @@ BB_MENU_TEXT("On: output resolution and preset change without restarting, but th
              "På: utgangsoppløsning og forhåndsvalg endres uten omstart, men spillets etterbehandling blir i 1080p (tregere på Steam Deck og eldre GPU-er). Av: alt rendres i forhåndsvalgets størrelse, endringer krever omstart. Auto slår det på for kraftige dedikerte GPU-er. Gjelder etter omstart av spillet.",
              "Wł.: rozdzielczość wyjściowa i profil zmieniają się bez restartu, ale postprocessing gry zostaje w 1080p (wolniej na Steam Deck i starszych GPU). Wył.: wszystko renderuje się w rozmiarze profilu, zmiany wymagają restartu. Auto włącza to na mocnych dedykowanych GPU. Działa po ponownym uruchomieniu gry.",
              "Ligado: a resolução de saída e a predefinição mudam sem reiniciar, mas o pós-processamento do jogo fica em 1080p (mais lento no Steam Deck e em placas de vídeo antigas). Desligado: tudo é renderizado no tamanho da predefinição e as mudanças exigem reiniciar. Auto liga em placas de vídeo dedicadas potentes. Aplica-se após reiniciar o jogo.",
-             "Açık: çıkış çözünürlüğü ve ön ayar yeniden başlatmadan değişir, ancak oyunun son işlemesi 1080p'de kalır (Steam Deck ve eski GPU'larda daha yavaş). Kapalı: her şey ön ayarın boyutunda işlenir, değişiklikler yeniden başlatma gerektirir. Otomatik, güçlü harici GPU'larda bunu açar. Oyun yeniden başlatıldıktan sonra uygulanır."})
+             "Açık: çıkış çözünürlüğü ve ön ayar yeniden başlatmadan değişir, ancak oyunun son işlemesi 1080p'de kalır (Steam Deck ve eski GPU'larda daha yavaş). Kapalı: her şey ön ayarın boyutunda işlenir, değişiklikler yeniden başlatma gerektirir. Otomatik, güçlü harici GPU'larda bunu açar. Oyun yeniden başlatıldıktan sonra uygulanır.",
+             "ﺗﺸﻐﻴﻞ: ﺗﺘﻐﻴﺮ ﺩﻗﺔ ﺍﻹﺧﺮﺍﺝ ﻭﺍﻹﻋﺪﺍﺩ ﺍﻟﻤﺴﺒﻖ ﺩﻭﻥ ﺇﻋﺎﺩﺓ ﺗﺸﻐﻴﻞ، ﻟﻜﻦ ﺍﻟﻤﻌﺎﻟﺠﺔ ﺍﻟﻼﺣﻘﺔ ﻟﻠﻌﺒﺔ ﺗﺒﻘﻰ ﻋﻨﺪ 1080p (ﺃﺑﻄﺄ ﻋﻠﻰ Steam Deck ﻭﺑﻄﺎﻗﺎﺕ ﺍﻟﺮﺳﻮﻣﻴﺎﺕ ﺍﻟﻘﺪﻳﻤﺔ). ﺇﻳﻘﺎﻑ: ﻛﻞ ﺷﻲﺀ ﻳﺮﺳﻢ ﺑﺤﺠﻢ ﺍﻹﻋﺪﺍﺩ ﺍﻟﻤﺴﺒﻖ، ﻭﺍﻟﺘﻐﻴﻴﺮﺍﺕ ﺗﺤﺘﺎﺝ ﺇﻋﺎﺩﺓ ﺗﺸﻐﻴﻞ. ﺍﻟﺘﻠﻘﺎﺋﻲ ﻳﻔﻌﻠﻪ ﻟﺒﻄﺎﻗﺎﺕ ﺍﻟﺮﺳﻮﻣﻴﺎﺕ ﺍﻟﻤﻨﻔﺼﻠﺔ ﺍﻟﻘﻮﻳﺔ. ﻳﻄﺒﻖ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺗﺸﻐﻴﻞ ﺍﻟﻠﻌﺒﺔ."})
 BB_MENU_TEXT("Windowed",
             {"ウィンドウ",
              "Fenêtré",
@@ -896,7 +942,8 @@ BB_MENU_TEXT("Windowed",
              "Vindu",
              "W oknie",
              "Em janela",
-             "Pencereli"})
+             "Pencereli",
+             "ﻧﺎﻓﺬﺓ"})
 BB_MENU_TEXT("Borderless window",
             {"ボーダーレスウィンドウ",
              "Fenêtre sans bordure",
@@ -915,7 +962,8 @@ BB_MENU_TEXT("Borderless window",
              "Rammeløst vindu",
              "Okno bez ramki",
              "Janela sem bordas",
-             "Kenarlıksız pencere"})
+             "Kenarlıksız pencere",
+             "ﻧﺎﻓﺬﺓ ﺑﻼ ﺇﻃﺎﺭ"})
 BB_MENU_TEXT("Exclusive fullscreen",
             {"排他的フルスクリーン",
              "Plein écran exclusif",
@@ -934,7 +982,8 @@ BB_MENU_TEXT("Exclusive fullscreen",
              "Eksklusiv fullskjerm",
              "Wyłączny pełny ekran",
              "Tela cheia exclusiva",
-             "Özel tam ekran"})
+             "Özel tam ekran",
+             "ﻣﻞﺀ ﺍﻟﺸﺎﺷﺔ ﺍﻟﺤﺼﺮﻱ"})
 BB_MENU_TEXT("Window mode",
             {"ウィンドウモード",
              "Mode d'affichage",
@@ -953,7 +1002,8 @@ BB_MENU_TEXT("Window mode",
              "Vindusmodus",
              "Tryb okna",
              "Modo de janela",
-             "Pencere modu"})
+             "Pencere modu",
+             "ﻭﺿﻊ ﺍﻟﻨﺎﻓﺬﺓ"})
 BB_MENU_TEXT("Borderless fills the screen without taking it over: quick Alt+Tab, overlays and HDR keep working. Exclusive fullscreen switches the display over to the game.",
             {"ボーダーレスは画面を占有せずに全体を覆います：Alt+Tabが速く、オーバーレイやHDRもそのまま使えます。排他的フルスクリーンはディスプレイをゲーム専用に切り替えます。",
              "Sans bordure remplit l'écran sans le monopoliser : Alt+Tab rapide, overlays et HDR continuent de fonctionner. Le plein écran exclusif bascule l'écran sur le jeu.",
@@ -972,7 +1022,8 @@ BB_MENU_TEXT("Borderless fills the screen without taking it over: quick Alt+Tab,
              "Rammeløst fyller skjermen uten å ta den over: rask Alt+Tab, overlegg og HDR virker fortsatt. Eksklusiv fullskjerm overlater skjermen til spillet.",
              "Okno bez ramki wypełnia ekran, nie przejmując go: szybki Alt+Tab, nakładki i HDR nadal działają. Wyłączny pełny ekran oddaje ekran grze.",
              "Sem bordas preenche a tela sem tomá-la: Alt+Tab rápido, sobreposições e HDR continuam funcionando. A tela cheia exclusiva entrega a tela ao jogo.",
-             "Kenarlıksız, ekranı ele geçirmeden doldurur: hızlı Alt+Tab, katmanlar ve HDR çalışmaya devam eder. Özel tam ekran, ekranı oyuna devreder."})
+             "Kenarlıksız, ekranı ele geçirmeden doldurur: hızlı Alt+Tab, katmanlar ve HDR çalışmaya devam eder. Özel tam ekran, ekranı oyuna devreder.",
+             "ﺍﻟﻨﺎﻓﺬﺓ ﺑﻼ ﺇﻃﺎﺭ ﺗﻤﻸ ﺍﻟﺸﺎﺷﺔ ﺩﻭﻥ ﺍﻻﺳﺘﻴﻼﺀ ﻋﻠﻴﻬﺎ: Alt+Tab ﺳﺮﻳﻊ، ﻭﺍﻟﻄﺒﻘﺎﺕ ﻭHDR ﺗﺒﻘﻰ ﺗﻌﻤﻞ. ﻣﻞﺀ ﺍﻟﺸﺎﺷﺔ ﺍﻟﺤﺼﺮﻱ ﻳﺤﻮﻝ ﺍﻟﺸﺎﺷﺔ ﺇﻟﻰ ﺍﻟﻠﻌﺒﺔ."})
 BB_MENU_TEXT("FPS counter",
             {"FPSカウンター",
              "Compteur FPS",
@@ -991,7 +1042,8 @@ BB_MENU_TEXT("FPS counter",
              "FPS-teller",
              "Licznik FPS",
              "Contador de FPS",
-             "FPS sayacı"})
+             "FPS sayacı",
+             "ﻋﺪﺍﺩ ﺍﻹﻃﺎﺭﺍﺕ"})
 BB_MENU_TEXT("Frames per second and frame time in the top right corner.",
             {"右上に毎秒フレーム数とフレーム時間を表示。",
              "Images par seconde et temps d'image en haut à droite.",
@@ -1010,7 +1062,8 @@ BB_MENU_TEXT("Frames per second and frame time in the top right corner.",
              "Bilder per sekund og bildetid øverst til høyre.",
              "Klatki na sekundę i czas klatki w prawym górnym rogu.",
              "Quadros por segundo e tempo de quadro no canto superior direito.",
-             "Sağ üst köşede saniyedeki kare sayısı ve kare süresi."})
+             "Sağ üst köşede saniyedeki kare sayısı ve kare süresi.",
+             "ﺍﻹﻃﺎﺭﺍﺕ ﻓﻲ ﺍﻟﺜﺎﻧﻴﺔ ﻭﺯﻣﻦ ﺍﻹﻃﺎﺭ ﻓﻲ ﺍﻟﺰﺍﻭﻳﺔ ﺍﻟﻌﻠﻮﻳﺔ ﺍﻟﻴﻤﻨﻰ."})
 BB_MENU_TEXT("Field of view",
             {"視野角",
              "Champ de vision",
@@ -1029,7 +1082,8 @@ BB_MENU_TEXT("Field of view",
              "Synsfelt",
              "Pole widzenia",
              "Campo de visão",
-             "Görüş alanı"})
+             "Görüş alanı",
+             "ﻣﺠﺎﻝ ﺍﻟﺮﺅﻳﺔ"})
 BB_MENU_TEXT("Vertical field of view in degrees; the game's camera has 43. Every camera is widened by the same amount. Applies after restarting the game.",
             {"縦の視野角 (度)。ゲームのカメラは 43 です。すべてのカメラが同じだけ広がります。ゲームの再起動後に反映されます。",
              "Champ de vision vertical en degrés ; la caméra du jeu en a 43. Chaque caméra est élargie d'autant. S'applique après le redémarrage du jeu.",
@@ -1048,7 +1102,8 @@ BB_MENU_TEXT("Vertical field of view in degrees; the game's camera has 43. Every
              "Loddrett synsfelt i grader; spillets kamera har 43. Hvert kamera utvides like mye. Gjelder etter at spillet startes på nytt.",
              "Pionowe pole widzenia w stopniach; kamera gry ma 43. Każda kamera jest poszerzana o tyle samo. Działa po ponownym uruchomieniu gry.",
              "Campo de visão vertical em graus; a câmera do jogo tem 43. Todas as câmeras são ampliadas na mesma medida. Vale depois de reiniciar o jogo.",
-             "Derece cinsinden dikey görüş alanı; oyunun kamerası 43. Her kamera aynı ölçüde genişletilir. Oyun yeniden başlatıldıktan sonra uygulanır."})
+             "Derece cinsinden dikey görüş alanı; oyunun kamerası 43. Her kamera aynı ölçüde genişletilir. Oyun yeniden başlatıldıktan sonra uygulanır.",
+             "ﻣﺠﺎﻝ ﺍﻟﺮﺅﻳﺔ ﺍﻟﻌﻤﻮﺩﻱ ﺑﺎﻟﺪﺭﺟﺎﺕ؛ ﻛﺎﻣﻴﺮﺍ ﺍﻟﻠﻌﺒﺔ 43. ﻛﻞ ﻛﺎﻣﻴﺮﺍ ﺗﺘﺴﻊ ﺑﺎﻟﻤﻘﺪﺍﺭ ﻧﻔﺴﻪ. ﻳﻄﺒﻖ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺗﺸﻐﻴﻞ ﺍﻟﻠﻌﺒﺔ."})
 BB_MENU_TEXT("Fast shader math",
             {"高速シェーダー演算",
              "Calcul rapide des shaders",
@@ -1067,7 +1122,8 @@ BB_MENU_TEXT("Fast shader math",
              "Rask shaderberegning",
              "Szybka matematyka shaderów",
              "Cálculo rápido de shaders",
-             "Hızlı gölgelendirici matematiği"})
+             "Hızlı gölgelendirici matematiği",
+             "ﺣﺴﺎﺑﺎﺕ ﺗﻈﻠﻴﻞ ﺳﺮﻳﻌﺔ"})
 BB_MENU_TEXT("Pixel and compute shaders use faster, less strict float math: a little more FPS, the picture can differ slightly. Applies after restarting the game; shaders are compiled again once.",
             {"ピクセルシェーダーとコンピュートシェーダーが、より速く厳密さを抑えた浮動小数点演算を使います。FPSが少し上がり、映像がわずかに変わることがあります。ゲームの再起動後に反映され、シェーダーが一度だけ再コンパイルされます。",
              "Les shaders de pixels et de calcul utilisent des calculs flottants plus rapides et moins stricts : un peu plus d'IPS, l'image peut légèrement différer. S'applique après le redémarrage du jeu ; les shaders sont recompilés une fois.",
@@ -1086,7 +1142,8 @@ BB_MENU_TEXT("Pixel and compute shaders use faster, less strict float math: a li
              "Piksel- og beregningsshadere bruker raskere, mindre strenge flyttallsberegninger: litt flere FPS, bildet kan avvike litt. Gjelder etter at spillet er startet på nytt; shaderne kompileres på nytt én gang.",
              "Shadery pikseli i obliczeniowe używają szybszych, mniej ścisłych obliczeń zmiennoprzecinkowych: trochę więcej FPS, obraz może się nieznacznie różnić. Działa po ponownym uruchomieniu gry; shadery zostaną raz skompilowane od nowa.",
              "Os shaders de pixel e de computação usam cálculos de ponto flutuante mais rápidos e menos rigorosos: um pouco mais de FPS, a imagem pode variar levemente. Vale depois de reiniciar o jogo; os shaders são compilados de novo uma vez.",
-             "Piksel ve hesaplama gölgelendiricileri daha hızlı, daha az katı kayan nokta hesapları kullanır: biraz daha fazla FPS, görüntü hafifçe farklı olabilir. Oyun yeniden başlatıldıktan sonra geçerli olur; gölgelendiriciler bir kez yeniden derlenir."})
+             "Piksel ve hesaplama gölgelendiricileri daha hızlı, daha az katı kayan nokta hesapları kullanır: biraz daha fazla FPS, görüntü hafifçe farklı olabilir. Oyun yeniden başlatıldıktan sonra geçerli olur; gölgelendiriciler bir kez yeniden derlenir.",
+             "ﺗﺴﺘﺨﺪﻡ ﻣﻈﻠﻼﺕ ﺍﻟﺒﻜﺴﻞ ﻭﺍﻟﺤﻮﺳﺒﺔ ﺣﺴﺎﺑﺎﺕ ﺃﺳﺮﻉ ﻭﺃﻗﻞ ﺻﺮﺍﻣﺔ: ﺇﻃﺎﺭﺍﺕ ﺃﻛﺜﺮ ﻗﻠﻴﻼ، ﻭﻗﺪ ﺗﺨﺘﻠﻒ ﺍﻟﺼﻮﺭﺓ ﻗﻠﻴﻼ. ﻳﻄﺒﻖ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺗﺸﻐﻴﻞ ﺍﻟﻠﻌﺒﺔ؛ ﺗﺒﻨﻰ ﺍﻟﻤﻈﻠﻼﺕ ﻣﺮﺓ ﺃﺧﺮﻯ ﻣﺮﺓ ﻭﺍﺣﺪﺓ."})
 BB_MENU_TEXT("Mute in the background",
             {"バックグラウンドで消音",
              "Muet en arrière-plan",
@@ -1105,7 +1162,8 @@ BB_MENU_TEXT("Mute in the background",
              "Lydløs i bakgrunnen",
              "Wycisz w tle",
              "Sem som em segundo plano",
-             "Arka planda sessiz"})
+             "Arka planda sessiz",
+             "ﻛﺘﻢ ﺍﻟﺼﻮﺕ ﻓﻲ ﺍﻟﺨﻠﻔﻴﺔ"})
 BB_MENU_TEXT("The game is silent while its window is not the active one.",
             {"ゲームのウィンドウがアクティブでない間は音を出しません。",
              "Le jeu reste silencieux tant que sa fenêtre n'est pas active.",
@@ -1124,7 +1182,8 @@ BB_MENU_TEXT("The game is silent while its window is not the active one.",
              "Spillet er stille mens vinduet ikke er det aktive.",
              "Gra milczy, dopóki jej okno nie jest aktywne.",
              "O jogo fica em silêncio enquanto a janela dele não for a ativa.",
-             "Oyunun penceresi etkin değilken oyun ses çıkarmaz."})
+             "Oyunun penceresi etkin değilken oyun ses çıkarmaz.",
+             "ﺍﻟﻠﻌﺒﺔ ﺻﺎﻣﺘﺔ ﻣﺎ ﺩﺍﻣﺖ ﻧﺎﻓﺬﺗﻬﺎ ﻏﻴﺮ ﻧﺸﻄﺔ."})
 BB_MENU_TEXT("Teammate compass",
             {"仲間コンパス",
              "Boussole d'équipe",
@@ -1143,7 +1202,8 @@ BB_MENU_TEXT("Teammate compass",
              "Lagkompass",
              "Kompas drużyny",
              "Bússola de aliados",
-             "Takım pusulası"})
+             "Takım pusulası",
+             "ﺑﻮﺻﻠﺔ ﺍﻟﺮﻓﺎﻕ"})
 BB_MENU_TEXT("A strip turned with the camera shows where each hunter of your party on this map is and how far, with their initial. One behind you sits at its end with an arrow.",
             {"カメラと共に回る帯に、このマップにいるパーティの狩人の位置と距離を頭文字で表示します。背後にいる狩人は端に矢印付きで表示されます。",
              "Une bande qui tourne avec la caméra montre où se trouve chaque chasseur de votre groupe sur cette carte et à quelle distance, avec son initiale. Celui qui est derrière vous est au bout, avec une flèche.",
@@ -1162,7 +1222,8 @@ BB_MENU_TEXT("A strip turned with the camera shows where each hunter of your par
              "En stripe som dreier med kameraet viser hvor hver jeger i gruppen din på dette kartet er og hvor langt unna, med forbokstaven. En som er bak deg står ytterst med en pil.",
              "Pasek obracany z kamerą pokazuje, gdzie i jak daleko jest każdy tropiciel z drużyny na tej mapie, z jego inicjałem. Ten za tobą stoi na końcu paska ze strzałką.",
              "Uma faixa que gira com a câmera mostra onde está cada caçador do seu grupo neste mapa e a que distância, com a inicial dele. Quem está atrás fica na ponta, com uma seta.",
-             "Kamerayla dönen bir şerit, bu haritadaki grubunuzun her avcısının nerede ve ne kadar uzakta olduğunu baş harfiyle gösterir. Arkanızdaki biri şeridin ucunda bir okla durur."})
+             "Kamerayla dönen bir şerit, bu haritadaki grubunuzun her avcısının nerede ve ne kadar uzakta olduğunu baş harfiyle gösterir. Arkanızdaki biri şeridin ucunda bir okla durur.",
+             "ﺷﺮﻳﻂ ﻳﺪﻭﺭ ﻣﻊ ﺍﻟﻜﺎﻣﻴﺮﺍ ﻳﻈﻬﺮ ﻣﻜﺎﻥ ﻛﻞ ﺻﻴﺎﺩ ﻣﻦ ﻓﺮﻳﻘﻚ ﻓﻲ ﻫﺬﻩ ﺍﻟﺨﺮﻳﻄﺔ ﻭﺑﻌﺪﻩ، ﻣﻊ ﺣﺮﻓﻪ ﺍﻷﻭﻝ. ﻣﻦ ﻳﻘﻒ ﺧﻠﻔﻚ ﻳﻈﻬﺮ ﻓﻲ ﻃﺮﻓﻪ ﻣﻊ ﺳﻬﻢ."})
 BB_MENU_TEXT("Top",
             {"上",
              "En haut",
@@ -1181,7 +1242,8 @@ BB_MENU_TEXT("Top",
              "Øverst",
              "Góra",
              "Em cima",
-             "Üst"})
+             "Üst",
+             "ﺃﻋﻠﻰ"})
 BB_MENU_TEXT("Bottom",
             {"下",
              "En bas",
@@ -1200,7 +1262,8 @@ BB_MENU_TEXT("Bottom",
              "Nederst",
              "Dół",
              "Embaixo",
-             "Alt"})
+             "Alt",
+             "ﺃﺳﻔﻞ"})
 BB_MENU_TEXT("Around the middle",
             {"中央の周り",
              "Autour du centre",
@@ -1219,7 +1282,8 @@ BB_MENU_TEXT("Around the middle",
              "Rundt midten",
              "Wokół środka",
              "Ao redor do centro",
-             "Ortanın çevresi"})
+             "Ortanın çevresi",
+             "ﺣﻮﻝ ﺍﻟﻤﻨﺘﺼﻒ"})
 BB_MENU_TEXT("Compass position",
             {"コンパスの位置",
              "Position de la boussole",
@@ -1238,7 +1302,8 @@ BB_MENU_TEXT("Compass position",
              "Kompassposisjon",
              "Położenie kompasu",
              "Posição da bússola",
-             "Pusula konumu"})
+             "Pusula konumu",
+             "ﻣﻮﺿﻊ ﺍﻟﺒﻮﺻﻠﺔ"})
 BB_MENU_TEXT("Top or bottom of the screen: a strip. Around the middle: the markers on a ring round the centre of the screen, ahead at the top.",
             {"画面の上か下：帯。中央の周り：画面中央を囲む輪の上にマーカー、上が前方。",
              "En haut ou en bas de l'écran : une bande. Autour du centre : les repères sur un anneau autour du centre de l'écran, l'avant en haut.",
@@ -1257,7 +1322,8 @@ BB_MENU_TEXT("Top or bottom of the screen: a strip. Around the middle: the marke
              "Øverst eller nederst på skjermen: en stripe. Rundt midten: markørene på en ring rundt midten av skjermen, rett frem øverst.",
              "Góra lub dół ekranu: pasek. Wokół środka: znaczniki na okręgu wokół środka ekranu, przód u góry.",
              "Em cima ou embaixo da tela: uma faixa. Ao redor do centro: os marcadores num anel em volta do centro da tela, com a frente no topo.",
-             "Ekranın üstü veya altı: bir şerit. Ortanın çevresi: işaretler ekranın ortası etrafında bir halkada, ileri yön üstte."})
+             "Ekranın üstü veya altı: bir şerit. Ortanın çevresi: işaretler ekranın ortası etrafında bir halkada, ileri yön üstte.",
+             "ﺃﻋﻠﻰ ﺍﻟﺸﺎﺷﺔ ﺃﻭ ﺃﺳﻔﻠﻬﺎ: ﺷﺮﻳﻂ. ﺣﻮﻝ ﺍﻟﻤﻨﺘﺼﻒ: ﺍﻟﻌﻼﻣﺎﺕ ﻋﻠﻰ ﺣﻠﻘﺔ ﺣﻮﻝ ﻭﺳﻂ ﺍﻟﺸﺎﺷﺔ، ﻭﺍﻷﻣﺎﻡ ﻓﻲ ﺍﻷﻋﻠﻰ."})
 BB_MENU_TEXT("Bloodstains on compass and map",
             {"コンパスと地図に血痕を表示",
              "Taches de sang sur la boussole et la carte",
@@ -1276,7 +1342,8 @@ BB_MENU_TEXT("Bloodstains on compass and map",
              "Blodflekker på kompass og kart",
              "Plamy krwi na kompasie i mapie",
              "Manchas de sangue na bússola e no mapa",
-             "Pusulada ve haritada kan lekeleri"})
+             "Pusulada ve haritada kan lekeleri",
+             "ﺑﻘﻊ ﺍﻟﺪﻡ ﻋﻠﻰ ﺍﻟﺒﻮﺻﻠﺔ ﻭﺍﻟﺨﺮﻳﻄﺔ"})
 BB_MENU_TEXT("Where your echoes lie after a death: on the compass on this map, on the map on every map. Only you see your bloodstain.",
             {"死んだ後、あなたの血の遺志が落ちている場所。コンパスにはこのマップのもの、地図にはすべてのマップのものを表示します。自分の血痕は自分にしか見えません。",
              "Où reposent vos échos de sang après une mort : sur la boussole pour cette carte, sur la carte pour toutes. Vous seul voyez votre tache de sang.",
@@ -1295,7 +1362,8 @@ BB_MENU_TEXT("Where your echoes lie after a death: on the compass on this map, o
              "Hvor blodekkoet ditt ligger etter en død: på kompasset på dette kartet, på kartet på alle kart. Bare du ser blodflekken din.",
              "Gdzie po śmierci leżą twoje tętnienia krwi: na kompasie na tej mapie, na mapie na wszystkich. Tylko ty widzisz swoją plamę krwi.",
              "Onde ficam seus Ecos de Sangue após uma morte: na bússola neste mapa, no mapa em todos. Só você vê sua mancha de sangue.",
-             "Ölümden sonra Kan Yankılarının kaldığı yer: pusulada bu haritada, haritada tüm haritalarda. Kan lekeni yalnızca sen görürsün."})
+             "Ölümden sonra Kan Yankılarının kaldığı yer: pusulada bu haritada, haritada tüm haritalarda. Kan lekeni yalnızca sen görürsün.",
+             "ﻣﻜﺎﻥ ﺃﺻﺪﺍﺀ ﺩﻣﻚ ﺑﻌﺪ ﺍﻟﻤﻮﺕ: ﻋﻠﻰ ﺍﻟﺒﻮﺻﻠﺔ ﻓﻲ ﻫﺬﻩ ﺍﻟﺨﺮﻳﻄﺔ، ﻭﻋﻠﻰ ﺍﻟﺨﺮﻳﻄﺔ ﻓﻲ ﻛﻞ ﺍﻟﺨﺮﺍﺋﻂ. ﻻ ﻳﺮﻯ ﺑﻘﻌﺔ ﺩﻣﻚ ﺃﺣﺪ ﺳﻮﺍﻙ."})
 BB_MENU_TEXT("Team pings",
             {"チームピン",
              "Signaux d'équipe",
@@ -1314,7 +1382,8 @@ BB_MENU_TEXT("Team pings",
              "Lagmarkeringer",
              "Znaczniki drużyny",
              "Marcações de equipe",
-             "Takım işaretleri"})
+             "Takım işaretleri",
+             "ﺇﺷﺎﺭﺍﺕ ﺍﻟﻔﺮﻳﻖ"})
 BB_MENU_TEXT("Mark a spot for your team for 20 seconds: double tap the touchpad or press the ping key where you aim (on the enemy you are locked on to), {Square} on the map. Your team sees it in the world, on the compass and on the map.",
             {"チームに20秒間、場所を知らせます。狙った場所（ロックオン中は敵）にタッチパッドをすばやく2回押すか、ピンキーを押します。マップでは{Square}。チームはワールド、コンパス、マップで見られます。",
              "Signalez un endroit à votre équipe pendant 20 secondes : touchez deux fois le pavé tactile ou appuyez sur la touche de signal là où vous visez (sur l'ennemi verrouillé), {Square} sur la carte. Votre équipe le voit dans le monde, sur la boussole et sur la carte.",
@@ -1333,7 +1402,8 @@ BB_MENU_TEXT("Mark a spot for your team for 20 seconds: double tap the touchpad 
              "Marker et sted for laget ditt i 20 sekunder: trykk to ganger på styreplaten eller trykk på markeringstasten der du sikter (på fienden du har låst), {Square} på kartet. Laget ser den i verden, på kompasset og på kartet.",
              "Oznacz miejsce dla drużyny na 20 sekund: stuknij dwa razy w panel dotykowy lub naciśnij klawisz znacznika tam, gdzie celujesz (na namierzonym wrogu), {Square} na mapie. Drużyna widzi go w świecie, na kompasie i na mapie.",
              "Marque um local para sua equipe por 20 segundos: toque duas vezes no touchpad ou pressione a tecla de marcação onde você mira (no inimigo travado), {Square} no mapa. Sua equipe vê no mundo, na bússola e no mapa.",
-             "Takımın için bir yeri 20 saniye işaretle: nişan aldığın yere (kilitlendiğin düşmana) dokunmatik yüzeye iki kez dokun ya da işaret tuşuna bas, haritada {Square}. Takımın işareti dünyada, pusulada ve haritada görür."})
+             "Takımın için bir yeri 20 saniye işaretle: nişan aldığın yere (kilitlendiğin düşmana) dokunmatik yüzeye iki kez dokun ya da işaret tuşuna bas, haritada {Square}. Takımın işareti dünyada, pusulada ve haritada görür.",
+             "ﺣﺪﺩ ﺑﻘﻌﺔ ﻟﻔﺮﻳﻘﻚ ﻟﻤﺪﺓ 20 ﺛﺎﻧﻴﺔ: ﺍﻧﻘﺮ ﻣﺮﺗﻴﻦ ﻋﻠﻰ ﻟﻮﺣﺔ ﺍﻟﻠﻤﺲ ﺃﻭ ﺍﺿﻐﻂ ﻣﻔﺘﺎﺡ ﺍﻹﺷﺎﺭﺓ ﺣﻴﺚ ﺗﺼﻮﺏ (ﻋﻠﻰ ﺍﻟﻌﺪﻭ ﺍﻟﻤﺜﺒﺖ ﻋﻠﻴﻪ)، ﻭ{Square} ﻋﻠﻰ ﺍﻟﺨﺮﻳﻄﺔ. ﻳﺮﺍﻫﺎ ﻓﺮﻳﻘﻚ ﻓﻲ ﺍﻟﻌﺎﻟﻢ ﻭﻋﻠﻰ ﺍﻟﺒﻮﺻﻠﺔ ﻭﺍﻟﺨﺮﻳﻄﺔ."})
 BB_MENU_TEXT("Ping key",
             {"ピンキー",
              "Touche de signal",
@@ -1352,7 +1422,8 @@ BB_MENU_TEXT("Ping key",
              "Markeringstast",
              "Klawisz znacznika",
              "Tecla de marcação",
-             "İşaret tuşu"})
+             "İşaret tuşu",
+             "ﻣﻔﺘﺎﺡ ﺍﻹﺷﺎﺭﺓ"})
 BB_MENU_TEXT("The keyboard key that pings where you aim.",
             {"狙った場所にピンを置くキーボードのキー。",
              "La touche du clavier qui place un signal là où vous visez.",
@@ -1371,7 +1442,8 @@ BB_MENU_TEXT("The keyboard key that pings where you aim.",
              "Tasten som markerer der du sikter.",
              "Klawisz, który stawia znacznik tam, gdzie celujesz.",
              "A tecla que marca onde você mira.",
-             "Nişan aldığın yeri işaretleyen klavye tuşu."})
+             "Nişan aldığın yeri işaretleyen klavye tuşu.",
+             "ﻣﻔﺘﺎﺡ ﻟﻮﺣﺔ ﺍﻟﻤﻔﺎﺗﻴﺢ ﺍﻟﺬﻱ ﻳﻀﻊ ﺇﺷﺎﺭﺓ ﺣﻴﺚ ﺗﺼﻮﺏ."})
 BB_MENU_TEXT("Prerendered",
             {"事前描画",
              "Précalculée",
@@ -1390,7 +1462,8 @@ BB_MENU_TEXT("Prerendered",
              "Forhåndstegnet",
              "Wstępnie narysowana",
              "Pré-desenhado",
-             "Önceden çizilmiş"})
+             "Önceden çizilmiş",
+             "ﻣﺮﺳﻮﻣﺔ ﻣﺴﺒﻘﺎ"})
 BB_MENU_TEXT("Live",
             {"リアルタイム",
              "En direct",
@@ -1409,7 +1482,8 @@ BB_MENU_TEXT("Live",
              "Sanntid",
              "Na żywo",
              "Em tempo real",
-             "Canlı"})
+             "Canlı",
+             "ﻣﺒﺎﺷﺮﺓ"})
 BB_MENU_TEXT("3D map",
             {"3Dマップ",
              "Carte 3D",
@@ -1428,7 +1502,8 @@ BB_MENU_TEXT("3D map",
              "3D-kart",
              "Mapa 3D",
              "Mapa 3D",
-             "3B harita"})
+             "3B harita",
+             "ﺧﺮﻳﻄﺔ ﺛﻼﺛﻴﺔ ﺍﻷﺑﻌﺎﺩ"})
 BB_MENU_TEXT("{L3} on the map shows the place from the game's own models, from an angle. Prerendered: each area is drawn once, the first time, in the background. Live: the models are drawn on the graphics card as you turn and tilt the view (right stick), using its memory. Leave it off on a low-end PC.",
             {"マップで{L3}を押すと、ゲームのモデルから場所を斜めから表示します。事前描画：各エリアは初回に一度だけバックグラウンドで描かれます。リアルタイム：視点を回転・傾けるたび（右スティック）、グラフィックカードがメモリを使ってモデルを描きます。低スペックのPCではオフのままにしてください。",
              "{L3} sur la carte montre les lieux en perspective, à partir des modèles du jeu. Précalculée : chaque zone est dessinée une fois, la première fois, en arrière-plan. En direct : les modèles sont dessinés par la carte graphique pendant que vous tournez et inclinez la vue (stick droit), en utilisant sa mémoire. Laissez-la désactivée sur un PC modeste.",
@@ -1447,7 +1522,8 @@ BB_MENU_TEXT("{L3} on the map shows the place from the game's own models, from a
              "{L3} på kartet viser stedet skrått ovenfra fra spillets modeller. Forhåndstegnet: hvert område tegnes én gang, første gang, i bakgrunnen. Sanntid: grafikkortet tegner modellene mens du snur og vipper visningen (høyre spak), med sitt minne. La det være av på en svak PC.",
              "{L3} na mapie pokazuje miejsce pod kątem z modeli gry. Wstępnie narysowana: każdy obszar jest rysowany raz, za pierwszym razem, w tle. Na żywo: karta graficzna rysuje modele, gdy obracasz i pochylasz widok (prawa gałka), używając swojej pamięci. Na słabym PC zostaw wyłączone.",
              "{L3} no mapa mostra o local em perspectiva a partir dos modelos do jogo. Pré-desenhado: cada área é desenhada uma vez, na primeira vez, em segundo plano. Em tempo real: a placa de vídeo desenha os modelos enquanto você gira e inclina a visão (analógico direito), usando a memória dela. Deixe desligado em um PC modesto.",
-             "Haritada {L3}, yeri oyunun modellerinden açılı gösterir. Önceden çizilmiş: her bölge ilk seferde bir kez arka planda çizilir. Canlı: görünümü çevirip eğdikçe (sağ çubuk) modelleri ekran kartı belleğini kullanarak çizer. Zayıf bir bilgisayarda kapalı bırakın."})
+             "Haritada {L3}, yeri oyunun modellerinden açılı gösterir. Önceden çizilmiş: her bölge ilk seferde bir kez arka planda çizilir. Canlı: görünümü çevirip eğdikçe (sağ çubuk) modelleri ekran kartı belleğini kullanarak çizer. Zayıf bir bilgisayarda kapalı bırakın.",
+             "{L3} ﻋﻠﻰ ﺍﻟﺨﺮﻳﻄﺔ ﻳﻌﺮﺽ ﺍﻟﻤﻜﺎﻥ ﻣﻦ ﻧﻤﺎﺫﺝ ﺍﻟﻠﻌﺒﺔ ﻧﻔﺴﻬﺎ ﺑﺰﺍﻭﻳﺔ. ﻣﺮﺳﻮﻣﺔ ﻣﺴﺒﻘﺎ: ﺗﺮﺳﻢ ﻛﻞ ﻣﻨﻄﻘﺔ ﻣﺮﺓ ﻭﺍﺣﺪﺓ، ﻓﻲ ﺃﻭﻝ ﻣﺮﺓ، ﻓﻲ ﺍﻟﺨﻠﻔﻴﺔ. ﻣﺒﺎﺷﺮﺓ: ﺗﺮﺳﻢ ﺍﻟﻨﻤﺎﺫﺝ ﻋﻠﻰ ﺑﻄﺎﻗﺔ ﺍﻟﺮﺳﻮﻣﻴﺎﺕ ﻭﺃﻧﺖ ﺗﺪﻳﺮ ﺍﻟﻤﻨﻈﺮ ﻭﺗﻤﻴﻠﻪ (ﺍﻟﻌﺼﺎ ﺍﻟﻴﻤﻨﻰ) ﻣﺴﺘﺨﺪﻣﺔ ﺫﺍﻛﺮﺗﻬﺎ. ﺍﺗﺮﻛﻬﺎ ﻣﻄﻔﺄﺓ ﻋﻠﻰ ﺣﺎﺳﻮﺏ ﺿﻌﻴﻒ."})
 BB_MENU_TEXT("Map fog of war",
             {"マップの霧",
              "Brouillard de la carte",
@@ -1466,7 +1542,8 @@ BB_MENU_TEXT("Map fog of war",
              "Karttåke",
              "Mgła na mapie",
              "Névoa do mapa",
-             "Harita sisi"})
+             "Harita sisi",
+             "ﺿﺒﺎﺏ ﺍﻟﺤﺮﺏ ﻋﻠﻰ ﺍﻟﺨﺮﻳﻄﺔ"})
 BB_MENU_TEXT("The map hides what your hunter has not walked near yet. Off shows the whole map.",
             {"まだ近くを歩いていない場所はマップで隠されます。オフにするとマップ全体が表示されます。",
              "La carte cache ce dont votre chasseur ne s'est pas encore approché. Désactivé montre toute la carte.",
@@ -1485,7 +1562,8 @@ BB_MENU_TEXT("The map hides what your hunter has not walked near yet. Off shows 
              "Kartet skjuler det jegeren din ennå ikke har gått i nærheten av. Av viser hele kartet.",
              "Mapa ukrywa miejsca, w których pobliżu twój łowca jeszcze nie był. Wyłączona pokazuje całą mapę.",
              "O mapa esconde aquilo de que seu caçador ainda não se aproximou. Desligado mostra o mapa inteiro.",
-             "Harita, avcının henüz yanından geçmediği yerleri gizler. Kapalı tüm haritayı gösterir."})
+             "Harita, avcının henüz yanından geçmediği yerleri gizler. Kapalı tüm haritayı gösterir.",
+             "ﺗﺨﻔﻲ ﺍﻟﺨﺮﻳﻄﺔ ﻣﺎ ﻟﻢ ﻳﻘﺘﺮﺏ ﻣﻨﻪ ﺻﻴﺎﺩﻙ ﺑﻌﺪ. ﺍﻹﻃﻔﺎﺀ ﻳﻈﻬﺮ ﺍﻟﺨﺮﻳﻄﺔ ﻛﻠﻬﺎ."})
 BB_MENU_TEXT("FPS limit",
             {"FPS上限",
              "Limite FPS",
@@ -1504,7 +1582,8 @@ BB_MENU_TEXT("FPS limit",
              "FPS-grense",
              "Limit FPS",
              "Limite de FPS",
-             "FPS sınırı"})
+             "FPS sınırı",
+             "ﺣﺪ ﺍﻹﻃﺎﺭﺍﺕ"})
 BB_MENU_TEXT("Co-op plays at the game's fixed 60 FPS: every player sends and takes the same number of updates, or the others freeze and fly.",
             {"協力プレイはゲーム固定の60 FPSで動作します：全プレイヤーが同じ数の更新を送受信しないと、他のプレイヤーが止まったり飛んだりします。",
              "La coop tourne aux 60 FPS fixes du jeu : chaque joueur envoie et reçoit autant de mises à jour, sinon les autres se figent et volent.",
@@ -1523,7 +1602,8 @@ BB_MENU_TEXT("Co-op plays at the game's fixed 60 FPS: every player sends and tak
              "Co-op spilles med spillets faste 60 FPS: alle spillere sender og mottar like mange oppdateringer, ellers fryser og flyr de andre.",
              "Co-op działa przy stałych 60 FPS gry: każdy gracz wysyła i odbiera tyle samo aktualizacji, inaczej pozostali zamierają i latają.",
              "O cooperativo roda nos 60 FPS fixos do jogo: todos os jogadores enviam e recebem o mesmo número de atualizações, senão os outros congelam e saem voando.",
-             "Co-op, oyunun sabit 60 FPS'inde oynanır: her oyuncu aynı sayıda güncelleme gönderir ve alır, yoksa diğerleri donar ve uçar."})
+             "Co-op, oyunun sabit 60 FPS'inde oynanır: her oyuncu aynı sayıda güncelleme gönderir ve alır, yoksa diğerleri donar ve uçar.",
+             "ﺍﻟﻠﻌﺐ ﺍﻟﺠﻤﺎﻋﻲ ﻳﻌﻤﻞ ﺑﻤﻌﺪﻝ ﺍﻟﻠﻌﺒﺔ ﺍﻟﺜﺎﺑﺖ 60 ﺇﻃﺎﺭﺍ: ﻛﻞ ﻻﻋﺐ ﻳﺮﺳﻞ ﻭﻳﺴﺘﻘﺒﻞ ﺍﻟﻌﺪﺩ ﻧﻔﺴﻪ ﻣﻦ ﺍﻟﺘﺤﺪﻳﺜﺎﺕ، ﻭﺇﻻ ﻳﺘﺠﻤﺪ ﺍﻵﺧﺮﻭﻥ ﻭﻳﻄﻴﺮﻭﻥ."})
 BB_MENU_TEXT("Highest frame rate. A limit unlocks the game's frame rate from the next start (the 60 FPS mode is the game's own fixed 60); then it changes at once. Off keeps the launcher's mode.",
             {"最大フレームレート。上限を設定すると次回起動からゲームのフレームレートが解除されます（60 FPSモードはゲーム本来の固定60）。以降は即座に変わります。OFFはランチャーのモードのまま。",
              "Fréquence d'images maximale. Une limite débloque la fréquence d'images du jeu dès le prochain lancement (le mode 60 FPS correspond aux 60 fixes du jeu) ; ensuite, elle change aussitôt. Désactivé garde le mode du launcher.",
@@ -1542,7 +1622,8 @@ BB_MENU_TEXT("Highest frame rate. A limit unlocks the game's frame rate from the
              "Høyeste bildefrekvens. En grense låser opp spillets bildefrekvens fra neste start (60 FPS-modusen er spillets egen faste 60); deretter endres den med en gang. Av beholder modusen fra oppstarteren.",
              "Najwyższa liczba klatek. Limit odblokowuje klatkaż gry od następnego uruchomienia (tryb 60 FPS to własne stałe 60 gry); potem zmienia się od razu. Wył. zachowuje tryb z launchera.",
              "Taxa de quadros máxima. Um limite desbloqueia a taxa de quadros do jogo a partir da próxima inicialização (o modo 60 FPS são os 60 fixos do próprio jogo); depois muda na hora. Desligado mantém o modo do launcher.",
-             "En yüksek kare hızı. Bir sınır, bir sonraki başlatmadan itibaren oyunun kare hızının kilidini açar (60 FPS modu oyunun kendi sabit 60'ıdır); sonra anında değişir. Kapalı, başlatıcının modunu korur."})
+             "En yüksek kare hızı. Bir sınır, bir sonraki başlatmadan itibaren oyunun kare hızının kilidini açar (60 FPS modu oyunun kendi sabit 60'ıdır); sonra anında değişir. Kapalı, başlatıcının modunu korur.",
+             "ﺃﻋﻠﻰ ﻣﻌﺪﻝ ﺇﻃﺎﺭﺍﺕ. ﺍﻟﺤﺪ ﻳﻔﻚ ﻗﻔﻞ ﻣﻌﺪﻝ ﺇﻃﺎﺭﺍﺕ ﺍﻟﻠﻌﺒﺔ ﻣﻦ ﺍﻟﺘﺸﻐﻴﻞ ﺍﻟﺘﺎﻟﻲ (ﻭﺿﻊ 60 ﺇﻃﺎﺭﺍ ﻫﻮ ﺍﻟﻮﺿﻊ ﺍﻟﺜﺎﺑﺖ ﻟﻠﻌﺒﺔ ﻧﻔﺴﻬﺎ)؛ ﺑﻌﺪﻫﺎ ﻳﺘﻐﻴﺮ ﻓﻮﺭﺍ. ﺍﻹﻳﻘﺎﻑ ﻳﺒﻘﻲ ﻭﺿﻊ ﺍﻟﻤﺸﻐﻞ."})
 BB_MENU_TEXT("Language of this menu.",
             {"このメニューの言語。",
              "Langue de ce menu.",
@@ -1561,7 +1642,8 @@ BB_MENU_TEXT("Language of this menu.",
              "Språket i denne menyen.",
              "Język tego menu.",
              "Idioma deste menu.",
-             "Bu menünün dili."})
+             "Bu menünün dili.",
+             "ﻟﻐﺔ ﻫﺬﻩ ﺍﻟﻘﺎﺋﻤﺔ."})
 BB_MENU_TEXT("DLSS model",
             {"DLSSモデル",
              "Modèle DLSS",
@@ -1580,7 +1662,8 @@ BB_MENU_TEXT("DLSS model",
              "DLSS-modell",
              "Model DLSS",
              "Modelo DLSS",
-             "DLSS modeli"})
+             "DLSS modeli",
+             "ﻧﻤﻮﺫﺝ DLSS"})
 BB_MENU_TEXT("Default",
             {"標準",
              "Défaut",
@@ -1599,7 +1682,8 @@ BB_MENU_TEXT("Default",
              "Standard",
              "Domyślne",
              "Padrão",
-             "Varsayılan"})
+             "Varsayılan",
+             "ﺍﻓﺘﺮﺍﺿﻲ"})
 BB_MENU_TEXT("NVIDIA's DLSS preset. Default runs the sharp M from Quality to Performance and L on Ultra Performance. K and J are softer, a little faster on RTX 20 and 30.",
             {"NVIDIAのDLSSプリセット。標準は品質からパフォーマンスまで鮮明なM、ウルトラパフォーマンスではL。KとJは柔らかく、RTX 20と30では少し高速。",
              "Préréglage DLSS de NVIDIA. Défaut utilise le M net de Qualité à Performance et L en Ultra performance. K et J sont plus doux, un peu plus rapides sur RTX 20 et 30.",
@@ -1618,7 +1702,8 @@ BB_MENU_TEXT("NVIDIA's DLSS preset. Default runs the sharp M from Quality to Per
              "NVIDIAs DLSS-forhåndsvalg. Standard bruker den skarpe M fra Kvalitet til Ytelse og L på Ultraytelse. K og J er mykere, litt raskere på RTX 20 og 30.",
              "Profil DLSS od NVIDII. Domyślny używa ostrego M od Jakości do Wydajności i L w Ultrawydajności. K i J są łagodniejsze, nieco szybsze na RTX 20 i 30.",
              "Predefinição DLSS da NVIDIA. Padrão usa o nítido M de Qualidade a Desempenho e L em Ultradesempenho. K e J são mais suaves, um pouco mais rápidos em RTX 20 e 30.",
-             "NVIDIA'nın DLSS ön ayarı. Varsayılan, Kaliteden Performansa kadar keskin M'yi, Ultra Performansta L'yi kullanır. K ve J daha yumuşaktır, RTX 20 ve 30'da biraz daha hızlıdır."})
+             "NVIDIA'nın DLSS ön ayarı. Varsayılan, Kaliteden Performansa kadar keskin M'yi, Ultra Performansta L'yi kullanır. K ve J daha yumuşaktır, RTX 20 ve 30'da biraz daha hızlıdır.",
+             "ﺍﻹﻋﺪﺍﺩ ﺍﻟﻤﺴﺒﻖ ﻟـ DLSS ﻣﻦ NVIDIA. ﺍﻻﻓﺘﺮﺍﺿﻲ ﻳﺸﻐﻞ ﻧﻤﻮﺫﺝ M ﺍﻟﺤﺎﺩ ﻣﻦ ﺍﻟﺠﻮﺩﺓ ﺇﻟﻰ ﺍﻷﺩﺍﺀ، ﻭL ﻓﻲ ﺍﻷﺩﺍﺀ ﺍﻟﻔﺎﺋﻖ. K ﻭJ ﺃﻧﻌﻢ، ﻭﺃﺳﺮﻉ ﻗﻠﻴﻼ ﻋﻠﻰ RTX 20 ﻭ30."})
 BB_MENU_TEXT("TAA (native)",
             {"TAA（ネイティブ）",
              "TAA (natif)",
@@ -1637,7 +1722,8 @@ BB_MENU_TEXT("TAA (native)",
              "TAA (nativ)",
              "TAA (natywne)",
              "TAA (nativo)",
-             "TAA (yerel)"})
+             "TAA (yerel)",
+             "TAA (ﺃﺻﻠﻲ)"})
 BB_MENU_TEXT("FSR 4.1.1: the model from AMD's 4.1.1 DLL, reproduced in Vulkan (output matches the DLL). Assets are built from your DLL in the launcher.",
             {"FSR 4.1.1：AMDの4.1.1 DLLのモデルをVulkanで再現（出力はDLLと一致）。アセットはランチャーでお使いのDLLから作成されます。",
              "FSR 4.1.1 : le modèle de la DLL 4.1.1 d'AMD, reproduit en Vulkan (sortie identique à la DLL). Les ressources sont créées à partir de votre DLL dans le launcher.",
@@ -1656,7 +1742,8 @@ BB_MENU_TEXT("FSR 4.1.1: the model from AMD's 4.1.1 DLL, reproduced in Vulkan (o
              "FSR 4.1.1: modellen fra AMDs 4.1.1 DLL, gjenskapt i Vulkan (utdata samsvarer med DLL-en). Ressursene bygges fra din DLL i oppstarteren.",
              "FSR 4.1.1: model z DLL AMD 4.1.1, odtworzony w Vulkan (wynik zgodny z DLL). Zasoby buduje się z twojej DLL w launcherze.",
              "FSR 4.1.1: o modelo da DLL 4.1.1 da AMD, reproduzido em Vulkan (o resultado é igual ao da DLL). Os recursos são gerados a partir da sua DLL no launcher.",
-             "FSR 4.1.1: AMD'nin 4.1.1 DLL'indeki model, Vulkan'da yeniden üretildi (çıktı DLL ile eşleşir). Varlıklar başlatıcıda sizin DLL'inizden oluşturulur."})
+             "FSR 4.1.1: AMD'nin 4.1.1 DLL'indeki model, Vulkan'da yeniden üretildi (çıktı DLL ile eşleşir). Varlıklar başlatıcıda sizin DLL'inizden oluşturulur.",
+             "FSR 4.1.1: ﺍﻟﻨﻤﻮﺫﺝ ﻣﻦ ﻣﻜﺘﺒﺔ AMD 4.1.1، ﻣﻌﺎﺩ ﺑﻨﺎﺅﻩ ﻓﻲ Vulkan (ﺍﻹﺧﺮﺍﺝ ﻳﻄﺎﺑﻖ ﺍﻟﻤﻜﺘﺒﺔ). ﺗﺒﻨﻰ ﺍﻟﻤﻠﻔﺎﺕ ﻣﻦ ﻣﻜﺘﺒﺘﻚ ﻓﻲ ﺍﻟﻤﺸﻐﻞ."})
 BB_MENU_TEXT("FSR 4 in INT8 mode (v07 model from AMD's FidelityFX SDK sources): higher quality than FSR 3.1, heavier.",
             {"INT8モードのFSR 4（AMD FidelityFX SDKソースのv07モデル）：FSR 3.1より高画質だが重い。",
              "FSR 4 en mode INT8 (modèle v07 issu des sources du SDK FidelityFX d'AMD) : meilleure qualité que FSR 3.1, plus lourd.",
@@ -1675,7 +1762,8 @@ BB_MENU_TEXT("FSR 4 in INT8 mode (v07 model from AMD's FidelityFX SDK sources): 
              "FSR 4 i INT8-modus (v07-modell fra kildekoden til AMDs FidelityFX SDK): høyere kvalitet enn FSR 3.1, tyngre.",
              "FSR 4 w trybie INT8 (model v07 ze źródeł FidelityFX SDK od AMD): wyższa jakość niż FSR 3.1, cięższy.",
              "FSR 4 no modo INT8 (modelo v07 do código-fonte do AMD FidelityFX SDK): qualidade maior que FSR 3.1, mais pesado.",
-             "INT8 modunda FSR 4 (AMD'nin FidelityFX SDK kaynaklarından v07 modeli): FSR 3.1'den daha kaliteli, daha ağır."})
+             "INT8 modunda FSR 4 (AMD'nin FidelityFX SDK kaynaklarından v07 modeli): FSR 3.1'den daha kaliteli, daha ağır.",
+             "FSR 4 ﺑﻮﺿﻊ INT8 (ﻧﻤﻮﺫﺝ v07 ﻣﻦ ﻣﺼﺎﺩﺭ FidelityFX SDK ﻣﻦ AMD): ﺟﻮﺩﺓ ﺃﻋﻠﻰ ﻣﻦ FSR 3.1، ﻭﺃﺛﻘﻞ."})
 BB_MENU_TEXT("TAA anti-aliases the scene at the output resolution, without an FSR model.",
             {"TAAはFSRモデルを使わず、出力解像度でシーンにアンチエイリアスをかけます。",
              "Le TAA lisse la scène à la résolution de sortie, sans modèle FSR.",
@@ -1694,7 +1782,8 @@ BB_MENU_TEXT("TAA anti-aliases the scene at the output resolution, without an FS
              "TAA kantutjevner scenen i utgangsoppløsningen, uten en FSR-modell.",
              "TAA wygładza krawędzie sceny w rozdzielczości wyjściowej, bez modelu FSR.",
              "O TAA suaviza o serrilhado da cena na resolução de saída, sem modelo FSR.",
-             "TAA, sahnenin kenarlarını çıkış çözünürlüğünde yumuşatır, FSR modeli olmadan."})
+             "TAA, sahnenin kenarlarını çıkış çözünürlüğünde yumuşatır, FSR modeli olmadan.",
+             "TAA ﻳﻨﻌﻢ ﺣﻮﺍﻑ ﺍﻟﻤﺸﻬﺪ ﺑﺪﻗﺔ ﺍﻹﺧﺮﺍﺝ، ﺩﻭﻥ ﻧﻤﻮﺫﺝ FSR."})
 BB_MENU_TEXT("NVIDIA DLSS Super Resolution (RTX GPUs; Native AA is DLAA). Needs the DLSS bridge and NVIDIA's library next to the game; otherwise FSR 3.1 is used.",
             {"NVIDIA DLSS Super Resolution（RTX GPU。Native AAはDLAA）。DLSSブリッジとNVIDIAのライブラリがゲームと同じ場所に必要です。ない場合はFSR 3.1を使用。",
              "NVIDIA DLSS Super Resolution (GPU RTX ; Native AA correspond au DLAA). Nécessite le pont DLSS et la bibliothèque NVIDIA à côté du jeu ; sinon, FSR 3.1 est utilisé.",
@@ -1713,7 +1802,8 @@ BB_MENU_TEXT("NVIDIA DLSS Super Resolution (RTX GPUs; Native AA is DLAA). Needs 
              "NVIDIA DLSS Super Resolution (RTX GPU-er; Native AA er DLAA). Krever DLSS-broen og NVIDIAs bibliotek ved siden av spillet; ellers brukes FSR 3.1.",
              "NVIDIA DLSS Super Resolution (GPU RTX; Native AA to DLAA). Wymaga mostka DLSS i biblioteki NVIDII obok gry; inaczej używany jest FSR 3.1.",
              "NVIDIA DLSS Super Resolution (GPUs RTX; Native AA é DLAA). Requer a ponte DLSS e a biblioteca da NVIDIA ao lado do jogo; caso contrário, usa-se FSR 3.1.",
-             "NVIDIA DLSS Super Resolution (RTX GPU'lar; Native AA, DLAA'dır). DLSS köprüsü ve NVIDIA'nın kütüphanesi oyunun yanında olmalıdır; yoksa FSR 3.1 kullanılır."})
+             "NVIDIA DLSS Super Resolution (RTX GPU'lar; Native AA, DLAA'dır). DLSS köprüsü ve NVIDIA'nın kütüphanesi oyunun yanında olmalıdır; yoksa FSR 3.1 kullanılır.",
+             "NVIDIA DLSS Super Resolution (ﺑﻄﺎﻗﺎﺕ RTX؛ Native AA ﻫﻮ DLAA). ﻳﺤﺘﺎﺝ ﺟﺴﺮ DLSS ﻭﻣﻜﺘﺒﺔ NVIDIA ﺑﺠﺎﻧﺐ ﺍﻟﻠﻌﺒﺔ؛ ﻭﺇﻻ ﻳﺴﺘﺨﺪﻡ FSR 3.1."})
 BB_MENU_TEXT("Intel XeSS Super Resolution (runs on any GPU). Needs Intel's library next to the game.",
             {"Intel XeSS Super Resolution（どのGPUでも動作）。Intelのライブラリがゲームと同じ場所に必要です。",
              "Intel XeSS Super Resolution (fonctionne sur tout GPU). Nécessite la bibliothèque Intel à côté du jeu.",
@@ -1732,7 +1822,8 @@ BB_MENU_TEXT("Intel XeSS Super Resolution (runs on any GPU). Needs Intel's libra
              "Intel XeSS Super Resolution (kjører på alle GPU-er). Krever Intels bibliotek ved siden av spillet.",
              "Intel XeSS Super Resolution (działa na każdym GPU). Wymaga biblioteki Intela obok gry.",
              "Intel XeSS Super Resolution (funciona em qualquer GPU). Requer a biblioteca da Intel ao lado do jogo.",
-             "Intel XeSS Super Resolution (her GPU'da çalışır). Intel'in kütüphanesi oyunun yanında olmalıdır."})
+             "Intel XeSS Super Resolution (her GPU'da çalışır). Intel'in kütüphanesi oyunun yanında olmalıdır.",
+             "Intel XeSS Super Resolution (ﻳﻌﻤﻞ ﻋﻠﻰ ﺃﻱ ﺑﻄﺎﻗﺔ ﺭﺳﻮﻣﻴﺎﺕ). ﻳﺤﺘﺎﺝ ﻣﻜﺘﺒﺔ Intel ﺑﺠﺎﻧﺐ ﺍﻟﻠﻌﺒﺔ."})
 BB_MENU_TEXT("Temporal upscaler: anti-aliasing and rendering below the output resolution. FSR 4 needs a GPU with the required features (unavailable values are skipped).",
             {"テンポラルアップスケーラー：アンチエイリアスと、出力解像度より低い解像度での描画。FSR 4には必要な機能を持つGPUが必要です（使用できない値はスキップ）。",
              "Upscaler temporel : anticrénelage et rendu sous la résolution de sortie. FSR 4 nécessite un GPU doté des fonctions requises (les valeurs indisponibles sont ignorées).",
@@ -1751,7 +1842,8 @@ BB_MENU_TEXT("Temporal upscaler: anti-aliasing and rendering below the output re
              "Temporal oppskalerer: kantutjevning og rendering under utgangsoppløsningen. FSR 4 krever en GPU med de nødvendige funksjonene (utilgjengelige verdier hoppes over).",
              "Upscaler czasowy: wygładzanie krawędzi i renderowanie poniżej rozdzielczości wyjściowej. FSR 4 wymaga GPU z potrzebnymi funkcjami (niedostępne wartości są pomijane).",
              "Upscaler temporal: antisserrilhado e renderização abaixo da resolução de saída. FSR 4 requer uma GPU com os recursos necessários (valores indisponíveis são pulados).",
-             "Zamansal ölçekleyici: kenar yumuşatma ve çıkış çözünürlüğünün altında işleme. FSR 4, gerekli özelliklere sahip bir GPU ister (kullanılamayan değerler atlanır)."})
+             "Zamansal ölçekleyici: kenar yumuşatma ve çıkış çözünürlüğünün altında işleme. FSR 4, gerekli özelliklere sahip bir GPU ister (kullanılamayan değerler atlanır).",
+             "ﺃﺩﺍﺓ ﺗﻜﺒﻴﺮ ﺯﻣﻨﻴﺔ: ﺗﻨﻌﻴﻢ ﺍﻟﺤﻮﺍﻑ ﻭﺍﻟﺮﺳﻢ ﺑﺄﻗﻞ ﻣﻦ ﺩﻗﺔ ﺍﻹﺧﺮﺍﺝ. FSR 4 ﻳﺤﺘﺎﺝ ﺑﻄﺎﻗﺔ ﺭﺳﻮﻣﻴﺎﺕ ﺑﺎﻟﻤﻴﺰﺍﺕ ﺍﻟﻤﻄﻠﻮﺑﺔ (ﺍﻟﻘﻴﻢ ﻏﻴﺮ ﺍﻟﻤﺘﺎﺣﺔ ﺗﺘﺨﻄﻰ)."})
 BB_MENU_TEXT("Upscaler",
             {"アップスケーラー",
              "Upscaler",
@@ -1770,7 +1862,8 @@ BB_MENU_TEXT("Upscaler",
              "Oppskalerer",
              "Upscaler",
              "Upscaler",
-             "Ölçekleyici"})
+             "Ölçekleyici",
+             "ﺃﺩﺍﺓ ﺍﻟﺘﻜﺒﻴﺮ"})
 BB_MENU_TEXT("Quality preset",
             {"品質プリセット",
              "Préréglage de qualité",
@@ -1789,7 +1882,8 @@ BB_MENU_TEXT("Quality preset",
              "Kvalitetsvalg",
              "Profil jakości",
              "Predefinição de qualidade",
-             "Kalite ön ayarı"})
+             "Kalite ön ayarı",
+             "ﺇﻋﺪﺍﺩ ﺍﻟﺠﻮﺩﺓ ﺍﻟﻤﺴﺒﻖ"})
 BB_MENU_TEXT("Native AA: the upscaler only anti-aliases. The other presets render the scene below the output resolution (the size shown); the UI stays at the output resolution.",
             {"Native AA：アップスケーラーはアンチエイリアスのみ。他のプリセットは出力解像度より低い解像度でシーンを描画（表示のサイズ）。UIは出力解像度のまま。",
              "Native AA : l'upscaler ne fait que lisser. Les autres préréglages rendent la scène sous la résolution de sortie (taille affichée) ; l'interface reste à la résolution de sortie.",
@@ -1808,7 +1902,8 @@ BB_MENU_TEXT("Native AA: the upscaler only anti-aliases. The other presets rende
              "Native AA: oppskalereren bare kantutjevner. De andre valgene rendrer scenen under utgangsoppløsningen (størrelsen som vises); UI blir i utgangsoppløsningen.",
              "Native AA: upscaler tylko wygładza krawędzie. Pozostałe profile renderują scenę poniżej rozdzielczości wyjściowej (podany rozmiar); interfejs zostaje w rozdzielczości wyjściowej.",
              "Native AA: o upscaler só faz antisserrilhado. As outras predefinições renderizam a cena abaixo da resolução de saída (o tamanho mostrado); a interface fica na resolução de saída.",
-             "Native AA: ölçekleyici yalnızca kenar yumuşatır. Diğer ön ayarlar sahneyi çıkış çözünürlüğünün altında işler (gösterilen boyut); arayüz çıkış çözünürlüğünde kalır."})
+             "Native AA: ölçekleyici yalnızca kenar yumuşatır. Diğer ön ayarlar sahneyi çıkış çözünürlüğünün altında işler (gösterilen boyut); arayüz çıkış çözünürlüğünde kalır.",
+             "Native AA: ﺃﺩﺍﺓ ﺍﻟﺘﻜﺒﻴﺮ ﺗﻨﻌﻢ ﺍﻟﺤﻮﺍﻑ ﻓﻘﻂ. ﺍﻹﻋﺪﺍﺩﺍﺕ ﺍﻷﺧﺮﻯ ﺗﺮﺳﻢ ﺍﻟﻤﺸﻬﺪ ﺑﺄﻗﻞ ﻣﻦ ﺩﻗﺔ ﺍﻹﺧﺮﺍﺝ (ﺍﻟﺤﺠﻢ ﺍﻟﻤﻌﺮﻭﺽ)؛ ﻭﺗﺒﻘﻰ ﺍﻟﻮﺍﺟﻬﺔ ﺑﺪﻗﺔ ﺍﻹﺧﺮﺍﺝ."})
 BB_MENU_TEXT("Sharpening",
             {"シャープ化",
              "Accentuation",
@@ -1827,7 +1922,8 @@ BB_MENU_TEXT("Sharpening",
              "Skjerping",
              "Wyostrzanie",
              "Nitidez",
-             "Keskinleştirme"})
+             "Keskinleştirme",
+             "ﺯﻳﺎﺩﺓ ﺍﻟﺤﺪﺓ"})
 BB_MENU_TEXT("RCAS sharpening after the upscaler.",
             {"アップスケーラー後のRCASシャープ化。",
              "Accentuation RCAS après l'upscaler.",
@@ -1846,7 +1942,8 @@ BB_MENU_TEXT("RCAS sharpening after the upscaler.",
              "RCAS-skjerping etter oppskalereren.",
              "Wyostrzanie RCAS po upscalerze.",
              "Nitidez RCAS após o upscaler.",
-             "Ölçekleyiciden sonra RCAS keskinleştirme."})
+             "Ölçekleyiciden sonra RCAS keskinleştirme.",
+             "ﺯﻳﺎﺩﺓ ﺣﺪﺓ RCAS ﺑﻌﺪ ﺃﺩﺍﺓ ﺍﻟﺘﻜﺒﻴﺮ."})
 BB_MENU_TEXT("Sharpness",
             {"シャープネス",
              "Netteté",
@@ -1865,7 +1962,8 @@ BB_MENU_TEXT("Sharpness",
              "Skarphet",
              "Ostrość",
              "Intensidade da nitidez",
-             "Keskinlik"})
+             "Keskinlik",
+             "ﺍﻟﺤﺪﺓ"})
 BB_MENU_TEXT("Up to 1: the upscaler's own RCAS. Above 1 another RCAS pass is added.",
             {"1まで：アップスケーラー自身のRCAS。1を超えるとRCASパスがもう1回追加されます。",
              "Jusqu'à 1 : le RCAS propre à l'upscaler. Au-delà de 1, une passe RCAS supplémentaire est ajoutée.",
@@ -1884,7 +1982,8 @@ BB_MENU_TEXT("Up to 1: the upscaler's own RCAS. Above 1 another RCAS pass is add
              "Opptil 1: oppskalererens egen RCAS. Over 1 legges et ekstra RCAS-pass til.",
              "Do 1: własny RCAS upscalera. Powyżej 1 dodawane jest kolejne przejście RCAS.",
              "Até 1: o RCAS do próprio upscaler. Acima de 1, outra passagem RCAS é adicionada.",
-             "1'e kadar: ölçekleyicinin kendi RCAS'ı. 1'in üstünde ek bir RCAS geçişi eklenir."})
+             "1'e kadar: ölçekleyicinin kendi RCAS'ı. 1'in üstünde ek bir RCAS geçişi eklenir.",
+             "ﺣﺘﻰ 1: RCAS ﺍﻟﺨﺎﺹ ﺑﺄﺩﺍﺓ ﺍﻟﺘﻜﺒﻴﺮ. ﻓﻮﻕ 1 ﺗﻀﺎﻑ ﻣﺮﺣﻠﺔ RCAS ﺃﺧﺮﻯ."})
 BB_MENU_TEXT("Subpixel jitter",
             {"サブピクセルジッター",
              "Jitter sous-pixel",
@@ -1903,7 +2002,8 @@ BB_MENU_TEXT("Subpixel jitter",
              "Subpiksel-jitter",
              "Drganie subpikselowe",
              "Deslocamento subpixel",
-             "Alt piksel titreşimi"})
+             "Alt piksel titreşimi",
+             "ﺍﻫﺘﺰﺍﺯ ﺩﻭﻥ ﺍﻟﺒﻜﺴﻞ"})
 BB_MENU_TEXT("Each frame shifts the scene by a fraction of a pixel so the upscaler reconstructs more detail from several frames.",
             {"毎フレームシーンを1ピクセル未満ずらし、アップスケーラーが複数フレームからより多くのディテールを再構成します。",
              "Chaque image décale la scène d'une fraction de pixel pour que l'upscaler reconstruise plus de détails à partir de plusieurs images.",
@@ -1922,7 +2022,8 @@ BB_MENU_TEXT("Each frame shifts the scene by a fraction of a pixel so the upscal
              "Hvert bilde forskyver scenen med en brøkdel av en piksel, slik at oppskalereren gjenskaper mer detalj fra flere bilder.",
              "Każda klatka przesuwa scenę o ułamek piksela, by upscaler odtworzył więcej detali z kilku klatek.",
              "A cada quadro, a cena se desloca uma fração de pixel para que o upscaler reconstrua mais detalhes a partir de vários quadros.",
-             "Her kare sahneyi bir pikselin kesri kadar kaydırır, böylece ölçekleyici birkaç kareden daha fazla ayrıntı oluşturur."})
+             "Her kare sahneyi bir pikselin kesri kadar kaydırır, böylece ölçekleyici birkaç kareden daha fazla ayrıntı oluşturur.",
+             "ﻛﻞ ﺇﻃﺎﺭ ﻳﺰﻳﺢ ﺍﻟﻤﺸﻬﺪ ﺑﺠﺰﺀ ﻣﻦ ﺑﻜﺴﻞ ﻟﺘﻌﻴﺪ ﺃﺩﺍﺓ ﺍﻟﺘﻜﺒﻴﺮ ﺑﻨﺎﺀ ﺗﻔﺎﺻﻴﻞ ﺃﻛﺜﺮ ﻣﻦ ﻋﺪﺓ ﺇﻃﺎﺭﺍﺕ."})
 BB_MENU_TEXT("Character motion vectors",
             {"キャラクターのモーションベクトル",
              "Vecteurs de mouvement des personnages",
@@ -1941,7 +2042,8 @@ BB_MENU_TEXT("Character motion vectors",
              "Bevegelsesvektorer for figurer",
              "Wektory ruchu postaci",
              "Vetores de movimento dos personagens",
-             "Karakter hareket vektörleri"})
+             "Karakter hareket vektörleri",
+             "ﻣﺘﺠﻬﺎﺕ ﺣﺮﻛﺔ ﺍﻟﺸﺨﺼﻴﺎﺕ"})
 BB_MENU_TEXT("Accurate motion for animated objects: clothes and weapons break up less in motion. Applies after restarting the game.",
             {"アニメーションするオブジェクトの正確な動き：服や武器が動きの中で崩れにくくなります。ゲームの再起動後に適用。",
              "Mouvement précis des objets animés : vêtements et armes se désagrègent moins en mouvement. S'applique après redémarrage du jeu.",
@@ -1960,7 +2062,8 @@ BB_MENU_TEXT("Accurate motion for animated objects: clothes and weapons break up
              "Nøyaktig bevegelse for animerte objekter: klær og våpen brytes mindre opp i bevegelse. Gjelder etter omstart av spillet.",
              "Dokładny ruch animowanych obiektów: ubrania i broń mniej się rozpadają w ruchu. Działa po ponownym uruchomieniu gry.",
              "Movimento preciso de objetos animados: roupas e armas se desfazem menos em movimento. Aplica-se após reiniciar o jogo.",
-             "Animasyonlu nesneler için doğru hareket: giysiler ve silahlar hareket halindeyken daha az bozulur. Oyun yeniden başlatıldıktan sonra uygulanır."})
+             "Animasyonlu nesneler için doğru hareket: giysiler ve silahlar hareket halindeyken daha az bozulur. Oyun yeniden başlatıldıktan sonra uygulanır.",
+             "ﺣﺮﻛﺔ ﺩﻗﻴﻘﺔ ﻟﻸﺟﺴﺎﻡ ﺍﻟﻤﺘﺤﺮﻛﺔ: ﺗﺘﻔﻜﻚ ﺍﻟﻤﻼﺑﺲ ﻭﺍﻷﺳﻠﺤﺔ ﺃﻗﻞ ﺃﺛﻨﺎﺀ ﺍﻟﺤﺮﻛﺔ. ﻳﻄﺒﻖ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺗﺸﻐﻴﻞ ﺍﻟﻠﻌﺒﺔ."})
 BB_MENU_TEXT("Frame generation",
             {"フレーム生成",
              "Génération d'images",
@@ -1979,7 +2082,8 @@ BB_MENU_TEXT("Frame generation",
              "Bildegenerering",
              "Generowanie klatek",
              "Geração de quadros",
-             "Kare oluşturma"})
+             "Kare oluşturma",
+             "ﺗﻮﻟﻴﺪ ﺍﻹﻃﺎﺭﺍﺕ"})
 BB_MENU_TEXT("Frames made between the game's own: FSR 3.1 doubles the frame rate on any GPU, DLSS makes up to three on a GeForce RTX 50 (4x). Adds a little input lag and uses some video memory; best from 60 FPS. Off by default.",
             {"ゲームのフレームの間にフレームを作ります：FSR 3.1はどのGPUでもフレームレートを2倍に、DLSSはGeForce RTX 50で最大3枚（4x）。入力遅延が少し増え、ビデオメモリも使います。60 FPS以上推奨。初期設定はOFF。",
              "Images créées entre celles du jeu : FSR 3.1 double la fréquence d'images sur tout GPU, DLSS en crée jusqu'à trois sur une GeForce RTX 50 (4x). Ajoute un peu de latence et utilise un peu de mémoire vidéo ; idéal à partir de 60 FPS. Désactivé par défaut.",
@@ -1998,7 +2102,8 @@ BB_MENU_TEXT("Frames made between the game's own: FSR 3.1 doubles the frame rate
              "Bilder mellom spillets egne: FSR 3.1 dobler bildefrekvensen på alle GPU-er, DLSS lager opptil tre på et GeForce RTX 50 (4x). Gir litt inndataforsinkelse og bruker litt videominne; best fra 60 FPS. Av som standard.",
              "Klatki tworzone między klatkami gry: FSR 3.1 podwaja liczbę klatek na każdym GPU, DLSS tworzy do trzech na GeForce RTX 50 (4x). Dodaje nieco opóźnienia sterowania i zajmuje trochę pamięci wideo; najlepiej od 60 FPS. Domyślnie wył.",
              "Quadros criados entre os do jogo: FSR 3.1 dobra a taxa de quadros em qualquer placa de vídeo, DLSS cria até três em uma GeForce RTX 50 (4x). Adiciona um pouco de atraso de entrada e usa um pouco de memória de vídeo; melhor a partir de 60 FPS. Desligado por padrão.",
-             "Oyunun kareleri arasına kareler: FSR 3.1 her GPU'da kare hızını ikiye katlar, DLSS GeForce RTX 50'de üçe kadar ekler (4x). Biraz giriş gecikmesi ekler ve biraz video belleği kullanır; en iyisi 60 FPS'den itibaren. Varsayılan olarak kapalı."})
+             "Oyunun kareleri arasına kareler: FSR 3.1 her GPU'da kare hızını ikiye katlar, DLSS GeForce RTX 50'de üçe kadar ekler (4x). Biraz giriş gecikmesi ekler ve biraz video belleği kullanır; en iyisi 60 FPS'den itibaren. Varsayılan olarak kapalı.",
+             "ﺇﻃﺎﺭﺍﺕ ﺗﺼﻨﻊ ﺑﻴﻦ ﺇﻃﺎﺭﺍﺕ ﺍﻟﻠﻌﺒﺔ ﻧﻔﺴﻬﺎ: FSR 3.1 ﻳﻀﺎﻋﻒ ﻣﻌﺪﻝ ﺍﻹﻃﺎﺭﺍﺕ ﻋﻠﻰ ﺃﻱ ﺑﻄﺎﻗﺔ، ﻭDLSS ﻳﺼﻨﻊ ﺣﺘﻰ ﺛﻼﺛﺔ ﻋﻠﻰ GeForce RTX 50 (4x). ﻳﻀﻴﻒ ﺗﺄﺧﺮﺍ ﺑﺴﻴﻄﺎ ﻓﻲ ﺍﻻﺳﺘﺠﺎﺑﺔ ﻭﻳﺴﺘﻬﻠﻚ ﺑﻌﺾ ﺫﺍﻛﺮﺓ ﺍﻟﻔﻴﺪﻳﻮ؛ ﺍﻷﻓﻀﻞ ﻣﻦ 60 ﺇﻃﺎﺭﺍ. ﻣﻄﻔﺄ ﺍﻓﺘﺮﺍﺿﻴﺎ."})
 BB_MENU_TEXT("FSR 4: auto exposure",
             {"FSR 4：自動露出",
              "FSR 4 : exposition auto",
@@ -2017,7 +2122,8 @@ BB_MENU_TEXT("FSR 4: auto exposure",
              "FSR 4: automatisk eksponering",
              "FSR 4: automatyczna ekspozycja",
              "FSR 4: exposição automática",
-             "FSR 4: otomatik pozlama"})
+             "FSR 4: otomatik pozlama",
+             "FSR 4: ﺗﻌﺮﻳﺾ ﺗﻠﻘﺎﺋﻲ"})
 BB_MENU_TEXT("The FSR 4 network normalises colour by exposure and uses it to decide when to drop older frames.",
             {"FSR 4のネットワークは露出で色を正規化し、それを使って古いフレームを捨てるタイミングを判断します。",
              "Le réseau FSR 4 normalise la couleur selon l'exposition et s'en sert pour décider quand abandonner les images précédentes.",
@@ -2036,7 +2142,8 @@ BB_MENU_TEXT("The FSR 4 network normalises colour by exposure and uses it to dec
              "FSR 4-nettverket normaliserer farge etter eksponering og bruker den til å avgjøre når eldre bilder skal forkastes.",
              "Sieć FSR 4 normalizuje kolor według ekspozycji i na jej podstawie decyduje, kiedy porzucić starsze klatki.",
              "A rede do FSR 4 normaliza a cor pela exposição e a usa para decidir quando descartar quadros anteriores.",
-             "FSR 4 ağı rengi pozlamaya göre normalleştirir ve eski kareleri ne zaman bırakacağına karar vermek için onu kullanır."})
+             "FSR 4 ağı rengi pozlamaya göre normalleştirir ve eski kareleri ne zaman bırakacağına karar vermek için onu kullanır.",
+             "ﺷﺒﻜﺔ FSR 4 ﺗﻮﺣﺪ ﺍﻷﻟﻮﺍﻥ ﺣﺴﺐ ﺍﻟﺘﻌﺮﻳﺾ ﻭﺗﺴﺘﺨﺪﻣﻪ ﻟﺘﻘﺮﺭ ﻣﺘﻰ ﺗﺘﺨﻠﻰ ﻋﻦ ﺍﻹﻃﺎﺭﺍﺕ ﺍﻟﻘﺪﻳﻤﺔ."})
 BB_MENU_TEXT("FSR 4: invert jitter sign",
             {"FSR 4：ジッターの符号を反転",
              "FSR 4 : inverser le signe du jitter",
@@ -2055,7 +2162,8 @@ BB_MENU_TEXT("FSR 4: invert jitter sign",
              "FSR 4: snu jitter-fortegn",
              "FSR 4: odwróć znak drgania",
              "FSR 4: inverter sinal do deslocamento",
-             "FSR 4: titreşim işaretini ters çevir"})
+             "FSR 4: titreşim işaretini ters çevir",
+             "FSR 4: ﻋﻜﺲ ﺇﺷﺎﺭﺓ ﺍﻻﻫﺘﺰﺍﺯ"})
 BB_MENU_TEXT("For diagnosing ghosting.",
             {"ゴーストの診断用。",
              "Pour diagnostiquer le ghosting.",
@@ -2074,7 +2182,8 @@ BB_MENU_TEXT("For diagnosing ghosting.",
              "For feilsøking av ghosting.",
              "Do diagnozowania ghostingu.",
              "Para diagnosticar rastros.",
-             "Ghosting teşhisi için."})
+             "Ghosting teşhisi için.",
+             "ﻟﺘﺸﺨﻴﺺ ﺍﻟﻈﻼﻝ ﺍﻟﺸﺒﺤﻴﺔ."})
 BB_MENU_TEXT("Scene renders at %d x %d",
             {"シーン描画解像度 %d x %d",
              "Scène rendue en %d x %d",
@@ -2093,7 +2202,8 @@ BB_MENU_TEXT("Scene renders at %d x %d",
              "Scenen rendres i %d x %d",
              "Scena renderowana w %d x %d",
              "Cena renderizada em %d x %d",
-             "Sahne %d x %d çözünürlükte işlenir"})
+             "Sahne %d x %d çözünürlükte işlenir",
+             "ﻳﺮﺳﻢ ﺍﻟﻤﺸﻬﺪ ﺑﺤﺠﻢ %d x %d"})
 BB_MENU_TEXT("Preset at startup: %s (changes after a restart)",
             {"起動時のプリセット：%s（変更は再起動後）",
              "Préréglage au lancement : %s (change après redémarrage)",
@@ -2112,7 +2222,8 @@ BB_MENU_TEXT("Preset at startup: %s (changes after a restart)",
              "Forhåndsvalg ved oppstart: %s (endres etter omstart)",
              "Profil przy starcie: %s (zmiana po restarcie)",
              "Predefinição ao iniciar: %s (muda após reiniciar)",
-             "Başlangıçtaki ön ayar: %s (yeniden başlatınca değişir)"})
+             "Başlangıçtaki ön ayar: %s (yeniden başlatınca değişir)",
+             "ﺍﻹﻋﺪﺍﺩ ﺍﻟﻤﺴﺒﻖ ﻋﻨﺪ ﺍﻟﺒﺪﺀ: %s (ﻳﺘﻐﻴﺮ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺍﻟﺘﺸﻐﻴﻞ)"})
 BB_MENU_TEXT("FSR 4 unavailable: %s",
             {"FSR 4 使用不可：%s",
              "FSR 4 indisponible : %s",
@@ -2131,7 +2242,8 @@ BB_MENU_TEXT("FSR 4 unavailable: %s",
              "FSR 4 utilgjengelig: %s",
              "FSR 4 niedostępny: %s",
              "FSR 4 indisponível: %s",
-             "FSR 4 kullanılamıyor: %s"})
+             "FSR 4 kullanılamıyor: %s",
+             "FSR 4 ﻏﻴﺮ ﻣﺘﺎﺡ: %s"})
 BB_MENU_TEXT("Highest (-2)",
             {"最高（-2）",
              "Maximal (-2)",
@@ -2150,7 +2262,8 @@ BB_MENU_TEXT("Highest (-2)",
              "Høyest (-2)",
              "Najwyższa (-2)",
              "Máximo (-2)",
-             "En yüksek (-2)"})
+             "En yüksek (-2)",
+             "ﺍﻷﻋﻠﻰ (-2)"})
 BB_MENU_TEXT("Game default",
             {"ゲーム標準",
              "Défaut du jeu",
@@ -2169,7 +2282,8 @@ BB_MENU_TEXT("Game default",
              "Spillets standard",
              "Domyślna gry",
              "Padrão do jogo",
-             "Oyun varsayılanı"})
+             "Oyun varsayılanı",
+             "ﺍﻓﺘﺮﺍﺿﻲ ﺍﻟﻠﻌﺒﺔ"})
 BB_MENU_TEXT("Lower (1)",
             {"低め（1）",
              "Réduit (1)",
@@ -2188,7 +2302,8 @@ BB_MENU_TEXT("Lower (1)",
              "Lavere (1)",
              "Niższa (1)",
              "Menor (1)",
-             "Düşük (1)"})
+             "Düşük (1)",
+             "ﺃﻗﻞ (1)"})
 BB_MENU_TEXT("Lowest (2)",
             {"最低（2）",
              "Minimal (2)",
@@ -2207,7 +2322,8 @@ BB_MENU_TEXT("Lowest (2)",
              "Lavest (2)",
              "Najniższa (2)",
              "Mínimo (2)",
-             "En düşük (2)"})
+             "En düşük (2)",
+             "ﺍﻷﻗﻞ (2)"})
 BB_MENU_TEXT("Model detail",
             {"モデル詳細度",
              "Détail des modèles",
@@ -2226,7 +2342,8 @@ BB_MENU_TEXT("Model detail",
              "Modelldetalj",
              "Szczegółowość modeli",
              "Detalhe dos modelos",
-             "Model ayrıntısı"})
+             "Model ayrıntısı",
+             "ﺗﻔﺎﺻﻴﻞ ﺍﻟﻨﻤﺎﺫﺝ"})
 BB_MENU_TEXT("Level of detail of models (game patch). Applies after restarting the game.",
             {"モデルの詳細度（ゲームパッチ）。ゲームの再起動後に適用。",
              "Niveau de détail des modèles (patch du jeu). S'applique après redémarrage du jeu.",
@@ -2245,7 +2362,8 @@ BB_MENU_TEXT("Level of detail of models (game patch). Applies after restarting t
              "Detaljnivå for modeller (spillpatch). Gjelder etter omstart av spillet.",
              "Poziom szczegółów modeli (łatka gry). Działa po ponownym uruchomieniu gry.",
              "Nível de detalhe dos modelos (patch do jogo). Aplica-se após reiniciar o jogo.",
-             "Modellerin ayrıntı düzeyi (oyun yaması). Oyun yeniden başlatıldıktan sonra uygulanır."})
+             "Modellerin ayrıntı düzeyi (oyun yaması). Oyun yeniden başlatıldıktan sonra uygulanır.",
+             "ﻣﺴﺘﻮﻯ ﺗﻔﺎﺻﻴﻞ ﺍﻟﻨﻤﺎﺫﺝ (ﺗﻌﺪﻳﻞ ﻟﻠﻌﺒﺔ). ﻳﻄﺒﻖ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺗﺸﻐﻴﻞ ﺍﻟﻠﻌﺒﺔ."})
 BB_MENU_TEXT("Low",
             {"低",
              "Basse",
@@ -2264,7 +2382,8 @@ BB_MENU_TEXT("Low",
              "Lav",
              "Niska",
              "Baixa",
-             "Düşük"})
+             "Düşük",
+             "ﻣﻨﺨﻔﺾ"})
 BB_MENU_TEXT("High",
             {"高",
              "Haute",
@@ -2283,7 +2402,8 @@ BB_MENU_TEXT("High",
              "Høy",
              "Wysoka",
              "Alta",
-             "Yüksek"})
+             "Yüksek",
+             "ﻋﺎﻝ"})
 BB_MENU_TEXT("Screen lighting",
             {"画面ライティング",
              "Éclairage écran",
@@ -2302,7 +2422,8 @@ BB_MENU_TEXT("Screen lighting",
              "Skjermbelysning",
              "Oświetlenie ekranowe",
              "Iluminação de tela",
-             "Ekran aydınlatması"})
+             "Ekran aydınlatması",
+             "ﺇﺿﺎﺀﺓ ﺍﻟﺸﺎﺷﺔ"})
 BB_MENU_TEXT("Soft shadows in corners and light bounced off nearby surfaces, added to the game's own lighting (like ReShade's RTGI). Low works at half size; High costs more GPU time.",
             {"隅の柔らかな影と近くの面から跳ね返る光を、ゲーム本来のライティングに加えます（ReShadeのRTGIのように）。低は半分のサイズで計算し、高はGPU負荷が大きくなります。",
              "Ombres douces dans les coins et lumière renvoyée par les surfaces proches, ajoutées à l'éclairage du jeu (comme le RTGI de ReShade). Basse travaille à demi-taille ; Haute coûte plus de temps GPU.",
@@ -2321,7 +2442,8 @@ BB_MENU_TEXT("Soft shadows in corners and light bounced off nearby surfaces, add
              "Myke skygger i hjørner og lys som kastes tilbake fra nære flater, i tillegg til spillets egen belysning (som ReShades RTGI). Lav regner i halv størrelse; Høy koster mer GPU-tid.",
              "Miękkie cienie w kątach i światło odbite od pobliskich powierzchni, dodane do oświetlenia gry (jak RTGI w ReShade). Niska liczy w połowie rozmiaru; Wysoka kosztuje więcej czasu GPU.",
              "Sombras suaves nos cantos e luz refletida pelas superfícies próximas, somadas à iluminação do jogo (como o RTGI do ReShade). Baixa trabalha na metade do tamanho; Alta gasta mais tempo de GPU.",
-             "Köşelerde yumuşak gölgeler ve yakın yüzeylerden sekip gelen ışık, oyunun kendi aydınlatmasına eklenir (ReShade'in RTGI'ı gibi). Düşük yarım boyutta hesaplar; Yüksek daha çok GPU zamanı harcar."})
+             "Köşelerde yumuşak gölgeler ve yakın yüzeylerden sekip gelen ışık, oyunun kendi aydınlatmasına eklenir (ReShade'in RTGI'ı gibi). Düşük yarım boyutta hesaplar; Yüksek daha çok GPU zamanı harcar.",
+             "ﻇﻼﻝ ﻧﺎﻋﻤﺔ ﻓﻲ ﺍﻟﺰﻭﺍﻳﺎ ﻭﺿﻮﺀ ﻣﻨﻌﻜﺲ ﻣﻦ ﺍﻷﺳﻄﺢ ﺍﻟﻘﺮﻳﺒﺔ، ﻳﻀﺎﻑ ﺇﻟﻰ ﺇﺿﺎﺀﺓ ﺍﻟﻠﻌﺒﺔ ﻧﻔﺴﻬﺎ (ﻣﺜﻞ RTGI ﻓﻲ ReShade). ﺍﻟﻤﻨﺨﻔﺾ ﻳﻌﻤﻞ ﺑﻨﺼﻒ ﺍﻟﺤﺠﻢ؛ ﺍﻟﻌﺎﻟﻲ ﻳﻜﻠﻒ ﻭﻗﺘﺎ ﺃﻛﺜﺮ ﻣﻦ ﺑﻄﺎﻗﺔ ﺍﻟﺮﺳﻮﻣﻴﺎﺕ."})
 BB_MENU_TEXT("Corner shadows",
             {"隅の影",
              "Ombres des coins",
@@ -2340,7 +2462,8 @@ BB_MENU_TEXT("Corner shadows",
              "Hjørneskygger",
              "Cienie w kątach",
              "Sombras nos cantos",
-             "Köşe gölgeleri"})
+             "Köşe gölgeleri",
+             "ﻇﻼﻝ ﺍﻟﺰﻭﺍﻳﺎ"})
 BB_MENU_TEXT("How much corners and contacts darken with screen lighting.",
             {"画面ライティングで隅や接地部分がどれだけ暗くなるか。",
              "À quel point les coins et les contacts s'assombrissent avec l'éclairage écran.",
@@ -2359,7 +2482,8 @@ BB_MENU_TEXT("How much corners and contacts darken with screen lighting.",
              "Hvor mye hjørner og kontaktflater mørkner med skjermbelysning.",
              "Jak bardzo ciemnieją kąty i miejsca styku przy oświetleniu ekranowym.",
              "Quanto escurecem os cantos e os contatos com a iluminação de tela.",
-             "Ekran aydınlatmasıyla köşelerin ve temas yerlerinin ne kadar karardığı."})
+             "Ekran aydınlatmasıyla köşelerin ve temas yerlerinin ne kadar karardığı.",
+             "ﻣﻘﺪﺍﺭ ﺇﻋﺘﺎﻡ ﺍﻟﺰﻭﺍﻳﺎ ﻭﻧﻘﺎﻁ ﺍﻟﺘﻼﻣﺲ ﻣﻊ ﺇﺿﺎﺀﺓ ﺍﻟﺸﺎﺷﺔ."})
 BB_MENU_TEXT("Bounced light",
             {"反射光",
              "Lumière renvoyée",
@@ -2378,7 +2502,8 @@ BB_MENU_TEXT("Bounced light",
              "Tilbakekastet lys",
              "Światło odbite",
              "Luz refletida",
-             "Sekmiş ışık"})
+             "Sekmiş ışık",
+             "ﺍﻟﻀﻮﺀ ﺍﻟﻤﻨﻌﻜﺲ"})
 BB_MENU_TEXT("How much colour nearby surfaces cast onto each other with screen lighting.",
             {"画面ライティングで近くの面が互いにどれだけ色を映し合うか。",
              "Quelle quantité de couleur les surfaces proches se renvoient avec l'éclairage écran.",
@@ -2397,7 +2522,8 @@ BB_MENU_TEXT("How much colour nearby surfaces cast onto each other with screen l
              "Hvor mye farge nære flater kaster på hverandre med skjermbelysning.",
              "Ile koloru pobliskie powierzchnie rzucają na siebie przy oświetleniu ekranowym.",
              "Quanta cor as superfícies próximas lançam umas nas outras com a iluminação de tela.",
-             "Ekran aydınlatmasıyla yakın yüzeylerin birbirine ne kadar renk yansıttığı."})
+             "Ekran aydınlatmasıyla yakın yüzeylerin birbirine ne kadar renk yansıttığı.",
+             "ﻣﻘﺪﺍﺭ ﺍﻟﻠﻮﻥ ﺍﻟﺬﻱ ﺗﻠﻘﻴﻪ ﺍﻷﺳﻄﺢ ﺍﻟﻘﺮﻳﺒﺔ ﻋﻠﻰ ﺑﻌﻀﻬﺎ ﻣﻊ ﺇﺿﺎﺀﺓ ﺍﻟﺸﺎﺷﺔ."})
 BB_MENU_TEXT("Ray-traced shadows",
             {"レイトレース影",
              "Ombres en lancer de rayons",
@@ -2416,7 +2542,8 @@ BB_MENU_TEXT("Ray-traced shadows",
              "Strålesporede skygger",
              "Cienie śledzone promieniami",
              "Sombras com traçado de raios",
-             "Işın izlemeli gölgeler"})
+             "Işın izlemeli gölgeler",
+             "ﻇﻼﻝ ﺑﺘﺘﺒﻊ ﺍﻷﺷﻌﺔ"})
 BB_MENU_TEXT("Screen lighting's shadows also traced against the area's own models: under ceilings, in alcoves and behind the camera. Needs a graphics card with ray tracing; turning it on applies after restarting the game.",
             {"画面ライティングの影を、そのエリア自体のモデルに対してもトレースします（天井の下、くぼみ、カメラの後ろ）。レイトレーシング対応のグラフィックカードが必要で、オンにするとゲームの再起動後に反映されます。",
              "Les ombres de l'éclairage écran sont aussi tracées sur les modèles de la zone : sous les plafonds, dans les alcôves et derrière la caméra. Demande une carte graphique avec lancer de rayons ; l'activer s'applique après le redémarrage du jeu.",
@@ -2435,7 +2562,8 @@ BB_MENU_TEXT("Screen lighting's shadows also traced against the area's own model
              "Skjermbelysningens skygger spores også mot områdets egne modeller: under tak, i nisjer og bak kameraet. Krever et grafikkort med strålesporing; å slå det på gjelder etter at spillet er startet på nytt.",
              "Cienie oświetlenia ekranowego są też śledzone względem modeli samego obszaru: pod sufitami, we wnękach i za kamerą. Wymaga karty graficznej ze śledzeniem promieni; włączenie działa po ponownym uruchomieniu gry.",
              "As sombras da iluminação de tela também são traçadas contra os modelos da área: sob tetos, em nichos e atrás da câmera. Requer uma placa de vídeo com traçado de raios; ativar vale após reiniciar o jogo.",
-             "Ekran aydınlatmasının gölgeleri bölgenin kendi modellerine karşı da izlenir: tavanların altında, girintilerde ve kameranın arkasında. Işın izleme destekli bir ekran kartı gerekir; açmak oyun yeniden başlatıldıktan sonra geçerli olur."})
+             "Ekran aydınlatmasının gölgeleri bölgenin kendi modellerine karşı da izlenir: tavanların altında, girintilerde ve kameranın arkasında. Işın izleme destekli bir ekran kartı gerekir; açmak oyun yeniden başlatıldıktan sonra geçerli olur.",
+             "ﻇﻼﻝ ﺇﺿﺎﺀﺓ ﺍﻟﺸﺎﺷﺔ ﺗﺘﺘﺒﻊ ﺃﻳﻀﺎ ﻋﻠﻰ ﻧﻤﺎﺫﺝ ﺍﻟﻤﻨﻄﻘﺔ ﻧﻔﺴﻬﺎ: ﺗﺤﺖ ﺍﻷﺳﻘﻒ ﻭﻓﻲ ﺍﻟﺰﻭﺍﻳﺎ ﻭﺧﻠﻒ ﺍﻟﻜﺎﻣﻴﺮﺍ. ﺗﺤﺘﺎﺝ ﺑﻄﺎﻗﺔ ﺭﺳﻮﻣﻴﺎﺕ ﺗﺪﻋﻢ ﺗﺘﺒﻊ ﺍﻷﺷﻌﺔ؛ ﺗﻔﻌﻴﻠﻬﺎ ﻳﻄﺒﻖ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺗﺸﻐﻴﻞ ﺍﻟﻠﻌﺒﺔ."})
 BB_MENU_TEXT("Hold {Cross} and press {L3}. Applies after restarting.",
             {"{Cross}を押しながら{L3}。再起動後に適用。",
              "Maintenez {Cross} et appuyez sur {L3}. Après redémarrage.",
@@ -2454,7 +2582,8 @@ BB_MENU_TEXT("Hold {Cross} and press {L3}. Applies after restarting.",
              "Hold {Cross} og trykk {L3}. Gjelder etter omstart.",
              "Przytrzymaj {Cross} i naciśnij {L3}. Działa po restarcie.",
              "Segure {Cross} e pressione {L3}. Aplica-se após reiniciar.",
-             "{Cross} basılı tutup {L3} basın. Yeniden başlatınca uygulanır."})
+             "{Cross} basılı tutup {L3} basın. Yeniden başlatınca uygulanır.",
+             "ﺍﺿﻐﻂ ﻣﻄﻮﻻ ﻋﻠﻰ {Cross} ﻭﺍﺿﻐﻂ {L3}. ﻳﻄﺒﻖ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺍﻟﺘﺸﻐﻴﻞ."})
 BB_MENU_TEXT("Left side of the touchpad (Tab). Needs the adhoc folder from Nexus mod #253. Applies after restarting.",
             {"タッチパッドの左側（Tab）。Nexus mod #253 のadhocフォルダが必要。再起動後に適用。",
              "Moitié gauche du pavé tactile (Tab). Nécessite le dossier adhoc de Nexus mod #253. Après redémarrage.",
@@ -2473,7 +2602,8 @@ BB_MENU_TEXT("Left side of the touchpad (Tab). Needs the adhoc folder from Nexus
              "Venstre side av berøringsflaten (Tab). Krever adhoc-mappen fra Nexus mod #253. Gjelder etter omstart.",
              "Lewa strona panelu dotykowego (Tab). Wymaga folderu adhoc z Nexus mod #253. Działa po restarcie.",
              "Lado esquerdo do touchpad (Tab). Requer a pasta adhoc do Nexus mod #253. Aplica-se após reiniciar.",
-             "Dokunmatik yüzeyin sol tarafı (Tab). Nexus mod #253'teki adhoc klasörü gerekir. Yeniden başlatınca uygulanır."})
+             "Dokunmatik yüzeyin sol tarafı (Tab). Nexus mod #253'teki adhoc klasörü gerekir. Yeniden başlatınca uygulanır.",
+             "ﺍﻟﺠﺎﻧﺐ ﺍﻷﻳﺴﺮ ﻣﻦ ﻟﻮﺣﺔ ﺍﻟﻠﻤﺲ (Tab). ﻳﺤﺘﺎﺝ ﻣﺠﻠﺪ adhoc ﻣﻦ ﺗﻌﺪﻳﻞ Nexus ﺭﻗﻢ 253. ﻳﻄﺒﻖ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺍﻟﺘﺸﻐﻴﻞ."})
 BB_MENU_TEXT("A game patch, applied when the game starts: after a restart. Motion blur and shadows from dynamic lights cost the most GPU time.",
             {"ゲーム起動時に適用されるゲームパッチ：再起動後に有効。モーションブラーと動的光源の影が最もGPU時間を使います。",
              "Un patch du jeu, appliqué au lancement : après redémarrage. Le flou de mouvement et les ombres des lumières dynamiques coûtent le plus de temps GPU.",
@@ -2492,7 +2622,8 @@ BB_MENU_TEXT("A game patch, applied when the game starts: after a restart. Motio
              "En spillpatch som brukes når spillet starter: etter en omstart. Bevegelsesuskarphet og skygger fra dynamiske lys koster mest GPU-tid.",
              "Łatka gry nakładana przy starcie gry: po restarcie. Rozmycie ruchu i cienie z dynamicznych świateł kosztują najwięcej czasu GPU.",
              "Um patch do jogo, aplicado quando o jogo inicia: após reiniciar. Desfoque de movimento e sombras de luzes dinâmicas são o que mais consome tempo da GPU.",
-             "Oyun başlarken uygulanan bir oyun yaması: yeniden başlatmadan sonra. Hareket bulanıklığı ve dinamik ışıkların gölgeleri en çok GPU zamanını alır."})
+             "Oyun başlarken uygulanan bir oyun yaması: yeniden başlatmadan sonra. Hareket bulanıklığı ve dinamik ışıkların gölgeleri en çok GPU zamanını alır.",
+             "ﺗﻌﺪﻳﻞ ﻟﻠﻌﺒﺔ ﻳﻄﺒﻖ ﻋﻨﺪ ﺑﺪﺋﻬﺎ: ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺍﻟﺘﺸﻐﻴﻞ. ﺿﺒﺎﺑﻴﺔ ﺍﻟﺤﺮﻛﺔ ﻭﻇﻼﻝ ﺍﻷﺿﻮﺍﺀ ﺍﻟﻤﺘﺤﺮﻛﺔ ﺗﻜﻠﻒ ﺃﻛﺜﺮ ﻭﻗﺖ ﻣﻦ ﺑﻄﺎﻗﺔ ﺍﻟﺮﺳﻮﻣﻴﺎﺕ."})
 BB_MENU_TEXT("Reactive mask",
             {"リアクティブマスク",
              "Masque réactif",
@@ -2511,7 +2642,8 @@ BB_MENU_TEXT("Reactive mask",
              "Reaktiv maske",
              "Maska reaktywna",
              "Máscara reativa",
-             "Reaktif maske"})
+             "Reaktif maske",
+             "ﻗﻨﺎﻉ ﺍﻟﺘﻔﺎﻋﻞ"})
 BB_MENU_TEXT("Marks transparent effects (haze, light, water, particles): there the FSR 4 output is blended with the current frame so effects do not drag older frames.",
             {"透明なエフェクト（もや、光、水、パーティクル）をマーク：そこではFSR 4の出力を現在のフレームと混ぜ、エフェクトが古いフレームを引きずらないようにします。",
              "Marque les effets transparents (brume, lumière, eau, particules) : là, la sortie FSR 4 est mélangée à l'image actuelle pour que les effets ne traînent pas les images précédentes.",
@@ -2530,7 +2662,8 @@ BB_MENU_TEXT("Marks transparent effects (haze, light, water, particles): there t
              "Markerer gjennomsiktige effekter (dis, lys, vann, partikler): der blandes FSR 4-utdata med gjeldende bilde, så effektene ikke drar med seg eldre bilder.",
              "Oznacza efekty przezroczyste (mgiełka, światło, woda, cząsteczki): tam wynik FSR 4 jest mieszany z bieżącą klatką, by efekty nie ciągnęły starszych klatek.",
              "Marca efeitos transparentes (névoa, luz, água, partículas): ali o resultado do FSR 4 é mesclado com o quadro atual para que os efeitos não arrastem quadros anteriores.",
-             "Saydam efektleri işaretler (pus, ışık, su, parçacıklar): orada FSR 4 çıktısı geçerli kareyle karıştırılır, böylece efektler eski kareleri sürüklemez."})
+             "Saydam efektleri işaretler (pus, ışık, su, parçacıklar): orada FSR 4 çıktısı geçerli kareyle karıştırılır, böylece efektler eski kareleri sürüklemez.",
+             "ﻳﺤﺪﺩ ﺍﻟﻤﺆﺛﺮﺍﺕ ﺍﻟﺸﻔﺎﻓﺔ (ﺍﻟﻀﺒﺎﺏ ﻭﺍﻟﻀﻮﺀ ﻭﺍﻟﻤﺎﺀ ﻭﺍﻟﺠﺰﻳﺌﺎﺕ): ﻫﻨﺎﻙ ﻳﻤﺰﺝ ﺇﺧﺮﺍﺝ FSR 4 ﺑﺎﻹﻃﺎﺭ ﺍﻟﺤﺎﻟﻲ ﺣﺘﻰ ﻻ ﺗﺴﺤﺐ ﺍﻟﻤﺆﺛﺮﺍﺕ ﺇﻃﺎﺭﺍﺕ ﻗﺪﻳﻤﺔ."})
 BB_MENU_TEXT("Marks transparent effects so the upscaler relies less on older frames: fewer trails, more shimmer under them.",
             {"透明なエフェクトをマークし、アップスケーラーが古いフレームに頼りにくくします：残像は減り、その下のちらつきは増えます。",
              "Marque les effets transparents pour que l'upscaler s'appuie moins sur les images précédentes : moins de traînées, plus de scintillement dessous.",
@@ -2549,7 +2682,8 @@ BB_MENU_TEXT("Marks transparent effects so the upscaler relies less on older fra
              "Markerer gjennomsiktige effekter så oppskalereren stoler mindre på eldre bilder: færre spor, mer flimmer under dem.",
              "Oznacza efekty przezroczyste, by upscaler mniej polegał na starszych klatkach: mniej smug, więcej migotania pod nimi.",
              "Marca efeitos transparentes para que o upscaler dependa menos de quadros anteriores: menos rastros, mais cintilação sob eles.",
-             "Saydam efektleri işaretler, böylece ölçekleyici eski karelere daha az dayanır: daha az iz, altlarında daha fazla titreşim."})
+             "Saydam efektleri işaretler, böylece ölçekleyici eski karelere daha az dayanır: daha az iz, altlarında daha fazla titreşim.",
+             "ﻳﺤﺪﺩ ﺍﻟﻤﺆﺛﺮﺍﺕ ﺍﻟﺸﻔﺎﻓﺔ ﻟﺘﻌﺘﻤﺪ ﺃﺩﺍﺓ ﺍﻟﺘﻜﺒﻴﺮ ﺃﻗﻞ ﻋﻠﻰ ﺍﻹﻃﺎﺭﺍﺕ ﺍﻟﻘﺪﻳﻤﺔ: ﺁﺛﺎﺭ ﺃﻗﻞ، ﻭﻭﻣﻴﺾ ﺃﻛﺜﺮ ﺗﺤﺘﻬﺎ."})
 BB_MENU_TEXT("Mask scale",
             {"マスクの倍率",
              "Échelle du masque",
@@ -2568,7 +2702,8 @@ BB_MENU_TEXT("Mask scale",
              "Maskeskala",
              "Skala maski",
              "Escala da máscara",
-             "Maske ölçeği"})
+             "Maske ölçeği",
+             "ﻣﻘﻴﺎﺱ ﺍﻟﻘﻨﺎﻉ"})
 BB_MENU_TEXT("Mask threshold",
             {"マスクのしきい値",
              "Seuil du masque",
@@ -2587,7 +2722,8 @@ BB_MENU_TEXT("Mask threshold",
              "Masketerskel",
              "Próg maski",
              "Limiar da máscara",
-             "Maske eşiği"})
+             "Maske eşiği",
+             "ﻋﺘﺒﺔ ﺍﻟﻘﻨﺎﻉ"})
 BB_MENU_TEXT("Mask maximum",
             {"マスクの最大値",
              "Maximum du masque",
@@ -2606,7 +2742,8 @@ BB_MENU_TEXT("Mask maximum",
              "Maskemaksimum",
              "Maksimum maski",
              "Máximo da máscara",
-             "Maske azami değeri"})
+             "Maske azami değeri",
+             "ﺍﻟﺤﺪ ﺍﻷﻗﺼﻰ ﻟﻠﻘﻨﺎﻉ"})
 BB_MENU_TEXT("Motion vectors",
             {"モーションベクトル",
              "Vecteurs de mouvement",
@@ -2625,7 +2762,8 @@ BB_MENU_TEXT("Motion vectors",
              "Bevegelsesvektorer",
              "Wektory ruchu",
              "Vetores de movimento",
-             "Hareket vektörleri"})
+             "Hareket vektörleri",
+             "ﻣﺘﺠﻬﺎﺕ ﺍﻟﺤﺮﻛﺔ"})
 BB_MENU_TEXT("Debug view",
             {"デバッグ表示",
              "Vue de débogage",
@@ -2644,7 +2782,8 @@ BB_MENU_TEXT("Debug view",
              "Feilsøkingsvisning",
              "Widok debugowania",
              "Visão de depuração",
-             "Hata ayıklama görünümü"})
+             "Hata ayıklama görünümü",
+             "ﻋﺮﺽ ﺍﻟﺘﺸﺨﻴﺺ"})
 BB_MENU_TEXT("Motion vectors: red/green = horizontal/vertical motion (8 px = full), blue = the pixel has an accurate object vector. A moving object with neither is a trail.",
             {"モーションベクトル：赤/緑 = 水平/垂直の動き（8 px = 最大）、青 = ピクセルに正確なオブジェクトベクトルがある。どちらもない動く物体は残像になります。",
              "Vecteurs de mouvement : rouge/vert = mouvement horizontal/vertical (8 px = plein), bleu = le pixel a un vecteur d'objet précis. Un objet mobile sans l'un ni l'autre laisse une traînée.",
@@ -2663,7 +2802,8 @@ BB_MENU_TEXT("Motion vectors: red/green = horizontal/vertical motion (8 px = ful
              "Bevegelsesvektorer: rød/grønn = vannrett/loddrett bevegelse (8 px = full), blå = pikselen har en nøyaktig objektvektor. Et objekt i bevegelse uten noen av dem er et spor.",
              "Wektory ruchu: czerwony/zielony = ruch poziomy/pionowy (8 px = pełny), niebieski = piksel ma dokładny wektor obiektu. Poruszający się obiekt bez żadnego z nich to smuga.",
              "Vetores de movimento: vermelho/verde = movimento horizontal/vertical (8 px = máximo), azul = o pixel tem um vetor de objeto preciso. Um objeto em movimento sem nenhum deles deixa rastro.",
-             "Hareket vektörleri: kırmızı/yeşil = yatay/dikey hareket (8 px = tam), mavi = pikselin doğru bir nesne vektörü var. İkisi de olmayan hareketli bir nesne bir izdir."})
+             "Hareket vektörleri: kırmızı/yeşil = yatay/dikey hareket (8 px = tam), mavi = pikselin doğru bir nesne vektörü var. İkisi de olmayan hareketli bir nesne bir izdir.",
+             "ﻣﺘﺠﻬﺎﺕ ﺍﻟﺤﺮﻛﺔ: ﺍﻷﺣﻤﺮ/ﺍﻷﺧﻀﺮ = ﺣﺮﻛﺔ ﺃﻓﻘﻴﺔ/ﻋﻤﻮﺩﻳﺔ (8 ﺑﻜﺴﻞ = ﻛﺎﻣﻠﺔ)، ﺍﻷﺯﺭﻕ = ﻟﻠﺒﻜﺴﻞ ﻣﺘﺠﻪ ﺟﺴﻢ ﺩﻗﻴﻖ. ﺟﺴﻢ ﻣﺘﺤﺮﻙ ﺑﻼ ﺃﻱ ﻣﻨﻬﻤﺎ ﻫﻮ ﺃﺛﺮ."})
 BB_MENU_TEXT("Button icons",
             {"ボタンアイコン",
              "Icônes des boutons",
@@ -2682,7 +2822,8 @@ BB_MENU_TEXT("Button icons",
              "Knappeikoner",
              "Ikony przycisków",
              "Ícones de botões",
-             "Düğme simgeleri"})
+             "Düğme simgeleri",
+             "ﺭﻣﻮﺯ ﺍﻷﺯﺭﺍﺭ"})
 BB_MENU_TEXT("Automatic",
             {"自動",
              "Automatique",
@@ -2701,7 +2842,8 @@ BB_MENU_TEXT("Automatic",
              "Automatisk",
              "Automatyczne",
              "Automático",
-             "Otomatik"})
+             "Otomatik",
+             "ﺗﻠﻘﺎﺋﻲ"})
 BB_MENU_TEXT("Keyboard and mouse",
             {"キーボードとマウス",
              "Clavier et souris",
@@ -2720,7 +2862,8 @@ BB_MENU_TEXT("Keyboard and mouse",
              "Tastatur og mus",
              "Klawiatura i mysz",
              "Teclado e mouse",
-             "Klavye ve fare"})
+             "Klavye ve fare",
+             "ﻟﻮﺣﺔ ﺍﻟﻤﻔﺎﺗﻴﺢ ﻭﺍﻟﻔﺄﺭﺓ"})
 BB_MENU_TEXT("The buttons the game shows on screen. Automatic follows what you play with: the keys bound below while you use the keyboard and mouse, the controller's own buttons (PlayStation, Xbox or Switch) while you use one, switching as you change. A change here applies after a restart.",
             {"ゲームが画面に表示するボタンです。自動では、プレイ中の入力に合わせます。キーボードとマウスの間は下で割り当てたキー、コントローラーの間はそのボタン (PlayStation、Xbox、Switch) を表示し、持ち替えると切り替わります。ここでの変更は再起動後に反映されます。",
              "Les boutons que le jeu affiche à l'écran. Automatique suit ce avec quoi vous jouez : les touches attribuées ci-dessous au clavier et à la souris, les boutons de la manette (PlayStation, Xbox ou Switch) quand vous en utilisez une, et change dès que vous changez. Un changement ici s'applique après un redémarrage.",
@@ -2739,7 +2882,8 @@ BB_MENU_TEXT("The buttons the game shows on screen. Automatic follows what you p
              "Knappene spillet viser på skjermen. Automatisk følger det du spiller med: tastene nedenfor mens du bruker tastatur og mus, kontrollerens egne knapper (PlayStation, Xbox eller Switch) mens du bruker en, og bytter underveis. En endring her gjelder etter en omstart.",
              "Przyciski, które gra pokazuje na ekranie. Automatycznie podąża za tym, czym grasz: klawisze przypisane poniżej, gdy używasz klawiatury i myszy, przyciski kontrolera (PlayStation, Xbox lub Switch), gdy używasz kontrolera, i zmienia się na bieżąco. Zmiana tutaj działa po ponownym uruchomieniu.",
              "Os botões que o jogo mostra na tela. Automático segue o que você usa: as teclas atribuídas abaixo enquanto você usa teclado e mouse, os botões do controle (PlayStation, Xbox ou Switch) enquanto usa um, e muda quando você muda. Uma alteração aqui vale depois de reiniciar.",
-             "Oyunun ekranda gösterdiği düğmeler. Otomatik, neyle oynadığını izler: klavye ve fare kullanırken aşağıda atanan tuşları, kontrolcü kullanırken onun düğmelerini (PlayStation, Xbox veya Switch) gösterir ve değiştirdiğinde anında değişir. Buradaki bir değişiklik yeniden başlattıktan sonra uygulanır."})
+             "Oyunun ekranda gösterdiği düğmeler. Otomatik, neyle oynadığını izler: klavye ve fare kullanırken aşağıda atanan tuşları, kontrolcü kullanırken onun düğmelerini (PlayStation, Xbox veya Switch) gösterir ve değiştirdiğinde anında değişir. Buradaki bir değişiklik yeniden başlattıktan sonra uygulanır.",
+             "ﺍﻷﺯﺭﺍﺭ ﺍﻟﺘﻲ ﺗﻌﺮﺿﻬﺎ ﺍﻟﻠﻌﺒﺔ ﻋﻠﻰ ﺍﻟﺸﺎﺷﺔ. ﺍﻟﺘﻠﻘﺎﺋﻲ ﻳﺘﺒﻊ ﻣﺎ ﺗﻠﻌﺐ ﺑﻪ: ﺍﻟﻤﻔﺎﺗﻴﺢ ﺍﻟﻤﻌﻴﻨﺔ ﺃﺩﻧﺎﻩ ﺃﺛﻨﺎﺀ ﺍﺳﺘﺨﺪﺍﻣﻚ ﻟﻮﺣﺔ ﺍﻟﻤﻔﺎﺗﻴﺢ ﻭﺍﻟﻔﺄﺭﺓ، ﻭﺃﺯﺭﺍﺭ ﻭﺣﺪﺓ ﺍﻟﺘﺤﻜﻢ ﻧﻔﺴﻬﺎ (PlayStation ﺃﻭ Xbox ﺃﻭ Switch) ﺃﺛﻨﺎﺀ ﺍﺳﺘﺨﺪﺍﻣﻚ ﻟﻬﺎ، ﻭﻳﺘﺒﺪﻝ ﻛﻠﻤﺎ ﻏﻴﺮﺕ. ﺍﻟﺘﻐﻴﻴﺮ ﻫﻨﺎ ﻳﻄﺒﻖ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺍﻟﺘﺸﻐﻴﻞ."})
 BB_MENU_TEXT("Mouse camera",
             {"マウスでカメラ操作",
              "Caméra à la souris",
@@ -2758,7 +2902,8 @@ BB_MENU_TEXT("Mouse camera",
              "Musekamera",
              "Kamera myszą",
              "Câmera com mouse",
-             "Fare kamerası"})
+             "Fare kamerası",
+             "ﻛﺎﻣﻴﺮﺍ ﺍﻟﻔﺄﺭﺓ"})
 BB_MENU_TEXT("The mouse turns the camera while the game window has focus; its buttons and wheel can be bound below. Insert or Alt+Tab lets go of the mouse.",
             {"ゲームウィンドウがフォーカス中はマウスでカメラを回します。ボタンとホイールは下で割り当て可能。InsertまたはAlt+Tabでマウスを解放します。",
              "La souris tourne la caméra tant que la fenêtre du jeu a le focus ; ses boutons et sa molette peuvent être assignés ci-dessous. Insert ou Alt+Tab libère la souris.",
@@ -2777,7 +2922,8 @@ BB_MENU_TEXT("The mouse turns the camera while the game window has focus; its bu
              "Musen dreier kameraet mens spillvinduet har fokus; knappene og hjulet kan tildeles nedenfor. Insert eller Alt+Tab slipper musen.",
              "Mysz obraca kamerę, gdy okno gry jest aktywne; jej przyciski i kółko można przypisać poniżej. Insert lub Alt+Tab zwalnia mysz.",
              "O mouse gira a câmera enquanto a janela do jogo está em foco; os botões e a roda dele podem ser atribuídos abaixo. Insert ou Alt+Tab liberam o mouse.",
-             "Oyun penceresi odaktayken fare kamerayı döndürür; düğmeleri ve tekerleği aşağıda atanabilir. Insert veya Alt+Tab fareyi bırakır."})
+             "Oyun penceresi odaktayken fare kamerayı döndürür; düğmeleri ve tekerleği aşağıda atanabilir. Insert veya Alt+Tab fareyi bırakır.",
+             "ﺍﻟﻔﺄﺭﺓ ﺗﺪﻳﺮ ﺍﻟﻜﺎﻣﻴﺮﺍ ﻣﺎ ﺩﺍﻣﺖ ﻧﺎﻓﺬﺓ ﺍﻟﻠﻌﺒﺔ ﻧﺸﻄﺔ؛ ﻭﻳﻤﻜﻦ ﺗﻌﻴﻴﻦ ﺃﺯﺭﺍﺭﻫﺎ ﻭﻋﺠﻠﺘﻬﺎ ﺃﺩﻧﺎﻩ. Insert ﺃﻭ Alt+Tab ﻳﺤﺮﺭ ﺍﻟﻔﺄﺭﺓ."})
 BB_MENU_TEXT("Mouse sensitivity",
             {"マウス感度",
              "Sensibilité de la souris",
@@ -2796,7 +2942,8 @@ BB_MENU_TEXT("Mouse sensitivity",
              "Musefølsomhet",
              "Czułość myszy",
              "Sensibilidade do mouse",
-             "Fare hassasiyeti"})
+             "Fare hassasiyeti",
+             "ﺣﺴﺎﺳﻴﺔ ﺍﻟﻔﺄﺭﺓ"})
 BB_MENU_TEXT("How far the camera turns for a mouse movement (1.00: as in most PC games).",
             {"マウスの移動に対するカメラの回転量（1.00：一般的なPCゲームと同等）。",
              "Rotation de la caméra pour un mouvement de souris (1.00 : comme dans la plupart des jeux PC).",
@@ -2815,7 +2962,8 @@ BB_MENU_TEXT("How far the camera turns for a mouse movement (1.00: as in most PC
              "Hvor langt kameraet dreier for en musebevegelse (1.00: som i de fleste PC-spill).",
              "Jak daleko obraca się kamera przy ruchu myszy (1.00: jak w większości gier na PC).",
              "Quanto a câmera gira com o movimento do mouse (1.00: como na maioria dos jogos de PC).",
-             "Fare hareketine göre kameranın ne kadar döndüğü (1.00: çoğu PC oyunundaki gibi)."})
+             "Fare hareketine göre kameranın ne kadar döndüğü (1.00: çoğu PC oyunundaki gibi).",
+             "ﻣﻘﺪﺍﺭ ﺩﻭﺭﺍﻥ ﺍﻟﻜﺎﻣﻴﺮﺍ ﻟﻜﻞ ﺣﺮﻛﺔ ﻓﺄﺭﺓ (1.00: ﻛﻤﺎ ﻓﻲ ﺃﻏﻠﺐ ﺃﻟﻌﺎﺏ ﺍﻟﺤﺎﺳﻮﺏ)."})
 BB_MENU_TEXT("Invert mouse Y",
             {"マウスの上下反転",
              "Inverser l'axe Y de la souris",
@@ -2834,7 +2982,8 @@ BB_MENU_TEXT("Invert mouse Y",
              "Inverter mus Y",
              "Odwróć oś Y myszy",
              "Inverter eixo Y do mouse",
-             "Fare Y eksenini ters çevir"})
+             "Fare Y eksenini ters çevir",
+             "ﻋﻜﺲ ﻣﺤﻮﺭ Y ﻟﻠﻔﺄﺭﺓ"})
 BB_MENU_TEXT("Free camera hotkey",
             {"フリーカメラのキー",
              "Touche de caméra libre",
@@ -2853,7 +3002,8 @@ BB_MENU_TEXT("Free camera hotkey",
              "Tast for fritt kamera",
              "Klawisz wolnej kamery",
              "Tecla da câmera livre",
-             "Serbest kamera tuşu"})
+             "Serbest kamera tuşu",
+             "ﻣﻔﺘﺎﺡ ﺍﻟﻜﺎﻣﻴﺮﺍ ﺍﻟﺤﺮﺓ"})
 BB_MENU_TEXT("F7, or {Square} while holding {L3}, takes the camera away from your hunter: the left stick or WASD flies it, the right stick or the mouse turns it, {R1} and {L1} go up and down, {R2} held flies fast and {L2} slow. Your hunter stands still meanwhile; the same key brings the camera back.",
             {"F7、または{L3}を押しながら{Square}で、カメラを狩人から切り離します。左スティックかWASDで移動、右スティックかマウスで回転、{R1}と{L1}で上下、{R2}を押している間は速く、{L2}で遅く動きます。その間、狩人はその場に留まります。同じキーでカメラが戻ります。",
              "F7, ou {Square} en maintenant {L3}, détache la caméra de votre chasseur : le stick gauche ou WASD la déplace, le stick droit ou la souris la tourne, {R1} et {L1} montent et descendent, {R2} maintenu va vite et {L2} lentement. Votre chasseur reste immobile pendant ce temps ; la même touche ramène la caméra.",
@@ -2872,7 +3022,8 @@ BB_MENU_TEXT("F7, or {Square} while holding {L3}, takes the camera away from you
              "F7, eller {Square} mens du holder {L3}, løsner kameraet fra jegeren din: venstre spak eller WASD flytter det, høyre spak eller musen snur det, {R1} og {L1} går opp og ned, med {R2} inne går det fort og med {L2} sakte. Jegeren din står stille så lenge; samme tast henter kameraet tilbake.",
              "F7 lub {Square} z przytrzymanym {L3} odłącza kamerę od twojego tropiciela: lewa gałka lub WASD ją przesuwają, prawa gałka lub mysz obracają, {R1} i {L1} w górę i w dół, z przytrzymanym {R2} szybciej, z {L2} wolniej. Twój tropiciel w tym czasie stoi; ten sam klawisz przywraca kamerę.",
              "F7, ou {Square} enquanto segura {L3}, separa a câmera do seu caçador: o analógico esquerdo ou WASD a movem, o analógico direito ou o mouse a giram, {R1} e {L1} sobem e descem, com {R2} pressionado vai rápido e com {L2} devagar. Seu caçador fica parado enquanto isso; a mesma tecla traz a câmera de volta.",
-             "F7 ya da {L3} basılıyken {Square}, kamerayı avcınızdan ayırır: sol çubuk ya da WASD onu hareket ettirir, sağ çubuk ya da fare döndürür, {R1} ve {L1} yukarı ve aşağı götürür, {R2} basılıyken hızlı, {L2} ile yavaş gider. Bu sırada avcınız yerinde durur; aynı tuş kamerayı geri getirir."})
+             "F7 ya da {L3} basılıyken {Square}, kamerayı avcınızdan ayırır: sol çubuk ya da WASD onu hareket ettirir, sağ çubuk ya da fare döndürür, {R1} ve {L1} yukarı ve aşağı götürür, {R2} basılıyken hızlı, {L2} ile yavaş gider. Bu sırada avcınız yerinde durur; aynı tuş kamerayı geri getirir.",
+             "F7، ﺃﻭ {Square} ﻣﻊ ﺍﻟﻀﻐﻂ ﺍﻟﻤﻄﻮﻝ ﻋﻠﻰ {L3}، ﻳﻔﺼﻞ ﺍﻟﻜﺎﻣﻴﺮﺍ ﻋﻦ ﺻﻴﺎﺩﻙ: ﺍﻟﻌﺼﺎ ﺍﻟﻴﺴﺮﻯ ﺃﻭ WASD ﺗﺤﺮﻛﻬﺎ، ﻭﺍﻟﻌﺼﺎ ﺍﻟﻴﻤﻨﻰ ﺃﻭ ﺍﻟﻔﺄﺭﺓ ﺗﺪﻳﺮﻫﺎ، ﻭ{R1} ﻭ{L1} ﻟﻠﺼﻌﻮﺩ ﻭﺍﻟﻨﺰﻭﻝ، ﻭﺍﻟﻀﻐﻂ ﺍﻟﻤﻄﻮﻝ ﻋﻠﻰ {R2} ﻟﻠﺴﺮﻋﺔ ﻭ{L2} ﻟﻠﺒﻂﺀ. ﻳﻘﻒ ﺻﻴﺎﺩﻙ ﺳﺎﻛﻨﺎ ﻓﻲ ﺍﻷﺛﻨﺎﺀ؛ ﻭﺍﻟﻤﻔﺘﺎﺡ ﻧﻔﺴﻪ ﻳﻌﻴﺪ ﺍﻟﻜﺎﻣﻴﺮﺍ."})
 BB_MENU_TEXT("Keyboard and mouse  |  gamepad",
             {"キーボードとマウス  |  ゲームパッド",
              "Clavier et souris  |  manette",
@@ -2891,7 +3042,8 @@ BB_MENU_TEXT("Keyboard and mouse  |  gamepad",
              "Tastatur og mus  |  kontroller",
              "Klawiatura i mysz  |  pad",
              "Teclado e mouse  |  controle",
-             "Klavye ve fare  |  kumanda"})
+             "Klavye ve fare  |  kumanda",
+             "ﻟﻮﺣﺔ ﺍﻟﻤﻔﺎﺗﻴﺢ ﻭﺍﻟﻔﺄﺭﺓ  |  ﻭﺣﺪﺓ ﺍﻟﺘﺤﻜﻢ"})
 BB_MENU_TEXT("{Cross} or Enter: assign. The next key, mouse button or wheel step replaces this input's keyboard binding, a gamepad button its gamepad one; hold Shift, Ctrl or Alt for a combination. Delete: no key. Esc or 10 s: cancel.",
             {"{Cross} / Enter：割り当て。次に押したキー、マウスボタン、ホイールでこの入力のキーボード割り当てを、ゲームパッドのボタンでゲームパッド割り当てを置き換えます。Shift、Ctrl、Altを押しながらで組み合わせ。Delete：キーなし。Escまたは10秒：キャンセル。",
              "{Cross} / Enter: assigner. La touche, le bouton de souris ou le cran de molette suivant remplace l'assignation clavier de cette commande, un bouton de manette son assignation manette ; maintenez Shift, Ctrl ou Alt pour une combinaison. Delete : aucune touche. Esc ou 10 s : annuler.",
@@ -2910,7 +3062,8 @@ BB_MENU_TEXT("{Cross} or Enter: assign. The next key, mouse button or wheel step
              "{Cross} / Enter: tildel. Neste tast, museknapp eller hjulsteg erstatter denne handlingens tastaturbinding, en kontrollerknapp dens kontrollerbinding; hold Shift, Ctrl eller Alt for en kombinasjon. Delete: ingen tast. Esc eller 10 s: avbryt.",
              "{Cross} / Enter: przypisz. Następny klawisz, przycisk myszy lub krok kółka zastępuje przypisanie klawiatury tej akcji, przycisk pada – przypisanie pada; przytrzymaj Shift, Ctrl lub Alt dla kombinacji. Delete: brak klawisza. Esc lub 10 s: anuluj.",
              "{Cross} / Enter: atribuir. A próxima tecla, botão do mouse ou passo da roda substitui a atribuição de teclado deste comando, e um botão do controle, a do controle; segure Shift, Ctrl ou Alt para uma combinação. Delete: sem tecla. Esc ou 10 s: cancelar.",
-             "{Cross} / Enter: ata. Sonraki tuş, fare düğmesi veya tekerlek adımı bu girdinin klavye atamasının, bir kumanda düğmesi ise kumanda atamasının yerini alır; kombinasyon için Shift, Ctrl veya Alt'ı basılı tutun. Delete: tuş yok. Esc veya 10 sn: iptal."})
+             "{Cross} / Enter: ata. Sonraki tuş, fare düğmesi veya tekerlek adımı bu girdinin klavye atamasının, bir kumanda düğmesi ise kumanda atamasının yerini alır; kombinasyon için Shift, Ctrl veya Alt'ı basılı tutun. Delete: tuş yok. Esc veya 10 sn: iptal.",
+             "{Cross} ﺃﻭ Enter: ﺗﻌﻴﻴﻦ. ﺍﻟﻤﻔﺘﺎﺡ ﺃﻭ ﺯﺭ ﺍﻟﻔﺄﺭﺓ ﺃﻭ ﺧﻄﻮﺓ ﺍﻟﻌﺠﻠﺔ ﺍﻟﺘﺎﻟﻴﺔ ﺗﺴﺘﺒﺪﻝ ﺗﻌﻴﻴﻦ ﻟﻮﺣﺔ ﺍﻟﻤﻔﺎﺗﻴﺢ ﻟﻬﺬﺍ ﺍﻹﺩﺧﺎﻝ، ﻭﺯﺭ ﻭﺣﺪﺓ ﺍﻟﺘﺤﻜﻢ ﻳﺴﺘﺒﺪﻝ ﺗﻌﻴﻴﻦ ﻭﺣﺪﺓ ﺍﻟﺘﺤﻜﻢ؛ ﺍﺿﻐﻂ ﻣﻄﻮﻻ ﻋﻠﻰ Shift ﺃﻭ Ctrl ﺃﻭ Alt ﻟﺘﺮﻛﻴﺒﺔ. Delete: ﺑﻼ ﻣﻔﺘﺎﺡ. Esc ﺃﻭ 10 ﺛﻮﺍﻥ: ﺇﻟﻐﺎﺀ."})
 BB_MENU_TEXT("Press a key, mouse button or gamepad button...",
             {"キー、マウスボタン、またはゲームパッドのボタンを押してください...",
              "Appuyez sur une touche, un bouton de souris ou de manette...",
@@ -2929,7 +3082,8 @@ BB_MENU_TEXT("Press a key, mouse button or gamepad button...",
              "Trykk en tast, museknapp eller kontrollerknapp...",
              "Naciśnij klawisz, przycisk myszy lub pada...",
              "Pressione uma tecla, botão do mouse ou do controle...",
-             "Bir tuşa, fare düğmesine veya kumanda düğmesine basın..."})
+             "Bir tuşa, fare düğmesine veya kumanda düğmesine basın...",
+             "ﺍﺿﻐﻂ ﻣﻔﺘﺎﺣﺎ ﺃﻭ ﺯﺭ ﻓﺄﺭﺓ ﺃﻭ ﺯﺭ ﻭﺣﺪﺓ ﺗﺤﻜﻢ..."})
 BB_MENU_TEXT("Press a key or mouse button...",
             {"キーまたはマウスボタンを押してください...",
              "Appuyez sur une touche ou un bouton de souris...",
@@ -2948,7 +3102,8 @@ BB_MENU_TEXT("Press a key or mouse button...",
              "Trykk en tast eller museknapp...",
              "Naciśnij klawisz lub przycisk myszy...",
              "Pressione uma tecla ou botão do mouse...",
-             "Bir tuşa veya fare düğmesine basın..."})
+             "Bir tuşa veya fare düğmesine basın...",
+             "ﺍﺿﻐﻂ ﻣﻔﺘﺎﺣﺎ ﺃﻭ ﺯﺭ ﻓﺄﺭﺓ..."})
 BB_MENU_TEXT("(none)",
             {"（なし）",
              "(aucune)",
@@ -2967,7 +3122,8 @@ BB_MENU_TEXT("(none)",
              "(ingen)",
              "(brak)",
              "(nenhuma)",
-             "(yok)"})
+             "(yok)",
+             "(ﻻ ﺷﻲﺀ)"})
 BB_MENU_TEXT("Reset the controls",
             {"操作をリセット",
              "Réinitialiser les commandes",
@@ -2986,7 +3142,8 @@ BB_MENU_TEXT("Reset the controls",
              "Tilbakestill kontrollene",
              "Przywróć sterowanie",
              "Redefinir controles",
-             "Kontrolleri sıfırla"})
+             "Kontrolleri sıfırla",
+             "ﺇﻋﺎﺩﺓ ﺿﺒﻂ ﺍﻟﺘﺤﻜﻢ"})
 BB_MENU_TEXT("Every key and gamepad button back to the defaults (the Dark Souls III keyboard layout).",
             {"すべてのキーとゲームパッドのボタンを初期設定に戻します（Dark Souls IIIのキーボード配置）。",
              "Toutes les touches et tous les boutons de manette par défaut (disposition clavier de Dark Souls III).",
@@ -3005,7 +3162,8 @@ BB_MENU_TEXT("Every key and gamepad button back to the defaults (the Dark Souls 
              "Alle taster og kontrollerknapper tilbake til standard (tastaturoppsettet fra Dark Souls III).",
              "Wszystkie klawisze i przyciski pada wracają do domyślnych (układ klawiatury z Dark Souls III).",
              "Todas as teclas e botões do controle voltam ao padrão (layout de teclado de Dark Souls III).",
-             "Tüm tuşlar ve kumanda düğmeleri varsayılana döner (Dark Souls III klavye düzeni)."})
+             "Tüm tuşlar ve kumanda düğmeleri varsayılana döner (Dark Souls III klavye düzeni).",
+             "ﻛﻞ ﺍﻟﻤﻔﺎﺗﻴﺢ ﻭﺃﺯﺭﺍﺭ ﻭﺣﺪﺓ ﺍﻟﺘﺤﻜﻢ ﺗﻌﻮﺩ ﻟﻼﻓﺘﺮﺍﺿﻲ (ﺗﺨﻄﻴﻂ ﻟﻮﺣﺔ ﻣﻔﺎﺗﻴﺢ Dark Souls III)."})
 BB_MENU_TEXT("Load your character first: the page edits the character in the world.",
             {"先にキャラクターをロードしてください：このページはワールド内のキャラクターを編集します。",
              "Chargez d'abord votre personnage : cette page modifie le personnage dans le monde.",
@@ -3024,7 +3182,8 @@ BB_MENU_TEXT("Load your character first: the page edits the character in the wor
              "Last inn figuren din først: siden endrer figuren i verdenen.",
              "Najpierw wczytaj postać: ta strona zmienia postać w świecie.",
              "Carregue seu personagem primeiro: esta página altera o personagem no mundo.",
-             "Önce karakterinizi yükleyin: bu sayfa dünyadaki karakteri düzenler."})
+             "Önce karakterinizi yükleyin: bu sayfa dünyadaki karakteri düzenler.",
+             "ﺣﻤﻞ ﺷﺨﺼﻴﺘﻚ ﺃﻭﻻ: ﻫﺬﻩ ﺍﻟﺼﻔﺤﺔ ﺗﻌﺪﻝ ﺍﻟﺸﺨﺼﻴﺔ ﻓﻲ ﺍﻟﻌﺎﻟﻢ."})
 BB_MENU_TEXT("Blood Echoes",
             {"血の遺志",
              "Échos de sang",
@@ -3043,7 +3202,8 @@ BB_MENU_TEXT("Blood Echoes",
              "Blodekko",
              "Tętnienia krwi",
              "Ecos de Sangue",
-             "Kan Yankıları"})
+             "Kan Yankıları",
+             "ﺃﺻﺪﺍﺀ ﺍﻟﺪﻡ"})
 BB_MENU_TEXT("Left/right: 10,000 at a time.",
             {"左右：10,000ずつ。",
              "Gauche/droite : 10 000 à la fois.",
@@ -3062,7 +3222,8 @@ BB_MENU_TEXT("Left/right: 10,000 at a time.",
              "Venstre/høyre: 10 000 om gangen.",
              "Lewo/prawo: po 10 000.",
              "Esquerda/direita: de 10.000 em 10.000.",
-             "Sol/sağ: her seferinde 10.000."})
+             "Sol/sağ: her seferinde 10.000.",
+             "ﻳﺴﺎﺭ/ﻳﻤﻴﻦ: 10,000 ﻓﻲ ﻛﻞ ﻣﺮﺓ."})
 BB_MENU_TEXT("Insight",
             {"啓蒙",
              "Lucidité",
@@ -3081,7 +3242,8 @@ BB_MENU_TEXT("Insight",
              "Innsikt",
              "Wgląd",
              "Discernimento",
-             "Sezgi"})
+             "Sezgi",
+             "ﺍﻟﺒﺼﻴﺮﺓ"})
 BB_MENU_TEXT("The level follows (one per point); HP and stamina are recalculated as at the Doll.",
             {"レベルも連動します（1ポイントにつき1）。HPとスタミナは人形のときと同様に再計算されます。",
              "Le niveau suit (un par point) ; PV et énergie sont recalculés comme auprès de la Poupée.",
@@ -3100,7 +3262,8 @@ BB_MENU_TEXT("The level follows (one per point); HP and stamina are recalculated
              "Nivået følger med (ett per poeng); HP og energi beregnes på nytt som hos Dukken.",
              "Poziom zmienia się razem z nimi (jeden na punkt); PŻ i energia są przeliczane jak u Lalki.",
              "O nível acompanha (um por ponto); HP e vigor são recalculados como na Boneca.",
-             "Seviye de değişir (puan başına bir); HP ve enerji Taş bebekteki gibi yeniden hesaplanır."})
+             "Seviye de değişir (puan başına bir); HP ve enerji Taş bebekteki gibi yeniden hesaplanır.",
+             "ﺍﻟﻤﺴﺘﻮﻯ ﻳﺘﺒﻊ (ﻭﺍﺣﺪ ﻟﻜﻞ ﻧﻘﻄﺔ)؛ ﺗﻌﺎﺩ ﺣﺴﺎﺏ ﺍﻟﺼﺤﺔ ﻭﺍﻟﺘﺤﻤﻞ ﻛﻤﺎ ﻋﻨﺪ ﺍﻟﺪﻣﻴﺔ."})
 BB_MENU_TEXT("Level %d, HP %d / %d",
             {"レベル %d、HP %d / %d",
              "Niveau %d, PV %d / %d",
@@ -3119,7 +3282,8 @@ BB_MENU_TEXT("Level %d, HP %d / %d",
              "Nivå %d, HP %d / %d",
              "Poziom %d, PŻ %d / %d",
              "Nível %d, HP %d / %d",
-             "Seviye %d, HP %d / %d"})
+             "Seviye %d, HP %d / %d",
+             "ﺍﻟﻤﺴﺘﻮﻯ %d، ﺍﻟﺼﺤﺔ %d / %d"})
 BB_MENU_TEXT("Items: no item list found. It comes from the game's item names (dvdroot_ps4/msg/engus/item.msgbnd.dcx); check the game files.",
             {"アイテム：アイテムリストが見つかりません。ゲームのアイテム名（dvdroot_ps4/msg/engus/item.msgbnd.dcx）から作成されます。ゲームファイルを確認してください。",
              "Objets : aucune liste trouvée. Elle provient des noms d'objets du jeu (dvdroot_ps4/msg/engus/item.msgbnd.dcx) ; vérifiez les fichiers du jeu.",
@@ -3138,7 +3302,8 @@ BB_MENU_TEXT("Items: no item list found. It comes from the game's item names (dv
              "Gjenstander: fant ingen gjenstandsliste. Den kommer fra spillets gjenstandsnavn (dvdroot_ps4/msg/engus/item.msgbnd.dcx); sjekk spillfilene.",
              "Przedmioty: nie znaleziono listy przedmiotów. Pochodzi z nazw przedmiotów gry (dvdroot_ps4/msg/engus/item.msgbnd.dcx); sprawdź pliki gry.",
              "Itens: lista não encontrada. Ela vem dos nomes de itens do jogo (dvdroot_ps4/msg/engus/item.msgbnd.dcx); verifique os arquivos do jogo.",
-             "Eşyalar: eşya listesi bulunamadı. Liste oyunun eşya adlarından gelir (dvdroot_ps4/msg/engus/item.msgbnd.dcx); oyun dosyalarını kontrol edin."})
+             "Eşyalar: eşya listesi bulunamadı. Liste oyunun eşya adlarından gelir (dvdroot_ps4/msg/engus/item.msgbnd.dcx); oyun dosyalarını kontrol edin.",
+             "ﺍﻷﻏﺮﺍﺽ: ﻟﻢ ﺗﻮﺟﺪ ﻗﺎﺋﻤﺔ ﺃﻏﺮﺍﺽ. ﺗﺄﺗﻲ ﻣﻦ ﺃﺳﻤﺎﺀ ﺃﻏﺮﺍﺽ ﺍﻟﻠﻌﺒﺔ (dvdroot_ps4/msg/engus/item.msgbnd.dcx)؛ ﺗﺤﻘﻖ ﻣﻦ ﻣﻠﻔﺎﺕ ﺍﻟﻠﻌﺒﺔ."})
 BB_MENU_TEXT("Items",
             {"アイテム",
              "Objets",
@@ -3157,7 +3322,8 @@ BB_MENU_TEXT("Items",
              "Gjenstander",
              "Przedmioty",
              "Itens",
-             "Eşyalar"})
+             "Eşyalar",
+             "ﺍﻷﻏﺮﺍﺽ"})
 BB_MENU_TEXT("Weapons",
             {"武器",
              "Armes",
@@ -3176,7 +3342,8 @@ BB_MENU_TEXT("Weapons",
              "Våpen",
              "Broń",
              "Armas",
-             "Silahlar"})
+             "Silahlar",
+             "ﺍﻷﺳﻠﺤﺔ"})
 BB_MENU_TEXT("Attire",
             {"狩装束",
              "Habit",
@@ -3195,7 +3362,8 @@ BB_MENU_TEXT("Attire",
              "Antrekk",
              "Odzienie",
              "Traje",
-             "Giysi"})
+             "Giysi",
+             "ﺍﻟﻤﻼﺑﺲ"})
 BB_MENU_TEXT("Category",
             {"カテゴリー",
              "Catégorie",
@@ -3214,7 +3382,8 @@ BB_MENU_TEXT("Category",
              "Kategori",
              "Kategoria",
              "Categoria",
-             "Kategori"})
+             "Kategori",
+             "ﺍﻟﻔﺌﺔ"})
 BB_MENU_TEXT("Item",
             {"アイテム",
              "Objet",
@@ -3233,7 +3402,8 @@ BB_MENU_TEXT("Item",
              "Gjenstand",
              "Przedmiot",
              "Item",
-             "Eşya"})
+             "Eşya",
+             "ﺍﻟﻐﺮﺽ"})
 BB_MENU_TEXT("Left/right picks; {Cross} on the Give row hands it over.",
             {"左右で選択、「渡す」の行で{Cross}を押すと渡します。",
              "Gauche/droite pour choisir ; {Cross} sur la ligne Donner pour le remettre.",
@@ -3252,7 +3422,8 @@ BB_MENU_TEXT("Left/right picks; {Cross} on the Give row hands it over.",
              "Venstre/høyre velger; {Cross} på Gi-raden gir den bort.",
              "Lewo/prawo wybiera; {Cross} na wierszu Daj przekazuje.",
              "Esquerda/direita escolhe; {Cross} na linha Dar entrega.",
-             "Sol/sağ seçer; Ver satırında {Cross} onu verir."})
+             "Sol/sağ seçer; Ver satırında {Cross} onu verir.",
+             "ﻳﺴﺎﺭ/ﻳﻤﻴﻦ ﻟﻼﺧﺘﻴﺎﺭ؛ {Cross} ﻋﻠﻰ ﺻﻒ ﺍﻹﻋﻄﺎﺀ ﻳﺴﻠﻤﻪ."})
 BB_MENU_TEXT("Quantity",
             {"数量",
              "Quantité",
@@ -3271,7 +3442,8 @@ BB_MENU_TEXT("Quantity",
              "Antall",
              "Ilość",
              "Quantidade",
-             "Miktar"})
+             "Miktar",
+             "ﺍﻟﻜﻤﻴﺔ"})
 BB_MENU_TEXT("Upgrade",
             {"強化",
              "Amélioration",
@@ -3290,7 +3462,8 @@ BB_MENU_TEXT("Upgrade",
              "Oppgradering",
              "Ulepszenie",
              "Melhoria",
-             "Geliştirme"})
+             "Geliştirme",
+             "ﺍﻟﺘﻄﻮﻳﺮ"})
 BB_MENU_TEXT("Weapons: given at this level (+0 .. +10).",
             {"武器：この強化値で渡します（+0 .. +10）。",
              "Armes : données à ce niveau (+0 .. +10).",
@@ -3309,7 +3482,8 @@ BB_MENU_TEXT("Weapons: given at this level (+0 .. +10).",
              "Våpen: gis på dette nivået (+0 .. +10).",
              "Broń: dawana na tym poziomie (+0 .. +10).",
              "Armas: entregues neste nível (+0 .. +10).",
-             "Silahlar: bu seviyede verilir (+0 .. +10)."})
+             "Silahlar: bu seviyede verilir (+0 .. +10).",
+             "ﺍﻷﺳﻠﺤﺔ: ﺗﻌﻄﻰ ﺑﻬﺬﺍ ﺍﻟﻤﺴﺘﻮﻯ (+0 .. +10)."})
 BB_MENU_TEXT("Give",
             {"渡す",
              "Donner",
@@ -3328,7 +3502,8 @@ BB_MENU_TEXT("Give",
              "Gi",
              "Daj",
              "Dar",
-             "Ver"})
+             "Ver",
+             "ﺇﻋﻄﺎﺀ"})
 BB_MENU_TEXT("Goods over the carry limit go to storage.",
             {"所持上限を超えた分は保管箱へ送られます。",
              "Les objets au-delà de la limite vont au stockage.",
@@ -3347,7 +3522,8 @@ BB_MENU_TEXT("Goods over the carry limit go to storage.",
              "Varer over bæregrensen går til Lager.",
              "Rzeczy ponad limit trafiają do Składu.",
              "Itens acima do limite de carga vão para o armazenamento.",
-             "Taşıma sınırını aşan eşyalar Depoya gider."})
+             "Taşıma sınırını aşan eşyalar Depoya gider.",
+             "ﻣﺎ ﻳﺰﻳﺪ ﻋﻦ ﺣﺪ ﺍﻟﺤﻤﻞ ﻳﺬﻫﺐ ﺇﻟﻰ ﺍﻟﻤﺨﺰﻥ."})
 BB_MENU_TEXT("Settings",
             {"設定",
              "Paramètres",
@@ -3366,7 +3542,8 @@ BB_MENU_TEXT("Settings",
              "Innstillinger",
              "Ustawienia",
              "Configurações",
-             "Ayarlar"})
+             "Ayarlar",
+             "ﺍﻹﻋﺪﺍﺩﺍﺕ"})
 BB_MENU_TEXT("Apply and restart the game",
             {"適用してゲームを再起動",
              "Appliquer et redémarrer le jeu",
@@ -3385,7 +3562,8 @@ BB_MENU_TEXT("Apply and restart the game",
              "Bruk og start spillet på nytt",
              "Zastosuj i uruchom grę ponownie",
              "Aplicar e reiniciar o jogo",
-             "Uygula ve oyunu yeniden başlat"})
+             "Uygula ve oyunu yeniden başlat",
+             "ﺗﻄﺒﻴﻖ ﻭﺇﻋﺎﺩﺓ ﺗﺸﻐﻴﻞ ﺍﻟﻠﻌﺒﺔ"})
 BB_MENU_TEXT("Some changes apply only when the game starts (game patches, resolution at startup, motion vectors). The game restarts from the title screen; your progress is in the save.",
             {"一部の変更はゲーム起動時にのみ適用されます（ゲームパッチ、起動時の解像度、モーションベクトル）。ゲームはタイトル画面から再起動します。進行状況はセーブデータに残ります。",
              "Certains changements ne s'appliquent qu'au lancement du jeu (patchs du jeu, résolution au lancement, vecteurs de mouvement). Le jeu redémarre à l'écran titre ; votre progression est dans la sauvegarde.",
@@ -3404,7 +3582,8 @@ BB_MENU_TEXT("Some changes apply only when the game starts (game patches, resolu
              "Noen endringer gjelder først når spillet starter (spillpatcher, oppløsning ved oppstart, bevegelsesvektorer). Spillet starter på nytt fra tittelskjermen; fremgangen din ligger i lagringen.",
              "Niektóre zmiany działają dopiero przy starcie gry (łatki gry, rozdzielczość przy starcie, wektory ruchu). Gra uruchomi się ponownie od ekranu tytułowego; twój postęp jest w zapisie.",
              "Algumas mudanças só se aplicam quando o jogo inicia (patches do jogo, resolução inicial, vetores de movimento). O jogo reinicia na tela de título; seu progresso está no save.",
-             "Bazı değişiklikler yalnızca oyun başlarken uygulanır (oyun yamaları, başlangıç çözünürlüğü, hareket vektörleri). Oyun başlık ekranından yeniden başlar; ilerlemeniz kayıttadır."})
+             "Bazı değişiklikler yalnızca oyun başlarken uygulanır (oyun yamaları, başlangıç çözünürlüğü, hareket vektörleri). Oyun başlık ekranından yeniden başlar; ilerlemeniz kayıttadır.",
+             "ﺑﻌﺾ ﺍﻟﺘﻐﻴﻴﺮﺍﺕ ﺗﻄﺒﻖ ﻓﻘﻂ ﻋﻨﺪ ﺑﺪﺀ ﺍﻟﻠﻌﺒﺔ (ﺗﻌﺪﻳﻼﺕ ﺍﻟﻠﻌﺒﺔ، ﺍﻟﺪﻗﺔ ﻋﻨﺪ ﺍﻟﺒﺪﺀ، ﻣﺘﺠﻬﺎﺕ ﺍﻟﺤﺮﻛﺔ). ﺗﻌﻮﺩ ﺍﻟﻠﻌﺒﺔ ﺇﻟﻰ ﺷﺎﺷﺔ ﺍﻟﺒﺪﺍﻳﺔ؛ ﻭﺗﻘﺪﻣﻚ ﻣﺤﻔﻮﻅ."})
 BB_MENU_TEXT("Co-op Team",
             {"協力チーム",
              "Équipe coop",
@@ -3423,7 +3602,8 @@ BB_MENU_TEXT("Co-op Team",
              "Co-op-lag",
              "Drużyna co-op",
              "Equipe cooperativa",
-             "Co-op Takımı"})
+             "Co-op Takımı",
+             "ﻓﺮﻳﻖ ﺍﻟﻠﻌﺐ ﺍﻟﺠﻤﺎﻋﻲ"})
 BB_MENU_TEXT("Your team: invite hunters, remove a member, leave, or join the hunt.",
             {"あなたのチーム：狩人を招待、メンバーを除名、脱退、または狩りに参加。",
              "Votre équipe : invitez des chasseurs, retirez un membre, partez ou rejoignez la chasse.",
@@ -3442,7 +3622,8 @@ BB_MENU_TEXT("Your team: invite hunters, remove a member, leave, or join the hun
              "Laget ditt: inviter jegere, fjern et medlem, forlat, eller bli med på jakten.",
              "Twoja drużyna: zaproś tropicieli, usuń członka, odejdź lub dołącz do łowów.",
              "Sua equipe: convide caçadores, remova um membro, saia ou entre na caçada.",
-             "Takımınız: avcı davet edin, bir üyeyi çıkarın, ayrılın veya ava katılın."})
+             "Takımınız: avcı davet edin, bir üyeyi çıkarın, ayrılın veya ava katılın.",
+             "ﻓﺮﻳﻘﻚ: ﺍﺩﻉ ﺻﻴﺎﺩﻳﻦ، ﺃﻭ ﺃﺧﺮﺝ ﻋﻀﻮﺍ، ﺃﻭ ﻏﺎﺩﺭ، ﺃﻭ ﺍﻧﻀﻢ ﺇﻟﻰ ﺍﻟﺼﻴﺪ."})
 BB_MENU_TEXT("Map",
             {"マップ",
              "Carte",
@@ -3461,7 +3642,8 @@ BB_MENU_TEXT("Map",
              "Kart",
              "Mapa",
              "Mapa",
-             "Harita"})
+             "Harita",
+             "ﺍﻟﺨﺮﻳﻄﺔ"})
 BB_MENU_TEXT("Where you and your team are; travel to a lit lamp. M opens it in the game too.",
             {"あなたと仲間の居場所、灯った灯りへの移動。ゲーム中は M キーでも開きます。",
              "Où vous et votre équipe êtes ; voyagez vers une lanterne allumée. M l'ouvre aussi en jeu.",
@@ -3480,7 +3662,8 @@ BB_MENU_TEXT("Where you and your team are; travel to a lit lamp. M opens it in t
              "Hvor du og laget ditt er; reis til en tent lykt. M åpner det også i spillet.",
              "Gdzie jesteś ty i twoja drużyna; podróż do zapalonej lampy. M otwiera ją też w grze.",
              "Onde você e sua equipe estão; viaje até uma lanterna acesa. M também o abre no jogo.",
-             "Sen ve takımın neredesiniz; yanan bir fenere yolculuk et. M oyunda da açar."})
+             "Sen ve takımın neredesiniz; yanan bir fenere yolculuk et. M oyunda da açar.",
+             "ﻣﻜﺎﻧﻚ ﻭﻣﻜﺎﻥ ﻓﺮﻳﻘﻚ؛ ﻭﺍﻟﺴﻔﺮ ﺇﻟﻰ ﻣﺼﺒﺎﺡ ﻣﻀﺎﺀ. M ﺗﻔﺘﺤﻬﺎ ﻓﻲ ﺍﻟﻠﻌﺒﺔ ﺃﻳﻀﺎ."})
 BB_MENU_TEXT("Quit to desktop",
             {"デスクトップに戻る",
              "Quitter vers le bureau",
@@ -3499,7 +3682,8 @@ BB_MENU_TEXT("Quit to desktop",
              "Avslutt til skrivebordet",
              "Wyjdź na pulpit",
              "Sair para a área de trabalho",
-             "Masaüstüne çık"})
+             "Masaüstüne çık",
+             "ﺍﻟﺨﺮﻭﺝ ﺇﻟﻰ ﺳﻄﺢ ﺍﻟﻤﻜﺘﺐ"})
 BB_MENU_TEXT("Asks first: progress since the last autosave is lost. Holding {L3} + {R3} asks too.",
             {"先に確認します：最後のオートセーブ以降の進行は失われます。{L3} + {R3} 長押しでも確認されます。",
              "Demande d'abord : la progression depuis la dernière sauvegarde auto est perdue. Maintenir {L3} + {R3} demande aussi.",
@@ -3518,7 +3702,8 @@ BB_MENU_TEXT("Asks first: progress since the last autosave is lost. Holding {L3}
              "Spør først: fremgang siden siste autolagring går tapt. Å holde {L3} + {R3} spør også.",
              "Najpierw pyta: postęp od ostatniego autozapisu przepadnie. Przytrzymanie {L3} + {R3} też pyta.",
              "Pergunta antes: o progresso desde o último salvamento automático é perdido. Segurar {L3} + {R3} também pergunta.",
-             "Önce sorar: son otomatik kayıttan sonraki ilerleme kaybolur. {L3} + {R3} basılı tutmak da sorar."})
+             "Önce sorar: son otomatik kayıttan sonraki ilerleme kaybolur. {L3} + {R3} basılı tutmak da sorar.",
+             "ﻳﺴﺄﻝ ﺃﻭﻻ: ﻳﻀﻴﻊ ﺍﻟﺘﻘﺪﻡ ﻣﻨﺬ ﺁﺧﺮ ﺣﻔﻆ ﺗﻠﻘﺎﺋﻲ. ﺍﻟﻀﻐﻂ ﺍﻟﻤﻄﻮﻝ ﻋﻠﻰ {L3} + {R3} ﻳﺴﺄﻝ ﺃﻳﻀﺎ."})
 BB_MENU_TEXT("Some changes apply after restarting the game.",
             {"一部の変更はゲームの再起動後に適用されます。",
              "Certains changements s'appliquent après redémarrage du jeu.",
@@ -3537,7 +3722,8 @@ BB_MENU_TEXT("Some changes apply after restarting the game.",
              "Noen endringer gjelder etter omstart av spillet.",
              "Niektóre zmiany działają po ponownym uruchomieniu gry.",
              "Algumas mudanças se aplicam após reiniciar o jogo.",
-             "Bazı değişiklikler oyun yeniden başlatıldıktan sonra uygulanır."})
+             "Bazı değişiklikler oyun yeniden başlatıldıktan sonra uygulanır.",
+             "ﺑﻌﺾ ﺍﻟﺘﻐﻴﻴﺮﺍﺕ ﺗﻄﺒﻖ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺗﺸﻐﻴﻞ ﺍﻟﻠﻌﺒﺔ."})
 BB_MENU_TEXT("Choose, value",
             {"選択、値",
              "Choix, valeur",
@@ -3556,7 +3742,8 @@ BB_MENU_TEXT("Choose, value",
              "Velg, verdi",
              "Wybór, wartość",
              "Escolher, valor",
-             "Seç, değer"})
+             "Seç, değer",
+             "ﺍﺧﺘﻴﺎﺭ، ﻗﻴﻤﺔ"})
 BB_MENU_TEXT("Change",
             {"変更",
              "Modifier",
@@ -3575,7 +3762,8 @@ BB_MENU_TEXT("Change",
              "Endre",
              "Zmień",
              "Alterar",
-             "Değiştir"})
+             "Değiştir",
+             "ﺗﻐﻴﻴﺮ"})
 BB_MENU_TEXT("Close",
             {"閉じる",
              "Fermer",
@@ -3594,7 +3782,8 @@ BB_MENU_TEXT("Close",
              "Lukk",
              "Zamknij",
              "Fechar",
-             "Kapat"})
+             "Kapat",
+             "ﺇﻏﻼﻕ"})
 BB_MENU_TEXT("Tabs",
             {"タブ",
              "Onglets",
@@ -3613,7 +3802,8 @@ BB_MENU_TEXT("Tabs",
              "Faner",
              "Karty",
              "Abas",
-             "Sekmeler"})
+             "Sekmeler",
+             "ﺍﻟﺘﺒﻮﻳﺒﺎﺕ"})
 BB_MENU_TEXT("Menu",
             {"メニュー",
              "Menu",
@@ -3632,7 +3822,8 @@ BB_MENU_TEXT("Menu",
              "Meny",
              "Menu",
              "Menu",
-             "Menü"})
+             "Menü",
+             "ﺍﻟﻘﺎﺋﻤﺔ"})
 BB_MENU_TEXT("Hold: quit",
             {"長押し：終了",
              "Maintenir : quitter",
@@ -3651,9 +3842,11 @@ BB_MENU_TEXT("Hold: quit",
              "Hold: avslutt",
              "Przytrzymaj: wyjście",
              "Segurar: sair",
-             "Basılı tut: çık"})
+             "Basılı tut: çık",
+             "ﺍﺿﻐﻂ ﻣﻄﻮﻻ: ﺧﺮﻭﺝ"})
 BB_MENU_TEXT("%.0f FPS  %.1f ms  %s",
             {"%.0f FPS  %.1f ms  %s",
+             "%.0f FPS  %.1f ms  %s",
              "%.0f FPS  %.1f ms  %s",
              "%.0f FPS  %.1f ms  %s",
              "%.0f FPS  %.1f ms  %s",
@@ -3689,7 +3882,8 @@ BB_MENU_TEXT("Quit to desktop?",
              "Avslutte til skrivebordet?",
              "Wyjść na pulpit?",
              "Sair para a área de trabalho?",
-             "Masaüstüne çıkılsın mı?"})
+             "Masaüstüne çıkılsın mı?",
+             "ﺍﻟﺨﺮﻭﺝ ﺇﻟﻰ ﺳﻄﺢ ﺍﻟﻤﻜﺘﺐ؟"})
 BB_MENU_TEXT("Progress since the last autosave is lost.",
             {"最後のオートセーブ以降の進行は失われます。",
              "La progression depuis la dernière sauvegarde auto sera perdue.",
@@ -3708,7 +3902,8 @@ BB_MENU_TEXT("Progress since the last autosave is lost.",
              "Fremgang siden siste autolagring går tapt.",
              "Postęp od ostatniego autozapisu przepadnie.",
              "O progresso desde o último salvamento automático será perdido.",
-             "Son otomatik kayıttan sonraki ilerleme kaybolur."})
+             "Son otomatik kayıttan sonraki ilerleme kaybolur.",
+             "ﻳﻀﻴﻊ ﺍﻟﺘﻘﺪﻡ ﻣﻨﺬ ﺁﺧﺮ ﺣﻔﻆ ﺗﻠﻘﺎﺋﻲ."})
 BB_MENU_TEXT("Cancel",
             {"やめる",
              "Annuler",
@@ -3727,7 +3922,8 @@ BB_MENU_TEXT("Cancel",
              "Avbryt",
              "Anuluj",
              "Cancelar",
-             "İptal Et"})
+             "İptal Et",
+             "ﺇﻟﻐﺎﺀ"})
 BB_MENU_TEXT("Quit",
             {"終了",
              "Quitter",
@@ -3746,7 +3942,8 @@ BB_MENU_TEXT("Quit",
              "Avslutt",
              "Wyjdź",
              "Sair",
-             "Çık"})
+             "Çık",
+             "ﺧﺮﻭﺝ"})
 BB_MENU_TEXT("OK",
             {"OK",
              "OK",
@@ -3765,7 +3962,8 @@ BB_MENU_TEXT("OK",
              "OK",
              "OK",
              "OK",
-             "Tamam"})
+             "Tamam",
+             "ﻣﻮﺍﻓﻖ"})
 BB_MENU_TEXT("Delete",
             {"削除",
              "Effacer",
@@ -3784,7 +3982,8 @@ BB_MENU_TEXT("Delete",
              "Slett",
              "Usuń",
              "Apagar",
-             "Sil"})
+             "Sil",
+             "ﺣﺬﻑ"})
 BB_MENU_TEXT("Name of the hunter to invite",
             {"招待する狩人の名前",
              "Nom du chasseur à inviter",
@@ -3803,7 +4002,8 @@ BB_MENU_TEXT("Name of the hunter to invite",
              "Navnet på jegeren som skal inviteres",
              "Imię łowcy do zaproszenia",
              "Nome do caçador a convidar",
-             "Davet edilecek avcının adı"})
+             "Davet edilecek avcının adı",
+             "ﺍﺳﻢ ﺍﻟﺼﻴﺎﺩ ﺍﻟﻤﺮﺍﺩ ﺩﻋﻮﺗﻪ"})
 BB_MENU_TEXT("Code of the team to join",
             {"参加するチームのコード",
              "Code de l'équipe à rejoindre",
@@ -3822,7 +4022,8 @@ BB_MENU_TEXT("Code of the team to join",
              "Koden til laget du vil bli med i",
              "Kod drużyny, do której dołączasz",
              "Código da equipe para entrar",
-             "Katılınacak takımın kodu"})
+             "Katılınacak takımın kodu",
+             "ﺭﻣﺰ ﺍﻟﻔﺮﻳﻖ ﺍﻟﻤﺮﺍﺩ ﺍﻻﻧﻀﻤﺎﻡ ﺇﻟﻴﻪ"})
 BB_MENU_TEXT("In the hunt",
             {"狩りの最中",
              "En chasse",
@@ -3841,7 +4042,8 @@ BB_MENU_TEXT("In the hunt",
              "På jakt",
              "Na łowach",
              "Na caçada",
-             "Avda"})
+             "Avda",
+             "ﻓﻲ ﺍﻟﺼﻴﺪ"})
 BB_MENU_TEXT("Away",
             {"オフライン",
              "Absent",
@@ -3860,7 +4062,8 @@ BB_MENU_TEXT("Away",
              "Borte",
              "Nieobecny",
              "Ausente",
-             "Uzakta"})
+             "Uzakta",
+             "ﻏﺎﺋﺐ"})
 BB_MENU_TEXT("Ready",
             {"準備完了",
              "Prêt",
@@ -3879,7 +4082,8 @@ BB_MENU_TEXT("Ready",
              "Klar",
              "Gotowy",
              "Pronto",
-             "Hazır"})
+             "Hazır",
+             "ﺟﺎﻫﺰ"})
 BB_MENU_TEXT("Choosing",
             {"選択中",
              "Choisit",
@@ -3898,7 +4102,8 @@ BB_MENU_TEXT("Choosing",
              "Velger",
              "Wybiera",
              "Escolhendo",
-             "Seçiyor"})
+             "Seçiyor",
+             "ﻳﺨﺘﺎﺭ"})
 BB_MENU_TEXT("In your team",
             {"あなたのチーム",
              "Dans votre équipe",
@@ -3917,7 +4122,8 @@ BB_MENU_TEXT("In your team",
              "I laget ditt",
              "W twojej drużynie",
              "No seu time",
-             "Takımında"})
+             "Takımında",
+             "ﻓﻲ ﻓﺮﻳﻘﻚ"})
 BB_MENU_TEXT("Hunting: %s's team %d/%d",
             {"狩り中: %sのチーム %d/%d",
              "En chasse : équipe de %s %d/%d",
@@ -3936,7 +4142,8 @@ BB_MENU_TEXT("Hunting: %s's team %d/%d",
              "På jakt: %ss lag %d/%d",
              "Na polowaniu: drużyna %s %d/%d",
              "Caçando: equipe de %s %d/%d",
-             "Avda: %s ekibi %d/%d"})
+             "Avda: %s ekibi %d/%d",
+             "ﻳﺼﻄﺎﺩ: ﻓﺮﻳﻖ %s %d/%d"})
 BB_MENU_TEXT("%s's team %d/%d, open",
             {"%sのチーム %d/%d、参加自由",
              "Équipe de %s %d/%d, ouverte",
@@ -3955,7 +4162,8 @@ BB_MENU_TEXT("%s's team %d/%d, open",
              "%ss lag %d/%d, åpent",
              "Drużyna %s %d/%d, otwarta",
              "Equipe de %s %d/%d, aberta",
-             "%s ekibi %d/%d, açık"})
+             "%s ekibi %d/%d, açık",
+             "ﻓﺮﻳﻖ %s %d/%d، ﻣﻔﺘﻮﺡ"})
 BB_MENU_TEXT("%s's team %d/%d",
             {"%sのチーム %d/%d",
              "Équipe de %s %d/%d",
@@ -3974,7 +4182,8 @@ BB_MENU_TEXT("%s's team %d/%d",
              "%ss lag %d/%d",
              "Drużyna %s %d/%d",
              "Equipe de %s %d/%d",
-             "%s ekibi %d/%d"})
+             "%s ekibi %d/%d",
+             "ﻓﺮﻳﻖ %s %d/%d"})
 BB_MENU_TEXT("An empty place",
             {"空き枠",
              "Une place libre",
@@ -3993,7 +4202,8 @@ BB_MENU_TEXT("An empty place",
              "En ledig plass",
              "Wolne miejsce",
              "Uma vaga livre",
-             "Boş yer"})
+             "Boş yer",
+             "ﻣﻜﺎﻥ ﻓﺎﺭﻍ"})
 BB_MENU_TEXT("Leader, hosts the hunt",
             {"リーダー、狩りのホスト",
              "Chef, héberge la chasse",
@@ -4012,7 +4222,8 @@ BB_MENU_TEXT("Leader, hosts the hunt",
              "Leder, er vert for jakten",
              "Lider, prowadzi łowy",
              "Líder, hospeda a caçada",
-             "Lider, avın ev sahibi"})
+             "Lider, avın ev sahibi",
+             "ﺍﻟﻘﺎﺋﺪ، ﻳﺴﺘﻀﻴﻒ ﺍﻟﺼﻴﺪ"})
 BB_MENU_TEXT("Invite a hunter below",
             {"下で狩人を招待",
              "Invitez un chasseur ci-dessous",
@@ -4031,7 +4242,8 @@ BB_MENU_TEXT("Invite a hunter below",
              "Inviter en jeger nedenfor",
              "Zaproś tropiciela poniżej",
              "Convide um caçador abaixo",
-             "Aşağıdan bir avcı davet edin"})
+             "Aşağıdan bir avcı davet edin",
+             "ﺍﺩﻉ ﺻﻴﺎﺩﺍ ﻣﻦ ﺍﻷﺳﻔﻞ"})
 BB_MENU_TEXT("You host the hunt: remove the others before you leave, or quit to the title.",
             {"あなたが狩りのホストです：抜ける前に他のメンバーを除名するか、タイトルに戻ってください。",
              "Vous hébergez la chasse : retirez les autres avant de partir, ou quittez vers l'écran titre.",
@@ -4050,7 +4262,8 @@ BB_MENU_TEXT("You host the hunt: remove the others before you leave, or quit to 
              "Du er vert for jakten: fjern de andre før du forlater, eller avslutt til tittelskjermen.",
              "Prowadzisz łowy: usuń pozostałych, zanim odejdziesz, lub wyjdź do ekranu tytułowego.",
              "Você hospeda a caçada: remova os outros antes de sair, ou volte ao título.",
-             "Avın ev sahibisiniz: ayrılmadan önce diğerlerini çıkarın veya başlık ekranına çıkın."})
+             "Avın ev sahibisiniz: ayrılmadan önce diğerlerini çıkarın veya başlık ekranına çıkın.",
+             "ﺃﻧﺖ ﺗﺴﺘﻀﻴﻒ ﺍﻟﺼﻴﺪ: ﺃﺧﺮﺝ ﺍﻵﺧﺮﻳﻦ ﻗﺒﻞ ﺃﻥ ﺗﻐﺎﺩﺭ، ﺃﻭ ﺍﺧﺮﺝ ﺇﻟﻰ ﺷﺎﺷﺔ ﺍﻟﺒﺪﺍﻳﺔ."})
 BB_MENU_TEXT("Invite hunters online; they join your hunt where they stand.",
             {"オンラインの狩人を招待：その場で狩りに加わります。",
              "Invitez des chasseurs en ligne ; ils rejoignent votre chasse là où ils se trouvent.",
@@ -4069,7 +4282,8 @@ BB_MENU_TEXT("Invite hunters online; they join your hunt where they stand.",
              "Inviter tilkoblede jegere; de blir med på jakten din der de står.",
              "Zaproś tropicieli online; dołączą do twoich łowów tam, gdzie stoją.",
              "Convide caçadores online; eles entram na sua caçada onde estiverem.",
-             "Çevrimiçi avcıları davet edin; durdukları yerden avınıza katılırlar."})
+             "Çevrimiçi avcıları davet edin; durdukları yerden avınıza katılırlar.",
+             "ﺍﺩﻉ ﺻﻴﺎﺩﻳﻦ ﻣﺘﺼﻠﻴﻦ؛ ﻳﻨﻀﻤﻮﻥ ﺇﻟﻰ ﺻﻴﺪﻙ ﺣﻴﺚ ﻳﻘﻔﻮﻥ."})
 BB_MENU_TEXT("Join the hunt: this character goes into the team's world where it stands.",
             {"狩りに参加：このキャラクターはその場からチームのワールドに入ります。",
              "Rejoindre la chasse : ce personnage entre dans le monde de l'équipe là où il se trouve.",
@@ -4088,7 +4302,8 @@ BB_MENU_TEXT("Join the hunt: this character goes into the team's world where it 
              "Bli med på jakten: denne figuren går inn i lagets verden der den står.",
              "Dołącz do łowów: ta postać trafi do świata drużyny tam, gdzie stoi.",
              "Entre na caçada: este personagem vai para o mundo da equipe onde estiver.",
-             "Ava katıl: bu karakter takımın dünyasına durduğu yerden girer."})
+             "Ava katıl: bu karakter takımın dünyasına durduğu yerden girer.",
+             "ﺍﻧﻀﻢ ﺇﻟﻰ ﺍﻟﺼﻴﺪ: ﺗﺪﺧﻞ ﻫﺬﻩ ﺍﻟﺸﺨﺼﻴﺔ ﻋﺎﻟﻢ ﺍﻟﻔﺮﻳﻖ ﺣﻴﺚ ﺗﻘﻒ."})
 BB_MENU_TEXT("Accept an invitation to join a team's hunt, or create a team.",
             {"招待を受けてチームの狩りに参加するか、チームを作成します。",
              "Acceptez une invitation pour rejoindre la chasse d'une équipe, ou créez une équipe.",
@@ -4107,7 +4322,8 @@ BB_MENU_TEXT("Accept an invitation to join a team's hunt, or create a team.",
              "Godta en invitasjon til et lags jakt, eller opprett et lag.",
              "Przyjmij zaproszenie do łowów drużyny lub utwórz drużynę.",
              "Aceite um convite para entrar na caçada de uma equipe, ou crie uma equipe.",
-             "Bir takımın avına katılma davetini kabul edin veya bir takım kurun."})
+             "Bir takımın avına katılma davetini kabul edin veya bir takım kurun.",
+             "ﺍﻗﺒﻞ ﺩﻋﻮﺓ ﻟﻼﻧﻀﻤﺎﻡ ﺇﻟﻰ ﺻﻴﺪ ﻓﺮﻳﻖ، ﺃﻭ ﺃﻧﺸﺊ ﻓﺮﻳﻘﺎ."})
 BB_MENU_TEXT("Move",
             {"移動",
              "Déplacer",
@@ -4126,7 +4342,8 @@ BB_MENU_TEXT("Move",
              "Flytt",
              "Ruch",
              "Mover",
-             "Hareket"})
+             "Hareket",
+             "ﺗﺤﺮﻳﻚ"})
 BB_MENU_TEXT("Choose",
             {"決定",
              "Choisir",
@@ -4145,7 +4362,8 @@ BB_MENU_TEXT("Choose",
              "Velg",
              "Wybór",
              "Escolher",
-             "Seç"})
+             "Seç",
+             "ﺍﺧﺘﻴﺎﺭ"})
 BB_MENU_TEXT("Team settings",
             {"チーム設定",
              "Réglages de l'équipe",
@@ -4164,7 +4382,8 @@ BB_MENU_TEXT("Team settings",
              "Laginnstillinger",
              "Ustawienia drużyny",
              "Configurações da equipe",
-             "Takım ayarları"})
+             "Takım ayarları",
+             "ﺇﻋﺪﺍﺩﺍﺕ ﺍﻟﻔﺮﻳﻖ"})
 BB_MENU_TEXT("Spectate: a hunter who falls watches a teammate until one uses a lamp or the boss dies, then wakes at their own lamp. Everyone down is still a wipe.",
             {"観戦：倒れた狩人は、仲間が灯りを使うかボスが倒れるまで仲間を見守り、その後自分の灯りで目覚めます。全員が倒れれば全滅です。",
              "Observer : un chasseur qui tombe suit un coéquipier jusqu'à ce que l'un d'eux utilise une lanterne ou que le boss meure, puis se réveille à sa propre lanterne. Tout le monde à terre reste une défaite.",
@@ -4183,7 +4402,8 @@ BB_MENU_TEXT("Spectate: a hunter who falls watches a teammate until one uses a l
              "Se på: en jeger som faller, følger en lagkamerat til noen bruker en lykt eller bossen dør, og våkner så ved sin egen lykt. Alle nede er fortsatt et nederlag.",
              "Obserwacja: tropiciel, który padnie, patrzy na towarzysza, aż ktoś użyje latarni lub boss zginie, a potem budzi się przy własnej latarni. Gdy padną wszyscy, to nadal porażka.",
              "Observar: um caçador que cai acompanha um colega até alguém usar uma lanterna ou o chefe morrer, e então acorda na própria lanterna. Todos caídos continua sendo uma derrota.",
-             "İzle: düşen avcı, biri bir fener kullanana ya da boss ölene kadar bir takım arkadaşını izler, sonra kendi fenerinde uyanır. Herkes düşerse yine yenilgidir."})
+             "İzle: düşen avcı, biri bir fener kullanana ya da boss ölene kadar bir takım arkadaşını izler, sonra kendi fenerinde uyanır. Herkes düşerse yine yenilgidir.",
+             "ﺍﻟﻤﺸﺎﻫﺪﺓ: ﺍﻟﺼﻴﺎﺩ ﺍﻟﺬﻱ ﻳﺴﻘﻂ ﻳﺸﺎﻫﺪ ﺭﻓﻴﻘﺎ ﺣﺘﻰ ﻳﺴﺘﺨﺪﻡ ﺃﺣﺪﻫﻢ ﻣﺼﺒﺎﺣﺎ ﺃﻭ ﻳﻤﻮﺕ ﺍﻟﺰﻋﻴﻢ، ﺛﻢ ﻳﺴﺘﻴﻘﻆ ﻋﻨﺪ ﻣﺼﺒﺎﺣﻪ. ﺳﻘﻮﻁ ﺍﻟﺠﻤﻴﻊ ﻣﺎ ﺯﺍﻝ ﺇﺑﺎﺩﺓ."})
 BB_MENU_TEXT("Go down: a hunter who falls stays down until a teammate strikes them back up, or gives up with {Circle}.",
             {"ダウン：倒れた狩人は、仲間に攻撃で起こされるまで倒れたままです。{Circle}で諦めることもできます。",
              "À terre : un chasseur qui tombe reste à terre jusqu'à ce qu'un coéquipier le relève en le frappant, ou abandonne avec {Circle}.",
@@ -4202,7 +4422,8 @@ BB_MENU_TEXT("Go down: a hunter who falls stays down until a teammate strikes th
              "Gå ned: en jeger som faller, blir liggende til en lagkamerat slår vedkommende opp igjen, eller gir opp med {Circle}.",
              "Upadek: tropiciel, który padnie, leży, dopóki towarzysz nie podniesie go ciosami, albo poddaje się {Circle}.",
              "Cair: um caçador que cai fica no chão até um colega levantá-lo com golpes, ou desiste com {Circle}.",
-             "Yere düş: düşen avcı, bir takım arkadaşı vurarak onu kaldırana kadar yerde kalır ya da {Circle} ile pes eder."})
+             "Yere düş: düşen avcı, bir takım arkadaşı vurarak onu kaldırana kadar yerde kalır ya da {Circle} ile pes eder.",
+             "ﺍﻟﺴﻘﻮﻁ: ﺍﻟﺼﻴﺎﺩ ﺍﻟﺬﻱ ﻳﺴﻘﻂ ﻳﺒﻘﻰ ﺳﺎﻗﻄﺎ ﺣﺘﻰ ﻳﻀﺮﺑﻪ ﺭﻓﻴﻖ ﻓﻴﻨﻬﺾ، ﺃﻭ ﻳﺴﺘﺴﻠﻢ ﺑـ {Circle}."})
 BB_MENU_TEXT("The Yharnamites",
             {"ヤーナム市民",
              "Les Yharnamites",
@@ -4221,7 +4442,8 @@ BB_MENU_TEXT("The Yharnamites",
              "Yharnamittene",
              "Yharnamczycy",
              "Os yharnamitas",
-             "Yharnamlılar"})
+             "Yharnamlılar",
+             "ﺃﻫﻞ ﻳﺎﺭﻧﺎﻡ"})
 BB_MENU_TEXT("The Hunters",
             {"狩人たち",
              "Les Chasseurs",
@@ -4240,7 +4462,8 @@ BB_MENU_TEXT("The Hunters",
              "Jegerne",
              "Łowcy",
              "Os caçadores",
-             "Avcılar"})
+             "Avcılar",
+             "ﺍﻟﺼﻴﺎﺩﻭﻥ"})
 BB_MENU_TEXT("The Great Ones",
             {"上位者たち",
              "Les Grands Êtres",
@@ -4259,7 +4482,8 @@ BB_MENU_TEXT("The Great Ones",
              "De store",
              "Wielcy",
              "Os Grandes",
-             "Yüce Olanlar"})
+             "Yüce Olanlar",
+             "ﺍﻟﻌﻈﻤﺎﺀ"})
 BB_MENU_TEXT("Not in this duel",
             {"この決闘に不参加",
              "Hors de ce duel",
@@ -4278,7 +4502,8 @@ BB_MENU_TEXT("Not in this duel",
              "Ikke med i denne duellen",
              "Poza tym pojedynkiem",
              "Fora deste duelo",
-             "Bu düelloda değil"})
+             "Bu düelloda değil",
+             "ﻟﻴﺲ ﻓﻲ ﻫﺬﻩ ﺍﻟﻤﺒﺎﺭﺯﺓ"})
 BB_MENU_TEXT("Put yourself on a team.",
             {"自分のチームを選んでください。",
              "Rejoignez une équipe.",
@@ -4297,7 +4522,8 @@ BB_MENU_TEXT("Put yourself on a team.",
              "Velg et lag til deg selv.",
              "Wybierz drużynę dla siebie.",
              "Escolha uma equipe para você.",
-             "Kendine bir takım seç."})
+             "Kendine bir takım seç.",
+             "ﺿﻊ ﻧﻔﺴﻚ ﻓﻲ ﻓﺮﻳﻖ."})
 BB_MENU_TEXT("Put hunters on at least two teams.",
             {"狩人を少なくとも2つのチームに分けてください。",
              "Répartissez les chasseurs dans au moins deux équipes.",
@@ -4316,7 +4542,8 @@ BB_MENU_TEXT("Put hunters on at least two teams.",
              "Fordel jegerne på minst to lag.",
              "Rozdziel łowców na co najmniej dwie drużyny.",
              "Distribua os caçadores em pelo menos duas equipes.",
-             "Avcıları en az iki takıma dağıt."})
+             "Avcıları en az iki takıma dağıt.",
+             "ﺿﻊ ﺍﻟﺼﻴﺎﺩﻳﻦ ﻓﻲ ﻓﺮﻳﻘﻴﻦ ﻋﻠﻰ ﺍﻷﻗﻞ."})
 BB_MENU_TEXT("Duel",
             {"決闘",
              "Duel",
@@ -4335,7 +4562,8 @@ BB_MENU_TEXT("Duel",
              "Duell",
              "Pojedynek",
              "Duelo",
-             "Düello"})
+             "Düello",
+             "ﻣﺒﺎﺭﺯﺓ"})
 BB_MENU_TEXT("Choose a hunter to move them to another team. Teammates cannot hurt each other; the last team standing wins.",
             {"狩人を選ぶと別のチームに移せます。味方同士は傷つけ合えず、最後まで残ったチームの勝利です。",
              "Choisissez un chasseur pour le changer d'équipe. Les coéquipiers ne peuvent pas se blesser ; la dernière équipe debout gagne.",
@@ -4354,7 +4582,8 @@ BB_MENU_TEXT("Choose a hunter to move them to another team. Teammates cannot hur
              "Velg en jeger for å flytte vedkommende til et annet lag. Lagkamerater kan ikke skade hverandre; det siste laget som står, vinner.",
              "Wybierz łowcę, aby przenieść go do innej drużyny. Sojusznicy nie mogą się ranić; wygrywa ostatnia stojąca drużyna.",
              "Escolha um caçador para mudá-lo de equipe. Colegas não podem se ferir; vence a última equipe de pé.",
-             "Bir avcıyı başka bir takıma geçirmek için onu seç. Takım arkadaşları birbirine zarar veremez; ayakta kalan son takım kazanır."})
+             "Bir avcıyı başka bir takıma geçirmek için onu seç. Takım arkadaşları birbirine zarar veremez; ayakta kalan son takım kazanır.",
+             "ﺍﺧﺘﺮ ﺻﻴﺎﺩﺍ ﻟﻨﻘﻠﻪ ﺇﻟﻰ ﻓﺮﻳﻖ ﺁﺧﺮ. ﺍﻟﺮﻓﺎﻕ ﻻ ﻳﺆﺫﻭﻥ ﺑﻌﻀﻬﻢ؛ ﺁﺧﺮ ﻓﺮﻳﻖ ﺻﺎﻣﺪ ﻳﻔﻮﺯ."})
 BB_MENU_TEXT("Everyone here fights everyone. The last hunter standing wins.",
             {"ここにいる全員が全員と戦います。最後まで立っていた狩人の勝利です。",
              "Chacun ici se bat contre tous. Le dernier chasseur debout gagne.",
@@ -4373,7 +4602,8 @@ BB_MENU_TEXT("Everyone here fights everyone. The last hunter standing wins.",
              "Her kjemper alle mot alle. Den siste jegeren som står, vinner.",
              "Tu każdy walczy z każdym. Wygrywa ostatni stojący łowca.",
              "Aqui todos lutam contra todos. Vence o último caçador de pé.",
-             "Burada herkes herkesle savaşır. Ayakta kalan son avcı kazanır."})
+             "Burada herkes herkesle savaşır. Ayakta kalan son avcı kazanır.",
+             "ﺍﻟﻜﻞ ﻫﻨﺎ ﻳﻘﺎﺗﻞ ﺍﻟﻜﻞ. ﺁﺧﺮ ﺻﻴﺎﺩ ﺻﺎﻣﺪ ﻳﻔﻮﺯ."})
 BB_MENU_TEXT("Free for all",
             {"バトルロイヤル",
              "Chacun pour soi",
@@ -4392,7 +4622,8 @@ BB_MENU_TEXT("Free for all",
              "Alle mot alle",
              "Każdy na każdego",
              "Todos contra todos",
-             "Herkes herkese karşı"})
+             "Herkes herkese karşı",
+             "ﺍﻟﻜﻞ ﺿﺪ ﺍﻟﻜﻞ"})
 BB_MENU_TEXT("Teams",
             {"チーム戦",
              "Équipes",
@@ -4411,7 +4642,8 @@ BB_MENU_TEXT("Teams",
              "Lag",
              "Drużyny",
              "Equipes",
-             "Takımlar"})
+             "Takımlar",
+             "ﻓﺮﻕ"})
 BB_MENU_TEXT(" (you)",
             {"（あなた）",
              " (vous)",
@@ -4430,7 +4662,8 @@ BB_MENU_TEXT(" (you)",
              " (deg)",
              " (ty)",
              " (você)",
-             " (sen)"})
+             " (sen)",
+             " (ﺃﻧﺖ)"})
 BB_MENU_TEXT("Fights everyone",
             {"全員と戦う",
              "Combat tout le monde",
@@ -4449,7 +4682,8 @@ BB_MENU_TEXT("Fights everyone",
              "Kjemper mot alle",
              "Walczy ze wszystkimi",
              "Luta contra todos",
-             "Herkesle savaşır"})
+             "Herkesle savaşır",
+             "ﻳﻘﺎﺗﻞ ﺍﻟﺠﻤﻴﻊ"})
 BB_MENU_TEXT("Nobody else of your team is here.",
             {"ここにはチームの他のメンバーがいません。",
              "Personne d'autre de votre équipe n'est ici.",
@@ -4468,7 +4702,8 @@ BB_MENU_TEXT("Nobody else of your team is here.",
              "Det er ingen andre fra laget ditt her.",
              "Nie ma tu nikogo innego z twojej drużyny.",
              "Não há mais ninguém da sua equipe aqui.",
-             "Takımından burada başka kimse yok."})
+             "Takımından burada başka kimse yok.",
+             "ﻻ ﺃﺣﺪ ﺁﺧﺮ ﻣﻦ ﻓﺮﻳﻘﻚ ﻫﻨﺎ."})
 BB_MENU_TEXT("Shuffle",
             {"シャッフル",
              "Mélanger",
@@ -4487,7 +4722,8 @@ BB_MENU_TEXT("Shuffle",
              "Stokk",
              "Losuj",
              "Embaralhar",
-             "Karıştır"})
+             "Karıştır",
+             "ﺧﻠﻂ"})
 BB_MENU_TEXT("Send the challenge",
             {"決闘を申し込む",
              "Lancer le défi",
@@ -4506,7 +4742,8 @@ BB_MENU_TEXT("Send the challenge",
              "Send utfordringen",
              "Rzuć wyzwanie",
              "Lançar o desafio",
-             "Meydan oku"})
+             "Meydan oku",
+             "ﺇﺭﺳﺎﻝ ﺍﻟﺘﺤﺪﻱ"})
 BB_MENU_TEXT("Back",
             {"戻る",
              "Retour",
@@ -4525,7 +4762,8 @@ BB_MENU_TEXT("Back",
              "Tilbake",
              "Wstecz",
              "Voltar",
-             "Geri"})
+             "Geri",
+             "ﺭﺟﻮﻉ"})
 BB_MENU_TEXT("Game's own",
             {"ゲーム本来",
              "Comme le jeu",
@@ -4544,7 +4782,8 @@ BB_MENU_TEXT("Game's own",
              "Spillets egen",
              "Jak w grze",
              "Como no jogo",
-             "Oyunun kendisi"})
+             "Oyunun kendisi",
+             "ﺍﻟﺨﺎﺹ ﺑﺎﻟﻠﻌﺒﺔ"})
 BB_MENU_TEXT("Mild",
             {"控えめ",
              "Modérée",
@@ -4563,7 +4802,8 @@ BB_MENU_TEXT("Mild",
              "Mild",
              "Łagodna",
              "Moderada",
-             "Hafif"})
+             "Hafif",
+             "ﺧﻔﻴﻒ"})
 BB_MENU_TEXT("Standard",
             {"標準",
              "Standard",
@@ -4582,7 +4822,8 @@ BB_MENU_TEXT("Standard",
              "Standard",
              "Standardowa",
              "Padrão",
-             "Standart"})
+             "Standart",
+             "ﻋﺎﺩﻱ"})
 BB_MENU_TEXT("Hard",
             {"高い",
              "Élevée",
@@ -4601,7 +4842,8 @@ BB_MENU_TEXT("Hard",
              "Høy",
              "Wysoka",
              "Alta",
-             "Zor"})
+             "Zor",
+             "ﺻﻌﺐ"})
 BB_MENU_TEXT("Brutal",
             {"過酷",
              "Brutale",
@@ -4620,7 +4862,8 @@ BB_MENU_TEXT("Brutal",
              "Brutal",
              "Brutalna",
              "Brutal",
-             "Acımasız"})
+             "Acımasız",
+             "ﻭﺣﺸﻲ"})
 BB_MENU_TEXT("Custom",
             {"カスタム",
              "Personnalisée",
@@ -4639,7 +4882,8 @@ BB_MENU_TEXT("Custom",
              "Egendefinert",
              "Własna",
              "Personalizada",
-             "Özel"})
+             "Özel",
+             "ﻣﺨﺼﺺ"})
 BB_MENU_TEXT("damage",
             {"ダメージ",
              "dégâts",
@@ -4658,7 +4902,8 @@ BB_MENU_TEXT("damage",
              "skade",
              "obrażenia",
              "dano",
-             "hasar"})
+             "hasar",
+             "ﺍﻟﻀﺮﺭ"})
 BB_MENU_TEXT("poise",
             {"強靭度",
              "équilibre",
@@ -4677,7 +4922,8 @@ BB_MENU_TEXT("poise",
              "balanse",
              "równowaga",
              "equilíbrio",
-             "denge"})
+             "denge",
+             "ﺍﻟﺜﺒﺎﺕ"})
 BB_MENU_TEXT("In a team its leader chooses these for everyone.",
             {"チームではリーダーが全員のために選びます。",
              "Dans une équipe, son chef les choisit pour tous.",
@@ -4696,7 +4942,8 @@ BB_MENU_TEXT("In a team its leader chooses these for everyone.",
              "I et lag velger lederen disse for alle.",
              "W drużynie wybiera je lider dla wszystkich.",
              "Numa equipe, o líder escolhe isso para todos.",
-             "Bir takımda bunları herkes için lider seçer."})
+             "Bir takımda bunları herkes için lider seçer.",
+             "ﻓﻲ ﺍﻟﻔﺮﻳﻖ ﻳﺨﺘﺎﺭ ﻗﺎﺋﺪﻩ ﻫﺬﻩ ﻟﻠﺠﻤﻴﻊ."})
 BB_MENU_TEXT("Your choice is the whole team's.",
             {"あなたの選択がチーム全体に適用されます。",
              "Votre choix vaut pour toute l'équipe.",
@@ -4715,7 +4962,8 @@ BB_MENU_TEXT("Your choice is the whole team's.",
              "Ditt valg gjelder hele laget.",
              "Twój wybór dotyczy całej drużyny.",
              "Sua escolha vale para toda a equipe.",
-             "Seçimin tüm takım için geçerli."})
+             "Seçimin tüm takım için geçerli.",
+             "ﺍﺧﺘﻴﺎﺭﻙ ﻫﻮ ﺍﺧﺘﻴﺎﺭ ﺍﻟﻔﺮﻳﻖ ﻛﻠﻪ."})
 BB_MENU_TEXT("The leader chooses these for the team.",
             {"リーダーがチームのために選びます。",
              "Le chef les choisit pour l'équipe.",
@@ -4734,7 +4982,8 @@ BB_MENU_TEXT("The leader chooses these for the team.",
              "Lederen velger disse for laget.",
              "Lider wybiera je dla drużyny.",
              "O líder escolhe isso para a equipe.",
-             "Bunları takım için lider seçer."})
+             "Bunları takım için lider seçer.",
+             "ﺍﻟﻘﺎﺋﺪ ﻳﺨﺘﺎﺭ ﻫﺬﻩ ﻟﻠﻔﺮﻳﻖ."})
 BB_MENU_TEXT("Open to all",
             {"誰でも可",
              "Ouvert à tous",
@@ -4753,7 +5002,8 @@ BB_MENU_TEXT("Open to all",
              "Åpen for alle",
              "Otwarte dla wszystkich",
              "Aberta a todos",
-             "Herkese açık"})
+             "Herkese açık",
+             "ﻣﻔﺘﻮﺡ ﻟﻠﺠﻤﻴﻊ"})
 BB_MENU_TEXT("On request",
             {"申請制",
              "Sur demande",
@@ -4772,7 +5022,8 @@ BB_MENU_TEXT("On request",
              "Spør først",
              "Na prośbę",
              "Mediante pedido",
-             "Istekle"})
+             "Istekle",
+             "ﻋﻨﺪ ﺍﻟﻄﻠﺐ"})
 BB_MENU_TEXT("Invite only",
             {"招待のみ",
              "Sur invitation",
@@ -4791,7 +5042,8 @@ BB_MENU_TEXT("Invite only",
              "Kun invitasjon",
              "Tylko zaproszenia",
              "Só por convite",
-             "Yalnızca davetle"})
+             "Yalnızca davetle",
+             "ﺑﺎﻟﺪﻋﻮﺓ ﻓﻘﻂ"})
 BB_MENU_TEXT("Joining",
             {"参加",
              "Accès",
@@ -4810,7 +5062,8 @@ BB_MENU_TEXT("Joining",
              "Tilgang",
              "Dołączanie",
              "Entrada",
-             "Katılım"})
+             "Katılım",
+             "ﺍﻻﻧﻀﻤﺎﻡ"})
 BB_MENU_TEXT("Invaders",
             {"侵入者",
              "Envahisseurs",
@@ -4829,7 +5082,8 @@ BB_MENU_TEXT("Invaders",
              "Inntrengere",
              "Najeźdźcy",
              "Invasores",
-             "İstilacılar"})
+             "İstilacılar",
+             "ﺍﻟﻐﺰﺍﺓ"})
 BB_MENU_TEXT("Allowed",
             {"許可",
              "Autorisés",
@@ -4848,7 +5102,8 @@ BB_MENU_TEXT("Allowed",
              "Tillatt",
              "Dozwoleni",
              "Permitidos",
-             "Açık"})
+             "Açık",
+             "ﻣﺴﻤﻮﺡ"})
 BB_MENU_TEXT("Not allowed",
             {"拒否",
              "Interdits",
@@ -4867,7 +5122,8 @@ BB_MENU_TEXT("Not allowed",
              "Ikke tillatt",
              "Niedozwoleni",
              "Não permitidos",
-             "Kapalı"})
+             "Kapalı",
+             "ﻏﻴﺮ ﻣﺴﻤﻮﺡ"})
 BB_MENU_TEXT("Death mode",
             {"死亡時の扱い",
              "Mode de mort",
@@ -4886,7 +5142,8 @@ BB_MENU_TEXT("Death mode",
              "Dødsmodus",
              "Tryb śmierci",
              "Modo de morte",
-             "Ölüm modu"})
+             "Ölüm modu",
+             "ﻭﺿﻊ ﺍﻟﻤﻮﺕ"})
 BB_MENU_TEXT("Spectate teammates",
             {"仲間を観戦",
              "Observer l'équipe",
@@ -4905,7 +5162,8 @@ BB_MENU_TEXT("Spectate teammates",
              "Se på laget",
              "Obserwuj drużynę",
              "Observar a equipe",
-             "Takımı izle"})
+             "Takımı izle",
+             "ﻣﺸﺎﻫﺪﺓ ﺍﻟﺮﻓﺎﻕ"})
 BB_MENU_TEXT("Go down (revive)",
             {"ダウン（蘇生）",
              "À terre (relevé)",
@@ -4924,7 +5182,8 @@ BB_MENU_TEXT("Go down (revive)",
              "Gå ned (gjenoppliv)",
              "Upadek (wskrzeszenie)",
              "Cair (reviver)",
-             "Yere düş (canlandır)"})
+             "Yere düş (canlandır)",
+             "ﺍﻟﺴﻘﻮﻁ (ﺍﻹﻧﻌﺎﺵ)"})
 BB_MENU_TEXT("Enemies",
             {"敵",
              "Ennemis",
@@ -4943,7 +5202,8 @@ BB_MENU_TEXT("Enemies",
              "Fiender",
              "Wrogowie",
              "Inimigos",
-             "Düşmanlar"})
+             "Düşmanlar",
+             "ﺍﻷﻋﺪﺍﺀ"})
 BB_MENU_TEXT("Auto: stronger with each hunter",
             {"自動: 狩人ごとに強くなる",
              "Auto : plus forts à chaque chasseur",
@@ -4962,7 +5222,8 @@ BB_MENU_TEXT("Auto: stronger with each hunter",
              "Auto: sterkere med hver jeger",
              "Auto: silniejsi z każdym łowcą",
              "Auto: mais fortes com cada caçador",
-             "Otomatik: her avcıyla daha güçlü"})
+             "Otomatik: her avcıyla daha güçlü",
+             "ﺗﻠﻘﺎﺋﻲ: ﺃﻗﻮﻯ ﻣﻊ ﻛﻞ ﺻﻴﺎﺩ"})
 BB_MENU_TEXT("Fixed: the same for any team",
             {"固定: どのチームでも同じ",
              "Fixe : pareil pour toute équipe",
@@ -4981,7 +5242,8 @@ BB_MENU_TEXT("Fixed: the same for any team",
              "Fast: likt for alle lag",
              "Stała: taka sama dla każdej drużyny",
              "Fixa: igual para qualquer time",
-             "Sabit: her takım için aynı"})
+             "Sabit: her takım için aynı",
+             "ﺛﺎﺑﺖ: ﻧﻔﺴﻪ ﻷﻱ ﻓﺮﻳﻖ"})
 BB_MENU_TEXT("Enemy strength",
             {"敵の強さ",
              "Force des ennemis",
@@ -5000,7 +5262,8 @@ BB_MENU_TEXT("Enemy strength",
              "Fiendenes styrke",
              "Siła wrogów",
              "Força dos inimigos",
-             "Düşman gücü"})
+             "Düşman gücü",
+             "ﻗﻮﺓ ﺍﻷﻋﺪﺍﺀ"})
 BB_MENU_TEXT("Enemy HP",
             {"敵のHP",
              "PV des ennemis",
@@ -5019,7 +5282,8 @@ BB_MENU_TEXT("Enemy HP",
              "Fiendenes HP",
              "HP wrogów",
              "PV dos inimigos",
-             "Düşman HP'si"})
+             "Düşman HP'si",
+             "ﺻﺤﺔ ﺍﻷﻋﺪﺍﺀ"})
 BB_MENU_TEXT("Enemy damage",
             {"敵のダメージ",
              "Dégâts des ennemis",
@@ -5038,7 +5302,8 @@ BB_MENU_TEXT("Enemy damage",
              "Fiendenes skade",
              "Obrażenia wrogów",
              "Dano dos inimigos",
-             "Düşman hasarı"})
+             "Düşman hasarı",
+             "ﺿﺮﺭ ﺍﻷﻋﺪﺍﺀ"})
 BB_MENU_TEXT("Enemy poise",
             {"敵の強靭度",
              "Équilibre des ennemis",
@@ -5057,7 +5322,8 @@ BB_MENU_TEXT("Enemy poise",
              "Fiendenes balanse",
              "Równowaga wrogów",
              "Equilíbrio dos inimigos",
-             "Düşman dengesi"})
+             "Düşman dengesi",
+             "ﺛﺒﺎﺕ ﺍﻷﻋﺪﺍﺀ"})
 BB_MENU_TEXT("Rot",
             {"腐敗",
              "Pourriture",
@@ -5076,7 +5342,8 @@ BB_MENU_TEXT("Rot",
              "Råte",
              "Zgnilizna",
              "Podridão",
-             "Çürüme"})
+             "Çürüme",
+             "ﺍﻟﺘﻌﻔﻦ"})
 BB_MENU_TEXT("Travel together",
             {"一緒に移動",
              "Voyager ensemble",
@@ -5095,7 +5362,8 @@ BB_MENU_TEXT("Travel together",
              "Reis sammen",
              "Podróż razem",
              "Viajar juntos",
-             "Birlikte yolculuk"})
+             "Birlikte yolculuk",
+             "ﺍﻟﺴﻔﺮ ﻣﻌﺎ"})
 BB_MENU_TEXT("On, the team votes",
             {"オン、チームで投票",
              "Activé, l'équipe vote",
@@ -5114,7 +5382,8 @@ BB_MENU_TEXT("On, the team votes",
              "På, laget stemmer",
              "Wł., drużyna głosuje",
              "Sim, o time vota",
-             "Açık, takım oylar"})
+             "Açık, takım oylar",
+             "ﻣﻔﻌﻞ، ﺍﻟﻔﺮﻳﻖ ﻳﺼﻮﺕ"})
 BB_MENU_TEXT("Boss tempo",
             {"ボスのテンポ",
              "Rythme des boss",
@@ -5133,7 +5402,8 @@ BB_MENU_TEXT("Boss tempo",
              "Bosstempo",
              "Tempo bossów",
              "Ritmo dos chefes",
-             "Boss temposu"})
+             "Boss temposu",
+             "ﺇﻳﻘﺎﻉ ﺍﻟﺰﻋﻤﺎﺀ"})
 BB_MENU_TEXT("Relentless",
             {"容赦なし",
              "Implacable",
@@ -5152,7 +5422,8 @@ BB_MENU_TEXT("Relentless",
              "Nådeløst",
              "Bezlitosne",
              "Implacável",
-             "Amansız"})
+             "Amansız",
+             "ﺑﻼ ﻫﻮﺍﺩﺓ"})
 BB_MENU_TEXT("Aggressive",
             {"攻撃的",
              "Agressif",
@@ -5171,7 +5442,8 @@ BB_MENU_TEXT("Aggressive",
              "Aggressivt",
              "Agresywne",
              "Agressivo",
-             "Agresif"})
+             "Agresif",
+             "ﻋﺪﻭﺍﻧﻲ"})
 BB_MENU_TEXT("Vanilla",
             {"ゲーム本来",
              "Comme le jeu",
@@ -5190,7 +5462,8 @@ BB_MENU_TEXT("Vanilla",
              "Spillets egen",
              "Jak w grze",
              "Como no jogo",
-             "Oyunun kendisi"})
+             "Oyunun kendisi",
+             "ﺍﻷﺻﻠﻲ"})
 BB_MENU_TEXT("Friendly fire",
             {"フレンドリーファイア",
              "Tir allié",
@@ -5209,7 +5482,8 @@ BB_MENU_TEXT("Friendly fire",
              "Egen ild",
              "Ogień sojuszniczy",
              "Fogo amigo",
-             "Dost ateşi"})
+             "Dost ateşi",
+             "ﺍﻟﻨﻴﺮﺍﻥ ﺍﻟﺼﺪﻳﻘﺔ"})
 BB_MENU_TEXT("Invite only: hunters come in when invited. On request: the team is listed and its leader takes who asks. Open to all: anyone listed joins at once.",
             {"招待のみ：招待された狩人だけが参加します。申請制：チームが一覧に載り、リーダーが申請者を受け入れます。誰でも可：一覧の誰でもすぐに参加できます。",
              "Sur invitation : les chasseurs entrent quand on les invite. Sur demande : l'équipe est listée et son chef accepte qui demande. Ouvert à tous : tout chasseur listé entre aussitôt.",
@@ -5228,7 +5502,8 @@ BB_MENU_TEXT("Invite only: hunters come in when invited. On request: the team is
              "Kun invitasjon: jegere kommer inn når de blir invitert. Spør først: laget vises i listen, og lederen tar inn dem som spør. Åpen for alle: alle i listen blir med med en gang.",
              "Tylko zaproszenia: łowcy wchodzą po zaproszeniu. Na prośbę: drużyna jest na liście, a lider przyjmuje proszących. Otwarte dla wszystkich: każdy z listy dołącza od razu.",
              "Só por convite: os caçadores entram quando convidados. Mediante pedido: a equipe aparece na lista e o líder aceita quem pede. Aberta a todos: qualquer um da lista entra na hora.",
-             "Yalnızca davetle: avcılar davet edilince girer. İstekle: takım listede görünür ve lider isteyenleri alır. Herkese açık: listedeki herkes hemen katılır."})
+             "Yalnızca davetle: avcılar davet edilince girer. İstekle: takım listede görünür ve lider isteyenleri alır. Herkese açık: listedeki herkes hemen katılır.",
+             "ﺑﺎﻟﺪﻋﻮﺓ ﻓﻘﻂ: ﻳﺪﺧﻞ ﺍﻟﺼﻴﺎﺩﻭﻥ ﻋﻨﺪ ﺩﻋﻮﺗﻬﻢ. ﻋﻨﺪ ﺍﻟﻄﻠﺐ: ﻳﻈﻬﺮ ﺍﻟﻔﺮﻳﻖ ﻓﻲ ﺍﻟﻘﺎﺋﻤﺔ ﻭﻳﻘﺒﻞ ﻗﺎﺋﺪﻩ ﻣﻦ ﻳﻄﻠﺐ. ﻣﻔﺘﻮﺡ ﻟﻠﺠﻤﻴﻊ: ﻳﻨﻀﻢ ﺃﻱ ﺃﺣﺪ ﻓﻲ ﺍﻟﻘﺎﺋﻤﺔ ﻓﻮﺭﺍ."})
 BB_MENU_TEXT("Allowed: hunters of other worlds may invade the team's world as red phantoms (when the server allows invasions).",
             {"許可：他の世界の狩人が赤い霊としてチームの世界に侵入できます（サーバーが侵入を許可している場合）。",
              "Autorisés : des chasseurs d'autres mondes peuvent envahir le monde de l'équipe en fantômes rouges (si le serveur autorise les invasions).",
@@ -5247,7 +5522,8 @@ BB_MENU_TEXT("Allowed: hunters of other worlds may invade the team's world as re
              "Tillatt: jegere fra andre verdener kan invadere lagets verden som røde fantomer (når serveren tillater invasjoner).",
              "Dozwoleni: łowcy z innych światów mogą najeżdżać świat drużyny jako czerwone fantomy (jeśli serwer pozwala na najazdy).",
              "Permitidos: caçadores de outros mundos podem invadir o mundo da equipe como fantasmas vermelhos (se o servidor permitir invasões).",
-             "Açık: başka dünyaların avcıları takımın dünyasını kırmızı hayaletler olarak istila edebilir (sunucu istilalara izin veriyorsa)."})
+             "Açık: başka dünyaların avcıları takımın dünyasını kırmızı hayaletler olarak istila edebilir (sunucu istilalara izin veriyorsa).",
+             "ﻣﺴﻤﻮﺡ: ﻳﻤﻜﻦ ﻟﺼﻴﺎﺩﻱ ﺍﻟﻌﻮﺍﻟﻢ ﺍﻷﺧﺮﻯ ﻏﺰﻭ ﻋﺎﻟﻢ ﺍﻟﻔﺮﻳﻖ ﻛﺄﺷﺒﺎﺡ ﺣﻤﺮﺍﺀ (ﻋﻨﺪﻣﺎ ﻳﺴﻤﺢ ﺍﻟﺨﺎﺩﻡ ﺑﺎﻟﻐﺰﻭ)."})
 BB_MENU_TEXT("Auto: normal enemies for a hunter alone, stronger with each teammate on the same map, up to the strength below for a full team. Fixed: the strength below at all times.",
             {"自動: 狩人1人なら通常の敵、同じマップの仲間ごとに強くなり、フルチームで下の強さになります。固定: 常に下の強さです。",
              "Auto : ennemis normaux pour un chasseur seul, plus forts avec chaque coéquipier sur la même carte, jusqu'à la force ci-dessous pour une équipe complète. Fixe : toujours la force ci-dessous.",
@@ -5266,7 +5542,8 @@ BB_MENU_TEXT("Auto: normal enemies for a hunter alone, stronger with each teamma
              "Auto: vanlige fiender for en jeger alene, sterkere med hver lagkamerat på samme kart, opp til styrken nedenfor for et fullt lag. Fast: alltid styrken nedenfor.",
              "Auto: zwykli wrogowie dla samotnego łowcy, silniejsi z każdym towarzyszem na tej samej mapie, aż do siły poniżej dla pełnej drużyny. Stała: zawsze siła poniżej.",
              "Auto: inimigos normais para um caçador sozinho, mais fortes com cada companheiro no mesmo mapa, até a força abaixo para um time completo. Fixa: sempre a força abaixo.",
-             "Otomatik: tek başına bir avcı için normal düşmanlar, aynı haritadaki her takım arkadaşıyla daha güçlü, tam bir takım için aşağıdaki güce kadar. Sabit: her zaman aşağıdaki güç."})
+             "Otomatik: tek başına bir avcı için normal düşmanlar, aynı haritadaki her takım arkadaşıyla daha güçlü, tam bir takım için aşağıdaki güce kadar. Sabit: her zaman aşağıdaki güç.",
+             "ﺗﻠﻘﺎﺋﻲ: ﺃﻋﺪﺍﺀ ﻋﺎﺩﻳﻮﻥ ﻟﺼﻴﺎﺩ ﻭﺣﻴﺪ، ﻭﺃﻗﻮﻯ ﻣﻊ ﻛﻞ ﺭﻓﻴﻖ ﻓﻲ ﺍﻟﺨﺮﻳﻄﺔ ﻧﻔﺴﻬﺎ، ﺣﺘﻰ ﺍﻟﻘﻮﺓ ﺃﺩﻧﺎﻩ ﻟﻔﺮﻳﻖ ﻛﺎﻣﻞ. ﺛﺎﺑﺖ: ﺍﻟﻘﻮﺓ ﺃﺩﻧﺎﻩ ﺩﺍﺋﻤﺎ."})
 BB_MENU_TEXT("The enemies' HP, damage and poise, times the game's own: the same in every teammate's game.",
             {"敵のHP、ダメージ、強靭度をゲーム本来の何倍にするか。仲間全員のゲームで同じです。",
              "PV, dégâts et équilibre des ennemis, multipliés par ceux du jeu : les mêmes dans le jeu de chaque coéquipier.",
@@ -5285,7 +5562,8 @@ BB_MENU_TEXT("The enemies' HP, damage and poise, times the game's own: the same 
              "Fiendenes HP, skade og balanse ganger spillets egne: likt i hver lagkamerats spill.",
              "PZ, obrażenia i równowaga wrogów razy te z gry: takie same w grze każdego towarzysza.",
              "PV, dano e equilíbrio dos inimigos, vezes os do jogo: iguais no jogo de cada companheiro.",
-             "Düşmanların can, hasar ve dengesi, oyununkinin katı: her takım arkadaşının oyununda aynı."})
+             "Düşmanların can, hasar ve dengesi, oyununkinin katı: her takım arkadaşının oyununda aynı.",
+             "ﺻﺤﺔ ﺍﻷﻋﺪﺍﺀ ﻭﺿﺮﺭﻫﻢ ﻭﺛﺒﺎﺗﻬﻢ، ﻣﻀﺮﻭﺑﺔ ﻓﻲ ﻗﻴﻢ ﺍﻟﻠﻌﺒﺔ ﻧﻔﺴﻬﺎ: ﻧﻔﺴﻬﺎ ﻓﻲ ﻟﻌﺒﺔ ﻛﻞ ﺭﻓﻴﻖ."})
 BB_MENU_TEXT("A real death (not a down a teammate revives) adds a penalty, until a lamp rest, a level up or a boss kill takes it away.",
             {"本当の死（仲間に起こしてもらえるダウンではない）でペナルティが付き、灯りでの休息、レベルアップ、ボス撃破で消えます。",
              "Une vraie mort (pas une chute dont un coéquipier vous relève) ajoute une pénalité, jusqu'à ce qu'un repos à une lanterne, un niveau gagné ou un boss vaincu l'efface.",
@@ -5304,7 +5582,8 @@ BB_MENU_TEXT("A real death (not a down a teammate revives) adds a penalty, until
              "En ekte død (ikke et fall en lagkamerat hjelper deg opp fra) gir en straff, til hvile ved en lykt, et nytt nivå eller en beseiret boss fjerner den.",
              "Prawdziwa śmierć (nie upadek, z którego podnosi towarzysz) dodaje karę, dopóki odpoczynek przy latarni, nowy poziom lub pokonany boss jej nie usunie.",
              "Uma morte de verdade (não uma queda da qual um companheiro te levanta) adiciona uma penalidade, até que um descanso numa lanterna, uma subida de nível ou um chefe derrotado a remova.",
-             "Gerçek bir ölüm (bir takım arkadaşının kaldırabileceği düşüş değil) bir ceza ekler; fenerde dinlenme, seviye atlama veya yenilen bir boss onu kaldırana kadar."})
+             "Gerçek bir ölüm (bir takım arkadaşının kaldırabileceği düşüş değil) bir ceza ekler; fenerde dinlenme, seviye atlama veya yenilen bir boss onu kaldırana kadar.",
+             "ﺍﻟﻤﻮﺕ ﺍﻟﺤﻘﻴﻘﻲ (ﻻ ﺍﻟﺴﻘﻮﻁ ﺍﻟﺬﻱ ﻳﻨﻌﺸﻚ ﻣﻨﻪ ﺭﻓﻴﻖ) ﻳﻀﻴﻒ ﻋﻘﻮﺑﺔ، ﺣﺘﻰ ﺗﺰﻳﻠﻬﺎ ﺍﺳﺘﺮﺍﺣﺔ ﻋﻨﺪ ﻣﺼﺒﺎﺡ ﺃﻭ ﺭﻓﻊ ﻣﺴﺘﻮﻯ ﺃﻭ ﻗﺘﻞ ﺯﻋﻴﻢ."})
 BB_MENU_TEXT("A lamp or headstone trip asks the team to come along; with the vote one No stops it.",
             {"灯りや墓石での移動にチームを誘います。投票ありでは1人の「いいえ」で中止されます。",
              "Un voyage par lanterne ou par pierre tombale invite l'équipe à suivre ; avec le vote, un seul Non l'arrête.",
@@ -5323,7 +5602,8 @@ BB_MENU_TEXT("A lamp or headstone trip asks the team to come along; with the vot
              "En reise via lykt eller gravstein inviterer laget med; med avstemningen stopper ett Nei den.",
              "Podróż przez latarnię lub nagrobek zaprasza drużynę; z głosowaniem jedno Nie ją wstrzymuje.",
              "Uma viagem por lanterna ou lápide convida o time a vir junto; com a votação, um só Não a impede.",
-             "Fener veya mezar taşıyla yolculuk takımı da çağırır; oylamayla tek bir Hayır onu durdurur."})
+             "Fener veya mezar taşıyla yolculuk takımı da çağırır; oylamayla tek bir Hayır onu durdurur.",
+             "ﺭﺣﻠﺔ ﺍﻟﻤﺼﺒﺎﺡ ﺃﻭ ﺷﺎﻫﺪ ﺍﻟﻘﺒﺮ ﺗﻄﻠﺐ ﻣﻦ ﺍﻟﻔﺮﻳﻖ ﺍﻟﻤﺠﻲﺀ؛ ﻭﻣﻊ ﺍﻟﺘﺼﻮﻳﺖ ﻳﻮﻗﻔﻬﺎ ﺭﻓﺾ ﻭﺍﺣﺪ."})
 BB_MENU_TEXT("Bosses rest less between attacks and turn faster.",
             {"ボスは攻撃の合間の休みが短くなり、振り向きが速くなります。",
              "Les boss se reposent moins entre leurs attaques et tournent plus vite.",
@@ -5342,7 +5622,8 @@ BB_MENU_TEXT("Bosses rest less between attacks and turn faster.",
              "Bosser hviler mindre mellom angrep og snur seg raskere.",
              "Bossowie mniej odpoczywają między atakami i szybciej się obracają.",
              "Os chefes descansam menos entre ataques e giram mais rápido.",
-             "Bosslar saldırılar arasında daha az dinlenir ve daha hızlı döner."})
+             "Bosslar saldırılar arasında daha az dinlenir ve daha hızlı döner.",
+             "ﺍﻟﺰﻋﻤﺎﺀ ﻳﺮﺗﺎﺣﻮﻥ ﺃﻗﻞ ﺑﻴﻦ ﺍﻟﻬﺠﻤﺎﺕ ﻭﻳﺴﺘﺪﻳﺮﻭﻥ ﺃﺳﺮﻉ."})
 BB_MENU_TEXT("For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.",
             {"より厳しい狩りのために：仲間の攻撃が常に互いにダメージを与えます。仲間によるとどめは通常の死と同じ扱いです。",
              "Pour une chasse plus dure : les attaques des coéquipiers se blessent mutuellement à tout moment. Le coup fatal d'un coéquipier compte comme n'importe quelle autre mort.",
@@ -5361,7 +5642,8 @@ BB_MENU_TEXT("For a harder hunt: teammates' attacks hurt each other at all times
              "For en hardere jakt: lagkameraters angrep skader hverandre hele tiden. Et drepende slag fra en lagkamerat teller som enhver annen død.",
              "Dla trudniejszych łowów: ataki towarzyszy zawsze ranią się nawzajem. Śmiertelny cios towarzysza liczy się jak każda inna śmierć.",
              "Para uma caçada mais difícil: os ataques dos companheiros ferem uns aos outros o tempo todo. O golpe fatal de um companheiro conta como qualquer outra morte.",
-             "Daha zorlu bir av için: takım arkadaşlarının saldırıları her zaman birbirine hasar verir. Bir takım arkadaşının öldürücü darbesi diğer ölümler gibi sayılır."})
+             "Daha zorlu bir av için: takım arkadaşlarının saldırıları her zaman birbirine hasar verir. Bir takım arkadaşının öldürücü darbesi diğer ölümler gibi sayılır.",
+             "ﻟﺼﻴﺪ ﺃﺻﻌﺐ: ﻫﺠﻤﺎﺕ ﺍﻟﺮﻓﺎﻕ ﺗﺆﺫﻱ ﺑﻌﻀﻬﻢ ﺑﻌﻀﺎ ﻓﻲ ﻛﻞ ﺍﻷﻭﻗﺎﺕ. ﻭﺍﻟﻀﺮﺑﺔ ﺍﻟﻘﺎﺗﻠﺔ ﻣﻦ ﺭﻓﻴﻖ ﺗﺤﺴﺐ ﻛﺄﻱ ﻣﻮﺕ ﺁﺧﺮ."})
 BB_MENU_TEXT("Choose a World",
             {"ワールドを選択",
              "Choisir un monde",
@@ -5380,7 +5662,8 @@ BB_MENU_TEXT("Choose a World",
              "Velg en verden",
              "Wybierz świat",
              "Escolha um mundo",
-             "Bir Dünya Seç"})
+             "Bir Dünya Seç",
+             "ﺍﺧﺘﺮ ﻋﺎﻟﻤﺎ"})
 BB_MENU_TEXT("Each world keeps its own progress on the server; any team may hunt in it.",
             {"各ワールドは進行状況をサーバーに保存します。どのチームでも狩りができます。",
              "Chaque monde garde sa propre progression sur le serveur ; toute équipe peut y chasser.",
@@ -5399,7 +5682,8 @@ BB_MENU_TEXT("Each world keeps its own progress on the server; any team may hunt
              "Hver verden har sin egen fremgang på serveren; alle lag kan jakte i den.",
              "Każdy świat ma własny postęp na serwerze; każda drużyna może w nim polować.",
              "Cada mundo guarda o próprio progresso no servidor; qualquer equipe pode caçar nele.",
-             "Her dünya kendi ilerlemesini sunucuda tutar; her takım orada avlanabilir."})
+             "Her dünya kendi ilerlemesini sunucuda tutar; her takım orada avlanabilir.",
+             "ﻛﻞ ﻋﺎﻟﻢ ﻳﺤﻔﻆ ﺗﻘﺪﻣﻪ ﻋﻠﻰ ﺍﻟﺨﺎﺩﻡ؛ ﻭﻳﻤﻜﻦ ﻷﻱ ﻓﺮﻳﻖ ﺍﻟﺼﻴﺪ ﻓﻴﻪ."})
 BB_MENU_TEXT("A new world",
             {"新しいワールド",
              "Un nouveau monde",
@@ -5418,7 +5702,8 @@ BB_MENU_TEXT("A new world",
              "En ny verden",
              "Nowy świat",
              "Um novo mundo",
-             "Yeni bir dünya"})
+             "Yeni bir dünya",
+             "ﻋﺎﻟﻢ ﺟﺪﻳﺪ"})
 BB_MENU_TEXT("Chosen",
             {"選択済み",
              "Choisi",
@@ -5437,7 +5722,8 @@ BB_MENU_TEXT("Chosen",
              "Valgt",
              "Wybrany",
              "Escolhido",
-             "Seçildi"})
+             "Seçildi",
+             "ﻣﺨﺘﺎﺭ"})
 BB_MENU_TEXT("Starts from the leader's save; kept on the server from the first hunt.",
             {"リーダーのセーブから開始。最初の狩りからサーバーに保存されます。",
              "Part de la sauvegarde du chef ; conservé sur le serveur dès la première chasse.",
@@ -5456,7 +5742,8 @@ BB_MENU_TEXT("Starts from the leader's save; kept on the server from the first h
              "Starter fra lederens lagring; lagres på serveren fra første jakt.",
              "Zaczyna od zapisu lidera; trzymany na serwerze od pierwszych łowów.",
              "Começa do save do líder; fica no servidor desde a primeira caçada.",
-             "Liderin kaydından başlar; ilk avdan itibaren sunucuda tutulur."})
+             "Liderin kaydından başlar; ilk avdan itibaren sunucuda tutulur.",
+             "ﻳﺒﺪﺃ ﻣﻦ ﺣﻔﻆ ﺍﻟﻘﺎﺋﺪ؛ ﻭﻳﺤﻔﻆ ﻋﻠﻰ ﺍﻟﺨﺎﺩﻡ ﻣﻨﺬ ﺃﻭﻝ ﺻﻴﺪ."})
 BB_MENU_TEXT("Last played ",
             {"最終プレイ ",
              "Dernière partie : ",
@@ -5475,7 +5762,8 @@ BB_MENU_TEXT("Last played ",
              "Sist spilt ",
              "Ostatnia gra: ",
              "Última partida: ",
-             "Son oynanma: "})
+             "Son oynanma: ",
+             "ﺁﺧﺮ ﻟﻌﺐ "})
 BB_MENU_TEXT("Made ",
             {"作成 ",
              "Créé le ",
@@ -5494,7 +5782,8 @@ BB_MENU_TEXT("Made ",
              "Laget ",
              "Utworzony: ",
              "Criado: ",
-             "Oluşturulma: "})
+             "Oluşturulma: ",
+             "ﺃﻧﺸﺊ "})
 BB_MENU_TEXT("Hunters: ",
             {"狩人: ",
              "Chasseurs : ",
@@ -5513,7 +5802,8 @@ BB_MENU_TEXT("Hunters: ",
              "Jegere: ",
              "Tropiciele: ",
              "Caçadores: ",
-             "Avcılar: "})
+             "Avcılar: ",
+             "ﺍﻟﺼﻴﺎﺩﻭﻥ: "})
 BB_MENU_TEXT("No hunter yet",
             {"まだ狩人なし",
              "Pas encore de chasseur",
@@ -5532,7 +5822,8 @@ BB_MENU_TEXT("No hunter yet",
              "Ingen jeger ennå",
              "Jeszcze brak tropicieli",
              "Nenhum caçador ainda",
-             "Henüz avcı yok"})
+             "Henüz avcı yok",
+             "ﻻ ﺻﻴﺎﺩ ﺑﻌﺪ"})
 BB_MENU_TEXT("Another team is hunting here now",
             {"別のチームが狩りの最中",
              "Une autre équipe chasse ici en ce moment",
@@ -5551,7 +5842,8 @@ BB_MENU_TEXT("Another team is hunting here now",
              "Et annet lag jakter her nå",
              "Inna drużyna poluje tu teraz",
              "Outra equipe está caçando aqui agora",
-             "Başka bir takım şu an burada avlanıyor"})
+             "Başka bir takım şu an burada avlanıyor",
+             "ﻓﺮﻳﻖ ﺁﺧﺮ ﻳﺼﻄﺎﺩ ﻫﻨﺎ ﺍﻵﻥ"})
 BB_MENU_TEXT("Reset lamps? Press again",
             {"リセットしますか？もう一度押す",
              "Réinitialiser ? Appuyez encore",
@@ -5570,7 +5862,8 @@ BB_MENU_TEXT("Reset lamps? Press again",
              "Tilbakestille? Trykk igjen",
              "Zresetować? Naciśnij ponownie",
              "Redefinir? Pressione de novo",
-             "Sıfırlansın mı? Tekrar basın"})
+             "Sıfırlansın mı? Tekrar basın",
+             "ﺇﻋﺎﺩﺓ ﺿﺒﻂ ﺍﻟﻤﺼﺎﺑﻴﺢ؟ ﺍﺿﻐﻂ ﻣﺮﺓ ﺃﺧﺮﻯ"})
 BB_MENU_TEXT("Reset lamps",
             {"灯りをリセット",
              "Réinitialiser les lanternes",
@@ -5589,7 +5882,8 @@ BB_MENU_TEXT("Reset lamps",
              "Tilbakestill lykter",
              "Zresetuj lampy",
              "Redefinir lanternas",
-             "Fenerleri sıfırla"})
+             "Fenerleri sıfırla",
+             "ﺇﻋﺎﺩﺓ ﺿﺒﻂ ﺍﻟﻤﺼﺎﺑﻴﺢ"})
 BB_MENU_TEXT("Forget it? Press again",
             {"外しますか？もう一度押す",
              "L'oublier ? Appuyez encore",
@@ -5608,7 +5902,8 @@ BB_MENU_TEXT("Forget it? Press again",
              "Glemme den? Trykk igjen",
              "Zapomnieć? Naciśnij ponownie",
              "Esquecer? Pressione de novo",
-             "Unutulsun mu? Tekrar basın"})
+             "Unutulsun mu? Tekrar basın",
+             "ﻧﺴﻴﺎﻧﻪ؟ ﺍﺿﻐﻂ ﻣﺮﺓ ﺃﺧﺮﻯ"})
 BB_MENU_TEXT("Forget this world",
             {"このワールドを一覧から外す",
              "Oublier ce monde",
@@ -5627,7 +5922,8 @@ BB_MENU_TEXT("Forget this world",
              "Glem denne verdenen",
              "Zapomnij ten świat",
              "Esquecer este mundo",
-             "Bu dünyayı unut"})
+             "Bu dünyayı unut",
+             "ﻧﺴﻴﺎﻥ ﻫﺬﺍ ﺍﻟﻌﺎﻟﻢ"})
 BB_MENU_TEXT("Forgotten worlds go off the list; the server keeps their files aside.",
             {"外したワールドは一覧から消えます。ファイルはサーバーに別途保管されます。",
              "Les mondes oubliés quittent la liste ; le serveur met leurs fichiers de côté.",
@@ -5646,7 +5942,8 @@ BB_MENU_TEXT("Forgotten worlds go off the list; the server keeps their files asi
              "Glemte verdener forsvinner fra listen; serveren legger filene deres til side.",
              "Zapomniane światy znikają z listy; serwer odkłada ich pliki na bok.",
              "Mundos esquecidos saem da lista; o servidor guarda os arquivos deles à parte.",
-             "Unutulan dünyalar listeden çıkar; sunucu dosyalarını bir kenarda saklar."})
+             "Unutulan dünyalar listeden çıkar; sunucu dosyalarını bir kenarda saklar.",
+             "ﺍﻟﻌﻮﺍﻟﻢ ﺍﻟﻤﻨﺴﻴﺔ ﺗﺨﺘﻔﻲ ﻣﻦ ﺍﻟﻘﺎﺋﻤﺔ؛ ﻭﻳﺤﺘﻔﻆ ﺍﻟﺨﺎﺩﻡ ﺑﻤﻠﻔﺎﺗﻬﺎ ﺟﺎﻧﺒﺎ."})
 BB_MENU_TEXT("Every lamp of this world goes out for every hunter; the rest stays.",
             {"このワールドの灯りがすべての狩人で消えます。他はそのままです。",
              "Toutes les lanternes de ce monde s'éteignent pour tous les chasseurs ; le reste demeure.",
@@ -5665,7 +5962,8 @@ BB_MENU_TEXT("Every lamp of this world goes out for every hunter; the rest stays
              "Alle lyktene i denne verdenen slukker for alle jegere; resten blir.",
              "Wszystkie lampy tego świata gasną dla każdego łowcy; reszta zostaje.",
              "Todas as lanternas deste mundo se apagam para todos os caçadores; o resto permanece.",
-             "Bu dünyanın tüm fenerleri her avcı için söner; gerisi kalır."})
+             "Bu dünyanın tüm fenerleri her avcı için söner; gerisi kalır.",
+             "ﻛﻞ ﻣﺼﺎﺑﻴﺢ ﻫﺬﺍ ﺍﻟﻌﺎﻟﻢ ﺗﻨﻄﻔﺊ ﻟﻜﻞ ﺍﻟﺼﻴﺎﺩﻳﻦ؛ ﻭﺍﻟﺒﺎﻗﻲ ﻳﺒﻘﻰ."})
 BB_MENU_TEXT("Forget",
             {"忘れる",
              "Oublier",
@@ -5684,7 +5982,8 @@ BB_MENU_TEXT("Forget",
              "Glem",
              "Zapomnij",
              "Esquecer",
-             "Unut"})
+             "Unut",
+             "ﻧﺴﻴﺎﻥ"})
 BB_MENU_TEXT("Friends",
             {"フレンド",
              "Amis",
@@ -5703,7 +6002,8 @@ BB_MENU_TEXT("Friends",
              "Venner",
              "Znajomi",
              "Amigos",
-             "Arkadaşlar"})
+             "Arkadaşlar",
+             "ﺍﻷﺻﺪﻗﺎﺀ"})
 BB_MENU_TEXT("Hunter's name",
             {"狩人の名前",
              "Nom du chasseur",
@@ -5722,7 +6022,8 @@ BB_MENU_TEXT("Hunter's name",
              "Jegerens navn",
              "Imię łowcy",
              "Nome do caçador",
-             "Avcının adı"})
+             "Avcının adı",
+             "ﺍﺳﻢ ﺍﻟﺼﻴﺎﺩ"})
 BB_MENU_TEXT("Search",
             {"検索",
              "Rechercher",
@@ -5741,7 +6042,8 @@ BB_MENU_TEXT("Search",
              "Søk",
              "Szukaj",
              "Buscar",
-             "Ara"})
+             "Ara",
+             "ﺑﺤﺚ"})
 BB_MENU_TEXT("Clear",
             {"クリア",
              "Effacer",
@@ -5760,7 +6062,8 @@ BB_MENU_TEXT("Clear",
              "Tøm",
              "Wyczyść",
              "Limpar",
-             "Temizle"})
+             "Temizle",
+             "ﻣﺴﺢ"})
 BB_MENU_TEXT("Your friends",
             {"あなたのフレンド",
              "Vos amis",
@@ -5779,7 +6082,8 @@ BB_MENU_TEXT("Your friends",
              "Vennene dine",
              "Twoi znajomi",
              "Seus amigos",
-             "Arkadaşların"})
+             "Arkadaşların",
+             "ﺃﺻﺪﻗﺎﺅﻙ"})
 BB_MENU_TEXT("Friend requests",
             {"フレンドリクエスト",
              "Demandes d'ami",
@@ -5798,7 +6102,8 @@ BB_MENU_TEXT("Friend requests",
              "Venneforespørsler",
              "Zaproszenia do znajomych",
              "Pedidos de amizade",
-             "Arkadaşlık istekleri"})
+             "Arkadaşlık istekleri",
+             "ﻃﻠﺒﺎﺕ ﺍﻟﺼﺪﺍﻗﺔ"})
 BB_MENU_TEXT("Found",
             {"見つかった狩人",
              "Trouvés",
@@ -5817,7 +6122,8 @@ BB_MENU_TEXT("Found",
              "Funnet",
              "Znalezieni",
              "Encontrados",
-             "Bulunanlar"})
+             "Bulunanlar",
+             "ﺍﻟﻨﺘﺎﺋﺞ"})
 BB_MENU_TEXT("and more: ",
             {"ほか: ",
              "et encore : ",
@@ -5836,7 +6142,8 @@ BB_MENU_TEXT("and more: ",
              "og flere: ",
              "i więcej: ",
              "e mais: ",
-             "ve daha fazlası: "})
+             "ve daha fazlası: ",
+             "ﻭﺍﻟﻤﺰﻳﺪ: "})
 BB_MENU_TEXT("No friends yet: search for a hunter",
             {"フレンドはまだいません: 狩人を検索しましょう",
              "Pas encore d'amis : cherchez un chasseur",
@@ -5855,7 +6162,8 @@ BB_MENU_TEXT("No friends yet: search for a hunter",
              "Ingen venner ennå: søk etter en jeger",
              "Brak znajomych: wyszukaj łowcę",
              "Ainda sem amigos: busque um caçador",
-             "Henüz arkadaş yok: bir avcı ara"})
+             "Henüz arkadaş yok: bir avcı ara",
+             "ﻻ ﺃﺻﺪﻗﺎﺀ ﺑﻌﺪ: ﺍﺑﺤﺚ ﻋﻦ ﺻﻴﺎﺩ"})
 BB_MENU_TEXT("Invite",
             {"招待する",
              "Inviter",
@@ -5874,7 +6182,8 @@ BB_MENU_TEXT("Invite",
              "Inviter",
              "Zaproś",
              "Convidar",
-             "Davet et"})
+             "Davet et",
+             "ﺩﻋﻮﺓ"})
 BB_MENU_TEXT("Sure?",
             {"よろしいですか?",
              "Sûr ?",
@@ -5893,7 +6202,8 @@ BB_MENU_TEXT("Sure?",
              "Sikker?",
              "Na pewno?",
              "Tem certeza?",
-             "Emin misin?"})
+             "Emin misin?",
+             "ﻣﺘﺄﻛﺪ؟"})
 BB_MENU_TEXT("Remove",
             {"除名",
              "Retirer",
@@ -5912,7 +6222,8 @@ BB_MENU_TEXT("Remove",
              "Fjern",
              "Usuń",
              "Remover",
-             "Çıkar"})
+             "Çıkar",
+             "ﺇﺧﺮﺍﺝ"})
 BB_MENU_TEXT("None",
             {"なし",
              "Aucune",
@@ -5931,7 +6242,8 @@ BB_MENU_TEXT("None",
              "Ingen",
              "Brak",
              "Nenhum",
-             "Yok"})
+             "Yok",
+             "ﻻ ﺷﻲﺀ"})
 BB_MENU_TEXT("asks you",
             {"からの申請",
              "vous demande",
@@ -5950,7 +6262,8 @@ BB_MENU_TEXT("asks you",
              "spør deg",
              "prosi cię",
              "pede para você",
-             "sana soruyor"})
+             "sana soruyor",
+             "ﻳﻄﻠﺐ ﻣﻨﻚ"})
 BB_MENU_TEXT("Accept",
             {"承認",
              "Accepter",
@@ -5969,7 +6282,8 @@ BB_MENU_TEXT("Accept",
              "Godta",
              "Akceptuj",
              "Aceitar",
-             "Kabul et"})
+             "Kabul et",
+             "ﻗﺒﻮﻝ"})
 BB_MENU_TEXT("Decline",
             {"断る",
              "Refuser",
@@ -5988,7 +6302,8 @@ BB_MENU_TEXT("Decline",
              "Avslå",
              "Odrzuć",
              "Recusar",
-             "Reddet"})
+             "Reddet",
+             "ﺭﻓﺾ"})
 BB_MENU_TEXT("asked",
             {"申請済み",
              "demandé",
@@ -6007,7 +6322,8 @@ BB_MENU_TEXT("asked",
              "sendt",
              "wysłano",
              "enviado",
-             "gönderildi"})
+             "gönderildi",
+             "ﻃﻠﺐ"})
 BB_MENU_TEXT("Nobody by that name",
             {"その名前の狩人はいません",
              "Personne avec ce nom",
@@ -6026,7 +6342,8 @@ BB_MENU_TEXT("Nobody by that name",
              "Ingen med det navnet",
              "Nikt o tym imieniu",
              "Ninguém com esse nome",
-             "Bu adda kimse yok"})
+             "Bu adda kimse yok",
+             "ﻻ ﺃﺣﺪ ﺑﻬﺬﺍ ﺍﻻﺳﻢ"})
 BB_MENU_TEXT("Type a name and press Search",
             {"名前を入力して「検索」を押してください",
              "Tapez un nom et appuyez sur Rechercher",
@@ -6045,7 +6362,8 @@ BB_MENU_TEXT("Type a name and press Search",
              "Skriv et navn og trykk Søk",
              "Wpisz imię i naciśnij Szukaj",
              "Digite um nome e aperte Buscar",
-             "Bir ad yaz ve Ara'ya bas"})
+             "Bir ad yaz ve Ara'ya bas",
+             "ﺍﻛﺘﺐ ﺍﺳﻤﺎ ﻭﺍﺿﻐﻂ ﺑﺤﺚ"})
 BB_MENU_TEXT("You",
             {"自分",
              "Vous",
@@ -6064,7 +6382,8 @@ BB_MENU_TEXT("You",
              "Deg",
              "Ty",
              "Você",
-             "Sen"})
+             "Sen",
+             "ﺃﻧﺖ"})
 BB_MENU_TEXT("Asked",
             {"申請済み",
              "Demandé",
@@ -6083,7 +6402,8 @@ BB_MENU_TEXT("Asked",
              "Sendt",
              "Wysłano",
              "Enviado",
-             "Gönderildi"})
+             "Gönderildi",
+             "ﻃﻠﺐ"})
 BB_MENU_TEXT("Add",
             {"追加",
              "Ajouter",
@@ -6102,7 +6422,8 @@ BB_MENU_TEXT("Add",
              "Legg til",
              "Dodaj",
              "Adicionar",
-             "Ekle"})
+             "Ekle",
+             "ﺇﺿﺎﻓﺔ"})
 BB_MENU_TEXT("Friends are kept on the server with your account. Type with the keyboard to search.",
             {"フレンドはアカウントと一緒にサーバーに保存されます。検索はキーボードで入力してください。",
              "Les amis sont gardés sur le serveur avec votre compte. Tapez au clavier pour rechercher.",
@@ -6121,7 +6442,8 @@ BB_MENU_TEXT("Friends are kept on the server with your account. Type with the ke
              "Venner lagres på serveren med kontoen din. Skriv med tastaturet for å søke.",
              "Znajomi są zapisani na serwerze z twoim kontem. Pisz na klawiaturze, aby szukać.",
              "Os amigos ficam salvos no servidor com sua conta. Digite no teclado para buscar.",
-             "Arkadaşlar hesabınla birlikte sunucuda tutulur. Aramak için klavyeyle yaz."})
+             "Arkadaşlar hesabınla birlikte sunucuda tutulur. Aramak için klavyeyle yaz.",
+             "ﻳﺤﻔﻆ ﺍﻷﺻﺪﻗﺎﺀ ﻋﻠﻰ ﺍﻟﺨﺎﺩﻡ ﻣﻊ ﺣﺴﺎﺑﻚ. ﺍﻛﺘﺐ ﺑﻠﻮﺣﺔ ﺍﻟﻤﻔﺎﺗﻴﺢ ﻟﻠﺒﺤﺚ."})
 BB_MENU_TEXT("The Hunt Together",
             {"共に狩りを",
              "Chasser ensemble",
@@ -6140,7 +6462,8 @@ BB_MENU_TEXT("The Hunt Together",
              "Jakt sammen",
              "Wspólne łowy",
              "Caçada em grupo",
-             "Birlikte Av"})
+             "Birlikte Av",
+             "ﺍﻟﺼﻴﺪ ﻣﻌﺎ"})
 BB_MENU_TEXT("Reaching the co-op server...",
             {"協力サーバーに接続中...",
              "Connexion au serveur coop...",
@@ -6159,7 +6482,8 @@ BB_MENU_TEXT("Reaching the co-op server...",
              "Kobler til co-op-serveren...",
              "Łączenie z serwerem co-op...",
              "Conectando ao servidor cooperativo...",
-             "Co-op sunucusuna bağlanılıyor..."})
+             "Co-op sunucusuna bağlanılıyor...",
+             "ﺟﺎﺭ ﺍﻻﺗﺼﺎﻝ ﺑﺨﺎﺩﻡ ﺍﻟﻠﻌﺐ ﺍﻟﺠﻤﺎﻋﻲ..."})
 BB_MENU_TEXT("Not in a team: create one or accept an invitation",
             {"チーム未参加：作成するか、招待を受けてください",
              "Sans équipe : créez-en une ou acceptez une invitation",
@@ -6178,7 +6502,8 @@ BB_MENU_TEXT("Not in a team: create one or accept an invitation",
              "Ikke i et lag: opprett et, eller godta en invitasjon",
              "Brak drużyny: utwórz ją lub przyjmij zaproszenie",
              "Sem equipe: crie uma ou aceite um convite",
-             "Takımda değilsiniz: bir takım kurun veya bir daveti kabul edin"})
+             "Takımda değilsiniz: bir takım kurun veya bir daveti kabul edin",
+             "ﻟﺴﺖ ﻓﻲ ﻓﺮﻳﻖ: ﺃﻧﺸﺊ ﻓﺮﻳﻘﺎ ﺃﻭ ﺍﻗﺒﻞ ﺩﻋﻮﺓ"})
 BB_MENU_TEXT("'s team",
             {"のチーム",
              " – équipe",
@@ -6197,7 +6522,8 @@ BB_MENU_TEXT("'s team",
              "s lag",
              " – drużyna",
              " (equipe)",
-             " takımı"})
+             " takımı",
+             " - ﻓﺮﻳﻖ"})
 BB_MENU_TEXT(" of ",
             {" / ",
              " sur ",
@@ -6216,7 +6542,8 @@ BB_MENU_TEXT(" of ",
              " av ",
              " z ",
              " de ",
-             " / "})
+             " / ",
+             " ﻣﻦ "})
 BB_MENU_TEXT("Team code",
             {"チームコード",
              "Code d'équipe",
@@ -6235,7 +6562,8 @@ BB_MENU_TEXT("Team code",
              "Lagkode",
              "Kod drużyny",
              "Código da equipe",
-             "Takım kodu"})
+             "Takım kodu",
+             "ﺭﻣﺰ ﺍﻟﻔﺮﻳﻖ"})
 BB_MENU_TEXT("Hunters online",
             {"オンラインの狩人",
              "Chasseurs en ligne",
@@ -6254,7 +6582,8 @@ BB_MENU_TEXT("Hunters online",
              "Tilkoblede jegere",
              "Tropiciele online",
              "Caçadores online",
-             "Çevrimiçi avcılar"})
+             "Çevrimiçi avcılar",
+             "ﺻﻴﺎﺩﻭﻥ ﻣﺘﺼﻠﻮﻥ"})
 BB_MENU_TEXT("Invitations",
             {"招待",
              "Invitations",
@@ -6273,7 +6602,8 @@ BB_MENU_TEXT("Invitations",
              "Invitasjoner",
              "Zaproszenia",
              "Convites",
-             "Davetler"})
+             "Davetler",
+             "ﺍﻟﺪﻋﻮﺍﺕ"})
 BB_MENU_TEXT("Invitations and open teams",
             {"招待と公開チーム",
              "Invitations et équipes ouvertes",
@@ -6292,7 +6622,8 @@ BB_MENU_TEXT("Invitations and open teams",
              "Invitasjoner og åpne lag",
              "Zaproszenia i otwarte drużyny",
              "Convites e equipes abertas",
-             "Davetler ve açık takımlar"})
+             "Davetler ve açık takımlar",
+             "ﺍﻟﺪﻋﻮﺍﺕ ﻭﺍﻟﻔﺮﻕ ﺍﻟﻤﻔﺘﻮﺣﺔ"})
 BB_MENU_TEXT("Invite by name",
             {"名前で招待",
              "Inviter par nom",
@@ -6311,7 +6642,8 @@ BB_MENU_TEXT("Invite by name",
              "Inviter med navn",
              "Zaproś po imieniu",
              "Convidar pelo nome",
-             "Adla davet et"})
+             "Adla davet et",
+             "ﺩﻋﻮﺓ ﺑﺎﻻﺳﻢ"})
 BB_MENU_TEXT("New code",
             {"新しいコード",
              "Nouveau code",
@@ -6330,7 +6662,8 @@ BB_MENU_TEXT("New code",
              "Ny kode",
              "Nowy kod",
              "Novo código",
-             "Yeni kod"})
+             "Yeni kod",
+             "ﺭﻣﺰ ﺟﺪﻳﺪ"})
 BB_MENU_TEXT("Join by code",
             {"コードで参加",
              "Rejoindre par code",
@@ -6349,7 +6682,8 @@ BB_MENU_TEXT("Join by code",
              "Bli med med kode",
              "Dołącz kodem",
              "Entrar com código",
-             "Kodla katıl"})
+             "Kodla katıl",
+             "ﺍﻧﻀﻤﺎﻡ ﺑﺎﻟﺮﻣﺰ"})
 BB_MENU_TEXT("Search hunters online",
             {"オンラインの狩人を検索",
              "Chercher des chasseurs en ligne",
@@ -6368,7 +6702,8 @@ BB_MENU_TEXT("Search hunters online",
              "Søk etter jegere på nett",
              "Szukaj łowców online",
              "Buscar caçadores online",
-             "Çevrimiçi avcı ara"})
+             "Çevrimiçi avcı ara",
+             "ﺍﻟﺒﺤﺚ ﻓﻲ ﺍﻟﺼﻴﺎﺩﻳﻦ ﺍﻟﻤﺘﺼﻠﻴﻦ"})
 BB_MENU_TEXT("Nobody else is online",
             {"他にオンラインの狩人はいません",
              "Personne d'autre n'est en ligne",
@@ -6387,7 +6722,8 @@ BB_MENU_TEXT("Nobody else is online",
              "Ingen andre er tilkoblet",
              "Nikogo innego nie ma online",
              "Ninguém mais está online",
-             "Başka kimse çevrimiçi değil"})
+             "Başka kimse çevrimiçi değil",
+             "ﻻ ﺃﺣﺪ ﻏﻴﺮﻙ ﻣﺘﺼﻞ"})
 BB_MENU_TEXT("Nobody here by that name: Enter searches the whole server",
             {"その名前の狩人はここにいません：Enterでサーバー全体を検索",
              "Personne ici sous ce nom : Entrée cherche sur tout le serveur",
@@ -6406,7 +6742,8 @@ BB_MENU_TEXT("Nobody here by that name: Enter searches the whole server",
              "Ingen her med det navnet: Enter søker på hele serveren",
              "Nikogo tu o tym imieniu: Enter szuka na całym serwerze",
              "Ninguém aqui com esse nome: Enter busca em todo o servidor",
-             "Burada bu isimde kimse yok: Enter tüm sunucuda arar"})
+             "Burada bu isimde kimse yok: Enter tüm sunucuda arar",
+             "ﻻ ﺃﺣﺪ ﻫﻨﺎ ﺑﻬﺬﺍ ﺍﻻﺳﻢ: Enter ﻳﺒﺤﺚ ﻓﻲ ﺍﻟﺨﺎﺩﻡ ﻛﻠﻪ"})
 BB_MENU_TEXT("Quick match: waiting for hunters",
             {"クイックマッチ: 狩人を待っています",
              "Partie rapide : en attente de chasseurs",
@@ -6425,7 +6762,8 @@ BB_MENU_TEXT("Quick match: waiting for hunters",
              "Hurtigmatch: venter på jegere",
              "Szybka gra: czekanie na łowców",
              "Partida rápida: aguardando caçadores",
-             "Hızlı eşleşme: avcılar bekleniyor"})
+             "Hızlı eşleşme: avcılar bekleniyor",
+             "ﻣﻄﺎﺑﻘﺔ ﺳﺮﻳﻌﺔ: ﺑﺎﻧﺘﻈﺎﺭ ﺻﻴﺎﺩﻳﻦ"})
 BB_MENU_TEXT("Searching for a team…",
             {"チームを探しています…",
              "Recherche d'une équipe…",
@@ -6444,7 +6782,8 @@ BB_MENU_TEXT("Searching for a team…",
              "Søker etter et lag…",
              "Szukanie drużyny…",
              "Procurando uma equipe…",
-             "Takım aranıyor…"})
+             "Takım aranıyor…",
+             "ﺟﺎﺭ ﺍﻟﺒﺤﺚ ﻋﻦ ﻓﺮﻳﻖ…"})
 BB_MENU_TEXT("Join an open team near your level, or open one",
             {"レベルの近い公開チームに参加するか、チームを開く",
              "Rejoignez une équipe ouverte de votre niveau ou ouvrez-en une",
@@ -6463,7 +6802,8 @@ BB_MENU_TEXT("Join an open team near your level, or open one",
              "Bli med i et åpent lag på ditt nivå, eller åpne et",
              "Dołącz do otwartej drużyny na swoim poziomie lub otwórz własną",
              "Entre em uma equipe aberta do seu nível ou abra uma",
-             "Seviyene yakın açık bir takıma katıl ya da takım aç"})
+             "Seviyene yakın açık bir takıma katıl ya da takım aç",
+             "ﺍﻧﻀﻢ ﺇﻟﻰ ﻓﺮﻳﻖ ﻣﻔﺘﻮﺡ ﻗﺮﻳﺐ ﻣﻦ ﻣﺴﺘﻮﺍﻙ، ﺃﻭ ﺍﻓﺘﺢ ﻭﺍﺣﺪﺍ"})
 BB_MENU_TEXT("Quick match",
             {"クイックマッチ",
              "Partie rapide",
@@ -6482,7 +6822,8 @@ BB_MENU_TEXT("Quick match",
              "Rask matching",
              "Szybkie dopasowanie",
              "Partida rápida",
-             "Hızlı eşleşme"})
+             "Hızlı eşleşme",
+             "ﻣﻄﺎﺑﻘﺔ ﺳﺮﻳﻌﺔ"})
 BB_MENU_TEXT(" calls you to hunt",
             {" から狩りの誘い",
              " vous appelle à la chasse",
@@ -6501,7 +6842,8 @@ BB_MENU_TEXT(" calls you to hunt",
              " kaller deg til jakt",
              " wzywa cię na łowy",
              " chama você para caçar",
-             " sizi ava çağırıyor"})
+             " sizi ava çağırıyor",
+             " ﻳﺪﻋﻮﻙ ﻟﻠﺼﻴﺪ"})
 BB_MENU_TEXT("Join",
             {"参加",
              "Rejoindre",
@@ -6520,7 +6862,8 @@ BB_MENU_TEXT("Join",
              "Bli med",
              "Dołącz",
              "Entrar",
-             "Katıl"})
+             "Katıl",
+             "ﺍﻧﻀﻤﺎﻡ"})
 BB_MENU_TEXT(" asks to join",
             {"が参加を希望",
              " demande à rejoindre",
@@ -6539,7 +6882,8 @@ BB_MENU_TEXT(" asks to join",
              " ber om å bli med",
              " prosi o dołączenie",
              " pede para entrar",
-             " katılmak istiyor"})
+             " katılmak istiyor",
+             " ﻳﻄﻠﺐ ﺍﻻﻧﻀﻤﺎﻡ"})
 BB_MENU_TEXT(" asks to join on Discord",
             {" がDiscordで参加を希望",
              " demande à rejoindre via Discord",
@@ -6558,7 +6902,8 @@ BB_MENU_TEXT(" asks to join on Discord",
              " ber om å bli med via Discord",
              " prosi o dołączenie przez Discord",
              " pede para entrar pelo Discord",
-             " Discord üzerinden katılmak istiyor"})
+             " Discord üzerinden katılmak istiyor",
+             " ﻳﻄﻠﺐ ﺍﻻﻧﻀﻤﺎﻡ ﻋﺒﺮ Discord"})
 BB_MENU_TEXT("Ask to join",
             {"参加を申し込む",
              "Demander à rejoindre",
@@ -6577,7 +6922,8 @@ BB_MENU_TEXT("Ask to join",
              "Spør om å bli med",
              "Poproś o dołączenie",
              "Pedir para entrar",
-             "Katılmak iste"})
+             "Katılmak iste",
+             "ﻃﻠﺐ ﺍﻻﻧﻀﻤﺎﻡ"})
 BB_MENU_TEXT("Create a team",
             {"チームを作成",
              "Créer une équipe",
@@ -6596,7 +6942,8 @@ BB_MENU_TEXT("Create a team",
              "Opprett et lag",
              "Utwórz drużynę",
              "Criar uma equipe",
-             "Takım kur"})
+             "Takım kur",
+             "ﺇﻧﺸﺎﺀ ﻓﺮﻳﻖ"})
 BB_MENU_TEXT("Leave the team",
             {"チームを抜ける",
              "Quitter l'équipe",
@@ -6615,7 +6962,8 @@ BB_MENU_TEXT("Leave the team",
              "Forlat laget",
              "Opuść drużynę",
              "Sair da equipe",
-             "Takımdan ayrıl"})
+             "Takımdan ayrıl",
+             "ﻣﻐﺎﺩﺭﺓ ﺍﻟﻔﺮﻳﻖ"})
 BB_MENU_TEXT("Leave the invasion",
             {"侵入をやめる",
              "Quitter l'invasion",
@@ -6634,7 +6982,8 @@ BB_MENU_TEXT("Leave the invasion",
              "Forlat invasjonen",
              "Opuść inwazję",
              "Sair da invasão",
-             "İstiladan ayrıl"})
+             "İstiladan ayrıl",
+             "ﻣﻐﺎﺩﺭﺓ ﺍﻟﻐﺰﻭ"})
 BB_MENU_TEXT("Invade a hunt",
             {"狩りに侵入する",
              "Envahir une chasse",
@@ -6653,7 +7002,8 @@ BB_MENU_TEXT("Invade a hunt",
              "Invader en jakt",
              "Najedź łowy",
              "Invadir uma caçada",
-             "Bir avı istila et"})
+             "Bir avı istila et",
+             "ﻏﺰﻭ ﺻﻴﺪ"})
 BB_MENU_TEXT("Join the hunt",
             {"狩りに参加",
              "Rejoindre la chasse",
@@ -6672,7 +7022,8 @@ BB_MENU_TEXT("Join the hunt",
              "Bli med på jakten",
              "Dołącz do łowów",
              "Entrar na caçada",
-             "Ava katıl"})
+             "Ava katıl",
+             "ﺍﻻﻧﻀﻤﺎﻡ ﺇﻟﻰ ﺍﻟﺼﻴﺪ"})
 BB_MENU_TEXT("End the duel",
             {"決闘を終える",
              "Terminer le duel",
@@ -6691,7 +7042,8 @@ BB_MENU_TEXT("End the duel",
              "Avslutt duellen",
              "Zakończ pojedynek",
              "Encerrar o duelo",
-             "Düelloyu bitir"})
+             "Düelloyu bitir",
+             "ﺇﻧﻬﺎﺀ ﺍﻟﻤﺒﺎﺭﺯﺓ"})
 BB_MENU_TEXT("Begin the hunt",
             {"狩りを始める",
              "Commencer la chasse",
@@ -6710,7 +7062,8 @@ BB_MENU_TEXT("Begin the hunt",
              "Start jakten",
              "Rozpocznij łowy",
              "Começar a caçada",
-             "Avı başlat"})
+             "Avı başlat",
+             "ﺑﺪﺀ ﺍﻟﺼﻴﺪ"})
 BB_MENU_TEXT("Choose a world",
             {"ワールドを選択",
              "Choisir un monde",
@@ -6729,7 +7082,8 @@ BB_MENU_TEXT("Choose a world",
              "Velg en verden",
              "Wybierz świat",
              "Escolha um mundo",
-             "Bir dünya seçin"})
+             "Bir dünya seçin",
+             "ﺍﺧﺘﺮ ﻋﺎﻟﻤﺎ"})
 BB_MENU_TEXT("The world",
             {"ワールド",
              "Le monde",
@@ -6748,7 +7102,8 @@ BB_MENU_TEXT("The world",
              "Verdenen",
              "Świat",
              "O mundo",
-             "Dünya"})
+             "Dünya",
+             "ﺍﻟﻌﺎﻟﻢ"})
 BB_MENU_TEXT("Everyone is in: begin the hunt together.",
             {"全員そろいました：共に狩りを始めましょう。",
              "Tout le monde est là : commencez la chasse ensemble.",
@@ -6767,7 +7122,8 @@ BB_MENU_TEXT("Everyone is in: begin the hunt together.",
              "Alle er her: start jakten sammen.",
              "Wszyscy są na miejscu: rozpocznijcie łowy razem.",
              "Todos chegaram: comecem a caçada juntos.",
-             "Herkes burada: avı birlikte başlatın."})
+             "Herkes burada: avı birlikte başlatın.",
+             "ﺍﻟﺠﻤﻴﻊ ﺣﺎﺿﺮﻭﻥ: ﺍﺑﺪﺃﻭﺍ ﺍﻟﺼﻴﺪ ﻣﻌﺎ."})
 BB_MENU_TEXT("Begin when you like: hunters still choosing join the hunt at once.",
             {"いつでも始められます：選択中の狩人はすぐに狩りに加わります。",
              "Commencez quand vous voulez : ceux qui choisissent encore rejoindront la chasse aussitôt.",
@@ -6786,7 +7142,8 @@ BB_MENU_TEXT("Begin when you like: hunters still choosing join the hunt at once.
              "Start når du vil: jegere som fortsatt velger, blir med i jakten med en gang.",
              "Zacznij, kiedy chcesz: kto jeszcze wybiera, od razu dołączy do łowów.",
              "Comece quando quiser: quem ainda está escolhendo entra na caçada na hora.",
-             "İstediğinizde başlayın: hâlâ seçim yapan avcılar ava hemen katılır."})
+             "İstediğinizde başlayın: hâlâ seçim yapan avcılar ava hemen katılır.",
+             "ﺍﺑﺪﺃ ﻣﺘﻰ ﺷﺌﺖ: ﺍﻟﺼﻴﺎﺩﻭﻥ ﺍﻟﺬﻳﻦ ﻣﺎ ﺯﺍﻟﻮﺍ ﻳﺨﺘﺎﺭﻭﻥ ﻳﻨﻀﻤﻮﻥ ﺇﻟﻰ ﺍﻟﺼﻴﺪ ﻓﻮﺭﺍ."})
 BB_MENU_TEXT("The leader begins the hunt; you join it at once.",
             {"リーダーが狩りを始めます。すぐに参加します。",
              "Le chef commence la chasse ; vous la rejoignez aussitôt.",
@@ -6805,7 +7162,8 @@ BB_MENU_TEXT("The leader begins the hunt; you join it at once.",
              "Lederen starter jakten; du blir med med en gang.",
              "Lider rozpoczyna łowy; dołączysz od razu.",
              "O líder começa a caçada; você entra na hora.",
-             "Avı lider başlatır; hemen katılırsınız."})
+             "Avı lider başlatır; hemen katılırsınız.",
+             "ﺍﻟﻘﺎﺋﺪ ﻳﺒﺪﺃ ﺍﻟﺼﻴﺪ؛ ﻭﺗﻨﻀﻢ ﺇﻟﻴﻪ ﻓﻮﺭﺍ."})
 BB_MENU_TEXT("Your character plays its own world alone.",
             {"あなたのキャラクターは自分のワールドで一人で遊びます。",
              "Votre personnage joue seul dans son propre monde.",
@@ -6824,7 +7182,8 @@ BB_MENU_TEXT("Your character plays its own world alone.",
              "Figuren din spiller sin egen verden alene.",
              "Twoja postać gra sama we własnym świecie.",
              "Seu personagem joga sozinho no próprio mundo.",
-             "Karakteriniz kendi dünyasını yalnız oynar."})
+             "Karakteriniz kendi dünyasını yalnız oynar.",
+             "ﺷﺨﺼﻴﺘﻚ ﺗﻠﻌﺐ ﻋﺎﻟﻤﻬﺎ ﻭﺣﺪﻫﺎ."})
 BB_MENU_TEXT("The Hunt Begins",
             {"狩りの始まり",
              "La chasse commence",
@@ -6843,7 +7202,8 @@ BB_MENU_TEXT("The Hunt Begins",
              "Jakten begynner",
              "Łowy się zaczynają",
              "A caçada começa",
-             "Av Başlıyor"})
+             "Av Başlıyor",
+             "ﺑﺪﺃ ﺍﻟﺼﻴﺪ"})
 BB_MENU_TEXT("Joining the hunt",
             {"狩りに参加中",
              "Rejoint la chasse",
@@ -6862,7 +7222,8 @@ BB_MENU_TEXT("Joining the hunt",
              "Blir med på jakten",
              "Dołączanie do łowów",
              "Entrando na caçada",
-             "Ava katılınıyor"})
+             "Ava katılınıyor",
+             "ﺍﻻﻧﻀﻤﺎﻡ ﺇﻟﻰ ﺍﻟﺼﻴﺪ"})
 BB_MENU_TEXT("Loading",
             {"ロード中",
              "Chargement",
@@ -6881,7 +7242,8 @@ BB_MENU_TEXT("Loading",
              "Laster",
              "Wczytywanie",
              "Carregando",
-             "Yükleniyor"})
+             "Yükleniyor",
+             "ﺟﺎﺭ ﺍﻟﺘﺤﻤﻴﻞ"})
 BB_MENU_TEXT("Waiting",
             {"待機中",
              "En attente",
@@ -6900,7 +7262,8 @@ BB_MENU_TEXT("Waiting",
              "Venter",
              "Oczekiwanie",
              "Aguardando",
-             "Bekleniyor"})
+             "Bekleniyor",
+             "ﺑﺎﻧﺘﻈﺎﺭ"})
 BB_MENU_TEXT("The hunt opens for everyone once all hunters are ready",
             {"狩人全員の準備が整うと、全員の狩りが始まります",
              "La chasse s'ouvre à tous quand tous les chasseurs sont prêts",
@@ -6919,7 +7282,8 @@ BB_MENU_TEXT("The hunt opens for everyone once all hunters are ready",
              "Jakten åpner for alle når alle jegere er klare",
              "Łowy otworzą się dla wszystkich, gdy każdy tropiciel będzie gotowy",
              "A caçada abre para todos quando todos os caçadores estiverem prontos",
-             "Tüm avcılar hazır olduğunda av herkese açılır"})
+             "Tüm avcılar hazır olduğunda av herkese açılır",
+             "ﻳﻔﺘﺢ ﺍﻟﺼﻴﺪ ﻟﻠﺠﻤﻴﻊ ﻋﻨﺪﻣﺎ ﻳﺠﻬﺰ ﻛﻞ ﺍﻟﺼﻴﺎﺩﻳﻦ"})
 BB_MENU_TEXT("Hunter",
             {"狩人",
              "Chasseur",
@@ -6938,7 +7302,8 @@ BB_MENU_TEXT("Hunter",
              "Jeger",
              "Tropiciel",
              "Caçador",
-             "Avcı"})
+             "Avcı",
+             "ﺻﻴﺎﺩ"})
 BB_MENU_TEXT("elsewhere",
             {"別の場所",
              "ailleurs",
@@ -6957,7 +7322,8 @@ BB_MENU_TEXT("elsewhere",
              "et annet sted",
              "gdzie indziej",
              "em outro lugar",
-             "başka yerde"})
+             "başka yerde",
+             "ﻓﻲ ﻣﻜﺎﻥ ﺁﺧﺮ"})
 BB_MENU_TEXT("Down",
             {"ダウン",
              "À terre",
@@ -6976,7 +7342,8 @@ BB_MENU_TEXT("Down",
              "Nede",
              "Powalony",
              "Caído",
-             "Yerde"})
+             "Yerde",
+             "ﺳﺎﻗﻂ"})
 BB_MENU_TEXT("Dead",
             {"死亡",
              "Mort",
@@ -6995,7 +7362,8 @@ BB_MENU_TEXT("Dead",
              "Død",
              "Martwy",
              "Morto",
-             "Ölü"})
+             "Ölü",
+             "ﻣﻴﺖ"})
 BB_MENU_TEXT("strike to revive %s  %d%%",
             {"攻撃して%sを蘇生  %d%%",
              "frappez pour relever %s  %d%%",
@@ -7014,7 +7382,8 @@ BB_MENU_TEXT("strike to revive %s  %d%%",
              "slå for å gjenopplive %s  %d%%",
              "uderz, by podnieść: %s  %d%%",
              "golpeie para reanimar %s  %d%%",
-             "%s: kaldırmak için vur  %d%%"})
+             "%s: kaldırmak için vur  %d%%",
+             "ﺍﺿﺮﺏ ﻹﻧﻌﺎﺵ %s  %d%%"})
 BB_MENU_TEXT("You are down",
             {"ダウンしました",
              "Vous êtes à terre",
@@ -7033,7 +7402,8 @@ BB_MENU_TEXT("You are down",
              "Du er nede",
              "Jesteś powalony",
              "Você caiu",
-             "Yere düştünüz"})
+             "Yere düştünüz",
+             "ﻟﻘﺪ ﺳﻘﻄﺖ"})
 BB_MENU_TEXT("A party member can raise you by striking you",
             {"仲間に攻撃されると立ち上がれます",
              "Un membre du groupe peut vous relever en vous frappant",
@@ -7052,7 +7422,8 @@ BB_MENU_TEXT("A party member can raise you by striking you",
              "Et gruppemedlem kan reise deg ved å slå deg",
              "Członek drużyny może cię podnieść, uderzając cię",
              "Um membro do grupo pode te levantar golpeando você",
-             "Bir grup üyesi size vurarak sizi kaldırabilir"})
+             "Bir grup üyesi size vurarak sizi kaldırabilir",
+             "ﻳﻤﻜﻦ ﻟﻌﻀﻮ ﻓﻲ ﺍﻟﻔﺮﻳﻖ ﺇﻧﻬﺎﺿﻚ ﺑﻀﺮﺑﻚ"})
 BB_MENU_TEXT("Hold",
             {" ",
              "Maintenez",
@@ -7071,7 +7442,8 @@ BB_MENU_TEXT("Hold",
              "Hold",
              "Przytrzymaj",
              "Segure",
-             "Pes etmek için"})
+             "Pes etmek için",
+             "ﺍﺿﻐﻂ ﻣﻄﻮﻻ"})
 BB_MENU_TEXT("to give up",
             {"長押しで諦める",
              "pour abandonner",
@@ -7090,7 +7462,8 @@ BB_MENU_TEXT("to give up",
              "for å gi opp",
              "aby się poddać",
              "para desistir",
-             "basılı tutun"})
+             "basılı tutun",
+             "ﻟﻼﺳﺘﺴﻼﻡ"})
 BB_MENU_TEXT("Spectating %s",
             {"観戦中：%s",
              "Vous observez %s",
@@ -7109,7 +7482,8 @@ BB_MENU_TEXT("Spectating %s",
              "Du ser på %s",
              "Obserwujesz: %s",
              "Observando %s",
-             "İzlenen: %s"})
+             "İzlenen: %s",
+             "ﺗﺸﺎﻫﺪ %s"})
 BB_MENU_TEXT("No teammate stands here",
             {"ここに立っている仲間はいません",
              "Aucun coéquipier debout ici",
@@ -7128,7 +7502,8 @@ BB_MENU_TEXT("No teammate stands here",
              "Ingen lagkamerat står her",
              "Nie stoi tu żaden towarzysz",
              "Nenhum colega de pé aqui",
-             "Burada ayakta takım arkadaşı yok"})
+             "Burada ayakta takım arkadaşı yok",
+             "ﻻ ﺭﻓﻴﻖ ﻭﺍﻗﻒ ﻫﻨﺎ"})
 BB_MENU_TEXT("Next teammate",
             {"次の仲間",
              "Coéquipier suivant",
@@ -7147,7 +7522,8 @@ BB_MENU_TEXT("Next teammate",
              "Neste lagkamerat",
              "Następny towarzysz",
              "Próximo colega",
-             "Sonraki takım arkadaşı"})
+             "Sonraki takım arkadaşı",
+             "ﺍﻟﺮﻓﻴﻖ ﺍﻟﺘﺎﻟﻲ"})
 BB_MENU_TEXT("hold to wake at your lamp",
             {"長押しで自分の灯りで目覚める",
              "maintenez pour vous réveiller à votre lanterne",
@@ -7166,7 +7542,8 @@ BB_MENU_TEXT("hold to wake at your lamp",
              "hold for å våkne ved lykten din",
              "przytrzymaj, by obudzić się przy swojej latarni",
              "segure para acordar na sua lanterna",
-             "fenerinizde uyanmak için basılı tutun"})
+             "fenerinizde uyanmak için basılı tutun",
+             "ﺍﺿﻐﻂ ﻣﻄﻮﻻ ﻟﺘﺴﺘﻴﻘﻆ ﻋﻨﺪ ﻣﺼﺒﺎﺣﻚ"})
 BB_MENU_TEXT("Rot %d/%d",
             {"腐敗 %d/%d",
              "Pourriture %d/%d",
@@ -7185,7 +7562,8 @@ BB_MENU_TEXT("Rot %d/%d",
              "Råte %d/%d",
              "Zgnilizna %d/%d",
              "Podridão %d/%d",
-             "Çürüme %d/%d"})
+             "Çürüme %d/%d",
+             "ﺍﻟﺘﻌﻔﻦ %d/%d"})
 BB_MENU_TEXT("Max HP",
             {"最大HP",
              "PV max",
@@ -7204,7 +7582,8 @@ BB_MENU_TEXT("Max HP",
              "Maks HP",
              "Maks. PŻ",
              "PV máx.",
-             "Maks. HP"})
+             "Maks. HP",
+             "ﺃﻗﺼﻰ ﺻﺤﺔ"})
 BB_MENU_TEXT("Max stamina",
             {"最大スタミナ",
              "Endurance max",
@@ -7223,7 +7602,8 @@ BB_MENU_TEXT("Max stamina",
              "Maks utholdenhet",
              "Maks. wytrzymałość",
              "Vigor máx.",
-             "Maks. dayanıklılık"})
+             "Maks. dayanıklılık",
+             "ﺃﻗﺼﻰ ﺗﺤﻤﻞ"})
 BB_MENU_TEXT("Stamina use",
             {"スタミナ消費",
              "Consommation d'endurance",
@@ -7242,7 +7622,8 @@ BB_MENU_TEXT("Stamina use",
              "Utholdenhetsforbruk",
              "Zużycie wytrzymałości",
              "Consumo de vigor",
-             "Dayanıklılık kullanımı"})
+             "Dayanıklılık kullanımı",
+             "ﺍﺳﺘﻬﻼﻙ ﺍﻟﺘﺤﻤﻞ"})
 BB_MENU_TEXT("Rally",
             {"リゲイン",
              "Regain",
@@ -7261,7 +7642,8 @@ BB_MENU_TEXT("Rally",
              "Gjenvinning",
              "Odzysk",
              "Recuperação",
-             "Geri kazanım"})
+             "Geri kazanım",
+             "ﺍﻻﺳﺘﺮﺩﺍﺩ"})
 BB_MENU_TEXT("Discovery",
             {"発見力",
              "Découverte",
@@ -7280,7 +7662,8 @@ BB_MENU_TEXT("Discovery",
              "Funn",
              "Odkrywanie",
              "Descoberta",
-             "Keşif"})
+             "Keşif",
+             "ﺍﻻﻛﺘﺸﺎﻑ"})
 BB_MENU_TEXT("Fight",
             {"戦え",
              "Combattez",
@@ -7299,7 +7682,8 @@ BB_MENU_TEXT("Fight",
              "Kjemp",
              "Walcz",
              "Lute",
-             "Dövüş"})
+             "Dövüş",
+             "ﻗﺎﺗﻞ"})
 BB_MENU_TEXT("The duel begins",
             {"決闘開始",
              "Le duel commence",
@@ -7318,7 +7702,8 @@ BB_MENU_TEXT("The duel begins",
              "Duellen begynner",
              "Pojedynek się zaczyna",
              "O duelo começa",
-             "Düello başlıyor"})
+             "Düello başlıyor",
+             "ﺑﺪﺃﺕ ﺍﻟﻤﺒﺎﺭﺯﺓ"})
 BB_MENU_TEXT("Your team:",
             {"あなたのチーム：",
              "Votre équipe :",
@@ -7337,7 +7722,8 @@ BB_MENU_TEXT("Your team:",
              "Laget ditt:",
              "Twoja drużyna:",
              "Sua equipe:",
-             "Takımın:"})
+             "Takımın:",
+             "ﻓﺮﻳﻘﻚ:"})
 BB_MENU_TEXT("Defeated: the duel goes on without you",
             {"敗北：決闘はあなた抜きで続きます",
              "Vaincu : le duel continue sans vous",
@@ -7356,7 +7742,8 @@ BB_MENU_TEXT("Defeated: the duel goes on without you",
              "Beseiret: duellen fortsetter uten deg",
              "Pokonano cię: pojedynek trwa bez ciebie",
              "Derrotado: o duelo continua sem você",
-             "Yenildin: düello sensiz sürüyor"})
+             "Yenildin: düello sensiz sürüyor",
+             "ﻫﺰﻣﺖ: ﺗﺴﺘﻤﺮ ﺍﻟﻤﺒﺎﺭﺯﺓ ﺑﺪﻭﻧﻚ"})
 BB_MENU_TEXT("Co-op menu",
             {"協力メニュー",
              "Menu coopératif",
@@ -7375,7 +7762,8 @@ BB_MENU_TEXT("Co-op menu",
              "Co-op-meny",
              "Menu kooperacji",
              "Menu cooperativo",
-             "Ortak oyun menüsü"})
+             "Ortak oyun menüsü",
+             "ﻗﺎﺋﻤﺔ ﺍﻟﻠﻌﺐ ﺍﻟﺠﻤﺎﻋﻲ"})
 BB_MENU_TEXT("Your team, invites and duels",
             {"チーム、招待、決闘",
              "Votre équipe, les invitations et les duels",
@@ -7394,7 +7782,8 @@ BB_MENU_TEXT("Your team, invites and duels",
              "Laget ditt, invitasjoner og dueller",
              "Twoja drużyna, zaproszenia i pojedynki",
              "Sua equipe, convites e duelos",
-             "Takımın, davetler ve düellolar"})
+             "Takımın, davetler ve düellolar",
+             "ﻓﺮﻳﻘﻚ ﻭﺍﻟﺪﻋﻮﺍﺕ ﻭﺍﻟﻤﺒﺎﺭﺯﺍﺕ"})
 BB_MENU_TEXT("Free camera",
             {"フリーカメラ",
              "Caméra libre",
@@ -7413,7 +7802,8 @@ BB_MENU_TEXT("Free camera",
              "Fritt kamera",
              "Wolna kamera",
              "Câmera livre",
-             "Serbest kamera"})
+             "Serbest kamera",
+             "ﺍﻟﻜﺎﻣﻴﺮﺍ ﺍﻟﺤﺮﺓ"})
 BB_MENU_TEXT("or F7: back to your hunter",
             {"またはF7：狩人に戻る",
              "ou F7 : retour à votre chasseur",
@@ -7432,7 +7822,8 @@ BB_MENU_TEXT("or F7: back to your hunter",
              "eller F7: tilbake til jegeren din",
              "lub F7: powrót do tropiciela",
              "ou F7: voltar ao seu caçador",
-             "ya da F7: avcınıza dönün"})
+             "ya da F7: avcınıza dönün",
+             "ﺃﻭ F7: ﺍﻟﻌﻮﺩﺓ ﺇﻟﻰ ﺻﻴﺎﺩﻙ"})
 BB_MENU_TEXT("%d of %d want to skip",
             {"%d/%d人がスキップ希望",
              "%d sur %d veulent passer",
@@ -7451,7 +7842,8 @@ BB_MENU_TEXT("%d of %d want to skip",
              "%d av %d vil hoppe over",
              "%d z %d chce pominąć",
              "%d de %d querem pular",
-             "%d/%d atlamak istiyor"})
+             "%d/%d atlamak istiyor",
+             "%d ﻣﻦ %d ﻳﺮﻳﺪﻭﻥ ﺍﻟﺘﺨﻄﻲ"})
 BB_MENU_TEXT("Skip",
             {"スキップ",
              "Passer",
@@ -7470,7 +7862,8 @@ BB_MENU_TEXT("Skip",
              "Hopp over",
              "Pomiń",
              "Pular",
-             "Geç"})
+             "Geç",
+             "ﺗﺨﻄﻲ"})
 BB_MENU_TEXT("Invader defeated",
             {"侵入者を撃退した",
              "Envahisseur vaincu",
@@ -7489,7 +7882,8 @@ BB_MENU_TEXT("Invader defeated",
              "Inntrengeren beseiret",
              "Najeźdźca pokonany",
              "Invasor derrotado",
-             "İstilacı yenildi"})
+             "İstilacı yenildi",
+             "ﻫﺰﻡ ﺍﻟﻐﺎﺯﻱ"})
 BB_MENU_TEXT("You were defeated",
             {"あなたは倒された",
              "Vous avez été vaincu",
@@ -7508,7 +7902,8 @@ BB_MENU_TEXT("You were defeated",
              "Du ble beseiret",
              "Zostałeś pokonany",
              "Você foi derrotado",
-             "Yenildin"})
+             "Yenildin",
+             "ﻟﻘﺪ ﻫﺰﻣﺖ"})
 BB_MENU_TEXT("The invader prevailed",
             {"侵入者が勝利した",
              "L'envahisseur l'a emporté",
@@ -7527,7 +7922,8 @@ BB_MENU_TEXT("The invader prevailed",
              "Inntrengeren seiret",
              "Najeźdźca zwyciężył",
              "O invasor venceu",
-             "İstilacı kazandı"})
+             "İstilacı kazandı",
+             "ﺍﻧﺘﺼﺮ ﺍﻟﻐﺎﺯﻱ"})
 BB_MENU_TEXT("Your prey has fallen",
             {"獲物は倒れた",
              "Votre proie est tombée",
@@ -7546,7 +7942,8 @@ BB_MENU_TEXT("Your prey has fallen",
              "Byttet ditt har falt",
              "Twoja ofiara padła",
              "Sua presa caiu",
-             "Avın düştü"})
+             "Avın düştü",
+             "ﺳﻘﻄﺖ ﻓﺮﻳﺴﺘﻚ"})
 BB_MENU_TEXT("No world to invade was found",
             {"侵入できる世界が見つからなかった",
              "Aucun monde à envahir n'a été trouvé",
@@ -7565,7 +7962,8 @@ BB_MENU_TEXT("No world to invade was found",
              "Fant ingen verden å invadere",
              "Nie znaleziono świata do najazdu",
              "Nenhum mundo para invadir foi encontrado",
-             "İstila edilecek dünya bulunamadı"})
+             "İstila edilecek dünya bulunamadı",
+             "ﻟﻢ ﻳﻌﺜﺮ ﻋﻠﻰ ﻋﺎﻟﻢ ﻟﻠﻐﺰﻭ"})
 BB_MENU_TEXT("The server refused the invasion",
             {"サーバーが侵入を拒否した",
              "Le serveur a refusé l'invasion",
@@ -7584,7 +7982,8 @@ BB_MENU_TEXT("The server refused the invasion",
              "Serveren avviste invasjonen",
              "Serwer odrzucił inwazję",
              "O servidor recusou a invasão",
-             "Sunucu istilayı reddetti"})
+             "Sunucu istilayı reddetti",
+             "ﺭﻓﺾ ﺍﻟﺨﺎﺩﻡ ﺍﻟﻐﺰﻭ"})
 BB_MENU_TEXT("The invasion is over",
             {"侵入は終わった",
              "L'invasion est terminée",
@@ -7603,7 +8002,8 @@ BB_MENU_TEXT("The invasion is over",
              "Invasjonen er over",
              "Inwazja dobiegła końca",
              "A invasão terminou",
-             "İstila sona erdi"})
+             "İstila sona erdi",
+             "ﺍﻧﺘﻬﻰ ﺍﻟﻐﺰﻭ"})
 BB_MENU_TEXT("Looking for a world to invade",
             {"侵入先の世界を探しています",
              "Recherche d'un monde à envahir",
@@ -7622,7 +8022,8 @@ BB_MENU_TEXT("Looking for a world to invade",
              "Leter etter en verden å invadere",
              "Szukanie świata do najazdu",
              "Procurando um mundo para invadir",
-             "İstila edilecek dünya aranıyor"})
+             "İstila edilecek dünya aranıyor",
+             "ﺟﺎﺭ ﺍﻟﺒﺤﺚ ﻋﻦ ﻋﺎﻟﻢ ﻟﻠﻐﺰﻭ"})
 BB_MENU_TEXT("An invader approaches: %d",
             {"侵入者が迫っている: %d",
              "Un envahisseur approche : %d",
@@ -7641,7 +8042,8 @@ BB_MENU_TEXT("An invader approaches: %d",
              "En inntrenger nærmer seg: %d",
              "Zbliża się najeźdźca: %d",
              "Um invasor se aproxima: %d",
-             "Bir istilacı yaklaşıyor: %d"})
+             "Bir istilacı yaklaşıyor: %d",
+             "ﻏﺎﺯ ﻳﻘﺘﺮﺏ: %d"})
 BB_MENU_TEXT("Invading in %d",
             {"侵入まで %d",
              "Invasion dans %d",
@@ -7660,7 +8062,8 @@ BB_MENU_TEXT("Invading in %d",
              "Invasjon om %d",
              "Inwazja za %d",
              "Invasão em %d",
-             "%d içinde istila"})
+             "%d içinde istila",
+             "ﺍﻟﻐﺰﻭ ﺧﻼﻝ %d"})
 BB_MENU_TEXT("Invaded by %s",
             {"%s に侵入された",
              "Envahi par %s",
@@ -7679,7 +8082,8 @@ BB_MENU_TEXT("Invaded by %s",
              "Invadert av %s",
              "Najechany przez: %s",
              "Invadido por %s",
-             "İstila eden: %s"})
+             "İstila eden: %s",
+             "ﻏﺰﺍﻙ %s"})
 BB_MENU_TEXT("Invading the world of %s",
             {"%s の世界に侵入中",
              "Invasion du monde de %s",
@@ -7698,7 +8102,8 @@ BB_MENU_TEXT("Invading the world of %s",
              "Invaderer verdenen til %s",
              "Najazd na świat: %s",
              "Invadindo o mundo de %s",
-             "%s dünyası istila ediliyor"})
+             "%s dünyası istila ediliyor",
+             "ﺗﻐﺰﻭ ﻋﺎﻟﻢ %s"})
 BB_MENU_TEXT("Returning home",
             {"帰還中",
              "Retour chez soi",
@@ -7717,7 +8122,8 @@ BB_MENU_TEXT("Returning home",
              "Vender hjem",
              "Powrót do domu",
              "Voltando para casa",
-             "Eve dönülüyor"})
+             "Eve dönülüyor",
+             "ﺍﻟﻌﻮﺩﺓ ﺇﻟﻰ ﺍﻟﺪﻳﺎﺭ"})
 BB_MENU_TEXT("That lamp is not lit",
             {"その灯りは灯っていない",
              "Cette lanterne n'est pas allumée",
@@ -7736,7 +8142,8 @@ BB_MENU_TEXT("That lamp is not lit",
              "Den lykten er ikke tent",
              "Ta lampa nie jest zapalona",
              "Essa lanterna não está acesa",
-             "O fener yanmıyor"})
+             "O fener yanmıyor",
+             "ﺫﻟﻚ ﺍﻟﻤﺼﺒﺎﺡ ﻏﻴﺮ ﻣﻀﺎﺀ"})
 BB_MENU_TEXT("Not now",
             {"今はできない",
              "Pas maintenant",
@@ -7755,7 +8162,8 @@ BB_MENU_TEXT("Not now",
              "Ikke nå",
              "Nie teraz",
              "Agora não",
-             "Şimdi olmaz"})
+             "Şimdi olmaz",
+             "ﻟﻴﺲ ﺍﻵﻥ"})
 BB_MENU_TEXT("Not while you are down",
             {"倒れている間はできない",
              "Pas tant que vous êtes à terre",
@@ -7774,7 +8182,8 @@ BB_MENU_TEXT("Not while you are down",
              "Ikke mens du er nede",
              "Nie, gdy leżysz powalony",
              "Não enquanto você estiver caído",
-             "Yere düşmüşken olmaz"})
+             "Yere düşmüşken olmaz",
+             "ﻟﻴﺲ ﻭﺃﻧﺖ ﺳﺎﻗﻂ"})
 BB_MENU_TEXT("Not during a boss fight",
             {"ボス戦中はできない",
              "Pas pendant un combat de boss",
@@ -7793,7 +8202,8 @@ BB_MENU_TEXT("Not during a boss fight",
              "Ikke under en bosskamp",
              "Nie podczas walki z bossem",
              "Não durante uma luta contra chefe",
-             "Boss savaşı sırasında olmaz"})
+             "Boss savaşı sırasında olmaz",
+             "ﻟﻴﺲ ﺃﺛﻨﺎﺀ ﻗﺘﺎﻝ ﺯﻋﻴﻢ"})
 BB_MENU_TEXT("Already travelling",
             {"すでに移動中",
              "Déjà en voyage",
@@ -7812,7 +8222,8 @@ BB_MENU_TEXT("Already travelling",
              "Reiser allerede",
              "Już w podróży",
              "Já viajando",
-             "Zaten yolda"})
+             "Zaten yolda",
+             "ﺃﻧﺖ ﻣﺴﺎﻓﺮ ﺑﺎﻟﻔﻌﻞ"})
 BB_MENU_TEXT("Preparing the 3D view...",
             {"3Dビューを準備中...",
              "Préparation de la vue 3D...",
@@ -7831,7 +8242,8 @@ BB_MENU_TEXT("Preparing the 3D view...",
              "Forbereder 3D-visningen...",
              "Przygotowywanie widoku 3D...",
              "Preparando a visão 3D...",
-             "3B görünüm hazırlanıyor..."})
+             "3B görünüm hazırlanıyor...",
+             "ﺟﺎﺭ ﺗﺠﻬﻴﺰ ﺍﻟﻌﺮﺽ ﺛﻼﺛﻲ ﺍﻷﺑﻌﺎﺩ..."})
 BB_MENU_TEXT("No map of this place",
             {"この場所の地図はない",
              "Pas de carte de ce lieu",
@@ -7850,7 +8262,8 @@ BB_MENU_TEXT("No map of this place",
              "Ikke noe kart over dette stedet",
              "Brak mapy tego miejsca",
              "Não há mapa deste lugar",
-             "Bu yerin haritası yok"})
+             "Bu yerin haritası yok",
+             "ﻻ ﺧﺮﻳﻄﺔ ﻟﻬﺬﺍ ﺍﻟﻤﻜﺎﻥ"})
 BB_MENU_TEXT("Charting the area",
             {"地図を描いています",
              "Tracé de la carte",
@@ -7869,7 +8282,8 @@ BB_MENU_TEXT("Charting the area",
              "Kartet tegnes",
              "Rysowanie mapy",
              "Desenhando o mapa",
-             "Harita çiziliyor"})
+             "Harita çiziliyor",
+             "ﺟﺎﺭ ﺭﺳﻢ ﺍﻟﻤﻨﻄﻘﺔ"})
 BB_MENU_TEXT("Lamps",
             {"灯り",
              "Lanternes",
@@ -7888,7 +8302,8 @@ BB_MENU_TEXT("Lamps",
              "Lykter",
              "Lampy",
              "Lanternas",
-             "Fenerler"})
+             "Fenerler",
+             "ﺍﻟﻤﺼﺎﺑﻴﺢ"})
 BB_MENU_TEXT("No lamp lit here",
             {"ここに灯った灯りはない",
              "Aucune lanterne allumée ici",
@@ -7907,7 +8322,8 @@ BB_MENU_TEXT("No lamp lit here",
              "Ingen tent lykt her",
              "Brak zapalonych lamp",
              "Nenhuma lanterna acesa aqui",
-             "Burada yanan fener yok"})
+             "Burada yanan fener yok",
+             "ﻻ ﻣﺼﺒﺎﺡ ﻣﻀﺎﺀ ﻫﻨﺎ"})
 BB_MENU_TEXT("Hunters",
             {"狩人",
              "Chasseurs",
@@ -7926,7 +8342,8 @@ BB_MENU_TEXT("Hunters",
              "Jegere",
              "Łowcy",
              "Caçadores",
-             "Avcılar"})
+             "Avcılar",
+             "ﺍﻟﺼﻴﺎﺩﻭﻥ"})
 BB_MENU_TEXT("Travel to this lamp?",
             {"この灯りへ移動しますか？",
              "Voyager vers cette lanterne ?",
@@ -7945,7 +8362,8 @@ BB_MENU_TEXT("Travel to this lamp?",
              "Reise til denne lykten?",
              "Podróżować do tej lampy?",
              "Viajar até esta lanterna?",
-             "Bu fenere yolculuk edilsin mi?"})
+             "Bu fenere yolculuk edilsin mi?",
+             "ﺍﻟﺴﻔﺮ ﺇﻟﻰ ﻫﺬﺍ ﺍﻟﻤﺼﺒﺎﺡ؟"})
 BB_MENU_TEXT("Travel",
             {"移動する",
              "Voyager",
@@ -7964,7 +8382,8 @@ BB_MENU_TEXT("Travel",
              "Reis",
              "Podróżuj",
              "Viajar",
-             "Yolculuk et"})
+             "Yolculuk et",
+             "ﺳﻔﺮ"})
 BB_MENU_TEXT("Stay",
             {"とどまる",
              "Rester",
@@ -7983,7 +8402,8 @@ BB_MENU_TEXT("Stay",
              "Bli",
              "Zostań",
              "Ficar",
-             "Kal"})
+             "Kal",
+             "ﺑﻘﺎﺀ"})
 BB_MENU_TEXT("Area",
             {"エリア",
              "Zone",
@@ -8002,7 +8422,8 @@ BB_MENU_TEXT("Area",
              "Område",
              "Obszar",
              "Área",
-             "Bölge"})
+             "Bölge",
+             "ﺍﻟﻤﻨﻄﻘﺔ"})
 BB_MENU_TEXT("Zoom",
             {"ズーム",
              "Zoom",
@@ -8021,7 +8442,8 @@ BB_MENU_TEXT("Zoom",
              "Zoom",
              "Powiększenie",
              "Zoom",
-             "Yakınlaştır"})
+             "Yakınlaştır",
+             "ﺗﻜﺒﻴﺮ"})
 BB_MENU_TEXT("Ping",
             {"ピン",
              "Signal",
@@ -8040,7 +8462,8 @@ BB_MENU_TEXT("Ping",
              "Marker",
              "Oznacz",
              "Marcar",
-             "İşaretle"})
+             "İşaretle",
+             "ﺇﺷﺎﺭﺓ"})
 BB_MENU_TEXT("Whole map",
             {"マップ全体",
              "Carte entière",
@@ -8059,7 +8482,8 @@ BB_MENU_TEXT("Whole map",
              "Hele kartet",
              "Cała mapa",
              "Mapa inteiro",
-             "Tüm harita"})
+             "Tüm harita",
+             "ﺍﻟﺨﺮﻳﻄﺔ ﻛﺎﻣﻠﺔ"})
 BB_MENU_TEXT("Floors",
             {"フロア",
              "Étages",
@@ -8078,7 +8502,8 @@ BB_MENU_TEXT("Floors",
              "Etasjer",
              "Piętra",
              "Andares",
-             "Katlar"})
+             "Katlar",
+             "ﺍﻟﻄﻮﺍﺑﻖ"})
 BB_MENU_TEXT("Roofs",
             {"屋根",
              "Toits",
@@ -8097,7 +8522,8 @@ BB_MENU_TEXT("Roofs",
              "Tak",
              "Dachy",
              "Telhados",
-             "Çatılar"})
+             "Çatılar",
+             "ﺍﻷﺳﻄﺢ"})
 BB_MENU_TEXT("Turn",
             {"回転",
              "Tourner",
@@ -8116,7 +8542,8 @@ BB_MENU_TEXT("Turn",
              "Snu",
              "Obrót",
              "Girar",
-             "Çevir"})
+             "Çevir",
+             "ﺗﺪﻭﻳﺮ"})
 BB_MENU_TEXT("Flat",
             {"平面",
              "À plat",
@@ -8135,7 +8562,8 @@ BB_MENU_TEXT("Flat",
              "Flat",
              "Płaska",
              "Plano",
-             "Düz"})
+             "Düz",
+             "ﻣﺴﻄﺤﺔ"})
 BB_MENU_TEXT("Turn on the 3D map in the settings (Insert, Display)",
             {"設定で3Dマップをオンにしてください（Insert、表示）",
              "Activez la carte 3D dans les paramètres (Insert, Affichage)",
@@ -8154,7 +8582,8 @@ BB_MENU_TEXT("Turn on the 3D map in the settings (Insert, Display)",
              "Slå på 3D-kartet i innstillingene (Insert, Skjerm)",
              "Włącz mapę 3D w ustawieniach (Insert, Obraz)",
              "Ative o mapa 3D nas configurações (Insert, Tela)",
-             "3B haritayı ayarlardan açın (Insert, Görüntü)"})
+             "3B haritayı ayarlardan açın (Insert, Görüntü)",
+             "ﻓﻌﻞ ﺍﻟﺨﺮﻳﻄﺔ ﺛﻼﺛﻴﺔ ﺍﻷﺑﻌﺎﺩ ﻣﻦ ﺍﻹﻋﺪﺍﺩﺍﺕ (Insert، ﺍﻟﻌﺮﺽ)"})
 BB_MENU_TEXT("Hunter's Dream",
             {"狩人の夢",
              "Rêve du chasseur",
@@ -8173,7 +8602,8 @@ BB_MENU_TEXT("Hunter's Dream",
              "Jegerens drøm",
              "Sen Łowcy",
              "Sonho do Caçador",
-             "Avcının Rüyası"})
+             "Avcının Rüyası",
+             "ﺣﻠﻢ ﺍﻟﺼﻴﺎﺩ"})
 BB_MENU_TEXT("The team votes on the trip: %.0f s",
             {"チームが移動を投票中：%.0f 秒",
              "L'équipe vote pour le voyage : %.0f s",
@@ -8192,7 +8622,8 @@ BB_MENU_TEXT("The team votes on the trip: %.0f s",
              "Laget stemmer over reisen: %.0f s",
              "Drużyna głosuje nad podróżą: %.0f s",
              "O time vota na viagem: %.0f s",
-             "Takım yolculuğu oyluyor: %.0f sn"})
+             "Takım yolculuğu oyluyor: %.0f sn",
+             "ﺍﻟﻔﺮﻳﻖ ﻳﺼﻮﺕ ﻋﻠﻰ ﺍﻟﺮﺣﻠﺔ: %.0f ﺙ"})
 BB_MENU_TEXT("%s said no: nobody travels",
             {"%sが拒否しました：誰も移動しません",
              "%s a refusé : personne ne voyage",
@@ -8211,7 +8642,8 @@ BB_MENU_TEXT("%s said no: nobody travels",
              "%s sa nei: ingen reiser",
              "%s odmówił(a): nikt nie podróżuje",
              "%s disse não: ninguém viaja",
-             "%s hayır dedi: kimse gitmiyor"})
+             "%s hayır dedi: kimse gitmiyor",
+             "%s ﺭﻓﺾ: ﻟﻦ ﻳﺴﺎﻓﺮ ﺃﺣﺪ"})
 BB_MENU_TEXT("%s's trip is off",
             {"%sの移動は中止されました",
              "Le voyage de %s est annulé",
@@ -8230,7 +8662,8 @@ BB_MENU_TEXT("%s's trip is off",
              "Reisen til %s er avlyst",
              "Podróż gracza %s odwołana",
              "A viagem de %s foi cancelada",
-             "%s adlı oyuncunun yolculuğu iptal"})
+             "%s adlı oyuncunun yolculuğu iptal",
+             "ﺭﺣﻠﺔ %s ﺃﻟﻐﻴﺖ"})
 BB_MENU_TEXT("Travel with the team?",
             {"チームと一緒に移動しますか？",
              "Voyager avec l'équipe ?",
@@ -8249,7 +8682,8 @@ BB_MENU_TEXT("Travel with the team?",
              "Reise med laget?",
              "Podróżować z drużyną?",
              "Viajar com o time?",
-             "Takımla birlikte gidilsin mi?"})
+             "Takımla birlikte gidilsin mi?",
+             "ﺍﻟﺴﻔﺮ ﻣﻊ ﺍﻟﻔﺮﻳﻖ؟"})
 BB_MENU_TEXT("%s calls the team here. Go? (%.0f s)",
             {"%sがチームを呼んでいます。行きますか？（%.0f 秒）",
              "%s appelle l'équipe ici. Y aller ? (%.0f s)",
@@ -8268,7 +8702,8 @@ BB_MENU_TEXT("%s calls the team here. Go? (%.0f s)",
              "%s kaller laget hit. Dra? (%.0f s)",
              "%s wzywa tu drużynę. Iść? (%.0f s)",
              "%s chama o time para cá. Ir? (%.0f s)",
-             "%s takımı buraya çağırıyor. Gidilsin mi? (%.0f sn)"})
+             "%s takımı buraya çağırıyor. Gidilsin mi? (%.0f sn)",
+             "%s ﻳﺴﺘﺪﻋﻲ ﺍﻟﻔﺮﻳﻖ ﺇﻟﻰ ﻫﻨﺎ. ﻫﻞ ﺗﺬﻫﺐ؟ (%.0f ﺙ)"})
 BB_MENU_TEXT("With the team",
             {"チームと",
              "Avec l'équipe",
@@ -8287,7 +8722,8 @@ BB_MENU_TEXT("With the team",
              "Med laget",
              "Z drużyną",
              "Com o time",
-             "Takımla"})
+             "Takımla",
+             "ﻣﻊ ﺍﻟﻔﺮﻳﻖ"})
 BB_MENU_TEXT("Alone",
             {"一人で",
              "Seul",
@@ -8306,7 +8742,8 @@ BB_MENU_TEXT("Alone",
              "Alene",
              "Sam",
              "Sozinho",
-             "Yalnız"})
+             "Yalnız",
+             "ﻭﺣﻴﺪ"})
 BB_MENU_TEXT("Yes",
             {"はい",
              "Oui",
@@ -8325,7 +8762,8 @@ BB_MENU_TEXT("Yes",
              "Ja",
              "Tak",
              "Sim",
-             "Evet"})
+             "Evet",
+             "ﻧﻌﻢ"})
 BB_MENU_TEXT("No",
             {"いいえ",
              "Non",
@@ -8344,7 +8782,8 @@ BB_MENU_TEXT("No",
              "Nei",
              "Nie",
              "Não",
-             "Hayır"})
+             "Hayır",
+             "ﻻ"})
 BB_MENU_TEXT("Cross",
             {"×ボタン",
              "Croix",
@@ -8363,7 +8802,8 @@ BB_MENU_TEXT("Cross",
              "Kryss",
              "Krzyżyk",
              "X",
-             "Çarpı"})
+             "Çarpı",
+             "ﺇﻛﺲ"})
 BB_MENU_TEXT("Circle",
             {"○ボタン",
              "Rond",
@@ -8382,7 +8822,8 @@ BB_MENU_TEXT("Circle",
              "Sirkel",
              "Kółko",
              "Círculo",
-             "Daire"})
+             "Daire",
+             "ﺩﺍﺋﺮﺓ"})
 BB_MENU_TEXT("Square",
             {"□ボタン",
              "Carré",
@@ -8401,7 +8842,8 @@ BB_MENU_TEXT("Square",
              "Firkant",
              "Kwadrat",
              "Quadrado",
-             "Kare"})
+             "Kare",
+             "ﻣﺮﺑﻊ"})
 BB_MENU_TEXT("Triangle",
             {"△ボタン",
              "Triangle",
@@ -8420,7 +8862,8 @@ BB_MENU_TEXT("Triangle",
              "Trekant",
              "Trójkąt",
              "Triângulo",
-             "Üçgen"})
+             "Üçgen",
+             "ﻣﺜﻠﺚ"})
 BB_MENU_TEXT("Touchpad, left half (gestures)",
             {"タッチパッド左半分（ジェスチャー）",
              "Pavé tactile, moitié gauche (gestes)",
@@ -8439,7 +8882,8 @@ BB_MENU_TEXT("Touchpad, left half (gestures)",
              "Berøringsflate, venstre halvdel (bevegelser)",
              "Panel dotykowy, lewa połowa (gesty)",
              "Touchpad, metade esquerda (gestos)",
-             "Dokunmatik yüzey, sol yarı (vücut hareketleri)"})
+             "Dokunmatik yüzey, sol yarı (vücut hareketleri)",
+             "ﻟﻮﺣﺔ ﺍﻟﻠﻤﺲ، ﺍﻟﻨﺼﻒ ﺍﻷﻳﺴﺮ (ﺍﻹﻳﻤﺎﺀﺍﺕ)"})
 BB_MENU_TEXT("Touchpad, right half (key items)",
             {"タッチパッド右半分（貴重品）",
              "Pavé tactile, moitié droite (objets clés)",
@@ -8458,7 +8902,8 @@ BB_MENU_TEXT("Touchpad, right half (key items)",
              "Berøringsflate, høyre halvdel (nøkkelgjenstander)",
              "Panel dotykowy, prawa połowa (kluczowe przedmioty)",
              "Touchpad, metade direita (itens principais)",
-             "Dokunmatik yüzey, sağ yarı (kilit eşyalar)"})
+             "Dokunmatik yüzey, sağ yarı (kilit eşyalar)",
+             "ﻟﻮﺣﺔ ﺍﻟﻠﻤﺲ، ﺍﻟﻨﺼﻒ ﺍﻷﻳﻤﻦ (ﺍﻷﻏﺮﺍﺽ ﺍﻟﻤﻬﻤﺔ)"})
 BB_MENU_TEXT("D-pad up",
             {"方向キー上",
              "Croix directionnelle : haut",
@@ -8477,7 +8922,8 @@ BB_MENU_TEXT("D-pad up",
              "Retningsknapp opp",
              "Krzyżak w górę",
              "Direcional para cima",
-             "Yön tuşu yukarı"})
+             "Yön tuşu yukarı",
+             "ﺍﻷﺳﻬﻢ: ﺃﻋﻠﻰ"})
 BB_MENU_TEXT("D-pad down",
             {"方向キー下",
              "Croix directionnelle : bas",
@@ -8496,7 +8942,8 @@ BB_MENU_TEXT("D-pad down",
              "Retningsknapp ned",
              "Krzyżak w dół",
              "Direcional para baixo",
-             "Yön tuşu aşağı"})
+             "Yön tuşu aşağı",
+             "ﺍﻷﺳﻬﻢ: ﺃﺳﻔﻞ"})
 BB_MENU_TEXT("D-pad left",
             {"方向キー左",
              "Croix directionnelle : gauche",
@@ -8515,7 +8962,8 @@ BB_MENU_TEXT("D-pad left",
              "Retningsknapp venstre",
              "Krzyżak w lewo",
              "Direcional para a esquerda",
-             "Yön tuşu sol"})
+             "Yön tuşu sol",
+             "ﺍﻷﺳﻬﻢ: ﻳﺴﺎﺭ"})
 BB_MENU_TEXT("D-pad right",
             {"方向キー右",
              "Croix directionnelle : droite",
@@ -8534,7 +8982,8 @@ BB_MENU_TEXT("D-pad right",
              "Retningsknapp høyre",
              "Krzyżak w prawo",
              "Direcional para a direita",
-             "Yön tuşu sağ"})
+             "Yön tuşu sağ",
+             "ﺍﻷﺳﻬﻢ: ﻳﻤﻴﻦ"})
 BB_MENU_TEXT("Move forward",
             {"前進",
              "Avancer",
@@ -8553,7 +9002,8 @@ BB_MENU_TEXT("Move forward",
              "Gå fremover",
              "Ruch do przodu",
              "Mover para frente",
-             "İleri git"})
+             "İleri git",
+             "ﺍﻟﺘﺤﺮﻙ ﻟﻸﻣﺎﻡ"})
 BB_MENU_TEXT("Move back",
             {"後退",
              "Reculer",
@@ -8572,7 +9022,8 @@ BB_MENU_TEXT("Move back",
              "Gå bakover",
              "Ruch do tyłu",
              "Mover para trás",
-             "Geri git"})
+             "Geri git",
+             "ﺍﻟﺘﺤﺮﻙ ﻟﻠﺨﻠﻒ"})
 BB_MENU_TEXT("Move left",
             {"左移動",
              "Aller à gauche",
@@ -8591,7 +9042,8 @@ BB_MENU_TEXT("Move left",
              "Gå til venstre",
              "Ruch w lewo",
              "Mover para a esquerda",
-             "Sola git"})
+             "Sola git",
+             "ﺍﻟﺘﺤﺮﻙ ﻳﺴﺎﺭﺍ"})
 BB_MENU_TEXT("Move right",
             {"右移動",
              "Aller à droite",
@@ -8610,7 +9062,8 @@ BB_MENU_TEXT("Move right",
              "Gå til høyre",
              "Ruch w prawo",
              "Mover para a direita",
-             "Sağa git"})
+             "Sağa git",
+             "ﺍﻟﺘﺤﺮﻙ ﻳﻤﻴﻨﺎ"})
 BB_MENU_TEXT("Camera up",
             {"カメラ上",
              "Caméra vers le haut",
@@ -8629,7 +9082,8 @@ BB_MENU_TEXT("Camera up",
              "Kamera opp",
              "Kamera w górę",
              "Câmera para cima",
-             "Kamera yukarı"})
+             "Kamera yukarı",
+             "ﺍﻟﻜﺎﻣﻴﺮﺍ ﻷﻋﻠﻰ"})
 BB_MENU_TEXT("Camera down",
             {"カメラ下",
              "Caméra vers le bas",
@@ -8648,7 +9102,8 @@ BB_MENU_TEXT("Camera down",
              "Kamera ned",
              "Kamera w dół",
              "Câmera para baixo",
-             "Kamera aşağı"})
+             "Kamera aşağı",
+             "ﺍﻟﻜﺎﻣﻴﺮﺍ ﻷﺳﻔﻞ"})
 BB_MENU_TEXT("Camera left",
             {"カメラ左",
              "Caméra vers la gauche",
@@ -8667,7 +9122,8 @@ BB_MENU_TEXT("Camera left",
              "Kamera venstre",
              "Kamera w lewo",
              "Câmera para a esquerda",
-             "Kamera sola"})
+             "Kamera sola",
+             "ﺍﻟﻜﺎﻣﻴﺮﺍ ﻳﺴﺎﺭﺍ"})
 BB_MENU_TEXT("Camera right",
             {"カメラ右",
              "Caméra vers la droite",
@@ -8686,7 +9142,8 @@ BB_MENU_TEXT("Camera right",
              "Kamera høyre",
              "Kamera w prawo",
              "Câmera para a direita",
-             "Kamera sağa"})
+             "Kamera sağa",
+             "ﺍﻟﻜﺎﻣﻴﺮﺍ ﻳﻤﻴﻨﺎ"})
 BB_MENU_TEXT("Vitality",
             {"体力",
              "Vitalité",
@@ -8705,7 +9162,8 @@ BB_MENU_TEXT("Vitality",
              "Vitalitet",
              "Witalność",
              "Vitalidade",
-             "Canlılık"})
+             "Canlılık",
+             "ﺍﻟﺤﻴﻮﻳﺔ"})
 BB_MENU_TEXT("Endurance",
             {"持久力",
              "Endurance",
@@ -8724,7 +9182,8 @@ BB_MENU_TEXT("Endurance",
              "Utholdenhet",
              "Wytrzymałość",
              "Resistência",
-             "Dayanıklılık"})
+             "Dayanıklılık",
+             "ﺍﻟﺘﺤﻤﻞ"})
 BB_MENU_TEXT("Strength",
             {"筋力",
              "Force",
@@ -8743,7 +9202,8 @@ BB_MENU_TEXT("Strength",
              "Styrke",
              "Siła",
              "Força",
-             "Kuvvet"})
+             "Kuvvet",
+             "ﺍﻟﻘﻮﺓ"})
 BB_MENU_TEXT("Skill",
             {"技術",
              "Compétence",
@@ -8762,7 +9222,8 @@ BB_MENU_TEXT("Skill",
              "Ferdighet",
              "Umiejętność",
              "Perícia",
-             "Yetenek"})
+             "Yetenek",
+             "ﺍﻟﻤﻬﺎﺭﺓ"})
 BB_MENU_TEXT("Bloodtinge",
             {"血質",
              "Teinte sanglante",
@@ -8781,7 +9242,8 @@ BB_MENU_TEXT("Bloodtinge",
              "Blodskjær",
              "Zabarwienie krwi",
              "Matiz de Sangue",
-             "Kanrengi"})
+             "Kanrengi",
+             "ﺻﺒﻐﺔ ﺍﻟﺪﻡ"})
 BB_MENU_TEXT("Arcane",
             {"神秘",
              "Ésotérisme",
@@ -8800,7 +9262,8 @@ BB_MENU_TEXT("Arcane",
              "Gåtefull",
              "Tajemny",
              "Arcano",
-             "Arkana"})
+             "Arkana",
+             "ﺍﻟﻐﻤﻮﺽ"})
 BB_MENU_TEXT("Display",
             {"表示",
              "Affichage",
@@ -8819,7 +9282,8 @@ BB_MENU_TEXT("Display",
              "Skjerm",
              "Obraz",
              "Tela",
-             "Görüntü"})
+             "Görüntü",
+             "ﺍﻟﻌﺮﺽ"})
 BB_MENU_TEXT("Game effects",
             {"ゲーム効果",
              "Effets du jeu",
@@ -8838,7 +9302,8 @@ BB_MENU_TEXT("Game effects",
              "Spilleffekter",
              "Efekty gry",
              "Efeitos do jogo",
-             "Oyun efektleri"})
+             "Oyun efektleri",
+             "ﻣﺆﺛﺮﺍﺕ ﺍﻟﻠﻌﺒﺔ"})
 BB_MENU_TEXT("Controls",
             {"操作設定",
              "Contrôle",
@@ -8857,7 +9322,8 @@ BB_MENU_TEXT("Controls",
              "Kontroller",
              "Sterowanie",
              "Controles",
-             "Kontroller"})
+             "Kontroller",
+             "ﺍﻟﺘﺤﻜﻢ"})
 BB_MENU_TEXT("Advanced",
             {"詳細",
              "Avancé",
@@ -8876,7 +9342,8 @@ BB_MENU_TEXT("Advanced",
              "Avansert",
              "Zaawansowane",
              "Avançado",
-             "Gelişmiş"})
+             "Gelişmiş",
+             "ﻣﺘﻘﺪﻡ"})
 BB_MENU_TEXT("Save",
             {"セーブ",
              "Sauvegarde",
@@ -8895,7 +9362,8 @@ BB_MENU_TEXT("Save",
              "Lagre",
              "Zapisz",
              "Salvamento",
-             "Kaydet"})
+             "Kaydet",
+             "ﺍﻟﺤﻔﻆ"})
 BB_MENU_TEXT("Resolution, upscaler, sharpness and model detail (bbport)",
             {"解像度、アップスケーラー、シャープネス、モデル詳細度（bbport）",
              "Résolution, upscaler, netteté et détail des modèles (bbport)",
@@ -8914,7 +9382,8 @@ BB_MENU_TEXT("Resolution, upscaler, sharpness and model detail (bbport)",
              "Oppløsning, oppskalerer, skarphet og modelldetalj (bbport)",
              "Rozdzielczość, upscaler, ostrość i szczegółowość modeli (bbport)",
              "Resolução, upscaler, nitidez e detalhe dos modelos (bbport)",
-             "Çözünürlük, ölçekleyici, keskinlik ve model ayrıntısı (bbport)"})
+             "Çözünürlük, ölçekleyici, keskinlik ve model ayrıntısı (bbport)",
+             "ﺍﻟﺪﻗﺔ ﻭﺃﺩﺍﺓ ﺍﻟﺘﻜﺒﻴﺮ ﻭﺍﻟﺤﺪﺓ ﻭﺗﻔﺎﺻﻴﻞ ﺍﻟﻨﻤﺎﺫﺝ (bbport)"})
 BB_MENU_TEXT("Scene resolution: 0-1 Native AA, 2-3 Quality, 4-6 Balanced, 7-8 Performance, 9-10 Ultra",
             {"シーン解像度：0-1 Native AA、2-3 Quality、4-6 Balanced、7-8 Performance、9-10 Ultra",
              "Résolution de scène : 0-1 Native AA, 2-3 Quality, 4-6 Balanced, 7-8 Performance, 9-10 Ultra",
@@ -8933,7 +9402,8 @@ BB_MENU_TEXT("Scene resolution: 0-1 Native AA, 2-3 Quality, 4-6 Balanced, 7-8 Pe
              "Sceneoppløsning: 0-1 Native AA, 2-3 Quality, 4-6 Balanced, 7-8 Performance, 9-10 Ultra",
              "Rozdzielczość sceny: 0-1 Native AA, 2-3 Quality, 4-6 Balanced, 7-8 Performance, 9-10 Ultra",
              "Resolução da cena: 0-1 Native AA, 2-3 Quality, 4-6 Balanced, 7-8 Performance, 9-10 Ultra",
-             "Sahne çözünürlüğü: 0-1 Native AA, 2-3 Quality, 4-6 Balanced, 7-8 Performance, 9-10 Ultra"})
+             "Sahne çözünürlüğü: 0-1 Native AA, 2-3 Quality, 4-6 Balanced, 7-8 Performance, 9-10 Ultra",
+             "ﺩﻗﺔ ﺍﻟﻤﺸﻬﺪ: 0-1 Native AA، 2-3 ﺍﻟﺠﻮﺩﺓ، 4-6 ﻣﺘﻮﺍﺯﻥ، 7-8 ﺍﻷﺩﺍﺀ، 9-10 ﺍﻷﺩﺍﺀ ﺍﻟﻔﺎﺋﻖ"})
 BB_MENU_TEXT("RCAS after the upscaler: 0 off, 10 strongest",
             {"アップスケーラー後のRCAS：0 OFF、10 最強",
              "RCAS après l'upscaler : 0 désactivé, 10 le plus fort",
@@ -8952,7 +9422,8 @@ BB_MENU_TEXT("RCAS after the upscaler: 0 off, 10 strongest",
              "RCAS etter oppskalereren: 0 av, 10 sterkest",
              "RCAS po upscalerze: 0 wył., 10 najsilniej",
              "RCAS após o upscaler: 0 desligado, 10 o mais forte",
-             "Ölçekleyiciden sonra RCAS: 0 kapalı, 10 en güçlü"})
+             "Ölçekleyiciden sonra RCAS: 0 kapalı, 10 en güçlü",
+             "RCAS ﺑﻌﺪ ﺃﺩﺍﺓ ﺍﻟﺘﻜﺒﻴﺮ: 0 ﻣﻄﻔﺄ، 10 ﺍﻷﻗﻮﻯ"})
 BB_MENU_TEXT("Final frame",
             {"最終画面",
              "Image finale",
@@ -8971,7 +9442,8 @@ BB_MENU_TEXT("Final frame",
              "Ferdig bilde",
              "Gotowa klatka",
              "Imagem final",
-             "Son görüntü"})
+             "Son görüntü",
+             "ﺍﻹﻃﺎﺭ ﺍﻟﻨﻬﺎﺋﻲ"})
 BB_MENU_TEXT("Auto: a wider or taller screen shows more of the world. 16:9: the game's picture, black bars",
             {"自動：横長・縦長の画面では世界がより広く見えます。16:9：ゲーム本来の映像と黒帯",
              "Auto : un écran plus large ou plus haut montre davantage du monde. 16:9 : l'image du jeu, bandes noires",
@@ -8990,7 +9462,8 @@ BB_MENU_TEXT("Auto: a wider or taller screen shows more of the world. 16:9: the 
              "Auto: en bredere eller høyere skjerm viser mer av verden. 16:9: spillets bilde, svarte felt",
              "Auto: szerszy lub wyższy ekran pokazuje więcej świata. 16:9: obraz gry, czarne pasy",
              "Auto: uma tela mais larga ou mais alta mostra mais do mundo. 16:9: a imagem do jogo, barras pretas",
-             "Otomatik: daha geniş veya yüksek bir ekran dünyadan daha fazlasını gösterir. 16:9: oyunun görüntüsü, siyah şeritler"})
+             "Otomatik: daha geniş veya yüksek bir ekran dünyadan daha fazlasını gösterir. 16:9: oyunun görüntüsü, siyah şeritler",
+             "ﺗﻠﻘﺎﺋﻲ: ﺍﻟﺸﺎﺷﺔ ﺍﻷﻋﺮﺽ ﺃﻭ ﺍﻷﻃﻮﻝ ﺗﻈﻬﺮ ﺍﻟﻤﺰﻳﺪ ﻣﻦ ﺍﻟﻌﺎﻟﻢ. 16:9: ﺻﻮﺭﺓ ﺍﻟﻠﻌﺒﺔ، ﺃﺷﺮﻃﺔ ﺳﻮﺩﺍﺀ"})
 BB_MENU_TEXT("After a restart: 0-1 highest, 2-4 game default, 5-7 lower, 8-10 lowest",
             {"再起動後：0-1 最高、2-4 ゲーム標準、5-7 低め、8-10 最低",
              "Après redémarrage : 0-1 maximal, 2-4 défaut du jeu, 5-7 réduit, 8-10 minimal",
@@ -9009,7 +9482,8 @@ BB_MENU_TEXT("After a restart: 0-1 highest, 2-4 game default, 5-7 lower, 8-10 lo
              "Etter omstart: 0-1 høyest, 2-4 spillets standard, 5-7 lavere, 8-10 lavest",
              "Po restarcie: 0-1 najwyższa, 2-4 domyślna gry, 5-7 niższa, 8-10 najniższa",
              "Após reiniciar: 0-1 máximo, 2-4 padrão do jogo, 5-7 menor, 8-10 mínimo",
-             "Yeniden başlatınca: 0-1 en yüksek, 2-4 oyun varsayılanı, 5-7 düşük, 8-10 en düşük"})
+             "Yeniden başlatınca: 0-1 en yüksek, 2-4 oyun varsayılanı, 5-7 düşük, 8-10 en düşük",
+             "ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺍﻟﺘﺸﻐﻴﻞ: 0-1 ﺍﻷﻋﻠﻰ، 2-4 ﺍﻓﺘﺮﺍﺿﻲ ﺍﻟﻠﻌﺒﺔ، 5-7 ﺃﻗﻞ، 8-10 ﺍﻷﻗﻞ"})
 BB_MENU_TEXT("Highest",
             {"最高",
              "Maximal",
@@ -9028,7 +9502,8 @@ BB_MENU_TEXT("Highest",
              "Høyest",
              "Najwyższa",
              "Máximo",
-             "En yüksek"})
+             "En yüksek",
+             "ﺍﻷﻋﻠﻰ"})
 BB_MENU_TEXT("Lower",
             {"低め",
              "Réduit",
@@ -9047,7 +9522,8 @@ BB_MENU_TEXT("Lower",
              "Lavere",
              "Niższa",
              "Menor",
-             "Düşük"})
+             "Düşük",
+             "ﺃﻗﻞ"})
 BB_MENU_TEXT("Lowest",
             {"最低",
              "Minimal",
@@ -9066,7 +9542,8 @@ BB_MENU_TEXT("Lowest",
              "Lavest",
              "Najniższa",
              "Mínimo",
-             "En düşük"})
+             "En düşük",
+             "ﺍﻷﻗﻞ"})
 BB_MENU_TEXT("Temporal upscaler and anti-aliasing",
             {"テンポラルアップスケーラーとアンチエイリアス",
              "Upscaler temporel et anticrénelage",
@@ -9085,7 +9562,8 @@ BB_MENU_TEXT("Temporal upscaler and anti-aliasing",
              "Temporal oppskalering og kantutjevning",
              "Czasowy upscaler i wygładzanie krawędzi",
              "Upscaler temporal e antisserrilhado",
-             "Zamansal ölçekleyici ve kenar yumuşatma"})
+             "Zamansal ölçekleyici ve kenar yumuşatma",
+             "ﺃﺩﺍﺓ ﺗﻜﺒﻴﺮ ﺯﻣﻨﻴﺔ ﻭﺗﻨﻌﻴﻢ ﺍﻟﺤﻮﺍﻑ"})
 BB_MENU_TEXT("Screen",
             {"画面",
              "Écran",
@@ -9104,7 +9582,8 @@ BB_MENU_TEXT("Screen",
              "Skjerm",
              "Ekran",
              "Tela",
-             "Ekran"})
+             "Ekran",
+             "ﺍﻟﺸﺎﺷﺔ"})
 BB_MENU_TEXT("Window mode and HDR output (bbport)",
             {"ウィンドウモードとHDR出力（bbport）",
              "Mode d'affichage et sortie HDR (bbport)",
@@ -9123,7 +9602,8 @@ BB_MENU_TEXT("Window mode and HDR output (bbport)",
              "Vindusmodus og HDR-utgang (bbport)",
              "Tryb okna i wyjście HDR (bbport)",
              "Modo de janela e saída HDR (bbport)",
-             "Pencere modu ve HDR çıkışı (bbport)"})
+             "Pencere modu ve HDR çıkışı (bbport)",
+             "ﻭﺿﻊ ﺍﻟﻨﺎﻓﺬﺓ ﻭﺇﺧﺮﺍﺝ HDR (bbport)"})
 BB_MENU_TEXT("0-2 windowed, 3-7 borderless (full screen, quick Alt+Tab), 8-10 exclusive fullscreen",
             {"0-2 ウィンドウ、3-7 ボーダーレス（全画面、Alt+Tabが速い）、8-10 排他的フルスクリーン",
              "0-2 fenêtré, 3-7 sans bordure (plein écran, Alt+Tab rapide), 8-10 plein écran exclusif",
@@ -9142,7 +9622,8 @@ BB_MENU_TEXT("0-2 windowed, 3-7 borderless (full screen, quick Alt+Tab), 8-10 ex
              "0-2 vindu, 3-7 rammeløst (fullskjerm, rask Alt+Tab), 8-10 eksklusiv fullskjerm",
              "0-2 w oknie, 3-7 bez ramki (pełny ekran, szybki Alt+Tab), 8-10 wyłączny pełny ekran",
              "0-2 em janela, 3-7 sem bordas (tela cheia, Alt+Tab rápido), 8-10 tela cheia exclusiva",
-             "0-2 pencereli, 3-7 kenarlıksız (tam ekran, hızlı Alt+Tab), 8-10 özel tam ekran"})
+             "0-2 pencereli, 3-7 kenarlıksız (tam ekran, hızlı Alt+Tab), 8-10 özel tam ekran",
+             "0-2 ﻧﺎﻓﺬﺓ، 3-7 ﺑﻼ ﺇﻃﺎﺭ (ﻣﻞﺀ ﺍﻟﺸﺎﺷﺔ، Alt+Tab ﺳﺮﻳﻊ)، 8-10 ﻣﻞﺀ ﺍﻟﺸﺎﺷﺔ ﺍﻟﺤﺼﺮﻱ"})
 BB_MENU_TEXT("Borderless",
             {"ボーダーレス",
              "Sans bordure",
@@ -9161,7 +9642,8 @@ BB_MENU_TEXT("Borderless",
              "Rammeløst",
              "Bez ramki",
              "Sem bordas",
-             "Kenarlıksız"})
+             "Kenarlıksız",
+             "ﺑﻼ ﺇﻃﺎﺭ"})
 BB_MENU_TEXT("HDR10 output (shown when HDR is on for this display in Windows)",
             {"HDR10出力（WindowsでこのディスプレイのHDRがONのとき表示）",
              "Sortie HDR10 (visible quand le HDR est activé pour cet écran dans Windows)",
@@ -9180,7 +9662,8 @@ BB_MENU_TEXT("HDR10 output (shown when HDR is on for this display in Windows)",
              "HDR10-utgang (vises når HDR er på for denne skjermen i Windows)",
              "Wyjście HDR10 (widoczne, gdy HDR jest włączony dla tego ekranu w Windows)",
              "Saída HDR10 (aparece quando o HDR está ligado para esta tela no Windows)",
-             "HDR10 çıkışı (Windows'ta bu ekranda HDR açıkken gösterilir)"})
+             "HDR10 çıkışı (Windows'ta bu ekranda HDR açıkken gösterilir)",
+             "ﺇﺧﺮﺍﺝ HDR10 (ﻳﻈﻬﺮ ﻋﻨﺪﻣﺎ ﻳﻜﻮﻥ HDR ﻣﻔﻌﻼ ﻟﻬﺬﻩ ﺍﻟﺸﺎﺷﺔ ﻓﻲ ﻭﻳﻨﺪﻭﺯ)"})
 BB_MENU_TEXT("On: HUD kept at UI brightness, flames helped by the 16-bit scene. Off: all stretched",
             {"ON：HUDはUI輝度のまま、炎は16ビットシーンで強調。OFF：全体を引き伸ばし",
              "Activé : HUD à la luminosité de l'interface, flammes aidées par la scène 16 bits. Désactivé : tout étiré",
@@ -9199,7 +9682,8 @@ BB_MENU_TEXT("On: HUD kept at UI brightness, flames helped by the 16-bit scene. 
              "På: HUD holdes på UI-lysstyrke, flammer forsterkes av 16-bits scenen. Av: alt strekkes",
              "Wł.: HUD na jasności interfejsu, płomienie wzmocnione 16-bitową sceną. Wył.: wszystko rozciągnięte",
              "Ligado: HUD no brilho da interface, chamas realçadas pela cena de 16 bits. Desligado: tudo esticado",
-             "Açık: HUD arayüz parlaklığında, alevler 16 bit sahneyle güçlenir. Kapalı: her şey gerilir"})
+             "Açık: HUD arayüz parlaklığında, alevler 16 bit sahneyle güçlenir. Kapalı: her şey gerilir",
+             "ﺗﺸﻐﻴﻞ: ﺍﻟﻮﺍﺟﻬﺔ ﺗﺒﻘﻰ ﻋﻨﺪ ﺳﻄﻮﻉ ﺍﻟﻮﺍﺟﻬﺔ، ﻭﺍﻟﻠﻬﺐ ﻳﺴﺘﻔﻴﺪ ﻣﻦ ﻣﺸﻬﺪ 16 ﺑﺖ. ﺇﻳﻘﺎﻑ: ﺍﻟﻜﻞ ﻣﻤﺪﺩ"})
 BB_MENU_TEXT("Nits: 0 the display's own, 1-2 400, 3 600, 4 800, 5-6 1000, 7 1500, 8-9 2000, 10 4000",
             {"nit：0 ディスプレイの値，1-2 400，3 600，4 800，5-6 1000，7 1500，8-9 2000，10 4000",
              "Nits : 0 celle de l'écran, 1-2 400, 3 600, 4 800, 5-6 1000, 7 1500, 8-9 2000, 10 4000",
@@ -9218,7 +9702,8 @@ BB_MENU_TEXT("Nits: 0 the display's own, 1-2 400, 3 600, 4 800, 5-6 1000, 7 1500
              "Nits: 0 skjermens egen, 1-2 400, 3 600, 4 800, 5-6 1000, 7 1500, 8-9 2000, 10 4000",
              "Nity: 0 jak podaje ekran, 1-2 400, 3 600, 4 800, 5-6 1000, 7 1500, 8-9 2000, 10 4000",
              "Nits: 0 o da tela, 1-2 400, 3 600, 4 800, 5-6 1000, 7 1500, 8-9 2000, 10 4000",
-             "Nit: 0 ekranın kendi değeri, 1-2 400, 3 600, 4 800, 5-6 1000, 7 1500, 8-9 2000, 10 4000"})
+             "Nit: 0 ekranın kendi değeri, 1-2 400, 3 600, 4 800, 5-6 1000, 7 1500, 8-9 2000, 10 4000",
+             "nits: 0 ﻗﻴﻤﺔ ﺍﻟﺸﺎﺷﺔ ﻧﻔﺴﻬﺎ، 1-2 400، 3 600، 4 800، 5-6 1000، 7 1500، 8-9 2000، 10 4000"})
 BB_MENU_TEXT("White, nits: 0 as the desktop's, 1 80, 2-3 100, 4 150, 5 200, 6 250, 7-8 300, 9 400, 10 480",
             {"白、nit：0 デスクトップと同じ，1 80，2-3 100，4 150，5 200，6 250，7-8 300，9 400，10 480",
              "Blanc, nits : 0 comme le bureau, 1 80, 2-3 100, 4 150, 5 200, 6 250, 7-8 300, 9 400, 10 480",
@@ -9237,7 +9722,8 @@ BB_MENU_TEXT("White, nits: 0 as the desktop's, 1 80, 2-3 100, 4 150, 5 200, 6 25
              "Hvitt, nits: 0 som skrivebordet, 1 80, 2-3 100, 4 150, 5 200, 6 250, 7-8 300, 9 400, 10 480",
              "Biel, nity: 0 jak pulpit, 1 80, 2-3 100, 4 150, 5 200, 6 250, 7-8 300, 9 400, 10 480",
              "Branco, nits: 0 como a área de trabalho, 1 80, 2-3 100, 4 150, 5 200, 6 250, 7-8 300, 9 400, 10 480",
-             "Beyaz, nit: 0 masaüstü gibi, 1 80, 2-3 100, 4 150, 5 200, 6 250, 7-8 300, 9 400, 10 480"})
+             "Beyaz, nit: 0 masaüstü gibi, 1 80, 2-3 100, 4 150, 5 200, 6 250, 7-8 300, 9 400, 10 480",
+             "ﺍﻷﺑﻴﺾ، nits: 0 ﻛﺴﻄﺢ ﺍﻟﻤﻜﺘﺐ، 1 80، 2-3 100، 4 150، 5 200، 6 250، 7-8 300، 9 400، 10 480"})
 BB_MENU_TEXT("0 none, 5 white reaches the peak, 10 more of the picture brightens",
             {"0 なし、5 白がピークに到達、10 映像の多くが明るくなる",
              "0 aucun, 5 le blanc atteint la crête, 10 une plus grande part de l'image s'éclaircit",
@@ -9256,7 +9742,8 @@ BB_MENU_TEXT("0 none, 5 white reaches the peak, 10 more of the picture brightens
              "0 ingen, 5 hvitt når toppen, 10 mer av bildet lyses opp",
              "0 brak, 5 biel sięga szczytu, 10 rozjaśnia się więcej obrazu",
              "0 nenhum, 5 o branco chega ao pico, 10 clareia mais da imagem",
-             "0 yok, 5 beyaz tepeye ulaşır, 10 görüntünün daha fazlası aydınlanır"})
+             "0 yok, 5 beyaz tepeye ulaşır, 10 görüntünün daha fazlası aydınlanır",
+             "0 ﻻ ﺷﻲﺀ، 5 ﺍﻷﺑﻴﺾ ﻳﺒﻠﻎ ﺍﻷﻗﺼﻰ، 10 ﻳﺴﻄﻊ ﺟﺰﺀ ﺃﻛﺒﺮ ﻣﻦ ﺍﻟﺼﻮﺭﺓ"})
 BB_MENU_TEXT("Frame rate",
             {"フレームレート",
              "Fréquence d'images",
@@ -9275,7 +9762,8 @@ BB_MENU_TEXT("Frame rate",
              "Bildefrekvens",
              "Liczba klatek",
              "Taxa de quadros",
-             "Kare hızı"})
+             "Kare hızı",
+             "ﻣﻌﺪﻝ ﺍﻹﻃﺎﺭﺍﺕ"})
 BB_MENU_TEXT("Frame rate limit, DLSS model and shader math (bbport)",
             {"フレームレート上限、DLSSモデル、シェーダー演算（bbport）",
              "Limite d'images, modèle DLSS et calcul des shaders (bbport)",
@@ -9294,7 +9782,8 @@ BB_MENU_TEXT("Frame rate limit, DLSS model and shader math (bbport)",
              "Bildefrekvensgrense, DLSS-modell og shaderberegning (bbport)",
              "Limit klatek, model DLSS i matematyka shaderów (bbport)",
              "Limite de quadros, modelo DLSS e cálculo de shaders (bbport)",
-             "Kare hızı sınırı, DLSS modeli ve gölgelendirici matematiği (bbport)"})
+             "Kare hızı sınırı, DLSS modeli ve gölgelendirici matematiği (bbport)",
+             "ﺣﺪ ﻣﻌﺪﻝ ﺍﻹﻃﺎﺭﺍﺕ ﻭﻧﻤﻮﺫﺝ DLSS ﻭﺣﺴﺎﺑﺎﺕ ﺍﻟﻤﻈﻠﻼﺕ (bbport)"})
 BB_MENU_TEXT("RTX, DLSS only: 0-1 default, sharpest, 2-3 K softer, 4-6 L, 7-8 M, 9-10 J like K",
             {"RTX、DLSSのみ：0-1 標準、最も鮮明、2-3 K 柔らかい、4-6 L、7-8 M、9-10 J Kに近い",
              "RTX, DLSS seulement : 0-1 défaut, le plus net, 2-3 K plus doux, 4-6 L, 7-8 M, 9-10 J comme K",
@@ -9313,7 +9802,8 @@ BB_MENU_TEXT("RTX, DLSS only: 0-1 default, sharpest, 2-3 K softer, 4-6 L, 7-8 M,
              "Kun RTX, DLSS: 0-1 standard, skarpest, 2-3 K mykere, 4-6 L, 7-8 M, 9-10 J som K",
              "Tylko RTX, DLSS: 0-1 domyślny, najostrzejszy, 2-3 K łagodniejszy, 4-6 L, 7-8 M, 9-10 J jak K",
              "RTX, só DLSS: 0-1 padrão, o mais nítido, 2-3 K mais suave, 4-6 L, 7-8 M, 9-10 J como K",
-             "Yalnızca RTX, DLSS: 0-1 varsayılan, en keskin, 2-3 K daha yumuşak, 4-6 L, 7-8 M, 9-10 J, K gibi"})
+             "Yalnızca RTX, DLSS: 0-1 varsayılan, en keskin, 2-3 K daha yumuşak, 4-6 L, 7-8 M, 9-10 J, K gibi",
+             "RTX، DLSS ﻓﻘﻂ: 0-1 ﺍﻻﻓﺘﺮﺍﺿﻲ، ﺍﻷﺣﺪ، 2-3 K ﺃﻧﻌﻢ، 4-6 L، 7-8 M، 9-10 J ﻣﺜﻞ K"})
 BB_MENU_TEXT("After a restart: faster, less strict float math in shaders; the picture can differ slightly",
             {"再起動後に反映：シェーダーの浮動小数点演算を速く、厳密さを抑えます。映像がわずかに変わることがあります",
              "Après un redémarrage : calculs flottants plus rapides et moins stricts dans les shaders ; l'image peut légèrement différer",
@@ -9332,7 +9822,8 @@ BB_MENU_TEXT("After a restart: faster, less strict float math in shaders; the pi
              "Etter en omstart: raskere, mindre strenge flyttallsberegninger i shadere; bildet kan avvike litt",
              "Po ponownym uruchomieniu: szybsze, mniej ścisłe obliczenia zmiennoprzecinkowe w shaderach; obraz może się nieznacznie różnić",
              "Depois de reiniciar: cálculos de ponto flutuante mais rápidos e menos rigorosos nos shaders; a imagem pode variar levemente",
-             "Yeniden başlatmadan sonra: gölgelendiricilerde daha hızlı, daha az katı kayan nokta hesapları; görüntü hafifçe farklı olabilir"})
+             "Yeniden başlatmadan sonra: gölgelendiricilerde daha hızlı, daha az katı kayan nokta hesapları; görüntü hafifçe farklı olabilir",
+             "ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺍﻟﺘﺸﻐﻴﻞ: ﺣﺴﺎﺑﺎﺕ ﺃﺳﺮﻉ ﻭﺃﻗﻞ ﺻﺮﺍﻣﺔ ﻓﻲ ﺍﻟﻤﻈﻠﻼﺕ؛ ﻗﺪ ﺗﺨﺘﻠﻒ ﺍﻟﺼﻮﺭﺓ ﻗﻠﻴﻼ"})
 BB_MENU_TEXT("Frame rate in the top right corner",
             {"右上にフレームレートを表示",
              "Fréquence d'images en haut à droite",
@@ -9351,7 +9842,8 @@ BB_MENU_TEXT("Frame rate in the top right corner",
              "Bildefrekvens øverst til høyre",
              "Liczba klatek w prawym górnym rogu",
              "Taxa de quadros no canto superior direito",
-             "Sağ üst köşede kare hızı"})
+             "Sağ üst köşede kare hızı",
+             "ﻣﻌﺪﻝ ﺍﻹﻃﺎﺭﺍﺕ ﻓﻲ ﺍﻟﺰﺍﻭﻳﺔ ﺍﻟﻌﻠﻮﻳﺔ ﺍﻟﻴﻤﻨﻰ"})
 BB_MENU_TEXT("Co-op plays at the game's fixed 60 FPS, the same for every player",
             {"協力プレイはゲーム固定の60 FPSで、全プレイヤー共通",
              "La coop tourne aux 60 FPS fixes du jeu, identiques pour chaque joueur",
@@ -9370,7 +9862,8 @@ BB_MENU_TEXT("Co-op plays at the game's fixed 60 FPS, the same for every player"
              "Co-op spilles med spillets faste 60 FPS, likt for alle spillere",
              "Co-op działa przy stałych 60 FPS gry, tak samo dla każdego gracza",
              "O cooperativo roda nos 60 FPS fixos do jogo, igual para todos os jogadores",
-             "Co-op, oyunun sabit 60 FPS'inde oynanır, her oyuncu için aynı"})
+             "Co-op, oyunun sabit 60 FPS'inde oynanır, her oyuncu için aynı",
+             "ﺍﻟﻠﻌﺐ ﺍﻟﺠﻤﺎﻋﻲ ﻳﻌﻤﻞ ﺑﻤﻌﺪﻝ ﺍﻟﻠﻌﺒﺔ ﺍﻟﺜﺎﺑﺖ 60 ﺇﻃﺎﺭﺍ، ﻧﻔﺴﻪ ﻟﻜﻞ ﻻﻋﺐ"})
 BB_MENU_TEXT("60 (co-op)",
             {"60（協力）",
              "60 (coop)",
@@ -9389,7 +9882,8 @@ BB_MENU_TEXT("60 (co-op)",
              "60 (co-op)",
              "60 (co-op)",
              "60 (cooperativo)",
-             "60 (co-op)"})
+             "60 (co-op)",
+             "60 (ﻟﻌﺐ ﺟﻤﺎﻋﻲ)"})
 BB_MENU_TEXT("Highest frame rate; a limit unlocks the frame rate from the next start",
             {"最大フレームレート。上限を設定すると次回起動からフレームレートを解除",
              "Fréquence maximale ; une limite la débloque dès le prochain lancement",
@@ -9408,7 +9902,8 @@ BB_MENU_TEXT("Highest frame rate; a limit unlocks the frame rate from the next s
              "Høyeste bildefrekvens; en grense låser opp bildefrekvensen fra neste start",
              "Najwyższa liczba klatek; limit odblokowuje klatkaż od następnego uruchomienia",
              "Taxa de quadros máxima; um limite a desbloqueia a partir da próxima inicialização",
-             "En yüksek kare hızı; bir sınır, sonraki başlatmadan itibaren kare hızının kilidini açar"})
+             "En yüksek kare hızı; bir sınır, sonraki başlatmadan itibaren kare hızının kilidini açar",
+             "ﺃﻋﻠﻰ ﻣﻌﺪﻝ ﺇﻃﺎﺭﺍﺕ؛ ﺍﻟﺤﺪ ﻳﻔﻚ ﻗﻔﻞ ﻣﻌﺪﻝ ﺍﻹﻃﺎﺭﺍﺕ ﻣﻦ ﺍﻟﺘﺸﻐﻴﻞ ﺍﻟﺘﺎﻟﻲ"})
 BB_MENU_TEXT("Lighting",
             {"ライティング",
              "Éclairage",
@@ -9427,7 +9922,8 @@ BB_MENU_TEXT("Lighting",
              "Belysning",
              "Oświetlenie",
              "Iluminação",
-             "Aydınlatma"})
+             "Aydınlatma",
+             "ﺍﻹﺿﺎﺀﺓ"})
 BB_MENU_TEXT("Screen-space shadows and bounced light (bbport)",
             {"画面上の影と反射光 (bbport)",
              "Ombres et lumière renvoyée à l'écran (bbport)",
@@ -9446,7 +9942,8 @@ BB_MENU_TEXT("Screen-space shadows and bounced light (bbport)",
              "Skjermskygger og tilbakekastet lys (bbport)",
              "Cienie ekranowe i światło odbite (bbport)",
              "Sombras e luz refletida na tela (bbport)",
-             "Ekran gölgeleri ve sekmiş ışık (bbport)"})
+             "Ekran gölgeleri ve sekmiş ışık (bbport)",
+             "ﻇﻼﻝ ﺍﻟﺸﺎﺷﺔ ﻭﺍﻟﻀﻮﺀ ﺍﻟﻤﻨﻌﻜﺲ (bbport)"})
 BB_MENU_TEXT("0-2 off, 3-7 low (half size), 8-10 high (more GPU time)",
             {"0-2 オフ、3-7 低 (半分のサイズ)、8-10 高 (GPU負荷大)",
              "0-2 non, 3-7 basse (demi-taille), 8-10 haute (plus de GPU)",
@@ -9465,7 +9962,8 @@ BB_MENU_TEXT("0-2 off, 3-7 low (half size), 8-10 high (more GPU time)",
              "0-2 av, 3-7 lav (halv størrelse), 8-10 høy (mer GPU)",
              "0-2 wył., 3-7 niska (połowa rozmiaru), 8-10 wysoka (więcej GPU)",
              "0-2 não, 3-7 baixa (metade do tamanho), 8-10 alta (mais GPU)",
-             "0-2 kapalı, 3-7 düşük (yarım boyut), 8-10 yüksek (daha çok GPU)"})
+             "0-2 kapalı, 3-7 düşük (yarım boyut), 8-10 yüksek (daha çok GPU)",
+             "0-2 ﻣﻄﻔﺄ، 3-7 ﻣﻨﺨﻔﺾ (ﻧﺼﻒ ﺍﻟﺤﺠﻢ)، 8-10 ﻋﺎﻝ (ﻭﻗﺖ ﺃﻛﺜﺮ ﻟﺒﻄﺎﻗﺔ ﺍﻟﺮﺳﻮﻣﻴﺎﺕ)"})
 BB_MENU_TEXT("How much corners darken: 0 none, 10 full",
             {"隅の暗さ: 0 なし、10 最大",
              "Assombrissement des coins : 0 aucun, 10 maximal",
@@ -9484,7 +9982,8 @@ BB_MENU_TEXT("How much corners darken: 0 none, 10 full",
              "Hvor mye hjørner mørkner: 0 ikke, 10 fullt",
              "Jak ciemnieją kąty: 0 wcale, 10 w pełni",
              "Quanto escurecem os cantos: 0 nada, 10 ao máximo",
-             "Köşelerin kararması: 0 yok, 10 tam"})
+             "Köşelerin kararması: 0 yok, 10 tam",
+             "ﻣﻘﺪﺍﺭ ﺇﻋﺘﺎﻡ ﺍﻟﺰﻭﺍﻳﺎ: 0 ﻻ ﺷﻲﺀ، 10 ﻛﺎﻣﻞ"})
 BB_MENU_TEXT("Colour cast by nearby surfaces: 0 none, 5 natural, 10 double",
             {"近くの面が映す色: 0 なし、5 自然、10 2倍",
              "Couleur des surfaces proches : 0 aucune, 5 naturelle, 10 double",
@@ -9503,7 +10002,8 @@ BB_MENU_TEXT("Colour cast by nearby surfaces: 0 none, 5 natural, 10 double",
              "Farge fra nære flater: 0 ingen, 5 naturlig, 10 dobbel",
              "Kolor pobliskich powierzchni: 0 brak, 5 naturalny, 10 podwójny",
              "Cor das superfícies próximas: 0 nenhuma, 5 natural, 10 dobro",
-             "Yakın yüzeylerin rengi: 0 yok, 5 doğal, 10 iki kat"})
+             "Yakın yüzeylerin rengi: 0 yok, 5 doğal, 10 iki kat",
+             "ﺍﻟﻠﻮﻥ ﺍﻟﺬﻱ ﺗﻠﻘﻴﻪ ﺍﻷﺳﻄﺢ ﺍﻟﻘﺮﻳﺒﺔ: 0 ﻻ ﺷﻲﺀ، 5 ﻃﺒﻴﻌﻲ، 10 ﻣﻀﺎﻋﻒ"})
 BB_MENU_TEXT("Shadows traced against the area's models (ray tracing GPU; after a restart)",
             {"エリアのモデルでトレースする影 (レイトレーシング対応GPU、再起動後)",
              "Ombres tracées sur les modèles de la zone (GPU ray tracing ; après redémarrage)",
@@ -9522,7 +10022,8 @@ BB_MENU_TEXT("Shadows traced against the area's models (ray tracing GPU; after a
              "Skygger sporet mot områdets modeller (GPU med strålesporing; etter omstart)",
              "Cienie śledzone po modelach obszaru (GPU ze śledzeniem promieni; po restarcie)",
              "Sombras traçadas nos modelos da área (GPU com traçado de raios; após reiniciar)",
-             "Bölgenin modellerine karşı izlenen gölgeler (ışın izleme GPU; yeniden başlatınca)"})
+             "Bölgenin modellerine karşı izlenen gölgeler (ışın izleme GPU; yeniden başlatınca)",
+             "ﻇﻼﻝ ﺗﺘﺘﺒﻊ ﻋﻠﻰ ﻧﻤﺎﺫﺝ ﺍﻟﻤﻨﻄﻘﺔ (ﺑﻄﺎﻗﺔ ﺗﺪﻋﻢ ﺗﺘﺒﻊ ﺍﻷﺷﻌﺔ؛ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺍﻟﺘﺸﻐﻴﻞ)"})
 BB_MENU_TEXT("Effects",
             {"エフェクト",
              "Effets",
@@ -9541,7 +10042,8 @@ BB_MENU_TEXT("Effects",
              "Effekter",
              "Efekty",
              "Efeitos",
-             "Efektler"})
+             "Efektler",
+             "ﺍﻟﻤﺆﺛﺮﺍﺕ"})
 BB_MENU_TEXT("The game's effects (bbport; after a restart)",
             {"ゲームのエフェクト（bbport、再起動後）",
              "Les effets du jeu (bbport ; après redémarrage)",
@@ -9560,7 +10062,8 @@ BB_MENU_TEXT("The game's effects (bbport; after a restart)",
              "Spillets effekter (bbport; etter omstart)",
              "Efekty gry (bbport; po restarcie)",
              "Efeitos do jogo (bbport; após reiniciar)",
-             "Oyunun efektleri (bbport; yeniden başlatınca)"})
+             "Oyunun efektleri (bbport; yeniden başlatınca)",
+             "ﻣﺆﺛﺮﺍﺕ ﺍﻟﻠﻌﺒﺔ (bbport؛ ﺑﻌﺪ ﺇﻋﺎﺩﺓ ﺍﻟﺘﺸﻐﻴﻞ)"})
 BB_MENU_TEXT("Chromatic aberration",
             {"色収差",
              "Aberration chromatique",
@@ -9579,7 +10082,8 @@ BB_MENU_TEXT("Chromatic aberration",
              "Kromatisk aberrasjon",
              "Aberracja chromatyczna",
              "Aberração cromática",
-             "Renk sapması"})
+             "Renk sapması",
+             "ﺍﻟﺰﻳﻎ ﺍﻟﻠﻮﻧﻲ"})
 BB_MENU_TEXT("Colour fringes at the frame edges",
             {"フレームの端の色にじみ",
              "Franges colorées aux bords de l'image",
@@ -9598,7 +10102,8 @@ BB_MENU_TEXT("Colour fringes at the frame edges",
              "Fargekanter i bildekantene",
              "Kolorowe obwódki na krawędziach klatki",
              "Franjas de cor nas bordas do quadro",
-             "Kare kenarlarında renk saçakları"})
+             "Kare kenarlarında renk saçakları",
+             "ﺣﻮﺍﻑ ﻣﻠﻮﻧﺔ ﻋﻨﺪ ﺃﻃﺮﺍﻑ ﺍﻹﻃﺎﺭ"})
 BB_MENU_TEXT("Depth of field",
             {"被写界深度",
              "Profondeur de champ",
@@ -9617,7 +10122,8 @@ BB_MENU_TEXT("Depth of field",
              "Dybdeskarphet",
              "Głębia ostrości",
              "Profundidade de campo",
-             "Alan derinliği"})
+             "Alan derinliği",
+             "ﻋﻤﻖ ﺍﻟﻤﻴﺪﺍﻥ"})
 BB_MENU_TEXT("Blur of distant and near objects (DoF)",
             {"遠くと近くの物体のぼかし（DoF）",
              "Flou des objets lointains et proches (DoF)",
@@ -9636,7 +10142,8 @@ BB_MENU_TEXT("Blur of distant and near objects (DoF)",
              "Uskarphet på fjerne og nære objekter (DoF)",
              "Rozmycie dalekich i bliskich obiektów (DoF)",
              "Desfoque de objetos distantes e próximos (DoF)",
-             "Uzak ve yakın nesnelerin bulanıklığı (DoF)"})
+             "Uzak ve yakın nesnelerin bulanıklığı (DoF)",
+             "ﺿﺒﺎﺑﻴﺔ ﺍﻷﺟﺴﺎﻡ ﺍﻟﺒﻌﻴﺪﺓ ﻭﺍﻟﻘﺮﻳﺒﺔ (DoF)"})
 BB_MENU_TEXT("Motion blur",
             {"モーションブラー",
              "Flou de mouvement",
@@ -9655,7 +10162,8 @@ BB_MENU_TEXT("Motion blur",
              "Bevegelsesuskarphet",
              "Rozmycie ruchu",
              "Desfoque de movimento",
-             "Hareket bulanıklığı"})
+             "Hareket bulanıklığı",
+             "ﺿﺒﺎﺑﻴﺔ ﺍﻟﺤﺮﻛﺔ"})
 BB_MENU_TEXT("Blur when the camera turns",
             {"カメラを回したときのぼかし",
              "Flou quand la caméra tourne",
@@ -9674,7 +10182,8 @@ BB_MENU_TEXT("Blur when the camera turns",
              "Uskarphet når kameraet dreier",
              "Rozmycie przy obrocie kamery",
              "Desfoque ao girar a câmera",
-             "Kamera dönerken bulanıklık"})
+             "Kamera dönerken bulanıklık",
+             "ﺿﺒﺎﺑﻴﺔ ﻋﻨﺪ ﺩﻭﺭﺍﻥ ﺍﻟﻜﺎﻣﻴﺮﺍ"})
 BB_MENU_TEXT("Ambient occlusion",
             {"アンビエントオクルージョン",
              "Occlusion ambiante",
@@ -9693,7 +10202,8 @@ BB_MENU_TEXT("Ambient occlusion",
              "Omgivelsesokklusjon",
              "Okluzja otoczenia",
              "Oclusão de ambiente",
-             "Ortam perdeleme"})
+             "Ortam perdeleme",
+             "ﺍﻹﻃﺒﺎﻕ ﺍﻟﻤﺤﻴﻄﻲ"})
 BB_MENU_TEXT("Shading in corners and contacts (SSAO)",
             {"隅や接触部分の陰影（SSAO）",
              "Ombrage dans les coins et aux contacts (SSAO)",
@@ -9712,7 +10222,8 @@ BB_MENU_TEXT("Shading in corners and contacts (SSAO)",
              "Skygge i hjørner og kontaktpunkter (SSAO)",
              "Cieniowanie w narożnikach i miejscach styku (SSAO)",
              "Sombreamento em cantos e contatos (SSAO)",
-             "Köşelerde ve temas noktalarında gölgelendirme (SSAO)"})
+             "Köşelerde ve temas noktalarında gölgelendirme (SSAO)",
+             "ﺗﻈﻠﻴﻞ ﻓﻲ ﺍﻟﺰﻭﺍﻳﺎ ﻭﻧﻘﺎﻁ ﺍﻟﺘﻼﻣﺲ (SSAO)"})
 BB_MENU_TEXT("Game's own AA",
             {"ゲーム本来のAA",
              "AA du jeu",
@@ -9731,7 +10242,8 @@ BB_MENU_TEXT("Game's own AA",
              "Spillets egen AA",
              "Własny AA gry",
              "AA do jogo",
-             "Oyunun kendi AA'sı"})
+             "Oyunun kendi AA'sı",
+             "ﺗﻨﻌﻴﻢ ﺍﻟﻠﻌﺒﺔ ﺍﻷﺻﻠﻲ"})
 BB_MENU_TEXT("The game's own anti-aliasing",
             {"ゲーム本来のアンチエイリアス",
              "L'anticrénelage propre au jeu",
@@ -9750,7 +10262,8 @@ BB_MENU_TEXT("The game's own anti-aliasing",
              "Spillets egen kantutjevning",
              "Własne wygładzanie krawędzi gry",
              "O antisserrilhado próprio do jogo",
-             "Oyunun kendi kenar yumuşatması"})
+             "Oyunun kendi kenar yumuşatması",
+             "ﺗﻨﻌﻴﻢ ﺍﻟﺤﻮﺍﻑ ﺍﻟﺨﺎﺹ ﺑﺎﻟﻠﻌﺒﺔ"})
 BB_MENU_TEXT("Dynamic shadows",
             {"動的な影",
              "Ombres dynamiques",
@@ -9769,7 +10282,8 @@ BB_MENU_TEXT("Dynamic shadows",
              "Dynamiske skygger",
              "Dynamiczne cienie",
              "Sombras dinâmicas",
-             "Dinamik gölgeler"})
+             "Dinamik gölgeler",
+             "ﺍﻟﻈﻼﻝ ﺍﻟﻤﺘﺤﺮﻛﺔ"})
 BB_MENU_TEXT("Shadows from dynamic lights",
             {"動的光源による影",
              "Ombres des lumières dynamiques",
@@ -9788,7 +10302,8 @@ BB_MENU_TEXT("Shadows from dynamic lights",
              "Skygger fra dynamiske lys",
              "Cienie z dynamicznych świateł",
              "Sombras de luzes dinâmicas",
-             "Dinamik ışıkların gölgeleri"})
+             "Dinamik ışıkların gölgeleri",
+             "ﻇﻼﻝ ﺍﻷﺿﻮﺍﺀ ﺍﻟﻤﺘﺤﺮﻛﺔ"})
 BB_MENU_TEXT("SSR reflections",
             {"SSR反射",
              "Réflexions SSR",
@@ -9807,7 +10322,8 @@ BB_MENU_TEXT("SSR reflections",
              "SSR-refleksjoner",
              "Odbicia SSR",
              "Reflexos SSR",
-             "SSR yansımaları"})
+             "SSR yansımaları",
+             "ﺍﻧﻌﻜﺎﺳﺎﺕ SSR"})
 BB_MENU_TEXT("Screen-space reflections (not in the original)",
             {"スクリーンスペース反射（オリジナルにはない）",
              "Réflexions en espace écran (absentes de l'original)",
@@ -9826,7 +10342,8 @@ BB_MENU_TEXT("Screen-space reflections (not in the original)",
              "Skjermromsrefleksjoner (ikke i originalen)",
              "Odbicia w przestrzeni ekranu (nie ma ich w oryginale)",
              "Reflexos em espaço de tela (não há no original)",
-             "Ekran alanı yansımaları (orijinalde yok)"})
+             "Ekran alanı yansımaları (orijinalde yok)",
+             "ﺍﻧﻌﻜﺎﺳﺎﺕ ﻣﺴﺎﺣﺔ ﺍﻟﺸﺎﺷﺔ (ﻟﻴﺴﺖ ﻓﻲ ﺍﻷﺻﻞ)"})
 BB_MENU_TEXT("Skip intros",
             {"オープニングをスキップ",
              "Passer les intros",
@@ -9845,7 +10362,8 @@ BB_MENU_TEXT("Skip intros",
              "Hopp over intro",
              "Pomiń intro",
              "Pular introduções",
-             "Girişleri atla"})
+             "Girişleri atla",
+             "ﺗﺨﻄﻲ ﺍﻟﻤﻘﺪﻣﺎﺕ"})
 BB_MENU_TEXT("Skip the startup logos and intro",
             {"起動時のロゴとオープニングをスキップ",
              "Passer les logos et l'intro au lancement",
@@ -9864,7 +10382,8 @@ BB_MENU_TEXT("Skip the startup logos and intro",
              "Hopp over oppstartslogoer og intro",
              "Pomiń logo startowe i intro",
              "Pular logotipos e introdução ao iniciar",
-             "Başlangıç logolarını ve girişi atla"})
+             "Başlangıç logolarını ve girişi atla",
+             "ﺗﺨﻄﻲ ﺷﻌﺎﺭﺍﺕ ﺍﻟﺒﺪﺀ ﻭﺍﻟﻤﻘﺪﻣﺔ"})
 BB_MENU_TEXT("Toggled with {Cross} + {L3}",
             {"{Cross} + {L3}で切り替え",
              "Activée avec {Cross} + {L3}",
@@ -9883,7 +10402,8 @@ BB_MENU_TEXT("Toggled with {Cross} + {L3}",
              "Slås av/på med {Cross} + {L3}",
              "Przełączana: {Cross} + {L3}",
              "Alterna com {Cross} + {L3}",
-             "{Cross} + {L3} ile açılıp kapanır"})
+             "{Cross} + {L3} ile açılıp kapanır",
+             "ﺗﺒﺪﻝ ﺑـ {Cross} + {L3}"})
 BB_MENU_TEXT("The game's debug menu (requires font files)",
             {"ゲームのデバッグメニュー（フォントファイルが必要）",
              "Le menu de débogage du jeu (requiert des fichiers de police)",
@@ -9902,7 +10422,8 @@ BB_MENU_TEXT("The game's debug menu (requires font files)",
              "Spillets feilsøkingsmeny (krever skriftfiler)",
              "Menu debugowania gry (wymaga plików czcionek)",
              "O menu de depuração do jogo (requer arquivos de fonte)",
-             "Oyunun hata ayıklama menüsü (yazı tipi dosyaları gerekir)"})
+             "Oyunun hata ayıklama menüsü (yazı tipi dosyaları gerekir)",
+             "ﻗﺎﺋﻤﺔ ﺍﻟﺘﺼﺤﻴﺢ ﻓﻲ ﺍﻟﻠﻌﺒﺔ (ﺗﺤﺘﺎﺝ ﻣﻠﻔﺎﺕ ﺧﻄﻮﻁ)"})
 BB_MENU_TEXT("Update the game and the server to the same release, then start the game again.",
             {"ゲームとサーバーを同じバージョンに更新してから、ゲームを起動し直してください。",
              "Mettez le jeu et le serveur à jour vers la même version, puis relancez le jeu.",
@@ -9921,7 +10442,8 @@ BB_MENU_TEXT("Update the game and the server to the same release, then start the
              "Oppdater spillet og serveren til samme versjon, og start deretter spillet på nytt.",
              "Zaktualizuj grę i serwer do tej samej wersji, a potem uruchom grę ponownie.",
              "Atualize o jogo e o servidor para a mesma versão e inicie o jogo novamente.",
-             "Oyunu ve sunucuyu aynı sürüme güncelleyin, ardından oyunu yeniden başlatın."})
+             "Oyunu ve sunucuyu aynı sürüme güncelleyin, ardından oyunu yeniden başlatın.",
+             "ﺣﺪﺙ ﺍﻟﻠﻌﺒﺔ ﻭﺍﻟﺨﺎﺩﻡ ﺇﻟﻰ ﺍﻹﺻﺪﺍﺭ ﻧﻔﺴﻪ، ﺛﻢ ﺷﻐﻞ ﺍﻟﻠﻌﺒﺔ ﻣﺠﺪﺩﺍ."})
 BB_MENU_TEXT("Can't reach the co-op server at %s",
             {"協力サーバー %s に接続できません",
              "Impossible de joindre le serveur coop à l'adresse %s",
@@ -9940,7 +10462,8 @@ BB_MENU_TEXT("Can't reach the co-op server at %s",
              "Får ikke kontakt med co-op-serveren på %s",
              "Nie można połączyć się z serwerem co-op pod adresem %s",
              "Não foi possível conectar ao servidor cooperativo em %s",
-             "%s adresindeki co-op sunucusuna ulaşılamıyor"})
+             "%s adresindeki co-op sunucusuna ulaşılamıyor",
+             "ﺗﻌﺬﺭ ﺍﻟﻮﺻﻮﻝ ﺇﻟﻰ ﺧﺎﺩﻡ ﺍﻟﻠﻌﺐ ﺍﻟﺠﻤﺎﻋﻲ ﻓﻲ %s"})
 BB_MENU_TEXT("The server may not be started, a firewall may be blocking it, or the address is wrong. Fix it, then start the game again.",
             {"サーバーが起動していない、ファイアウォールにブロックされている、またはアドレスが間違っている可能性があります。修正してから、ゲームを起動し直してください。",
              "Le serveur n'est peut-être pas démarré, un pare-feu le bloque peut-être, ou l'adresse est incorrecte. Corrigez cela, puis relancez le jeu.",
@@ -9959,7 +10482,8 @@ BB_MENU_TEXT("The server may not be started, a firewall may be blocking it, or t
              "Serveren er kanskje ikke startet, en brannmur blokkerer den kanskje, eller adressen er feil. Rett det opp, og start deretter spillet på nytt.",
              "Serwer może nie być uruchomiony, może go blokować zapora albo adres jest błędny. Napraw to, a potem uruchom grę ponownie.",
              "O servidor pode não ter sido iniciado, um firewall pode estar bloqueando ou o endereço está errado. Corrija isso e inicie o jogo novamente.",
-             "Sunucu başlatılmamış olabilir, bir güvenlik duvarı engelliyor olabilir veya adres yanlış olabilir. Düzeltin, ardından oyunu yeniden başlatın."})
+             "Sunucu başlatılmamış olabilir, bir güvenlik duvarı engelliyor olabilir veya adres yanlış olabilir. Düzeltin, ardından oyunu yeniden başlatın.",
+             "ﺭﺑﻤﺎ ﻟﻢ ﻳﺸﻐﻞ ﺍﻟﺨﺎﺩﻡ، ﺃﻭ ﻳﺤﺠﺒﻪ ﺟﺪﺍﺭ ﺣﻤﺎﻳﺔ، ﺃﻭ ﺍﻟﻌﻨﻮﺍﻥ ﺧﺎﻃﺊ. ﺃﺻﻠﺢ ﺫﻟﻚ، ﺛﻢ ﺷﻐﻞ ﺍﻟﻠﻌﺒﺔ ﻣﺠﺪﺩﺍ."})
 BB_MENU_TEXT("The co-op server at %s did not accept your login or password",
             {"協力サーバー %s がログイン名またはパスワードを受け付けませんでした",
              "Le serveur coop à l'adresse %s n'a pas accepté votre identifiant ou votre mot de passe",
@@ -9978,7 +10502,8 @@ BB_MENU_TEXT("The co-op server at %s did not accept your login or password",
              "Co-op-serveren på %s godtok ikke brukernavnet eller passordet ditt",
              "Serwer co-op pod adresem %s nie przyjął twojego loginu lub hasła",
              "O servidor cooperativo em %s não aceitou seu login ou sua senha",
-             "%s adresindeki co-op sunucusu kullanıcı adınızı veya parolanızı kabul etmedi"})
+             "%s adresindeki co-op sunucusu kullanıcı adınızı veya parolanızı kabul etmedi",
+             "ﻟﻢ ﻳﻘﺒﻞ ﺧﺎﺩﻡ ﺍﻟﻠﻌﺐ ﺍﻟﺠﻤﺎﻋﻲ ﻓﻲ %s ﺍﺳﻢ ﺍﻟﺪﺧﻮﻝ ﺃﻭ ﻛﻠﻤﺔ ﺍﻟﻤﺮﻭﺭ"})
 BB_MENU_TEXT("Check them in the launcher's co-op settings, then start the game again.",
             {"ランチャーの協力プレイ設定で確認してから、ゲームを起動し直してください。",
              "Vérifiez-les dans les paramètres coop du lanceur, puis relancez le jeu.",
@@ -9997,7 +10522,8 @@ BB_MENU_TEXT("Check them in the launcher's co-op settings, then start the game a
              "Sjekk dem i co-op-innstillingene i launcheren, og start deretter spillet på nytt.",
              "Sprawdź je w ustawieniach co-op w launcherze, a potem uruchom grę ponownie.",
              "Confira-os nas configurações de cooperativo do launcher e inicie o jogo novamente.",
-             "Bunları başlatıcının co-op ayarlarından kontrol edin, ardından oyunu yeniden başlatın."})
+             "Bunları başlatıcının co-op ayarlarından kontrol edin, ardından oyunu yeniden başlatın.",
+             "ﺗﺤﻘﻖ ﻣﻨﻬﻤﺎ ﻓﻲ ﺇﻋﺪﺍﺩﺍﺕ ﺍﻟﻠﻌﺐ ﺍﻟﺠﻤﺎﻋﻲ ﻓﻲ ﺍﻟﻤﺸﻐﻞ، ﺛﻢ ﺷﻐﻞ ﺍﻟﻠﻌﺒﺔ ﻣﺠﺪﺩﺍ."})
 BB_MENU_TEXT("Could not sign in to the co-op server at %s",
             {"協力サーバー %s にサインインできませんでした",
              "Impossible de se connecter au serveur coop à l'adresse %s",
@@ -10016,7 +10542,8 @@ BB_MENU_TEXT("Could not sign in to the co-op server at %s",
              "Kunne ikke logge inn på co-op-serveren på %s",
              "Nie udało się zalogować do serwera co-op pod adresem %s",
              "Não foi possível entrar no servidor cooperativo em %s",
-             "%s adresindeki co-op sunucusunda oturum açılamadı"})
+             "%s adresindeki co-op sunucusunda oturum açılamadı",
+             "ﺗﻌﺬﺭ ﺗﺴﺠﻴﻞ ﺍﻟﺪﺧﻮﻝ ﺇﻟﻰ ﺧﺎﺩﻡ ﺍﻟﻠﻌﺐ ﺍﻟﺠﻤﺎﻋﻲ ﻓﻲ %s"})
 BB_MENU_TEXT("Start the game again. If it stays, update the game and the server to the same release.",
             {"ゲームを起動し直してください。解決しない場合は、ゲームとサーバーを同じバージョンに更新してください。",
              "Relancez le jeu. Si le problème persiste, mettez le jeu et le serveur à jour vers la même version.",
@@ -10035,7 +10562,8 @@ BB_MENU_TEXT("Start the game again. If it stays, update the game and the server 
              "Start spillet på nytt. Hvis det fortsetter, oppdater spillet og serveren til samme versjon.",
              "Uruchom grę ponownie. Jeśli problem pozostanie, zaktualizuj grę i serwer do tej samej wersji.",
              "Inicie o jogo novamente. Se continuar, atualize o jogo e o servidor para a mesma versão.",
-             "Oyunu yeniden başlatın. Sorun sürerse oyunu ve sunucuyu aynı sürüme güncelleyin."})
+             "Oyunu yeniden başlatın. Sorun sürerse oyunu ve sunucuyu aynı sürüme güncelleyin.",
+             "ﺷﻐﻞ ﺍﻟﻠﻌﺒﺔ ﻣﺠﺪﺩﺍ. ﺇﻥ ﺍﺳﺘﻤﺮ ﺫﻟﻚ، ﻓﺤﺪﺙ ﺍﻟﻠﻌﺒﺔ ﻭﺍﻟﺨﺎﺩﻡ ﺇﻟﻰ ﺍﻹﺻﺪﺍﺭ ﻧﻔﺴﻪ."})
 BB_MENU_TEXT("Your team: invite hunters, remove a member, leave, or join the hunt",
             {"あなたのチーム：狩人を招待、メンバーを除名、脱退、または狩りに参加",
              "Votre équipe : invitez des chasseurs, retirez un membre, partez ou rejoignez la chasse",
@@ -10054,7 +10582,8 @@ BB_MENU_TEXT("Your team: invite hunters, remove a member, leave, or join the hun
              "Laget ditt: inviter jegere, fjern et medlem, forlat, eller bli med på jakten",
              "Twoja drużyna: zaproś tropicieli, usuń członka, odejdź lub dołącz do łowów",
              "Sua equipe: convide caçadores, remova um membro, saia ou entre na caçada",
-             "Takımınız: avcı davet edin, bir üyeyi çıkarın, ayrılın veya ava katılın"})
+             "Takımınız: avcı davet edin, bir üyeyi çıkarın, ayrılın veya ava katılın",
+             "ﻓﺮﻳﻘﻚ: ﺍﺩﻉ ﺻﻴﺎﺩﻳﻦ، ﺃﻭ ﺃﺧﺮﺝ ﻋﻀﻮﺍ، ﺃﻭ ﻏﺎﺩﺭ، ﺃﻭ ﺍﻧﻀﻢ ﺇﻟﻰ ﺍﻟﺼﻴﺪ"})
 BB_MENU_TEXT("Team screen",
             {"チーム画面",
              "Écran d'équipe",
@@ -10073,7 +10602,8 @@ BB_MENU_TEXT("Team screen",
              "Lagskjerm",
              "Ekran drużyny",
              "Tela da equipe",
-             "Takım ekranı"})
+             "Takım ekranı",
+             "ﺷﺎﺷﺔ ﺍﻟﻔﺮﻳﻖ"})
 BB_MENU_TEXT("The team screen is open over the game: its Close button comes back here",
             {"チーム画面がゲーム上に開いています：「閉じる」でここに戻ります",
              "L'écran d'équipe est ouvert par-dessus le jeu : son bouton Fermer ramène ici",
@@ -10092,7 +10622,8 @@ BB_MENU_TEXT("The team screen is open over the game: its Close button comes back
              "Lagskjermen er åpen over spillet: Lukk-knappen der fører tilbake hit",
              "Ekran drużyny jest otwarty nad grą: jego przycisk Zamknij wraca tutaj",
              "A tela da equipe está aberta sobre o jogo: o botão Fechar dela volta para cá",
-             "Takım ekranı oyunun üzerinde açık: Kapat düğmesi buraya geri getirir"})
+             "Takım ekranı oyunun üzerinde açık: Kapat düğmesi buraya geri getirir",
+             "ﺷﺎﺷﺔ ﺍﻟﻔﺮﻳﻖ ﻣﻔﺘﻮﺣﺔ ﻓﻮﻕ ﺍﻟﻠﻌﺒﺔ: ﺯﺭ ﺍﻹﻏﻼﻕ ﻓﻴﻬﺎ ﻳﻌﻴﺪﻙ ﺇﻟﻰ ﻫﻨﺎ"})
 BB_MENU_TEXT("Open",
             {"表示中",
              "Ouvert",
@@ -10111,7 +10642,8 @@ BB_MENU_TEXT("Open",
              "Åpne",
              "Otwórz",
              "Aberta",
-             "Aç"})
+             "Aç",
+             "ﻓﺘﺢ"})
 BB_MENU_TEXT("The map: where you and your team are, and travel to a lit lamp",
             {"マップ：あなたと仲間の居場所と、灯った灯りへの移動",
              "La carte : où vous et votre équipe êtes, et voyage vers une lanterne allumée",
@@ -10130,7 +10662,8 @@ BB_MENU_TEXT("The map: where you and your team are, and travel to a lit lamp",
              "Kartet: hvor du og laget ditt er, og reise til en tent lykt",
              "Mapa: gdzie jesteś ty i twoja drużyna oraz podróż do zapalonej lampy",
              "O mapa: onde você e sua equipe estão, e viagem até uma lanterna acesa",
-             "Harita: sen ve takımın neredesiniz, ve yanan bir fenere yolculuk"})
+             "Harita: sen ve takımın neredesiniz, ve yanan bir fenere yolculuk",
+             "ﺍﻟﺨﺮﻳﻄﺔ: ﻣﻜﺎﻧﻚ ﻭﻣﻜﺎﻥ ﻓﺮﻳﻘﻚ، ﻭﺍﻟﺴﻔﺮ ﺇﻟﻰ ﻣﺼﺒﺎﺡ ﻣﻀﺎﺀ"})
 BB_MENU_TEXT("Map screen",
             {"マップ画面",
              "Écran de la carte",
@@ -10149,7 +10682,8 @@ BB_MENU_TEXT("Map screen",
              "Kartskjerm",
              "Ekran mapy",
              "Tela do mapa",
-             "Harita ekranı"})
+             "Harita ekranı",
+             "ﺷﺎﺷﺔ ﺍﻟﺨﺮﻳﻄﺔ"})
 BB_MENU_TEXT("The map is open over the game: {Circle} comes back here",
             {"マップはゲームの上に開いています：{Circle}で戻ります",
              "La carte est ouverte par-dessus le jeu : {Circle} revient ici",
@@ -10168,7 +10702,8 @@ BB_MENU_TEXT("The map is open over the game: {Circle} comes back here",
              "Kartet er åpent over spillet: {Circle} kommer tilbake hit",
              "Mapa jest otwarta nad grą: {Circle} wraca tutaj",
              "O mapa está aberto sobre o jogo: {Circle} volta aqui",
-             "Harita oyunun üstünde açık: {Circle} buraya döner"})
+             "Harita oyunun üstünde açık: {Circle} buraya döner",
+             "ﺍﻟﺨﺮﻳﻄﺔ ﻣﻔﺘﻮﺣﺔ ﻓﻮﻕ ﺍﻟﻠﻌﺒﺔ: {Circle} ﻳﻌﻴﺪﻙ ﺇﻟﻰ ﻫﻨﺎ"})
 BB_MENU_TEXT("A duel is already under way.",
             {"すでに決闘が行われています。",
              "Un duel est déjà en cours.",
@@ -10187,7 +10722,8 @@ BB_MENU_TEXT("A duel is already under way.",
              "En duell pågår allerede.",
              "Pojedynek już trwa.",
              "Já há um duelo em andamento.",
-             "Zaten bir düello sürüyor."})
+             "Zaten bir düello sürüyor.",
+             "ﻫﻨﺎﻙ ﻣﺒﺎﺭﺯﺓ ﺟﺎﺭﻳﺔ ﺑﺎﻟﻔﻌﻞ."})
 BB_MENU_TEXT("Nobody else of your team is here to duel.",
             {"決闘できるチームの仲間がここにいません。",
              "Personne d'autre de votre équipe n'est là pour un duel.",
@@ -10206,7 +10742,8 @@ BB_MENU_TEXT("Nobody else of your team is here to duel.",
              "Ingen andre fra laget ditt er her for en duell.",
              "Nie ma tu nikogo innego z twojej drużyny do pojedynku.",
              "Não há mais ninguém da sua equipe aqui para um duelo.",
-             "Takımından burada düello yapacak başka kimse yok."})
+             "Takımından burada düello yapacak başka kimse yok.",
+             "ﻻ ﺃﺣﺪ ﺁﺧﺮ ﻣﻦ ﻓﺮﻳﻘﻚ ﻫﻨﺎ ﻟﻠﻤﺒﺎﺭﺯﺓ."})
 BB_MENU_TEXT("Nobody accepted the duel.",
             {"誰も決闘を受けませんでした。",
              "Personne n'a accepté le duel.",
@@ -10225,7 +10762,8 @@ BB_MENU_TEXT("Nobody accepted the duel.",
              "Ingen godtok duellen.",
              "Nikt nie przyjął pojedynku.",
              "Ninguém aceitou o duelo.",
-             "Kimse düelloyu kabul etmedi."})
+             "Kimse düelloyu kabul etmedi.",
+             "ﻟﻢ ﻳﻘﺒﻞ ﺃﺣﺪ ﺍﻟﻤﺒﺎﺭﺯﺓ."})
 BB_MENU_TEXT("%s ended the duel.",
             {"%sが決闘を終えました。",
              "%s a mis fin au duel.",
@@ -10244,7 +10782,8 @@ BB_MENU_TEXT("%s ended the duel.",
              "%s avsluttet duellen.",
              "Pojedynek zakończony przez: %s.",
              "%s encerrou o duelo.",
-             "%s düelloyu bitirdi."})
+             "%s düelloyu bitirdi.",
+             "%s ﺃﻧﻬﻰ ﺍﻟﻤﺒﺎﺭﺯﺓ."})
 BB_MENU_TEXT("%s is gone: the duel is over.",
             {"%sがいなくなりました：決闘は終わりです。",
              "%s est parti : le duel est terminé.",
@@ -10263,7 +10802,8 @@ BB_MENU_TEXT("%s is gone: the duel is over.",
              "%s er borte: duellen er over.",
              "%s nie ma już w grze: pojedynek skończony.",
              "%s saiu: o duelo acabou.",
-             "%s ayrıldı: düello bitti."})
+             "%s ayrıldı: düello bitti.",
+             "%s ﻏﺎﺩﺭ: ﺍﻧﺘﻬﺖ ﺍﻟﻤﺒﺎﺭﺯﺓ."})
 BB_MENU_TEXT("%s won the duel.",
             {"%sが決闘に勝利した。",
              "%s ont remporté le duel.",
@@ -10282,7 +10822,8 @@ BB_MENU_TEXT("%s won the duel.",
              "%s vant duellen.",
              "%s wygrywają pojedynek.",
              "%s venceram o duelo.",
-             "Düelloyu %s kazandı."})
+             "Düelloyu %s kazandı.",
+             "%s ﻓﺎﺯ ﺑﺎﻟﻤﺒﺎﺭﺯﺓ."})
 BB_MENU_TEXT("Only one team accepted: the duel is off.",
             {"1つのチームしか受けなかったため、決闘は中止です。",
              "Une seule équipe a accepté : le duel est annulé.",
@@ -10301,7 +10842,8 @@ BB_MENU_TEXT("Only one team accepted: the duel is off.",
              "Bare ett lag takket ja: duellen er avlyst.",
              "Zgodziła się tylko jedna drużyna: pojedynek odwołany.",
              "Só uma equipe aceitou: o duelo foi cancelado.",
-             "Yalnızca bir takım kabul etti: düello iptal."})
+             "Yalnızca bir takım kabul etti: düello iptal.",
+             "ﻗﺒﻞ ﻓﺮﻳﻖ ﻭﺍﺣﺪ ﻓﻘﻂ: ﺃﻟﻐﻴﺖ ﺍﻟﻤﺒﺎﺭﺯﺓ."})
 BB_MENU_TEXT("%s left the area: the duel is over.",
             {"%sがこの地を離れました：決闘は終わりです。",
              "%s a quitté la zone : le duel est terminé.",
@@ -10320,7 +10862,8 @@ BB_MENU_TEXT("%s left the area: the duel is over.",
              "%s forlot området: duellen er over.",
              "%s opuszcza obszar: pojedynek skończony.",
              "%s deixou a área: o duelo acabou.",
-             "%s bölgeden ayrıldı: düello bitti."})
+             "%s bölgeden ayrıldı: düello bitti.",
+             "%s ﻏﺎﺩﺭ ﺍﻟﻤﻨﻄﻘﺔ: ﺍﻧﺘﻬﺖ ﺍﻟﻤﺒﺎﺭﺯﺓ."})
 BB_MENU_TEXT("%s challenges you to a team duel. Accept?",
             {"%sがチーム戦の決闘を申し込んでいます。受けますか？",
              "%s vous défie en duel par équipes. Accepter ?",
@@ -10339,7 +10882,8 @@ BB_MENU_TEXT("%s challenges you to a team duel. Accept?",
              "%s utfordrer deg til lagduell. Godta?",
              "%s wyzywa cię na pojedynek drużynowy. Przyjąć?",
              "%s desafia você para um duelo em equipes. Aceitar?",
-             "%s seni takım düellosuna davet ediyor. Kabul ediyor musun?"})
+             "%s seni takım düellosuna davet ediyor. Kabul ediyor musun?",
+             "%s ﻳﺘﺤﺪﺍﻙ ﻓﻲ ﻣﺒﺎﺭﺯﺓ ﻓﺮﻕ. ﻫﻞ ﺗﻘﺒﻞ؟"})
 BB_MENU_TEXT("%s challenges you to a duel. Accept?",
             {"%sが決闘を申し込んでいます。受けますか？",
              "%s vous défie en duel. Accepter ?",
@@ -10358,7 +10902,8 @@ BB_MENU_TEXT("%s challenges you to a duel. Accept?",
              "%s utfordrer deg til duell. Godta?",
              "%s wyzywa cię na pojedynek. Przyjąć?",
              "%s desafia você para um duelo. Aceitar?",
-             "%s seni düelloya davet ediyor. Kabul et?"})
+             "%s seni düelloya davet ediyor. Kabul et?",
+             "%s ﻳﺘﺤﺪﺍﻙ ﻓﻲ ﻣﺒﺎﺭﺯﺓ. ﻫﻞ ﺗﻘﺒﻞ؟"})
 BB_MENU_TEXT("Give some to this party member",
             {"このパーティメンバーに分ける",
              "En donner à ce membre du groupe",
@@ -10377,7 +10922,8 @@ BB_MENU_TEXT("Give some to this party member",
              "Gi noe til dette gruppemedlemmet",
              "Daj część temu członkowi drużyny",
              "Dar um pouco a este membro do grupo",
-             "Bu grup üyesine biraz ver"})
+             "Bu grup üyesine biraz ver",
+             "ﺃﻋﻂ ﺑﻌﻀﻬﺎ ﻟﻌﻀﻮ ﺍﻟﻔﺮﻳﻖ ﻫﺬﺍ"})
 BB_MENU_TEXT("Give Blood Echoes",
             {"血の遺志を渡す",
              "Donner des Échos de sang",
@@ -10396,7 +10942,8 @@ BB_MENU_TEXT("Give Blood Echoes",
              "Gi Blodekko",
              "Daj Tętnienia krwi",
              "Dar Ecos de Sangue",
-             "Kan Yankıları ver"})
+             "Kan Yankıları ver",
+             "ﺇﻋﻄﺎﺀ ﺃﺻﺪﺍﺀ ﺍﻟﺪﻡ"})
 BB_MENU_TEXT("Give some of your Blood Echoes to this party member",
             {"自分の血の遺志の一部をこのパーティメンバーに渡す",
              "Donner une partie de vos Échos de sang à ce membre du groupe",
@@ -10415,7 +10962,48 @@ BB_MENU_TEXT("Give some of your Blood Echoes to this party member",
              "Gi noe av dine Blodekko til dette gruppemedlemmet",
              "Daj część swoich Tętnień krwi temu członkowi drużyny",
              "Dar parte dos seus Ecos de Sangue a este membro do grupo",
-             "Kan Yankılarınızın bir kısmını bu grup üyesine verin"})
+             "Kan Yankılarınızın bir kısmını bu grup üyesine verin",
+             "ﺃﻋﻂ ﺑﻌﺾ ﺃﺻﺪﺍﺀ ﺩﻣﻚ ﻟﻌﻀﻮ ﺍﻟﻔﺮﻳﻖ ﻫﺬﺍ"})
+BB_MENU_TEXT("Give to %s",
+            {"%sに渡す",
+             "Donner à %s",
+             "Dar a %s",
+             "Dar a %s",
+             "An %s geben",
+             "Dai a %s",
+             "Geven aan %s",
+             "Dar a %s",
+             "%s에게 주기",
+             "交給%s",
+             "交给%s",
+             "Anna pelaajalle %s",
+             "Ge till %s",
+             "Giv til %s",
+             "Gi til %s",
+             "Daj: %s",
+             "Dar para %s",
+             "%s oyuncusuna ver",
+             "ﺃﻋﻂ %s"})
+BB_MENU_TEXT("Give Blood Echoes to %s",
+            {"%sに血の遺志を渡す",
+             "Donner des Échos de sang à %s",
+             "Dar Ecos de sangre a %s",
+             "Dar Ecos de sangre a %s",
+             "Blutechos an %s geben",
+             "Dai Echi del sangue a %s",
+             "Bloedecho's geven aan %s",
+             "Dar Ecos de Sangue a %s",
+             "%s에게 피의 메아리 주기",
+             "把血之回響交給%s",
+             "把血之回响交给%s",
+             "Anna veren kaikuja pelaajalle %s",
+             "Ge blodekon till %s",
+             "Giv blodekkoer til %s",
+             "Gi blodekko til %s",
+             "Daj echa krwi: %s",
+             "Dar Ecos de Sangue para %s",
+             "%s oyuncusuna Kan Yankısı ver",
+             "ﺃﻋﻂ ﺃﺻﺪﺍﺀ ﺍﻟﺪﻡ ﺇﻟﻰ %s"})
 BB_MENU_TEXT("Depth of field (DoF)",
             {"被写界深度（DoF）",
              "Profondeur de champ (DoF)",
@@ -10434,7 +11022,8 @@ BB_MENU_TEXT("Depth of field (DoF)",
              "Dybdeskarphet (DoF)",
              "Głębia ostrości (DoF)",
              "Profundidade de campo (DoF)",
-             "Alan derinliği (DoF)"})
+             "Alan derinliği (DoF)",
+             "ﻋﻤﻖ ﺍﻟﻤﻴﺪﺍﻥ (DoF)"})
 BB_MENU_TEXT("Ambient occlusion (SSAO)",
             {"アンビエントオクルージョン（SSAO）",
              "Occlusion ambiante (SSAO)",
@@ -10453,7 +11042,8 @@ BB_MENU_TEXT("Ambient occlusion (SSAO)",
              "Omgivelsesokklusjon (SSAO)",
              "Okluzja otoczenia (SSAO)",
              "Oclusão de ambiente (SSAO)",
-             "Ortam perdeleme (SSAO)"})
+             "Ortam perdeleme (SSAO)",
+             "ﺍﻹﻃﺒﺎﻕ ﺍﻟﻤﺤﻴﻄﻲ (SSAO)"})
 BB_MENU_TEXT("Game's own anti-aliasing",
             {"ゲーム本来のアンチエイリアス",
              "Anticrénelage propre au jeu",
@@ -10472,7 +11062,8 @@ BB_MENU_TEXT("Game's own anti-aliasing",
              "Spillets egen kantutjevning",
              "Własne wygładzanie krawędzi gry",
              "Antisserrilhado próprio do jogo",
-             "Oyunun kendi kenar yumuşatması"})
+             "Oyunun kendi kenar yumuşatması",
+             "ﺗﻨﻌﻴﻢ ﺍﻟﺤﻮﺍﻑ ﺍﻟﺨﺎﺹ ﺑﺎﻟﻠﻌﺒﺔ"})
 BB_MENU_TEXT("Screen-space reflections (not in original game)",
             {"スクリーンスペース反射（オリジナルにはない）",
              "Réflexions en espace écran (absentes du jeu original)",
@@ -10491,7 +11082,8 @@ BB_MENU_TEXT("Screen-space reflections (not in original game)",
              "Skjermromsrefleksjoner (ikke i originalspillet)",
              "Odbicia w przestrzeni ekranu (nie ma ich w oryginalnej grze)",
              "Reflexos em espaço de tela (não há no jogo original)",
-             "Ekran alanı yansımaları (orijinal oyunda yok)"})
+             "Ekran alanı yansımaları (orijinal oyunda yok)",
+             "ﺍﻧﻌﻜﺎﺳﺎﺕ ﻣﺴﺎﺣﺔ ﺍﻟﺸﺎﺷﺔ (ﻟﻴﺴﺖ ﻓﻲ ﺍﻟﻠﻌﺒﺔ ﺍﻷﺻﻠﻴﺔ)"})
 BB_MENU_TEXT("Skip startup intros",
             {"起動時のオープニングをスキップ",
              "Passer les intros au lancement",
@@ -10510,7 +11102,8 @@ BB_MENU_TEXT("Skip startup intros",
              "Hopp over oppstartsintroer",
              "Pomiń intra przy starcie",
              "Pular introduções ao iniciar",
-             "Başlangıç girişlerini atla"})
+             "Başlangıç girişlerini atla",
+             "ﺗﺨﻄﻲ ﻣﻘﺪﻣﺎﺕ ﺍﻟﺒﺪﺀ"})
 BB_MENU_TEXT("Free camera ({Cross} + {L3})",
             {"フリーカメラ（{Cross} + {L3}）",
              "Caméra libre ({Cross} + {L3})",
@@ -10529,7 +11122,8 @@ BB_MENU_TEXT("Free camera ({Cross} + {L3})",
              "Fritt kamera ({Cross} + {L3})",
              "Wolna kamera ({Cross} + {L3})",
              "Câmera livre ({Cross} + {L3})",
-             "Serbest kamera ({Cross} + {L3})"})
+             "Serbest kamera ({Cross} + {L3})",
+             "ﺍﻟﻜﺎﻣﻴﺮﺍ ﺍﻟﺤﺮﺓ ({Cross} + {L3})"})
 BB_MENU_TEXT("Debug menu (requires font files)",
             {"デバッグメニュー（フォントファイルが必要）",
              "Menu de débogage (requiert des fichiers de police)",
@@ -10548,7 +11142,8 @@ BB_MENU_TEXT("Debug menu (requires font files)",
              "Feilsøkingsmeny (krever skriftfiler)",
              "Menu debugowania (wymaga plików czcionek)",
              "Menu de depuração (requer arquivos de fonte)",
-             "Hata ayıklama menüsü (yazı tipi dosyaları gerekir)"})
+             "Hata ayıklama menüsü (yazı tipi dosyaları gerekir)",
+             "ﻗﺎﺋﻤﺔ ﺍﻟﺘﺼﺤﻴﺢ (ﺗﺤﺘﺎﺝ ﻣﻠﻔﺎﺕ ﺧﻄﻮﻁ)"})
 BB_MENU_TEXT("Cheat: no death (HP stays at 1 or more)",
             {"チート：死なない（HPは1以上を維持）",
              "Triche : pas de mort (PV toujours à 1 ou plus)",
@@ -10567,7 +11162,8 @@ BB_MENU_TEXT("Cheat: no death (HP stays at 1 or more)",
              "Juks: ingen død (HP holder seg på 1 eller mer)",
              "Kod: brak śmierci (PŻ zostaje na 1 lub więcej)",
              "Trapaça: sem morte (HP fica em 1 ou mais)",
-             "Hile: ölümsüzlük (HP 1 veya üstünde kalır)"})
+             "Hile: ölümsüzlük (HP 1 veya üstünde kalır)",
+             "ﻏﺶ: ﻻ ﻣﻮﺕ (ﺗﺒﻘﻰ ﺍﻟﺼﺤﺔ 1 ﺃﻭ ﺃﻛﺜﺮ)"})
 BB_MENU_TEXT("Cheat: enemies do not see you",
             {"チート：敵に見つからない",
              "Triche : les ennemis ne vous voient pas",
@@ -10586,7 +11182,8 @@ BB_MENU_TEXT("Cheat: enemies do not see you",
              "Juks: fiender ser deg ikke",
              "Kod: wrogowie cię nie widzą",
              "Trapaça: inimigos não te veem",
-             "Hile: düşmanlar sizi görmez"})
+             "Hile: düşmanlar sizi görmez",
+             "ﻏﺶ: ﺍﻷﻋﺪﺍﺀ ﻻ ﻳﺮﻭﻧﻚ"})
 BB_MENU_TEXT("Cheat: enemies do not hear you",
             {"チート：敵に聞こえない",
              "Triche : les ennemis ne vous entendent pas",
@@ -10605,7 +11202,8 @@ BB_MENU_TEXT("Cheat: enemies do not hear you",
              "Juks: fiender hører deg ikke",
              "Kod: wrogowie cię nie słyszą",
              "Trapaça: inimigos não te ouvem",
-             "Hile: düşmanlar sizi duymaz"})
+             "Hile: düşmanlar sizi duymaz",
+             "ﻏﺶ: ﺍﻷﻋﺪﺍﺀ ﻻ ﻳﺴﻤﻌﻮﻧﻚ"})
 BB_MENU_TEXT("Cheat: Rally does not fade",
             {"チート：リゲインが消えない",
              "Triche : le Ralliement ne s'estompe pas",
@@ -10624,7 +11222,8 @@ BB_MENU_TEXT("Cheat: Rally does not fade",
              "Juks: Regen blekner ikke",
              "Kod: Szarża nie zanika",
              "Trapaça: a Recuperação não some",
-             "Hile: Toplanma solmaz"})
+             "Hile: Toplanma solmaz",
+             "ﻏﺶ: ﺍﻻﺳﺘﺮﺩﺍﺩ ﻻ ﻳﺘﻼﺷﻰ"})
 BB_MENU_TEXT("Cheat: control an enemy ({R3} / {L3})",
             {"チート：敵を操作（{R3} / {L3}）",
              "Triche : contrôler un ennemi ({R3} / {L3})",
@@ -10643,7 +11242,8 @@ BB_MENU_TEXT("Cheat: control an enemy ({R3} / {L3})",
              "Juks: styr en fiende ({R3} / {L3})",
              "Kod: steruj wrogiem ({R3} / {L3})",
              "Trapaça: controlar um inimigo ({R3} / {L3})",
-             "Hile: bir düşmanı yönet ({R3} / {L3})"})
+             "Hile: bir düşmanı yönet ({R3} / {L3})",
+             "ﻏﺶ: ﺍﻟﺘﺤﻜﻢ ﺑﻌﺪﻭ ({R3} / {L3})"})
 BB_MENU_TEXT("No Rally (HP regain)",
             {"リゲインなし（HP回復）",
              "Pas de Ralliement (regain de PV)",
@@ -10662,7 +11262,8 @@ BB_MENU_TEXT("No Rally (HP regain)",
              "Ingen Regen (HP-gjenvinning)",
              "Bez Szarży (odzyskiwanie PŻ)",
              "Sem Recuperação (recuperar HP)",
-             "Toplanma yok (HP geri kazanımı)"})
+             "Toplanma yok (HP geri kazanımı)",
+             "ﺑﻼ ﺍﺳﺘﺮﺩﺍﺩ (ﺍﺳﺘﻌﺎﺩﺓ ﺍﻟﺼﺤﺔ)"})
 BB_MENU_TEXT("Camera further away",
             {"カメラを遠くに",
              "Caméra plus éloignée",
@@ -10681,7 +11282,8 @@ BB_MENU_TEXT("Camera further away",
              "Kamera lenger unna",
              "Kamera dalej",
              "Câmera mais afastada",
-             "Kamera daha uzakta"})
+             "Kamera daha uzakta",
+             "ﻛﺎﻣﻴﺮﺍ ﺃﺑﻌﺪ"})
 BB_MENU_TEXT("No automatic camera rotation",
             {"カメラの自動回転なし",
              "Pas de rotation auto de la caméra",
@@ -10700,7 +11302,8 @@ BB_MENU_TEXT("No automatic camera rotation",
              "Ingen automatisk kamerarotasjon",
              "Bez automatycznego obrotu kamery",
              "Sem rotação automática da câmera",
-             "Otomatik kamera dönüşü yok"})
+             "Otomatik kamera dönüşü yok",
+             "ﺑﻼ ﺩﻭﺭﺍﻥ ﺗﻠﻘﺎﺋﻲ ﻟﻠﻜﺎﻣﻴﺮﺍ"})
 BB_MENU_TEXT("Run with less stick tilt",
             {"スティックを少し倒すだけで走る",
              "Courir avec moins d'inclinaison du stick",
@@ -10719,7 +11322,8 @@ BB_MENU_TEXT("Run with less stick tilt",
              "Løp med mindre stikkutslag",
              "Bieg przy mniejszym wychyleniu gałki",
              "Correr com menos inclinação do analógico",
-             "Daha az çubuk eğimiyle koş"})
+             "Daha az çubuk eğimiyle koş",
+             "ﺍﻟﺮﻛﺾ ﺑﺈﻣﺎﻟﺔ ﺃﻗﻞ ﻟﻠﻌﺼﺎ"})
 BB_MENU_TEXT("Dark Souls-style body physics",
             {"Dark Souls風の体の物理",
              "Physique des corps façon Dark Souls",
@@ -10738,5 +11342,6 @@ BB_MENU_TEXT("Dark Souls-style body physics",
              "Kroppsfysikk som i Dark Souls",
              "Fizyka ciała jak w Dark Souls",
              "Física de corpos estilo Dark Souls",
-             "Dark Souls tarzı vücut fiziği"})
+             "Dark Souls tarzı vücut fiziği",
+             "ﻓﻴﺰﻳﺎﺀ ﺃﺟﺴﺎﻡ ﺑﺄﺳﻠﻮﺏ Dark Souls"})
 #endif
