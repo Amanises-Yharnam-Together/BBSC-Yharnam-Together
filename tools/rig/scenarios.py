@@ -639,11 +639,16 @@ SCENARIOS = {
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 300,
     },
-    # The switch on the host's side only: its table loses the glow's effect, the guest's keeps it,
-    # and the guest stays a phantom with SpEffect 9006 either way.
+    # The switch on the host's side only: its table loses the glow's effect, the guest's keeps it.
+    # Which SpEffect carries the glow (full rig 2026-11-11, 1.5.0 test 4): the join's phantom has
+    # 9006 on its own character; after any trip it is a live player with the host's 9001 instead
+    # (rig logs with the join's reload off: "6300 40 9001" after a lamp trip), and since the join's
+    # reload in place (TripAfterJoin) that is so seconds after the join. The host's copy of the
+    # guest keeps 9006 through it, so the option still has its glow to take away there.
     "phantom-glow-off": {
         "about": "the no-glow option on the host only: its log says the effect went, the guest's "
-                 "does not, and the guest's SpEffect 9006 stays",
+                 "does not; the host's copy of the guest keeps SpEffect 9006, the guest's own "
+                 "character has the live player's 9001 after its join's reload",
         "roles": {
             "host": [START, "godmode", "wait-session 2 300", "wait 20", "watch-effects player 4",
                      "wait 6", "wait 10"],
@@ -651,9 +656,13 @@ SCENARIOS = {
                       "wait 6", "wait 10"],
         },
         "role_settings": {"host": {"SHADPS4_BLOODBORNE_NO_PHANTOM_GLOW": "1"}},
-        "expect": {"host": [r"phantom glow off \(SpEffectVfx 272 effect 211 -> -1\)"],
-                   "guest": [r"effects of 0xffffffff hp \d+: .*9006"]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS + ["phantom glow off"]},
+        "expect": {"host": [r"phantom glow off \(SpEffectVfx 272 effect 211 -> -1\)",
+                            r"effects of 0x(?!ffffffff)[0-9a-f]+ hp \d+: .*9006"],
+                   "guest": [r"trip after the join: reloading in place",
+                             r"effects of 0xffffffff hp \d+: .*9001"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + ["phantom glow off",
+                                             r"effects of 0xffffffff hp \d+: .*9006"]},
         "timeout": 300,
     },
     # Kaniel 2026-10-14: with the host far away on the same map, the enemies beside a guest stood
