@@ -4520,7 +4520,37 @@ SCENARIOS["friendly-fire"] = {
     },
     "forbid": {role: [*SESSION_HOLDS, r"Co-op duel: duel \d+ fights", r"Bloodborne party wipe"]
                for role in ("host", "guest")},
-    "timeout": 480,
+    "timeout": 300,
+}
+
+
+# Kaniel 2026-11-11, the friendly fire rule: what the enemies make of a teammate's body on the
+# invaders' team. Both hunters stand 7 m from ENEMY (close enough for it to notice a player), the
+# rule off, then on, then off again; each game's "Bloodborne enemy targets" lines say whom the
+# enemy holds as a target in each part (a probe: read from the logs, nothing is judged).
+FRIENDLY_FIRE_ENEMY_SYNCS = ("ffe-together", "ffe-base", "ffe-on", "ffe-fought", "ffe-off")
+SCENARIOS["friendly-fire-enemy"] = {
+    "about": "the friendly fire team rule beside an enemy: whom it targets with the rule off, on "
+             "and off again (a probe for the logs' enemy targets lines)",
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 5", "sync ffe-together",
+                 f"teleport {GUEST_PAIR_SPOT}", "wait 20", "census 15", "sync ffe-base",
+                 f"team-rules {FRIENDLY_FIRE_ON}", "sync ffe-on", "wait 25", "census 15",
+                 "sync ffe-fought", f"team-rules {FRIENDLY_FIRE_OFF}", "sync ffe-off", "wait 12",
+                 "census 15", "snapshot", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300", "wait 5",
+                  "sync ffe-together", f"teleport {GUEST_ALONE_SPOT}", "wait 20", "census 15",
+                  "sync ffe-base", f"team-wait-rules {FRIENDLY_FIRE_ON}", "sync ffe-on",
+                  "wait 25", "census 15", "sync ffe-fought",
+                  f"team-wait-rules {FRIENDLY_FIRE_OFF}", "sync ffe-off", "wait 12", "census 15",
+                  "snapshot", "expect-session 2"],
+    },
+    "settings": {"SHADPS4_BLOODBORNE_PARTY_DEATH": "1"},
+    "syncs": {name: {"chapter": "friendly-fire-enemy", "roles": ["host", "guest"]}
+              for name in FRIENDLY_FIRE_ENEMY_SYNCS},
+    "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
+    "timeout": 300,
 }
 
 
@@ -6178,6 +6208,8 @@ PROBE_NAMES = (
     "setup", "boot",
     # textures after trips: the game's null table pointers per far trip, and pictures of it
     "far-trips-soak", "far-trips-look",
+    # Kaniel 2026-11-11: the enemies' targets with the friendly fire rule
+    "friendly-fire-enemy",
     # packet trace for tools/re/packet_summary.py
     "fps-pace",
     # 2026-10-10/11 investigations; mine/prey use whatever saves the games have now
