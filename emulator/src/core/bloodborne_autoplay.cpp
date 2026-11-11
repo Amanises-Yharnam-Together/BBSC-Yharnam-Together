@@ -2195,6 +2195,13 @@ bool AutoplayTeamVerb(const AutoplayStep&) {
     return true;
 }
 
+// Kaniel 2026-11-11 (the friendly fire rule, set mid-hunt): team-rules <rules> and
+// team-wait-rules <rules> work in the world too, as the leader's team screen in game does
+// (RunTeamTitleVerb: at once when the team has those rules already, as after the title's).
+bool AutoplayTeamRulesVerb(const AutoplayStep& step) {
+    return Coop::RunTeamTitleVerb(step.command, step.begun, step.elapsed, step.failure);
+}
+
 // Kaniel 2026-10-16: the team menu in game, what its buttons do (menu-invite <online id>,
 // menu-kick <online id>, menu-join, menu-leave; each [timeout]). Invasions: menu-invade,
 // menu-invade-leave, menu-allow-invaders <0|1>, wait-invader <0|1> (RunTeamMenuVerb).
@@ -2674,8 +2681,8 @@ constexpr auto AutoplayVerbs = std::to_array<std::pair<std::string_view, Autopla
     {"team-wait", AutoplayTeamVerb},
     {"team-leave", AutoplayTeamVerb},
     {"team-open", AutoplayTeamVerb},
-    {"team-rules", AutoplayTeamVerb},
-    {"team-wait-rules", AutoplayTeamVerb},
+    {"team-rules", AutoplayTeamRulesVerb},
+    {"team-wait-rules", AutoplayTeamRulesVerb},
     {"team-join-open", AutoplayTeamVerb},
     {"team-wait-open", AutoplayTeamVerb},
     {"team-code-share", AutoplayTeamVerb},

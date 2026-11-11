@@ -1311,8 +1311,8 @@ int ATeamWithoutItsMakersRulesTakesTheServersDefault() {
 // enemies and their strength, and the other rules by name; anything unknown or
 // out of range is refused (the server then keeps its own default).
 int TheServersDefaultRulesComeFromItsConfig() {
-  const auto fixed = ParseTeamRules(
-      "enemies=fixed; hp=2.5; damage=1.25; poise=2; rot; travel; vote; tempo=1");
+  const auto fixed = ParseTeamRules("enemies=fixed; hp=2.5; damage=1.25; "
+                                    "poise=2; rot; travel; vote; tempo=1");
   CHECK(fixed.has_value());
   CHECK(!fixed->enemy_scaling() && fixed->enemy_hp() == 2.5f &&
         fixed->enemy_damage() == 1.25f && fixed->enemy_poise() == 2.0f &&
@@ -1323,8 +1323,8 @@ int TheServersDefaultRulesComeFromItsConfig() {
         automatic->enemy_hp() == 0.0f && !automatic->rot());
   CHECK(ParseTeamRules("").has_value() && ParseTeamRules("")->enemy_scaling());
   CHECK(!ParseTeamRules("enemies=hard"));
-  CHECK(!ParseTeamRules("hp=0.5"));   // weaker than the game's own
-  CHECK(!ParseTeamRules("hp=11"));    // past HarderEnemiesMax
+  CHECK(!ParseTeamRules("hp=0.5")); // weaker than the game's own
+  CHECK(!ParseTeamRules("hp=11"));  // past HarderEnemiesMax
   CHECK(!ParseTeamRules("tempo=3"));
   CHECK(!ParseTeamRules("fly"));
   // Kaniel 2026-11-11: friendly fire, off unless named.
