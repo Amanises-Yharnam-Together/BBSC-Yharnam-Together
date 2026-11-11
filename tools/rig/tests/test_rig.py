@@ -199,6 +199,46 @@ class ScenarioTest(unittest.TestCase):
                 self.assertNotIn("hurt self 1", commands[:at])
                 self.assertEqual(commands[at + 1:at + 4], ["godmode off", "hurt self 1", "rise 18"])
 
+    def test_down_by_enemy_leaves_the_enemy_to_the_guest(self):
+        # Rig 2026-11-11 (1.5.0 test 4, three runs): the enemy had fought the godmode host since
+        # down-revive and stayed on it; the guest, up at its lamp after down-no-kneel's give-up
+        # (a live player since the join's reload), stood 3 m from it for 90 s and never went
+        # down. The host is far away first, and the guest's own hit turns the enemy to it.
+        chapter = next(c for c in suites.SUITES["party-death"]["chapters"]
+                       if c["name"] == "down-by-enemy")
+        host, guest = chapter["steps"]["host"], chapter["steps"]["guest"]
+        # At the lamp: by Iosefka's clinic the host fell through the floor (rig 2026-11-12).
+        self.assertEqual(host[:2], [f"teleport {suites.AT_THE_LAMP}", "sync dbe-apart"])
+        # Back by the others for the chapters after it.
+        self.assertEqual(host[-2:], [f"teleport {suites.WIPE_SPOT['host']}", "wait 3"])
+        self.assertEqual(guest[:6], ["sync dbe-apart", f"hit {scenarios.ENEMY} 30", "godmode off",
+                                     "hurt self 1", f"approach {scenarios.ENEMY}",
+                                     "press r3 200"])
+        # The enemy runs in the guest's game (the nearest player's): its game forgets the target.
+        self.assertTrue(any("self down=true" in line for line in chapter["expect"]["guest"]))
+        self.assertNotIn("host", chapter["expect"])
+
+    def test_a_wipes_guest_holds_godmode_until_its_own_point_stands(self):
+        # The same run's wipe: the enemy stood by the guest and downed it the moment godmode went
+        # off, before its return point had stood 10 s: the death took the point for a special one
+        # ("respawn at the own special point 2412951") and the guest woke 113 m from the host.
+        chapter = next(c for c in suites.SUITES["party-death"]["chapters"] if c["name"] == "wipe")
+        guest = chapter["steps"]["guest"]
+        point = guest.index("return-point 2412951")
+        self.assertNotIn("godmode off", guest[:point])
+        self.assertEqual(guest[point:point + 3], ["return-point 2412951", "wait 12", "godmode off"])
+
+    def test_a_wipes_host_is_back_on_its_spot_for_the_census_of_its_hit(self):
+        # The same run: the enemy stood by the drop south of the lamp, the host's last attack
+        # stance was past the edge and it fell (godmode) through its census: "0 characters within
+        # 40 m of (-199.8, -351.5, 161.6)", so the enemy was "not hurt in its census".
+        chapter = next(c for c in suites.SUITES["party-death"]["chapters"] if c["name"] == "wipe")
+        host = chapter["steps"]["host"]
+        hit = host.index(f"hit {scenarios.ENEMY} 30")
+        self.assertEqual(host[hit + 1:hit + 3],
+                         [f"teleport {suites.WIPE_SPOT['host']}", "wait 2"])
+        self.assertLess(hit + 2, host.index("census 40"))
+
     def test_rom_whole_again_is_judged_against_her_own_max(self):
         # The enemy strength rule moves her max with the hunters on the map (9528 for two): no
         # full-HP number, each game's last census against its own max.
