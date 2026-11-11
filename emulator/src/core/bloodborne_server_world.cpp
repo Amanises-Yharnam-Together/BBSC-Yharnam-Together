@@ -23,6 +23,7 @@
 #include <deque>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <mutex>
 #include <optional>
 #include <random>
@@ -310,6 +311,7 @@ BossTempo BossTempoOf(bbcoop::BossTempo tempo) {
 }
 
 void SetOwnRules(const HostRules& rules, bool keep);
+TeamChoices KeptTeamChoices();
 
 void NoteTeamRules(const bbcoop::LobbyState& state, const std::string& me) {
     const bool team = state.has_team();
@@ -331,6 +333,41 @@ void NoteTeamRules(const bbcoop::LobbyState& state, const std::string& me) {
                    rules.enemies ? fmt::format("{:g},{:g},{:g}", rules.enemies->hp,
                                                rules.enemies->damage, rules.enemies->poise)
                                  : std::string{"standard"});
+    }
+    // Kaniel 2026-11-11: a team this player just made (alone in it, not started) takes the joining,
+    // invaders and death mode it kept from its last one, where the team still has the defaults.
+    // Under team_mutex (TakeLobbyMessage): straight into the outbox.
+    if (team && !was_in && state.team().leader() == me && state.team().members_size() == 1 &&
+        !state.team().started()) {
+        const bbcoop::Team& made = state.team();
+        const TeamChoices now{.join = static_cast<u32>(made.join()),
+                              .invaders = made.allow_invaders(),
+                              .death_mode = made.death_mode()};
+        const TeamChoices wanted = ChoicesForNewTeam(now, KeptTeamChoices());
+        const auto ask = [](bbcoop::TeamRequest::Action action) {
+            bbcoop::Envelope envelope;
+            envelope.mutable_team_request()->set_action(action);
+            return envelope;
+        };
+        if (wanted.join != now.join) {
+            bbcoop::Envelope envelope = ask(bbcoop::TeamRequest::OPEN);
+            envelope.mutable_team_request()->set_join(static_cast<bbcoop::Team::Join>(wanted.join));
+            lobby_outbox.push_back(std::move(envelope));
+        }
+        if (wanted.invaders != now.invaders) {
+            bbcoop::Envelope envelope = ask(bbcoop::TeamRequest::INVADERS);
+            envelope.mutable_team_request()->set_allow(wanted.invaders);
+            lobby_outbox.push_back(std::move(envelope));
+        }
+        if (wanted.death_mode != now.death_mode) {
+            bbcoop::Envelope envelope = ask(bbcoop::TeamRequest::DEATH_MODE);
+            envelope.mutable_team_request()->set_death_mode(wanted.death_mode);
+            lobby_outbox.push_back(std::move(envelope));
+        }
+        if (wanted != now) {
+            LOG_NOTICE(Debug, "Co-op team lobby: the new team takes this leader's kept settings {}",
+                       TeamChoicesText(wanted));
+        }
     }
     // The team this player leads (its own, or one a leader that left handed over): its rules are
     // this player's own until it sets others, so a hello again (the link back) asks for the same.
@@ -421,6 +458,63 @@ bbcoop::TeamRules TeamRulesOf(const HostRules& rules) {
         r.set_enemy_poise(rules.enemies->poise);
     }
     return r;
+}
+
+// Kaniel 2026-11-11: the leader's joining, invaders and death mode (TeamChoices), kept the same
+// way: read once, written at each press of its own on the team screen.
+std::mutex team_choices_mutex;
+std::optional<TeamChoices> team_choices;
+
+std::filesystem::path TeamChoicesFile() {
+    return Common::FS::GetUserPath(Common::FS::PathType::UserDir) / "bloodborne_team_choices.txt";
+}
+
+// Under team_choices_mutex.
+TeamChoices& TeamChoicesLocked() {
+    if (!team_choices) {
+        std::string saved;
+        {
+            std::ifstream file{TeamChoicesFile(), std::ios::binary};
+            std::getline(file, saved);
+        }
+        team_choices = ParseTeamChoices(saved).value_or(TeamChoices{});
+        LOG_INFO(Debug, "Co-op team lobby: this player's kept team settings are {}",
+                 TeamChoicesText(*team_choices));
+    }
+    return *team_choices;
+}
+
+TeamChoices KeptTeamChoices() {
+    std::scoped_lock lock{team_choices_mutex};
+    return TeamChoicesLocked();
+}
+
+// A press on the team screen's joining, invaders or death mode row (KeepTeamChoice): kept for
+// the next team.
+void StoreTeamChoice(const std::function<void(TeamChoices&)>& set) {
+    std::scoped_lock lock{team_choices_mutex};
+    TeamChoices& choices = TeamChoicesLocked();
+    const TeamChoices before = choices;
+    set(choices);
+    if (choices == before) {
+        return;
+    }
+    const std::filesystem::path path = TeamChoicesFile();
+    std::filesystem::path partial = path;
+    partial += ".part";
+    {
+        std::ofstream file{partial, std::ios::binary | std::ios::trunc};
+        file << TeamChoicesText(choices) << '\n';
+        if (!file.flush()) {
+            return;
+        }
+    }
+    std::error_code error;
+    std::filesystem::rename(partial, path, error);
+    if (!error) {
+        LOG_INFO(Debug, "Co-op team lobby: kept the team settings {} for the next team",
+                 TeamChoicesText(choices));
+    }
 }
 
 // The rules this game asks for its team at its hello: its own, when it has any.
@@ -3692,6 +3786,16 @@ void InvasionRequest(bool cancel) {
              send ? "to the server" : "nothing to send");
     if (send) {
         SendInvadeRequest(cancel);
+    }
+}
+
+void KeepTeamChoice(bbcoop::TeamRequest::Action action, u32 value) {
+    if (action == bbcoop::TeamRequest::OPEN && value <= 2) {
+        StoreTeamChoice([value](TeamChoices& choices) { choices.join = value; });
+    } else if (action == bbcoop::TeamRequest::INVADERS) {
+        StoreTeamChoice([value](TeamChoices& choices) { choices.invaders = value != 0; });
+    } else if (action == bbcoop::TeamRequest::DEATH_MODE && value <= 1) {
+        StoreTeamChoice([value](TeamChoices& choices) { choices.death_mode = value; });
     }
 }
 

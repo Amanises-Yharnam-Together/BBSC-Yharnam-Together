@@ -330,6 +330,30 @@ std::optional<HostRules> OwnRulesAtStart(const char* env_rules, const char* env_
     return ParseScreenRules(saved);
 }
 
+std::string TeamChoicesText(const TeamChoices& choices) {
+    return fmt::format("{},{},{}", choices.join, choices.invaders ? 1 : 0, choices.death_mode);
+}
+
+std::optional<TeamChoices> ParseTeamChoices(std::string_view text) {
+    while (!text.empty() && (text.back() == '\n' || text.back() == '\r' || text.back() == ' ')) {
+        text.remove_suffix(1);
+    }
+    // Three single digits and two commas.
+    if (text.size() != 5 || text[1] != ',' || text[3] != ',' || text[0] < '0' || text[0] > '2' ||
+        text[2] < '0' || text[2] > '1' || text[4] < '0' || text[4] > '1') {
+        return std::nullopt;
+    }
+    return TeamChoices{.join = static_cast<u32>(text[0] - '0'),
+                       .invaders = text[2] == '1',
+                       .death_mode = static_cast<u32>(text[4] - '0')};
+}
+
+TeamChoices ChoicesForNewTeam(const TeamChoices& team, const TeamChoices& kept) {
+    return TeamChoices{.join = team.join == 0 ? kept.join : team.join,
+                       .invaders = team.invaders || kept.invaders,
+                       .death_mode = team.death_mode == 0 ? kept.death_mode : team.death_mode};
+}
+
 std::optional<HarderEnemies> TeamStrength(float hp, float damage, float poise) {
     if (hp == 0.0f && damage == 0.0f && poise == 0.0f) {
         return std::nullopt;

@@ -556,5 +556,9 @@
  "The co-op server at %s did not accept your login or password": "De co-opserver op %s heeft je login of wachtwoord niet geaccepteerd",
  "Check them in the launcher's co-op settings, then start the game again.": "Controleer ze in de co-opinstellingen van de launcher en start de game daarna opnieuw.",
  "Could not sign in to the co-op server at %s": "Aanmelden bij de co-opserver op %s is mislukt",
- "Start the game again. If it stays, update the game and the server to the same release.": "Start de game opnieuw. Blijft het zo, werk dan de game en de server bij naar dezelfde versie."
+ "Start the game again. If it stays, update the game and the server to the same release.": "Start de game opnieuw. Blijft het zo, werk dan de game en de server bij naar dezelfde versie.",
+ "Custom": "Aangepast",
+ "Enemy HP": "HP van vijanden",
+ "Enemy damage": "Schade van vijanden",
+ "Enemy poise": "Evenwicht van vijanden"
 }

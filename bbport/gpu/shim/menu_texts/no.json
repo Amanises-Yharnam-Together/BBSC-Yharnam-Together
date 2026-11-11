@@ -556,5 +556,9 @@
  "The co-op server at %s did not accept your login or password": "Co-op-serveren på %s godtok ikke brukernavnet eller passordet ditt",
  "Check them in the launcher's co-op settings, then start the game again.": "Sjekk dem i co-op-innstillingene i launcheren, og start deretter spillet på nytt.",
  "Could not sign in to the co-op server at %s": "Kunne ikke logge inn på co-op-serveren på %s",
- "Start the game again. If it stays, update the game and the server to the same release.": "Start spillet på nytt. Hvis det fortsetter, oppdater spillet og serveren til samme versjon."
+ "Start the game again. If it stays, update the game and the server to the same release.": "Start spillet på nytt. Hvis det fortsetter, oppdater spillet og serveren til samme versjon.",
+ "Custom": "Egendefinert",
+ "Enemy HP": "Fiendenes HP",
+ "Enemy damage": "Fiendenes skade",
+ "Enemy poise": "Fiendenes balanse"
 }

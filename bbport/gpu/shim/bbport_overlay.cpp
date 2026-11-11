@@ -3452,22 +3452,46 @@ int StrengthIndex(const TeamRules& rules) {
     return -1;
 }
 
-std::string StrengthText(const TeamRules& rules) {
-    const int index = StrengthIndex(rules);
+std::string StrengthText(const TeamRules& rules, bool custom) {
+    const int index = custom ? -1 : StrengthIndex(rules);
     char text[160];
-    std::snprintf(text, sizeof(text), "%s%sHP x%g, %s x%g, %s x%g%s",
-                  index < 0 ? "" : T(Strengths[index].en, Strengths[index].ru), index < 0 ? "" : "  (",
+    std::snprintf(text, sizeof(text), "%s  (HP x%g, %s x%g, %s x%g)",
+                  index < 0 ? T("Custom", "Свои значения") : T(Strengths[index].en, Strengths[index].ru),
                   double(rules.hp), T("damage", "урон"), double(rules.damage), T("poise", "стойкость"),
-                  double(rules.poise), index < 0 ? "" : ")");
-    return text; // without a step's name: a server's own default or an older launcher's custom one
+                  double(rules.poise));
+    return text; // Custom: the leader's own numbers, a server's own default or an older launcher's
 }
 
-void NextStrength(TeamRules& rules) {
-    const int index = StrengthIndex(rules);
-    const Strength& next = Strengths[index < 0 ? 2 : (index + 1) % int(std::size(Strengths))];
+/// Kaniel 2026-11-11: the launcher's Custom strength is here now: after the last step the row says
+/// Custom and three rows under it set HP, damage and poise by themselves. `custom`: the leader
+/// picked Custom (its numbers may still be a step's); numbers that are no step's are Custom too.
+/// True when the numbers changed (Custom keeps the last step's until its rows change them).
+bool NextStrength(TeamRules& rules, bool& custom) {
+    const int index = custom ? -1 : StrengthIndex(rules);
+    if (index == int(std::size(Strengths)) - 1) {
+        custom = true;
+        return false;
+    }
+    custom = false;
+    const Strength& next = Strengths[index < 0 ? 0 : index + 1];
+    const bool changed = rules.hp != next.hp || rules.damage != next.damage || rules.poise != next.poise;
     rules.hp = next.hp;
     rules.damage = next.damage;
     rules.poise = next.poise;
+    return changed;
+}
+
+/// A Custom row's values, each press the next (the first again after the last; a number between
+/// two, an older launcher's, goes to the next one up).
+constexpr float CustomRates[] = {1.0f, 1.25f, 1.5f, 1.75f, 2.0f, 2.5f, 3.0f, 4.0f, 5.0f, 6.0f, 8.0f, 10.0f};
+
+float NextCustomRate(float rate) {
+    for (const float step : CustomRates) {
+        if (step > rate) {
+            return step;
+        }
+    }
+    return CustomRates[0];
 }
 
 /// The text bbcoop_lobby_request(BBCOOP_TEAM_RULES) takes (the game's ScreenRulesText).
@@ -3486,11 +3510,15 @@ struct SettingsPage {
     int join = -1, invaders = -1, deaths = -1;
     std::optional<TeamRules> rules;
     double pressed_at = 0.0;
+    // The leader picked Custom on the strength row: its three rows show while it is on (and
+    // whenever the team's numbers are no step's).
+    bool custom = false;
 };
 SettingsPage settings;
 
 void OpenSettings() {
     settings.open = true;
+    settings.custom = false; // Custom shows again by itself when the team's numbers are no step's
     focus.id = "set_join";
     focus.activate = false; // the press that opened it is used up
     focus.page_switched = true;
@@ -3650,13 +3678,34 @@ void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
         changed = true;
     }
     y += row.y + gap;
-    const std::string strength = StrengthText(rules);
+    const bool custom = settings.custom || StrengthIndex(rules) < 0;
+    const std::string strength = StrengthText(rules, custom);
     if (SettingRow(draw, "rule_strength", T("Enemy strength", "Сила врагов"), strength.c_str(), ImVec2(rx, y), row,
                    leads)) {
-        NextStrength(rules);
-        changed = true;
+        settings.custom = custom;
+        changed |= NextStrength(rules, settings.custom);
     }
     y += row.y + gap;
+    // Kaniel 2026-11-11: Custom's own numbers (the launcher's Custom fields were here before).
+    if (custom) {
+        const struct {
+            const char* id;
+            const char* name;
+            float* rate;
+        } rates[] = {{"rule_hp", T("Enemy HP", "HP врагов"), &rules.hp},
+                     {"rule_damage", T("Enemy damage", "Урон врагов"), &rules.damage},
+                     {"rule_poise", T("Enemy poise", "Стойкость врагов"), &rules.poise}};
+        for (const auto& rate : rates) {
+            char value[24];
+            std::snprintf(value, sizeof(value), "x%g", double(*rate.rate));
+            if (SettingRow(draw, rate.id, rate.name, value, ImVec2(rx, y), row, leads)) {
+                *rate.rate = NextCustomRate(*rate.rate);
+                settings.custom = true; // stays Custom when the numbers pass a step's
+                changed = true;
+            }
+            y += row.y + gap;
+        }
+    }
     if (SettingRow(draw, "rule_rot", T("Rot", "Гниль"), rules.rot ? T("On", "Вкл.") : T("Off", "Выкл."),
                    ImVec2(rx, y), row, leads)) {
         rules.rot = !rules.rot;
@@ -3708,7 +3757,8 @@ void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
                                 "up to the strength below for a full team. Fixed: the strength below at all times.",
                                 "Авто: обычные враги для одного охотника, сильнее с каждым союзником на той же карте, "
                                 "до силы ниже для полной команды. Постоянно: сила ниже всегда.")
-                        : focus.id == "rule_strength"
+                        : focus.id == "rule_strength" || focus.id == "rule_hp" || focus.id == "rule_damage" ||
+                                  focus.id == "rule_poise"
                             ? T("The enemies' HP, damage and poise, times the game's own: the same in every "
                                 "teammate's game.",
                                 "HP, урон и стойкость врагов, во столько раз больше обычных: одинаково в игре "

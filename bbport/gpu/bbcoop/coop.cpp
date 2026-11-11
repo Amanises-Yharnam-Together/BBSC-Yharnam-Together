@@ -874,6 +874,7 @@ extern "C" void bbcoop_invade(int on) {
 }
 
 extern "C" void bbcoop_team_allow_invaders(int allow) {
+    Core::Bloodborne::Coop::KeepTeamChoice(bbcoop::TeamRequest::INVADERS, allow != 0 ? 1 : 0);
     Core::Bloodborne::Coop::TeamAllowInvaders(allow != 0);
 }
 
@@ -934,6 +935,13 @@ static_assert(BBCOOP_JOIN_INVITE_ONLY == bbcoop::Team::INVITE_ONLY &&
               BBCOOP_JOIN_ASK == bbcoop::Team::ASK && BBCOOP_JOIN_OPEN == bbcoop::Team::OPEN);
 
 extern "C" void bbcoop_lobby_request(int action, const char* id) {
+    // Kaniel 2026-11-11: the team screen's joining and death mode rows ("0", "1" or "2") are kept for
+    // the leader's next team.
+    if ((action == BBCOOP_TEAM_OPEN || action == BBCOOP_TEAM_DEATH_MODE) && id && id[0] >= '0' &&
+        id[0] <= '2' && id[1] == 0) {
+        Core::Bloodborne::Coop::KeepTeamChoice(static_cast<bbcoop::TeamRequest::Action>(action),
+                                               static_cast<u32>(id[0] - '0'));
+    }
     Core::Bloodborne::Coop::TeamLobbyRequest(static_cast<bbcoop::TeamRequest::Action>(action),
                                              id ? id : "");
 }

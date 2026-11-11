@@ -324,6 +324,28 @@ TEST(BloodborneHostRules, TheTeamScreensRulesAreThePlayersOwnAtTheNextStart) {
     EXPECT_EQ(OwnRulesAtStart("off", nullptr, ScreenRulesText(saved)), HostRules{});
 }
 
+// Kaniel 2026-11-11: joining, invaders and the death mode are kept for the leader's next team.
+TEST(BloodborneHostRules, TheLeadersTeamChoicesAreKeptForItsNextTeam) {
+    const TeamChoices kept{.join = 2, .invaders = true, .death_mode = 1};
+    EXPECT_EQ(TeamChoicesText(kept), "2,1,1");
+    EXPECT_EQ(TeamChoicesText({}), "0,0,0");
+    EXPECT_EQ(ParseTeamChoices("2,1,1"), kept);
+    EXPECT_EQ(ParseTeamChoices("2,1,1\r\n"), kept);
+    EXPECT_EQ(ParseTeamChoices("0,0,0"), TeamChoices{});
+    for (const char* bad : {"", "2,1", "3,0,0", "0,2,0", "0,0,2", "2;1;1", "2,1,1,0", "a,b,c"}) {
+        EXPECT_FALSE(ParseTeamChoices(bad).has_value()) << bad;
+    }
+    // A team just made has the server's defaults: it takes the kept ones.
+    EXPECT_EQ(ChoicesForNewTeam({}, kept), kept);
+    EXPECT_EQ(ChoicesForNewTeam({}, {}), TeamChoices{});
+    // What something already set stays (a quick match's team is open: a kept "on request" must
+    // not close it), each choice by itself.
+    EXPECT_EQ(ChoicesForNewTeam({.join = 2}, {.join = 1, .death_mode = 1}),
+              (TeamChoices{.join = 2, .death_mode = 1}));
+    EXPECT_EQ(ChoicesForNewTeam({.invaders = true, .death_mode = 1}, {}),
+              (TeamChoices{.invaders = true, .death_mode = 1}));
+}
+
 TEST(BloodborneEnemyScaling, CountsTheHuntersOnThisMap) {
     const std::vector<MemberMap> board{{"me", 0x15000000}, {"b", 0x15000000}, {"c", 0x18000000}};
     EXPECT_EQ(HuntersOnMap(board, "me", 0x15000000), 2u);

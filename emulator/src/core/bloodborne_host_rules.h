@@ -212,6 +212,21 @@ std::optional<HostRules> ParseScreenRules(std::string_view text);
 // takes the server's default).
 std::optional<HostRules> OwnRulesAtStart(const char* env_rules, const char* env_harder,
                                          std::string_view saved);
+// Kaniel 2026-11-11: the team settings that are not rules (how the team is joined, invaders, the
+// death mode: bbcoop::Team's join, allow_invaders and death_mode) are kept for the leader's next
+// team too: one line "join,invaders,deaths" (join 0-2, the others 0/1) in the user folder.
+struct TeamChoices {
+    u32 join = 0; // bbcoop::Team::Join: invite only, ask, open
+    bool invaders = false;
+    u32 death_mode = 0; // DeathMode: down, spectate
+    bool operator==(const TeamChoices&) const = default;
+};
+std::string TeamChoicesText(const TeamChoices& choices);
+std::optional<TeamChoices> ParseTeamChoices(std::string_view text);
+// What a team just made (`team`: the server's, its defaults unless something set them, a quick
+// match's open team for one) takes from the leader's kept ones: each choice the team still has at
+// its default and the leader kept otherwise. The team's own where nothing is to take.
+TeamChoices ChoicesForNewTeam(const TeamChoices& team, const TeamChoices& kept);
 // The team's strength from its rules' three numbers (TeamRules enemy_hp/damage/poise): all 0 is
 // none (the standard); a 0 among others is that one's standard value.
 std::optional<HarderEnemies> TeamStrength(float hp, float damage, float poise);

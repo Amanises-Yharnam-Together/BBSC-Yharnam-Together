@@ -1087,6 +1087,10 @@ void TeamLobbyRequest(bbcoop::TeamRequest::Action action, const std::string& id)
 // notice shows; whether the team allows invaders now.
 void InvasionRequest(bool cancel);
 void TeamAllowInvaders(bool allow);
+// Kaniel 2026-11-11: the leader's own press on the team screen's joining (OPEN, 0-2), invaders
+// (INVADERS, 0/1) or death mode (DEATH_MODE, 0/1) row: kept in the user folder, and the next team
+// this player makes takes it (a script's requests are not kept).
+void KeepTeamChoice(bbcoop::TeamRequest::Action action, u32 value);
 InvasionView InvasionViewNow();
 bool TeamAllowsInvaders();
 // This game is in a world it invades, or on its way in or home: that world is not its own (its

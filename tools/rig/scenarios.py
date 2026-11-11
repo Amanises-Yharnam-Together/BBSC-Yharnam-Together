@@ -2085,7 +2085,8 @@ SCENARIOS = {
     "team-rules-kept": {
         "about": "the rules a leader set on the team screen in an earlier run (kept in its user "
                  "folder) are its new team's from the start, in both games",
-        "role_settings": {"host": {"rig.team_rules": TEAM_RULES_FIXED}},
+        # The joining, invaders and death mode it kept too: open to all, spectate.
+        "role_settings": {"host": {"rig.team_rules": TEAM_RULES_FIXED, "rig.team_choices": "2,0,1"}},
         "roles": {
             "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
                      "wait-session 2 300", "wait 10", "sync rules-seen", "snapshot"],
@@ -2095,6 +2096,7 @@ SCENARIOS = {
         "syncs": {"rules-seen": {"chapter": "team-rules-kept", "roles": ["host", "guest"]}},
         "expect": {
             "host": [rf"Co-op host rules: this player's own are {TEAM_RULES_FIXED}",
+                     r"Co-op team lobby: the new team takes this leader's kept settings 2,0,1",
                      r"Co-op host rules: the team's rules are off; enemies fixed 2,1.25,2",
                      r"Bloodborne harder enemies: \d+ NpcParam rows, x2\.00 HP, x1\.25 damage, "
                      r"x2\.00 poise"],
