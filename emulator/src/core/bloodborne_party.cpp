@@ -3090,10 +3090,14 @@ bool TripsAfterJoin(const char* setting) {
 
 bool TripAfterJoin::Tick(const Input& in) {
     if (!in.in_session) {
+        joined_ms.reset();
         arrived_ms.reset();
         calm_since.reset();
         went = false;
         return false;
+    }
+    if (!joined_ms) {
+        joined_ms = in.now_ms;
     }
     if (!arrived_ms) {
         if (!in.arrived) {
@@ -3101,7 +3105,7 @@ bool TripAfterJoin::Tick(const Input& in) {
         }
         arrived_ms = in.now_ms;
     }
-    if (in.busy) {
+    if (in.busy || in.never_here) {
         calm_since.reset();
         return false;
     }
@@ -3114,6 +3118,12 @@ bool TripAfterJoin::Tick(const Input& in) {
     }
     went = true;
     return true;
+}
+
+bool TripAfterJoin::Due(const Input& in) const {
+    // Joined, it is a phantom only once it arrived in the session's world (the join's reload).
+    return in.switched_on && in.guest && in.in_session && (in.phantom || !arrived_ms) &&
+           !in.never_here && !went && joined_ms && in.now_ms - *joined_ms <= HoldMs;
 }
 
 u8 RebuiltTaskFlags(u8 constructed, const SavedJoinTask* saved, bool waiting) {

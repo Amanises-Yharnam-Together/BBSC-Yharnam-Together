@@ -276,6 +276,8 @@ int guest_trip_fixup_tries = 0;
 // The trip in flight is TripAfterJoin's reload in place: its arrival goes back to the spot it
 // left, never to a lamp.
 bool guest_trip_in_place = false;
+// TripAfterJoin::Due as of the last tick, for the team's load (TripAfterJoinDue).
+std::atomic<bool> trip_after_join_due{false};
 
 } // namespace
 
@@ -2036,17 +2038,22 @@ void TickTripAfterJoin(TripAfterJoin& trip, bool in_session, u32 map) {
     const auto at = LocalPlayerPosition();
     const bool busy = loading || !readable || !at || PartyTripActive() || guest_trip_in_flight ||
                       guest_trip_fixup_at.has_value() || guest_lamp_trip_at.has_value() ||
-                      TeamResumeDue() || CharacterHp(player) <= 0 || !IsUsablePackedMap(map) ||
-                      (map >> 24) == 0x1D;
-    const bool go = trip.Tick({
+                      TeamResumeDue() || CharacterHp(player) <= 0 || !IsUsablePackedMap(map);
+    const TripAfterJoin::Input input{
         .switched_on = true,
         .guest = IsPartyGuestRole(),
         .in_session = in_session,
         .arrived = in_session && InSessionWorld(),
         .phantom = readable && ReadValue<s32>(player, 0x78) == WhiteGhostCharacterType,
         .busy = busy,
+        .never_here = (map >> 24) == 0x1D,
         .now_ms = SteadyMilliseconds(),
-    });
+    };
+    const bool go = trip.Tick(input);
+    // The team's loading screen stays up until the trip went (UpdateTeamLoad), unless the guest
+    // is dead or down: that is for the player to see.
+    trip_after_join_due.store(trip.Due(input) && (!readable || CharacterHp(player) > 0),
+                              std::memory_order_relaxed);
     if (!go) {
         return;
     }
@@ -2068,6 +2075,10 @@ void TickTripAfterJoin(TripAfterJoin& trip, bool in_session, u32 map) {
     LOG_INFO(Debug,
              "Bloodborne party: trip after the join: reloading in place on map {:#x} ({}, {}, {})",
              map, here.x, here.y, here.z);
+}
+
+bool TripAfterJoinDue() {
+    return trip_after_join_due.load(std::memory_order_relaxed);
 }
 
 void TickPlayersOnThisMap() {

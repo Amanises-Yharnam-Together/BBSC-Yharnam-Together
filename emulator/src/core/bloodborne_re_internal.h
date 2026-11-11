@@ -355,6 +355,8 @@ size_t SessionMembers();
 // In the session and in its world (see SessionArrival): a summoned guest only once it arrived.
 // Party death counts and posts this member as in the party only then.
 bool InSessionWorld();
+// Whether a joined guest's trip in place is still to come (TripAfterJoin::Due, the last tick's).
+bool TripAfterJoinDue();
 void ShowGuestBloodstain();
 void KeepGuestBloodstainMark();
 

@@ -2702,6 +2702,71 @@ TEST(BloodborneTripAfterJoin, NotLongAfterTheJoin) {
         << "past the window: the player is playing by now";
 }
 
+// Rig 2026-11-11: a guest that joined on another map than its host saw the team's loading screen
+// open after 1 s and the trip's own load 9-14 s later. The trip is due from the join until it
+// went, so the team's load keeps its one screen up over both.
+TEST(BloodborneTripAfterJoin, IsDueFromTheJoinUntilItWent) {
+    TripAfterJoin trip;
+    // Rig 2026-11-11 (joins, join-after-trip): joined, the guest is a live player (type 0) until
+    // the join's reload brought it into the session's world; the screen opened in between.
+    auto joining = JoinedPhantom(1000);
+    joining.arrived = false;
+    joining.phantom = false;
+    EXPECT_FALSE(trip.Tick(joining));
+    EXPECT_TRUE(trip.Due(joining)) << "in the session, the session's world still to come";
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(5000)));
+    EXPECT_TRUE(trip.Due(JoinedPhantom(5000)));
+    auto loading = JoinedPhantom(6000);
+    loading.busy = true;
+    EXPECT_FALSE(trip.Tick(loading));
+    EXPECT_TRUE(trip.Due(loading)) << "a load on the way is no reason to open the screen";
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(6500))) << "calm again";
+    const auto go = JoinedPhantom(6500 + TripAfterJoin::SettleMs + 1);
+    EXPECT_TRUE(trip.Tick(go));
+    EXPECT_FALSE(trip.Due(go)) << "it went: the trip's own load is the loading now";
+}
+
+TEST(BloodborneTripAfterJoin, IsNotDueWhereNoTripIsMade) {
+    for (int which = 0; which < 5; ++which) {
+        TripAfterJoin trip;
+        auto in = JoinedPhantom(1000);
+        in.switched_on = which != 0;
+        in.guest = which != 1;
+        in.phantom = which != 2;
+        in.never_here = which == 3; // a chalice dungeon
+        in.in_session = which != 4;
+        EXPECT_FALSE(trip.Tick(in)) << which;
+        EXPECT_FALSE(trip.Due(in)) << which;
+        in.now_ms = 1000 + TripAfterJoin::SettleMs + 1;
+        EXPECT_FALSE(trip.Tick(in)) << which;
+        EXPECT_FALSE(trip.Due(in)) << which;
+    }
+}
+
+TEST(BloodborneTripAfterJoin, IsDueOnlySoLongAfterTheJoin) {
+    TripAfterJoin trip;
+    auto busy = JoinedPhantom(1000);
+    busy.busy = true; // down beside its host, say: the trip cannot start
+    EXPECT_FALSE(trip.Tick(busy));
+    EXPECT_TRUE(trip.Due(busy));
+    busy.now_ms = 1000 + TripAfterJoin::HoldMs;
+    EXPECT_FALSE(trip.Tick(busy));
+    EXPECT_TRUE(trip.Due(busy));
+    busy.now_ms = 1000 + TripAfterJoin::HoldMs + 1;
+    EXPECT_FALSE(trip.Tick(busy));
+    EXPECT_FALSE(trip.Due(busy)) << "the screen is not kept for a trip that does not start";
+    // The trip itself may still go inside its window.
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(1000 + TripAfterJoin::HoldMs + 100)));
+    EXPECT_TRUE(
+        trip.Tick(JoinedPhantom(1000 + TripAfterJoin::HoldMs + 100 + TripAfterJoin::SettleMs + 1)));
+    // A new session: due again.
+    auto out = JoinedPhantom(90000);
+    out.in_session = false;
+    EXPECT_FALSE(trip.Tick(out));
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(91000)));
+    EXPECT_TRUE(trip.Due(JoinedPhantom(91000)));
+}
+
 TEST(BloodbornePartyController, OnlyAGuestRecreatesAfterItsJoinAndNotLongAfter) {
     RecreateAfterJoin host;
     EXPECT_FALSE(host.Tick(false, true, 2, true, 0));

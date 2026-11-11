@@ -2094,11 +2094,19 @@ private:
 // party guest still a phantom, SettleMs after it `arrived` in the session's world and SettleMs
 // with nothing `busy` (a load, a trip, its arrival's placing, no position, dead), within
 // WindowMs of the arrival; once per session.
+// Due says whether that trip is still to come (rig 2026-11-11: a guest that joined on another map
+// than its host had the team's loading screen open after 1 s and the trip's load 9-14 s later, a
+// second loading screen in the middle of play): the team's load counts the guest as loading while
+// it is, so the one screen stays up over both: from the join on (the guest becomes a phantom only
+// as it arrives in the session's world), then while it is a phantom. Not where no trip is made
+// (`never_here`, a chalice dungeon), and for HoldMs after the join at most, so a trip that cannot
+// start (the guest busy, down) never keeps the screen.
 bool TripsAfterJoin(const char* setting);
 class TripAfterJoin {
 public:
     static constexpr s64 SettleMs = 3000;
     static constexpr s64 WindowMs = 60000;
+    static constexpr s64 HoldMs = 30000;
     struct Input {
         bool switched_on = false;
         bool guest = false;
@@ -2106,15 +2114,19 @@ public:
         bool arrived = false;
         bool phantom = false;
         bool busy = false;
+        bool never_here = false;
         s64 now_ms = 0;
     };
     bool Tick(const Input& in);
+    // After Tick with the same input.
+    bool Due(const Input& in) const;
     // Whether this session's trip went: a join's re-create (RecreateAfterJoin) is then the trip's.
     bool Went() const {
         return went;
     }
 
 private:
+    std::optional<s64> joined_ms;
     std::optional<s64> arrived_ms;
     std::optional<s64> calm_since;
     bool went = false;
