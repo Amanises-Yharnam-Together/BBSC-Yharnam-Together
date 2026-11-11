@@ -35,8 +35,26 @@ your teammates always, but it's not an intention, just for harder play."
 - Rig scenario `friendly-fire` (tools/rig/scenarios.py): off, strikes pass through; on, they land;
   a lethal one downs the guest and the host strikes it up; off again.
 
+## Seen on the rig (2026-11-11, 2 games, headless)
+
+- Off: a teammate's strikes pass through. On: the struck teammate loses HP on its own game, a
+  lethal strike downs it as an ordinary party death (no duel, no wipe), strikes revive it. Off
+  again: each body takes its own team back and strikes pass through.
+- No banner, echoes, insight or invader lines in either game's log with the rule on.
+- The `duel` and party-death down-revive scenarios pass unchanged.
+
+## Known limit
+
+With the rule on, an enemy targets only the player whose game runs it: a teammate's body on the
+invaders' team drops out of that enemy's target list (probe `friendly-fire-enemy`: both players
+listed with the rule off, only the runner's own with it on, both again once it is off). The enemy
+keeps fighting, and an ordinary enemy is run by the nearest player's game, so it mostly goes for
+whoever is nearest anyway; but a second teammate cannot draw an enemy another game runs, and a
+boss (one game runs it for the fight) is expected to go for one player only. Not tested on a boss.
+A fix needs the bodies strikable without leaving the enemies' targets (another team, or the
+target search told to keep them).
+
 ## Not yet seen in play
 
-- Whether the enemies a game runs still go for a teammate whose body is on the invaders' team
-  (the same open point as in duels, docs/DUELS.md).
-- Lock-on and the enemy bar over a teammate with the rule on.
+- Lock-on, the enemy bar, damage numbers and colour over a teammate with the rule on (the rig is
+  headless), and the settings row on a real screen.
