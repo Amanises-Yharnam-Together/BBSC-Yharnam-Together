@@ -2620,6 +2620,80 @@ TEST(BloodbornePartyController, AGuestJoiningAnotherGuestRecreatesThemOnce) {
     EXPECT_TRUE(recreate.Tick(true, true, 2, true, 31000 + RecreateAfterJoin::SettleMs + 1));
 }
 
+// Kaniel 2026-11-11: bugs show between a join and the first trip, not after it. With the
+// experiment switched on, a guest that joined makes one trip in place once it has settled.
+namespace {
+TripAfterJoin::Input JoinedPhantom(s64 now_ms) {
+    return {.switched_on = true,
+            .guest = true,
+            .in_session = true,
+            .arrived = true,
+            .phantom = true,
+            .busy = false,
+            .now_ms = now_ms};
+}
+} // namespace
+
+TEST(BloodborneTripAfterJoin, AJoinedPhantomTripsOnceAfterItSettles) {
+    TripAfterJoin trip;
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(1000))) << "just arrived";
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(1000 + TripAfterJoin::SettleMs - 1)));
+    EXPECT_FALSE(trip.Went());
+    EXPECT_TRUE(trip.Tick(JoinedPhantom(1000 + TripAfterJoin::SettleMs + 1)));
+    EXPECT_TRUE(trip.Went());
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(20000))) << "once";
+    // Out of the session and in again: a new join, a new trip.
+    auto out = JoinedPhantom(30000);
+    out.in_session = false;
+    EXPECT_FALSE(trip.Tick(out));
+    EXPECT_FALSE(trip.Went());
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(31000)));
+    EXPECT_TRUE(trip.Tick(JoinedPhantom(31000 + TripAfterJoin::SettleMs + 1)));
+}
+
+TEST(BloodborneTripAfterJoin, OffByDefaultAndOnlyForAPhantomGuest) {
+    for (int which = 0; which < 3; ++which) {
+        TripAfterJoin trip;
+        bool any = false;
+        for (s64 now = 0; now <= 20000; now += 500) {
+            auto in = JoinedPhantom(now);
+            in.switched_on = which != 0;
+            in.guest = which != 1;
+            in.phantom = which != 2; // already a live player: travelled before
+            any = trip.Tick(in) || any;
+        }
+        EXPECT_FALSE(any) << which;
+    }
+}
+
+TEST(BloodborneTripAfterJoin, WaitsForTheJoinsWorldAndACalmMoment) {
+    TripAfterJoin trip;
+    auto joining = JoinedPhantom(0);
+    joining.arrived = false;
+    EXPECT_FALSE(trip.Tick(joining)) << "still in its own world";
+    joining.now_ms = 10000;
+    EXPECT_FALSE(trip.Tick(joining));
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(11000))) << "the clock starts at the arrival";
+    auto busy = JoinedPhantom(13000);
+    busy.busy = true;
+    EXPECT_FALSE(trip.Tick(busy)) << "a load or a trip under way";
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(14500))) << "calm again only since 14500";
+    EXPECT_TRUE(trip.Tick(JoinedPhantom(14500 + TripAfterJoin::SettleMs + 1)));
+}
+
+TEST(BloodborneTripAfterJoin, NotLongAfterTheJoin) {
+    TripAfterJoin trip;
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(0)));
+    auto busy = JoinedPhantom(1000);
+    busy.busy = true;
+    EXPECT_FALSE(trip.Tick(busy));
+    busy.now_ms = TripAfterJoin::WindowMs;
+    EXPECT_FALSE(trip.Tick(busy));
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(TripAfterJoin::WindowMs + 1)));
+    EXPECT_FALSE(trip.Tick(JoinedPhantom(TripAfterJoin::WindowMs + TripAfterJoin::SettleMs + 2)))
+        << "past the window: the player is playing by now";
+}
+
 TEST(BloodbornePartyController, OnlyAGuestRecreatesAfterItsJoinAndNotLongAfter) {
     RecreateAfterJoin host;
     EXPECT_FALSE(host.Tick(false, true, 2, true, 0));

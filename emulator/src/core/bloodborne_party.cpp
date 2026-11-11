@@ -3084,6 +3084,34 @@ bool RecreateIsForAJoin(bool pending, bool for_join) {
     return !pending || for_join;
 }
 
+bool TripAfterJoin::Tick(const Input& in) {
+    if (!in.in_session) {
+        arrived_ms.reset();
+        calm_since.reset();
+        went = false;
+        return false;
+    }
+    if (!arrived_ms) {
+        if (!in.arrived) {
+            return false;
+        }
+        arrived_ms = in.now_ms;
+    }
+    if (in.busy) {
+        calm_since.reset();
+        return false;
+    }
+    if (!calm_since) {
+        calm_since = in.now_ms;
+    }
+    if (!in.switched_on || !in.guest || !in.phantom || went || in.now_ms - *arrived_ms > WindowMs ||
+        in.now_ms - *arrived_ms <= SettleMs || in.now_ms - *calm_since <= SettleMs) {
+        return false;
+    }
+    went = true;
+    return true;
+}
+
 u8 RebuiltTaskFlags(u8 constructed, const SavedJoinTask* saved, bool waiting) {
     if (!saved) {
         return constructed & JoinTaskFlagBits;
