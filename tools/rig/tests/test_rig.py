@@ -138,6 +138,79 @@ class ScenarioTest(unittest.TestCase):
                 with self.subTest(scenario=name, role=role):
                     self.assertEqual(godmode, ["godmode"])
 
+    def test_a_fighter_stands_out_of_roms_swings_while_a_teammate_dies_to_spectate(self):
+        # Full rig 2026-11-10 (1.5.0, rom-retry red twice): the host stood 5 m from Rom in
+        # godmode, her later phase put it down, and the guest's death was the party's wipe, as
+        # the game means it: no spectate. Whoever hurts her does it from 20 m and steps 20 m off
+        # again once her half-HP phase began; whoever dies to spectate checks a teammate stands.
+        rom = scenarios.ROM
+        for name, scenario in scenarios.SCENARIOS.items():
+            for role, script in scenario["roles"].items():
+                commands = sum(run_scenario.stages_of(script), [])
+                hurts = [at for at, command in enumerate(commands)
+                         if command.startswith(f"hurt {rom} ")]
+                for at in hurts:
+                    steps = [command for command in commands[:at]
+                             if command.startswith(f"approach {rom} ")]
+                    after = commands[at + 1:at + 3]
+                    with self.subTest(scenario=name, role=role, hurt=commands[at]):
+                        self.assertEqual(steps[-1:], [f"approach {rom} 20 0"])
+                        self.assertEqual(after[:1], ["wait-flag 13204812 1 60"])
+                        self.assertEqual(after[1:], [f"approach {rom} 20 0"])
+                if not any(rom in command for command in commands):
+                    continue
+                for at, command in enumerate(commands):
+                    if command == "wait-vital spectate 20":
+                        with self.subTest(scenario=name, role=role):
+                            self.assertEqual(
+                                commands[at - 3:at],
+                                ["wait-member-vital up 5", "godmode off", "kill self"])
+
+    def test_an_enemy_whole_after_a_wake_is_counted_beside_it(self):
+        # The same run (boss-hp-staggered-wipe: "not whole in its last census: 900/3833", "no
+        # census"): a wipe wakes each game at the lamp, about 147 m from the boss-sized enemy, so
+        # a census there never lists it and the check read the one from before the wipe. Every
+        # game in the check walks back to it after its last wake and counts it there.
+        big = scenarios.BIG_BY_THE_LAMP
+        for name, scenario in scenarios.SCENARIOS.items():
+            for check in scenario.get("hp_state", []):
+                if check["handle"] != big or check["is"] != "whole" or "census" in check:
+                    continue
+                for role in check["roles"]:
+                    commands = sum(run_scenario.stages_of(scenario["roles"][role]), [])
+                    woke = max(at for at, command in enumerate(commands)
+                               if command.startswith("wait-vital up "))
+                    with self.subTest(scenario=name, role=role):
+                        self.assertIn(f"approach {big} 4 0", commands[woke:])
+                        last = [command for command in commands[woke:]
+                                if command.split()[0] in ("approach", "teleport", "census")]
+                        self.assertEqual(last[-2:], [f"approach {big} 4 0", "census 40"])
+
+    def test_those_who_fall_later_hold_godmode_until_the_first_is_dead(self):
+        # Rig 2026-11-11 (boss-hp-staggered-wipe): host and guest2 waited at 1 HP without
+        # godmode, an enemy killed both and the wipe ended the guest's down before its give-up.
+        roles = scenarios.SCENARIOS["boss-hp-staggered-wipe"]["roles"]
+        for role in ("host", "guest2"):
+            commands = sum(run_scenario.stages_of(roles[role]), [])
+            at = commands.index("sync sw-guest-dead")
+            with self.subTest(role=role):
+                self.assertNotIn("godmode off", commands[:at])
+                self.assertNotIn("hurt self 1", commands[:at])
+                self.assertEqual(commands[at + 1:at + 4], ["godmode off", "hurt self 1", "rise 18"])
+
+    def test_rom_whole_again_is_judged_against_her_own_max(self):
+        # The enemy strength rule moves her max with the hunters on the map (9528 for two): no
+        # full-HP number, each game's last census against its own max.
+        scenario = scenarios.SCENARIOS["rom-retry"]
+        self.assertEqual(scenario["hp_state"], [{"handle": scenarios.ROM, "is": "whole",
+                                                 "roles": ["host", "guest"]}])
+        for role, script in scenario["roles"].items():
+            commands = sum(run_scenario.stages_of(script), [])
+            with self.subTest(role=role):
+                self.assertEqual([c for c in commands if c.startswith("expect-hp")], [])
+                last = [c for c in commands if c.split()[0] in ("teleport", "census")]
+                self.assertEqual(last[-2:], [f"teleport {scenarios.ROM_DIVE}", "census 150"])
+
     def test_nothing_plays_without_party_death_or_dies_by_the_games_own_kill(self):
         # Party death is always on in the port (Kaniel 2026-10-13): a player dies by going down and
         # giving up, by a wipe or alone on its map, never by the game's own kill of itself, unless
