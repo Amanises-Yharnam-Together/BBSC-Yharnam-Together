@@ -30,7 +30,7 @@ from scenarios import (AWAY_FROM_LAMP, BLOODSTAIN_DROPPED, BLOODSTAIN_STOLEN,  #
                        CATHEDRAL_WARD, CATHEDRAL_WARD_LAMP, CENTRAL_YHARNAM, CENTRAL_YHARNAM_LAMP,
                        CLERIC_BEAST, CLERIC_BEAST_DEFEATED, CLINIC, CRASH_CLEANUP, DOG, ENEMY,
                        FORBIDDEN_WOODS_LAMP_LIT, GASCOIGNE, GASCOIGNE_DEFEATED, GIVE_UP,
-                       GUEST_REVIVED,
+                       GUEST_REVIVED, SECOND_LOAD_SCREEN,
                        HUNTERS_DREAM, LETHAL_FALL, LEVEL_SYNC, OTHER_MAP_FLAG, PARTY_DEATH,
                        REVIVE_HITS, SESSION_HOLDS, HOST_JOINS, GUEST_JOINS, START,
                        STORY_HIDDEN, THIS_MAP_FLAG, WARD_ENEMY, WARD_ENEMY_2, WARD_NPC,
@@ -1229,6 +1229,10 @@ SUITES = {
                                f"expect-map {CATHEDRAL_WARD}", "sync jat-joined"],
                      "host": ["sync jat-joined", "expect-session 2",
                               f"expect-map {CENTRAL_YHARNAM}"]},
+                    # On another map than its host: its trip in place under the join's screen.
+                    expect={"guest": [r"trip after the join: reloading in place on map "
+                                      rf"{CATHEDRAL_WARD}"]},
+                    forbid={"guest": [SECOND_LOAD_SCREEN]},
                     allow=CRASH_CLEANUP),
             chapter("hp-across-blocks", "the guest joined in the Ward, the host in Central "
                                         "Yharnam: the host's hit reaches the guest's copy once it "

@@ -266,6 +266,11 @@ PARTY_DEATH = {"SHADPS4_BLOODBORNE_PARTY_DEATH": "1"}
 # host does ("live player died in a party session (state N); revived without a world reload").
 GUEST_REVIVED = (r"(?:party guest died; revived|live player died in a party session "
                  r"\(state \d+\); revived without a world reload)")
+# A joined guest's trip in place (TripAfterJoin) starts under the team's loading screen, never
+# after it opened (rig 2026-11-11: joined on another map than its host, the screen opened after 1 s
+# and the trip's load came 9-14 s later, a second loading screen in the middle of play).
+SECOND_LOAD_SCREEN = (r"the team's load view is gone[\s\S]*"
+                      r"trip after the join: reloading in place")
 # After a real death each player has its own bloodstain where it fell (GameDataMan's record on
 # this map) and no enemy takes it (no echo theft): the bloodstain state lines say so.
 BLOODSTAIN_DROPPED = (r"bloodstain state map=0x18010000 has_mark=1 record_valid=\d+ "
@@ -1057,7 +1062,8 @@ SCENARIOS = {
                              r"Bloodborne party trip: arrived map=0x18010000",
                              r"autoplay peek: 0x[0-9a-f]+ \+0x78 = 0x0\b"]},
         "forbid": {"host": SESSION_HOLDS,
-                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start",
+                                             SECOND_LOAD_SCREEN]},
         "same_hp": ENEMY,
         "hp_sums_hits": ENEMY,
         "timeout": 300,
