@@ -294,6 +294,19 @@ class RunnerTest(unittest.TestCase):
         finally:
             run_scenario.use_ping(None)
 
+    def test_a_ping_leaves_a_scenarios_own_server_address_alone(self):
+        # Full rig 2026-11-10: sign-in-no-server names an address nothing answers at; with a ping
+        # the runner put the lane's own server there instead, and the game signed in.
+        run_scenario.use_engine("port")
+        run_scenario.use_ping((50, 100))
+        try:
+            settings = {"BB_SHADNET_SERVER": "127.0.0.1:9"}
+            env = run_scenario.game_environment("host", None, "rig:x", settings)
+            self.assertEqual(env["BB_SHADNET_SERVER"], "127.0.0.1:9")
+            self.assertEqual(env["SHADPS4_P2P_DELAY_MS"], "25-50", "the ping itself stays")
+        finally:
+            run_scenario.use_ping(None)
+
     def test_a_port_game_reaches_only_the_lanes_servers(self):
         # Phase 9's proof test: every game talks only to the server, never to another game. Each
         # game's own firewall (SHADPS4_NET_FIREWALL) names the servers it reaches: shadNet's TCP
