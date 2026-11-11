@@ -2085,7 +2085,8 @@ private:
     std::optional<s64> joined_ms;
     bool done = false;
 };
-// Experiment (Kaniel 2026-11-11, SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN=1, off by default): many
+// Kaniel 2026-11-11 (on by default after the rig comparison; SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN=0
+// turns it off, see TripsAfterJoin): many
 // co-op bugs show only between a join and a player's first trip. Joined, a guest is a white
 // phantom (type 1) in the host's world; after any trip it is a live player (type 0) and every
 // member runs its own copy of the map, which most of the party code is built around. So a guest
@@ -2093,6 +2094,7 @@ private:
 // party guest still a phantom, SettleMs after it `arrived` in the session's world and SettleMs
 // with nothing `busy` (a load, a trip, its arrival's placing, no position, dead), within
 // WindowMs of the arrival; once per session.
+bool TripsAfterJoin(const char* setting);
 class TripAfterJoin {
 public:
     static constexpr s64 SettleMs = 3000;

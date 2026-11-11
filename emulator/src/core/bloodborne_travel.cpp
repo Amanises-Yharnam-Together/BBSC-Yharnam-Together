@@ -2020,11 +2020,12 @@ void KeepOwnedWeaponFlagsOwn() {
 
 namespace Coop {
 
-// See TripAfterJoin (SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN=1): a guest just joined makes one trip,
-// a reload in place, so it plays as it would after any trip. Not in a chalice dungeon (area
-// 0x1D): its layout is built by the load, and a reload in place there is not tried yet.
+// See TripAfterJoin (SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN=0 turns it off): a guest just joined makes
+// one trip, a reload in place, so it plays as it would after any trip. Not in a chalice dungeon
+// (area 0x1D): its layout is built by the load, and a reload in place there is not tried yet.
 void TickTripAfterJoin(TripAfterJoin& trip, bool in_session, u32 map) {
-    static const bool switched_on = SettingIsOn(std::getenv("SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN"));
+    static const bool switched_on =
+        TripsAfterJoin(std::getenv("SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN"));
     if (!switched_on) {
         return;
     }
