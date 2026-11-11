@@ -426,8 +426,10 @@ void MakeEnemiesHarder() {
     // Kaniel 2026-11-05: in a team the team's strength (EnemiesWanted), never each player's own.
     const HostRules rules = ActiveHostRules();
     const std::size_t hunters = rules.enemy_scaling ? HuntersOnMyMap() : 0;
+    // Kaniel 2026-11-11: out of a team the player's own strength is its own rules' (the ones it set
+    // on the team screen), the dev setting's when given.
     const std::optional<HarderEnemies> wanted =
-        EnemiesWanted(rules, InTeamNow(), hunters, harder_enemies);
+        EnemiesWanted(rules, InTeamNow(), hunters, harder_enemies ? harder_enemies : rules.enemies);
     // Kaniel 2026-10-28: the boss tempo rule's turn speed for the boss rows.
     const float turn = ActiveBossTempoTuning().turn;
     static ScaledParam npc_kept;

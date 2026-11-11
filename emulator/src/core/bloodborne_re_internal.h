@@ -689,9 +689,12 @@ u64 FindLoadedParam(std::string_view type);
 void KeepGuestFullHp();
 void HidePhantomGlow();
 void MakeEnemiesHarder();
-// Kaniel 2026-10-25, the host rules (bloodborne_host_rules.h): this launcher's own, and the ones
+// Kaniel 2026-10-25, the host rules (bloodborne_host_rules.h): this player's own (the ones it set
+// on the team screen, kept over starts; Kaniel 2026-11-11: the launcher has none), and the ones
 // this game plays by (its team's while in one, else its own).
-const HostRules& OwnHostRules();
+HostRules OwnHostRules();
+// Whether it has any of its own (none: the team it makes takes the server's default).
+bool HasOwnHostRules();
 HostRules ActiveHostRules();
 // Whether this game plays in a team (its rules the team's).
 bool InTeamNow();
@@ -1084,6 +1087,10 @@ void TeamLobbyRequest(bbcoop::TeamRequest::Action action, const std::string& id)
 // notice shows; whether the team allows invaders now.
 void InvasionRequest(bool cancel);
 void TeamAllowInvaders(bool allow);
+// Kaniel 2026-11-11: the leader's own press on the team screen's joining (OPEN, 0-2), invaders
+// (INVADERS, 0/1) or death mode (DEATH_MODE, 0/1) row: kept in the user folder, and the next team
+// this player makes takes it (a script's requests are not kept).
+void KeepTeamChoice(bbcoop::TeamRequest::Action action, u32 value);
 InvasionView InvasionViewNow();
 bool TeamAllowsInvaders();
 // This game is in a world it invades, or on its way in or home: that world is not its own (its

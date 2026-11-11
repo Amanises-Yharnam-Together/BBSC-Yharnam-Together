@@ -556,5 +556,9 @@
  "The co-op server at %s did not accept your login or password": "O servidor cooperativo em %s não aceitou seu login ou sua senha",
  "Check them in the launcher's co-op settings, then start the game again.": "Confira-os nas configurações de cooperativo do launcher e inicie o jogo novamente.",
  "Could not sign in to the co-op server at %s": "Não foi possível entrar no servidor cooperativo em %s",
- "Start the game again. If it stays, update the game and the server to the same release.": "Inicie o jogo novamente. Se continuar, atualize o jogo e o servidor para a mesma versão."
+ "Start the game again. If it stays, update the game and the server to the same release.": "Inicie o jogo novamente. Se continuar, atualize o jogo e o servidor para a mesma versão.",
+ "Custom": "Personalizada",
+ "Enemy HP": "PV dos inimigos",
+ "Enemy damage": "Dano dos inimigos",
+ "Enemy poise": "Equilíbrio dos inimigos"
 }

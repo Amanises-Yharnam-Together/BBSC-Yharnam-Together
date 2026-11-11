@@ -556,5 +556,9 @@
  "The co-op server at %s did not accept your login or password": "合作服务器 %s 未接受你的账号或密码",
  "Check them in the launcher's co-op settings, then start the game again.": "请在启动器的合作设置中检查，然后重新启动游戏。",
  "Could not sign in to the co-op server at %s": "无法登录合作服务器 %s",
- "Start the game again. If it stays, update the game and the server to the same release.": "请重新启动游戏。如果问题仍然存在，请将游戏和服务器更新到相同版本。"
+ "Start the game again. If it stays, update the game and the server to the same release.": "请重新启动游戏。如果问题仍然存在，请将游戏和服务器更新到相同版本。",
+ "Custom": "自定义",
+ "Enemy HP": "敌人HP",
+ "Enemy damage": "敌人伤害",
+ "Enemy poise": "敌人韧性"
 }

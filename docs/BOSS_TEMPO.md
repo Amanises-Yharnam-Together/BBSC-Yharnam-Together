@@ -12,9 +12,11 @@ moves, damage and HP stay the game's.
 | Relentless | x0.25                 | about a quarter         | x1.6                |
 
 It is wired like the other host rules (`TeamRules.boss_tempo` in the server's team, the RULES
-request from the leader only): the launcher's Co-op page (step 2, "Boss tempo") writes
-`aggressive` or `relentless` into `SHADPS4_BLOODBORNE_HOST_RULES`, and the team screen shows
-"Host rules: ... Boss tempo: Relentless" to everyone.
+request from the leader only): the leader picks it on the game's team screen (Team settings,
+"Boss tempo"), everyone sees it there, and the game keeps the leader's rules for its next start
+(`bloodborne_team_rules.txt` in the user folder). The launcher has no party settings (Kaniel
+2026-11-11); for the rig and development `aggressive` or `relentless` in
+`SHADPS4_BLOODBORNE_HOST_RULES` still sets it.
 
 For tuning, `SHADPS4_BLOODBORNE_BOSS_TEMPO=gap,odds,turn,anim` replaces a level's numbers while
 that level is on (gap in (0, 1], odds in [0, 1], turn and anim in [0.5, 4]; `anim` is not used

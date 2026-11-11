@@ -556,5 +556,9 @@
  "The co-op server at %s did not accept your login or password": "Serwer co-op pod adresem %s nie przyjął twojego loginu lub hasła",
  "Check them in the launcher's co-op settings, then start the game again.": "Sprawdź je w ustawieniach co-op w launcherze, a potem uruchom grę ponownie.",
  "Could not sign in to the co-op server at %s": "Nie udało się zalogować do serwera co-op pod adresem %s",
- "Start the game again. If it stays, update the game and the server to the same release.": "Uruchom grę ponownie. Jeśli problem pozostanie, zaktualizuj grę i serwer do tej samej wersji."
+ "Start the game again. If it stays, update the game and the server to the same release.": "Uruchom grę ponownie. Jeśli problem pozostanie, zaktualizuj grę i serwer do tej samej wersji.",
+ "Custom": "Własna",
+ "Enemy HP": "HP wrogów",
+ "Enemy damage": "Obrażenia wrogów",
+ "Enemy poise": "Równowaga wrogów"
 }

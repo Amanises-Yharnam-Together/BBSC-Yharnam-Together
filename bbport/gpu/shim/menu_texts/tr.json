@@ -556,5 +556,9 @@
  "The co-op server at %s did not accept your login or password": "%s adresindeki co-op sunucusu kullanıcı adınızı veya parolanızı kabul etmedi",
  "Check them in the launcher's co-op settings, then start the game again.": "Bunları başlatıcının co-op ayarlarından kontrol edin, ardından oyunu yeniden başlatın.",
  "Could not sign in to the co-op server at %s": "%s adresindeki co-op sunucusunda oturum açılamadı",
- "Start the game again. If it stays, update the game and the server to the same release.": "Oyunu yeniden başlatın. Sorun sürerse oyunu ve sunucuyu aynı sürüme güncelleyin."
+ "Start the game again. If it stays, update the game and the server to the same release.": "Oyunu yeniden başlatın. Sorun sürerse oyunu ve sunucuyu aynı sürüme güncelleyin.",
+ "Custom": "Özel",
+ "Enemy HP": "Düşman HP'si",
+ "Enemy damage": "Düşman hasarı",
+ "Enemy poise": "Düşman dengesi"
 }
