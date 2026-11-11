@@ -3756,23 +3756,29 @@ SCENARIOS["boss-hp-staggered-wipe"] = {
              "respawn: the hurt boss-sized enemy is back at full HP in all three games",
     "settings": PARTY_DEATH,
     "roles": {
+        # Host and guest2 hold godmode until the guest is dead (rig 2026-11-11: at 1 HP while
+        # they waited, an enemy killed both first and the wipe ended the guest's down before
+        # its give-up).
         "host": [START, "godmode", "wait-session 3 480", f"approach {BIG_BY_THE_LAMP} 4 0",
                  "wait 3", f"hurt {BIG_BY_THE_LAMP} 900", "wait 5", "census 40", "sync sw-hurt",
-                 "godmode off", f"teleport {WIPE3_SPOT['host']}", "wait 2", "hurt self 1",
-                 "sync sw-guest-dead", "rise 18", "wait-vital dead 60", "wait-vital up 150",
-                 "wait-members 3 300", "wait 20", "census 80",
+                 f"teleport {WIPE3_SPOT['host']}", "wait 2", "sync sw-guest-dead",
+                 "godmode off", *LETHAL_FALL, "wait-vital dead 60", "wait-vital up 150",
+                 "wait-members 3 300", "wait 20", *BIG_CHECKED_AGAIN,
                  "sync sw-checked", "expect-session 3"],
         "guest": [START, "godmode", "wait-session 3 480", "sync sw-hurt", "wait 3", "census 60",
                   "godmode off", f"teleport {WIPE3_SPOT['guest']}", "wait 2", *GIVE_UP,
                   "sync sw-guest-dead", "wait-vital up 60", "wait-members 3 300", "wait 20",
-                  "census 80", "sync sw-checked",
+                  *BIG_CHECKED_AGAIN, "sync sw-checked",
                   "expect-session 3"],
         "guest2": [START, "godmode", "wait-session 3 480", "sync sw-hurt", "wait 3", "census 60",
-                   "godmode off", f"teleport {WIPE3_SPOT['guest2']}", "wait 2", "hurt self 1",
-                   "sync sw-guest-dead", "rise 18", "wait-vital dead 60", "wait-vital up 150",
-                   "wait-members 3 300", "wait 20", "census 80",
+                   f"teleport {WIPE3_SPOT['guest2']}", "wait 2", "sync sw-guest-dead",
+                   "godmode off", *LETHAL_FALL, "wait-vital dead 60", "wait-vital up 150",
+                   "wait-members 3 300", "wait 20", *BIG_CHECKED_AGAIN,
                    "sync sw-checked", "expect-session 3"],
     },
+    # Each wakes at the lamp, about 147 m from the enemy (full rig 2026-11-10: "not whole
+    # 900/3833", "no census", the census from before the wipe): counted beside it, as in
+    # boss-hp-after-wipe. Whole by each game's own census.
     "hp_state": [{"handle": BIG_BY_THE_LAMP, "is": "whole",
                   "roles": ["host", "guest", "guest2"]}],
     "expect": {"guest": [r"giving up ends down \d+; dies \(reset=false",
@@ -5558,7 +5564,6 @@ def _ludwig_retry(chapter: str, during_change: bool) -> dict:
 # 3200200-3200229 (317 HP) by her; at 3/4 HP 13204807 moves her and sets 13204811, at 1/2 HP
 # 13204812; 13204808/09 call more spiders at 1/2 and 1/4. Her lamp (3202950) is on her map.
 ROM = "0x1003004c"
-ROM_FULL_HP = 6352
 ROM_FIGHT_OFF = [f"expect-flag {flag} 0" for flag in (ROM_DEFEATED, 13204811, 13204812)]
 ROM_START = [START, f"ensure-map {BYRGENWERTH} {BYRGENWERTH_LAMP}", "godmode",
              f"expect-flag {ROM_DEFEATED} 0", "wait-session 2 240", "wait 5"]
@@ -5574,20 +5579,26 @@ SCENARIOS["rom-retry"] = {
     "settings": PARTY_DEATH,
     "game_kill": True,
     "roles": {
+        # Her swings put a host beside her down, godmode or not (full rig 2026-11-10, twice: the
+        # guest's death was then the party's wipe, no spectate): one hit, then 20 m off (still in
+        # her fight, 45 m) before her later phases, and again once she moved for them. The guest
+        # checks the host stands before it dies.
         "host": [*ROM_START, *ROM_DIVE_IN, "sync rr-in", "census 150",
-                 f"approach {ROM} 5 0", f"hit {ROM} 30", "wait 5", f"hurt {ROM} 2800",
-                 "wait-flag 13204812 1 60", "wait 15", ROM_FLAGS, "census 150", "sync rr-hurt",
+                 f"approach {ROM} 5 0", f"hit {ROM} 30", f"approach {ROM} 20 0", "wait 3",
+                 f"hurt {ROM} 2800", "wait-flag 13204812 1 60", f"approach {ROM} 20 0", "wait 5",
+                 ROM_FLAGS, "census 150", "sync rr-hurt",
                  "wait-member-vital spectate 60", "godmode off", "kill self",
-                 "wait-vital dead 30", *ROM_BACK, "sync rr-woke", *ROM_DIVE_IN, "census 150",
-                 ROM_FLAGS, f"expect-hp {ROM} == {ROM_FULL_HP}", *ROM_FIGHT_OFF[1:],
-                 "sync rr-done", "expect-session 2"],
+                 "wait-vital dead 30", *ROM_BACK, "sync rr-woke", *ROM_DIVE_IN, ROM_FLAGS,
+                 *ROM_FIGHT_OFF[1:], "census 150", "sync rr-done", "expect-session 2"],
         "guest": [*ROM_START, "sync rr-in", "wait 5", *ROM_DIVE_IN, "sync rr-hurt",
-                  f"approach {ROM} 6 3.14", "wait 2", "godmode off", "kill self",
-                  "wait-vital spectate 20", "wait-vital dead 90", *ROM_BACK, "sync rr-woke",
-                  "wait 5", *ROM_DIVE_IN, "census 150", ROM_FLAGS,
-                  f"expect-hp {ROM} == {ROM_FULL_HP}", *ROM_FIGHT_OFF[1:], "sync rr-done",
-                  "expect-session 2"],
+                  f"approach {ROM} 6 3.14", "wait 2", "wait-member-vital up 5", "godmode off",
+                  "kill self", "wait-vital spectate 20", "wait-vital dead 90", *ROM_BACK,
+                  "sync rr-woke", "wait 5", *ROM_DIVE_IN, ROM_FLAGS, *ROM_FIGHT_OFF[1:],
+                  "census 150", "sync rr-done", "expect-session 2"],
     },
+    # Whole again by each game's own last census (the enemy strength rule moves her max with the
+    # hunters on the map).
+    "hp_state": [{"handle": ROM, "is": "whole", "roles": ["host", "guest"]}],
     "syncs": {sync: {"chapter": "rom-retry", "roles": ["host", "guest"]}
               for sync in ("rr-in", "rr-hurt", "rr-woke", "rr-done")},
     "expect": {"host": [r"party death: died for real on map 0x20000000 \(reset=true\)"],
