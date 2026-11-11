@@ -562,5 +562,7 @@
  "Enemy damage": "敵のダメージ",
  "Enemy poise": "敵の強靭度",
  "Friendly fire": "フレンドリーファイア",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "より厳しい狩りのために：仲間の攻撃が常に互いにダメージを与えます。仲間によるとどめは通常の死と同じ扱いです。"
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "より厳しい狩りのために：仲間の攻撃が常に互いにダメージを与えます。仲間によるとどめは通常の死と同じ扱いです。",
+ "Give to %s": "%sに渡す",
+ "Give Blood Echoes to %s": "%sに血の遺志を渡す"
 }

@@ -562,5 +562,7 @@
  "Enemy damage": "Fiendernas skada",
  "Enemy poise": "Fiendernas balans",
  "Friendly fire": "Vådabeskjutning",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "För en hårdare jakt: lagkamraters attacker skadar varandra hela tiden. En lagkamrats dödande slag räknas som vilken annan död som helst."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "För en hårdare jakt: lagkamraters attacker skadar varandra hela tiden. En lagkamrats dödande slag räknas som vilken annan död som helst.",
+ "Give to %s": "Ge till %s",
+ "Give Blood Echoes to %s": "Ge blodekon till %s"
 }

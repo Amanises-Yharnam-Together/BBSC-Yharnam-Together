@@ -562,5 +562,7 @@
  "Enemy damage": "Obrażenia wrogów",
  "Enemy poise": "Równowaga wrogów",
  "Friendly fire": "Ogień sojuszniczy",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Dla trudniejszych łowów: ataki towarzyszy zawsze ranią się nawzajem. Śmiertelny cios towarzysza liczy się jak każda inna śmierć."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Dla trudniejszych łowów: ataki towarzyszy zawsze ranią się nawzajem. Śmiertelny cios towarzysza liczy się jak każda inna śmierć.",
+ "Give to %s": "Daj: %s",
+ "Give Blood Echoes to %s": "Daj echa krwi: %s"
 }

@@ -562,5 +562,7 @@
  "Enemy damage": "Fiendenes skade",
  "Enemy poise": "Fiendenes balanse",
  "Friendly fire": "Egen ild",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "For en hardere jakt: lagkameraters angrep skader hverandre hele tiden. Et drepende slag fra en lagkamerat teller som enhver annen død."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "For en hardere jakt: lagkameraters angrep skader hverandre hele tiden. Et drepende slag fra en lagkamerat teller som enhver annen død.",
+ "Give to %s": "Gi til %s",
+ "Give Blood Echoes to %s": "Gi blodekko til %s"
 }

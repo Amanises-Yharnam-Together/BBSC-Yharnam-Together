@@ -562,5 +562,7 @@
  "Enemy damage": "Gegnerschaden",
  "Enemy poise": "Gegnerhaltung",
  "Friendly fire": "Eigenbeschuss",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Für eine härtere Jagd: Angriffe von Teamkameraden verletzen einander jederzeit. Der tödliche Treffer eines Teamkameraden zählt wie jeder andere Tod."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Für eine härtere Jagd: Angriffe von Teamkameraden verletzen einander jederzeit. Der tödliche Treffer eines Teamkameraden zählt wie jeder andere Tod.",
+ "Give to %s": "An %s geben",
+ "Give Blood Echoes to %s": "Blutechos an %s geben"
 }

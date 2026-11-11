@@ -15,6 +15,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from arabic_shape import shape as arabic_shape  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 SHIM = ROOT / 'gpu/shim'
 SOURCES = ['bbport_overlay.cpp', 'bbport_game_menu.cpp', 'bbport_trade_menu.cpp', 'bbport_settings.h']
@@ -42,7 +45,12 @@ LANGUAGES = [
     ('pl', 'Polski', [16]),
     ('pt_BR', 'Português (Brasil)', [17]),
     ('tr', 'Türkçe', [19]),
+    # BBSC 2026-11-08: Arabic, which the game itself has no text in (PS4 id 21). Its letters go in the
+    # table already joined (scripts/arabic_shape.py); ImGui lays the lines right to left (imgui_bidi.h).
+    ('ar', 'العربية', [21]),
 ]
+# Languages whose table texts are written in their joined letter forms.
+SHAPED = {'ar': arabic_shape}
 
 _TOKEN = re.compile(r'''
     (?P<comment>//[^\n]*|/\*.*?\*/)
@@ -232,10 +240,12 @@ def render(texts=None):
     ]
     for code, name, ids in LANGUAGES:
         enum = ''.join(part.capitalize() for part in code.split('_'))
+        name = SHAPED[code](name) if code in SHAPED else name
         lines.append(f'BB_MENU_LANG({enum}, "{code}", {_c_string(name)}, {", ".join(map(str, ids))})')
     lines += ['#endif', '#ifdef BB_MENU_TEXT']
     for english in texts:
         row = [tables[code].get(english) for code, _, _ in LANGUAGES]
+        row = [SHAPED[code](t) if t and code in SHAPED else t for t, (code, _n, _i) in zip(row, LANGUAGES)]
         cells = ',\n             '.join(_c_string(t) if t else 'nullptr' for t in row)
         lines.append(f'BB_MENU_TEXT({_c_string(english)},\n            {{{cells}}})')
     lines += ['#endif', '']

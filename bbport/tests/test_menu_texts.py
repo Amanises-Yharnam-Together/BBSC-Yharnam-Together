@@ -30,7 +30,8 @@ class TableTests(unittest.TestCase):
 
     def test_the_game_languages(self):
         codes = [code for code, _, _ in LANGUAGES]
-        self.assertEqual(len(codes), 18)
+        # The game's 18 and Arabic (an Arabic translation mod in the English (UK) slot; PS4 id 21, no game's).
+        self.assertEqual(len(codes), 19)
         ids = [i for _, _, language_ids in LANGUAGES for i in language_ids]
         self.assertEqual(sorted(ids + [1, 8]), sorted(set(ids + [1, 8])), 'one language per PS4 id')
         self.assertNotIn(18, ids, 'English (UK) is English')

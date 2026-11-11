@@ -63,6 +63,26 @@ class ModTests(unittest.TestCase):
         config.write_text(json.dumps({'order': ['B', 'A', 'deleted'], 'disabled': ['A']}))
         self.assertEqual(mods.selected(self.moddir, config), ['B', 'C'])
 
+    def test_language_menu_files_used_for_that_language_only(self):
+        # A translation in the English (UK) slot with its own copy of a menu file the game keeps once
+        # (menu/<file>): used while the game reads that language, the game's own for every other one.
+        menu = self.game / 'dvdroot_ps4' / 'menu'
+        (menu / 'enggb').mkdir(parents=True)
+        (menu / 'nowloading.gfx').write_bytes(b'shared')
+        (menu / 'enggb' / 'font.gfx').write_bytes(b'font')
+        root = self.moddir / 'Arabic'
+        (root / 'dvdroot_ps4' / 'menu' / 'enggb').mkdir(parents=True)
+        (root / 'dvdroot_ps4' / 'menu' / 'enggb' / 'nowloading.gfx').write_bytes(b'arabic')
+        (root / 'dvdroot_ps4' / 'menu' / 'enggb' / 'font.gfx').write_bytes(b'arabic font')
+        (root / 'dvdroot_ps4' / 'menu' / 'enggb' / 'only-here.gfx').write_bytes(b'not the game\'s')
+        arabic = mods.build_overlay(self.game, self.root / 'out', [('Arabic', root)], language='enggb')
+        self.assertEqual((arabic / 'dvdroot_ps4/menu/nowloading.gfx').read_bytes(), b'arabic')
+        self.assertEqual((arabic / 'dvdroot_ps4/menu/enggb/font.gfx').read_bytes(), b'arabic font')
+        self.assertFalse((arabic / 'dvdroot_ps4/menu/only-here.gfx').exists())
+        english = mods.build_overlay(self.game, self.root / 'out', [('Arabic', root)], language='engus')
+        self.assertEqual((english / 'dvdroot_ps4/menu/nowloading.gfx').read_bytes(), b'shared')
+        self.assertEqual(mods.LANGUAGE_FOLDERS['18'], 'enggb')
+
     def test_no_mod_returns_original_game(self):
         self.assertEqual(mods.build_overlay(self.game, self.root / 'out', []), self.game)
         self.assertFalse((self.root / 'out').exists())
@@ -671,7 +691,7 @@ class LinklessDriveTests(unittest.TestCase):
         refused = OSError(None, 'Incorrect function', None, 1)
         calls = []
 
-        def build(game, out, layers, beside=True):
+        def build(game, out, layers, beside=True, language=None):
             calls.append((Path(out), beside))
             if len(calls) == 1:
                 raise refused
@@ -689,7 +709,7 @@ class LinklessDriveTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == 'nt', 'WinError codes are Windows')
     def test_other_errors_still_stop(self):
-        def build(game, out, layers, beside=True):
+        def build(game, out, layers, beside=True, language=None):
             raise OSError(None, 'Access is denied', None, 5)
         argv = ['mods.py', str(self.game), '--out', str(self.root / 'out'), '--mods-dir', str(self.root / 'mods')]
         with mock.patch.object(mods, 'build_overlay', build), mock.patch.object(sys, 'argv', argv):

@@ -507,7 +507,10 @@ LANGUAGES = [('1', ('English',)), ('18', ('English (UK)',)), ('8', ('Русск�
              ('4', ('Deutsch',)), ('5', ('Italiano',)), ('6', ('Nederlands',)), ('7', ('Português',)),
              ('17', ('Português (Brasil)',)), ('9', ('한국어',)), ('10', ('繁體中文',)), ('11', ('简体中文',)),
              ('12', ('Suomi',)), ('13', ('Svenska',)), ('14', ('Dansk',)), ('15', ('Norsk',)),
-             ('16', ('Polski',)), ('19', ('Türkçe',))]
+             ('16', ('Polski',)), ('19', ('Türkçe',)), ('ar', ('العربية (mod)',))]
+# The game has no Arabic of its own: 'ar' is an Arabic translation mod in the English (UK) slot (its msg/enggb and
+# menu/enggb), played with the port's menus in Arabic. game_environment starts the game in that slot.
+ARABIC_SLOT = '18'
 DRAW_PIPE = [('', ('Auto (8+ threads)', 'Авто (8+ потоков)')), ('1', ('On', 'Включён')),
              ('0', ('Off (more stable)', 'Выключен (стабильнее)'))]
 READBACKS = [('', ('Relaxed (default)', 'Relaxed (по умолчанию)')), ('0', ('Off', 'Выключены')),
@@ -1232,7 +1235,14 @@ def game_environment(s, frame_generation=None):
     env.update(icons_environment(s, ini))
     env['BB_PATCHES_DIR'] = s['patches_dir'] or str(DATA_DIR / 'patches')
     env['BB_PATCHES_CONFIG'] = str(DATA_DIR / 'patches.json')
-    env['BB_LANGUAGE'] = s['language']
+    env['BB_LANGUAGE'] = ARABIC_SLOT if s['language'] == 'ar' else s['language']
+    # With the launcher in Arabic, the port's menus (Auto) speak it whatever the game's language
+    # (bbport_settings.cpp AutoMenuLanguage); the Arabic game language (a translation mod) does too.
+    env.pop('BB_MENU_LANGUAGE', None)  # only this launch's choice counts
+    if LANG in RTL_LANGUAGES:
+        env['BB_MENU_LANGUAGE'] = LANG
+    if s['language'] == 'ar':
+        env['BB_MENU_LANGUAGE'] = 'ar'
     # Build check on join: the co-op server refuses a game of another release and says both versions.
     env['BB_RELEASE_VERSION'] = coop_release_version() or 'dev'
     if str(s['player_name']).strip():
@@ -1636,9 +1646,60 @@ def load_art(name):
         return None
 
 
+RTL_LANGUAGES = ('ar',)
+
+
+def rtl():
+    """Whether the launcher speaks a right-to-left language (Arabic)."""
+    return LANG in RTL_LANGUAGES
+
+
 def spaced(text):
-    """A heading set the way game menus set them: capitals with a thin space between the letters."""
+    """A heading set the way game menus set them: capitals with a thin space between the letters.
+    Arabic is left as written: its letters join, and a space between each one breaks the word apart and
+    lays the letters out left to right (the 'backwards' headings, CLS_AMG 2026-11-08)."""
+    if rtl() or any('\u0590' <= c <= '\u08ff' for c in text):
+        return text
     return ' '.join(text.upper())
+
+
+_RTL_ANCHORS = {'w': 'e', 'nw': 'ne', 'sw': 'se', 'e': 'w', 'ne': 'nw', 'se': 'sw'}
+
+
+def rtl_options(options):
+    """Label options mirrored for a right-to-left language: text set from the right."""
+    if options.get('justify') == 'left':
+        options['justify'] = 'right'
+    if options.get('anchor') in _RTL_ANCHORS:
+        options['anchor'] = _RTL_ANCHORS[options['anchor']]
+    text = options.get('text')
+    if isinstance(text, str) and any('\u0600' <= c <= '\u06ff' for c in text):
+        # Windows lays a line out left to right: a full stop at the end of an Arabic line went to its
+        # right edge. A right-to-left mark after it keeps it on the left, where Arabic ends a sentence.
+        options['text'] = '\n'.join(line + '\u200f' if line and not line.endswith('\u200f') else line
+                                    for line in text.split('\n'))
+    return options
+
+
+class RtlTk:
+    """The tkinter module as the launcher sees it in a right-to-left language: the same, except that
+    labels are set from the right (justify/anchor mirrored)."""
+
+    def __init__(self, tk):
+        self._tk = tk
+
+        class Label(tk.Label):
+            def __init__(self, master=None, cnf=None, **kw):
+                super().__init__(master, cnf or {}, **rtl_options(kw))
+
+            def configure(self, cnf=None, **kw):
+                return super().configure(cnf, **rtl_options(kw))
+
+            config = configure
+        self.Label = Label
+
+    def __getattr__(self, name):
+        return getattr(self._tk, name)
 
 
 def diamond(x, y, r):
@@ -2893,6 +2954,8 @@ class Sidebar:
 class Launcher:
     def __init__(self, root, tk, ttk, filedialog, messagebox):
         from tkinter import font as tkfont
+        if rtl():
+            tk = RtlTk(tk)
         self.tk, self.ttk, self.filedialog, self.messagebox, self.tkfont = tk, ttk, filedialog, messagebox, tkfont
         self.root = root
         self.app = load_app_settings()
@@ -2987,6 +3050,10 @@ class Launcher:
         families = set(self.tkfont.families(self.root))
         serif = next((f for f in ('Cinzel', 'Palatino Linotype', 'Georgia') if f in families), 'Times New Roman')
         sans = 'Segoe UI' if 'Segoe UI' in families else 'Arial'
+        if rtl():
+            # The serif faces have no Arabic letters: Tk then draws every word in a fallback font on its
+            # own, left to right, so the words came out in reverse order. Segoe UI has them all.
+            serif = sans
         self.fonts = {'body': (sans, 10), 'body_bold': (sans, 10, 'bold'), 'small': (sans, 9),
                       'small_bold': (sans, 9, 'bold'), 'menu': (serif, 12), 'h1': (serif, 19), 'h2': (serif, 12),
                       'title': (serif, 22), 'play': (serif, 16, 'bold'), 'mono': ('Consolas', 9),
@@ -3051,7 +3118,23 @@ class Launcher:
                     v = tk.StringVar(value=str(value))
             v.store = store
             self.vars[key] = v
+            if key == 'ui_language':
+                v.trace_add('write', lambda *_a: self.root.after(150, self.ui_language_changed))
         return self.vars[key]
+
+    def ui_language_changed(self):
+        """A new launcher language: the launcher reopens in it at once (every text is set when a page is
+        built, so changing it in place left the old language on screen: 'language not swapping')."""
+        wanted = self.vars['ui_language'].get() or windows_language()
+        if wanted == LANG or getattr(self, 'relaunching', False):
+            return
+        self.relaunching = True
+        command = [sys.executable] if FROZEN else [sys.executable, str(Path(__file__).resolve())]
+        self.close()  # writes settings.json first, so the new launcher reads the new language
+        try:
+            subprocess.Popen(command, cwd=str(Path.cwd()))
+        except OSError:
+            pass
 
     def output_options(self):
         """The Output resolution dropdown's choices: the monitor's resolutions and the one in bbport.ini."""
@@ -3181,7 +3264,7 @@ class Launcher:
     def heading(self, parent, title, bg, font='h2'):
         """A panel or page heading: spaced capitals over an ornamental rule."""
         head = self.tk.Frame(parent, bg=bg)
-        self.label(head, spaced(title), font, bg=bg).pack(anchor='w')
+        self.label(head, spaced(title), font, bg=bg).pack(anchor='e' if rtl() else 'w')
         self.rule(head, bg).pack(fill='x', pady=(self.px(6), self.px(2)))
         return head
 

@@ -21,6 +21,9 @@ std::uint64_t ImageBase();
 /// A text the game looks up like its own messages (any category), both languages; before the game
 /// runs (PatchImage).
 std::uint32_t AddGameText(const char* english, const char* russian);
+/// A text of AddGameText's in the language the game shows now (Arabic while an Arabic translation is picked
+/// in System > Language), UTF-8, as stored: for a dynamic text built from it (SetDynamicText lays it out).
+std::string TextNow(std::uint32_t id);
 /// Slot `slot` (0-7) now says `utf8`: its message id.
 std::uint32_t SetDynamicText(int slot, const char* utf8);
 /// Players' reports (Discord, 1.0.0 to 1.3.x): with the co-op server out of reach the game said

@@ -259,7 +259,8 @@ def game_environment(s):
     env["BB_MODS_ENABLED"] = "1" if s.get("mods_enabled", True) else "0"
     env["BB_PATCHES_DIR"] = str(patches_dir(s))
     env["BB_PATCHES_CONFIG"] = str(DATA_DIR / "patches.json")
-    env["BB_LANGUAGE"] = s["language"]
+    # "ar" (the Windows launcher's Arabic translation mod) plays in the English (UK) slot.
+    env["BB_LANGUAGE"] = "18" if s["language"] == "ar" else s["language"]
     env["BB_FULLSCREEN"] = "1" if s["fullscreen"] else "0"
     env["BB_PRESENT_MODE"] = s["present_mode"]
     if s.get("gamepad"):

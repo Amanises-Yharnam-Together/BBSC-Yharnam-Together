@@ -789,6 +789,8 @@ const char* GameFontFolder(BbSettings::MenuLanguage language) {
         return "zhocn";
     case BbSettings::MenuLanguage::ZhTw:
         return "zhotw";
+    case BbSettings::MenuLanguage::Ar:
+        return "engus";  // the game has no Arabic font: its Latin one, and the system's Arabic (SystemFont)
     default:
         return nullptr;
     }
@@ -811,9 +813,17 @@ std::optional<std::pair<std::string, int>> SystemFont(BbSettings::MenuLanguage l
     case L::Ko: add({"malgun.ttf", "gulim.ttc"}); break;
     case L::ZhCn: add({"msyh.ttc", "simsun.ttc"}); break;
     case L::ZhTw: add({"msjh.ttc", "mingliu.ttc"}); break;
+    // Arabic: faces with the Presentation Forms-B the table's joined letters use.
+    case L::Ar: add({"segoeui.ttf", "tahoma.ttf", "arial.ttf"}); break;
     default: break;
     }
 #else
+    if (language == L::Ar) {
+        for (const char* path : {"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+                                 "/usr/share/fonts/TTF/DejaVuSans.ttf"}) {
+            candidates.emplace_back(path, 0);
+        }
+    }
     // Noto Sans CJK's collection: Japanese, Korean, Simplified and Traditional Chinese faces.
     const int face = language == L::Ja ? 0 : language == L::Ko ? 1 : language == L::ZhCn ? 2 : 3;
     for (const char* path : {"/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
@@ -1832,7 +1842,7 @@ void DisplayTab() {
            !BbSettings::FrameRateLocked(), [&](int i) { Store(s.fps_limit, BbSettings::FpsLimits[i], true); });
     // Auto (the game's language), then every language the game has, in their own names.
     static std::string auto_name;
-    auto_name = std::string("Auto (") + BbSettings::LanguageName(BbSettings::GameLanguage()) + ")";
+    auto_name = std::string("Auto (") + BbSettings::LanguageName(BbSettings::AutoMenuLanguage()) + ")";
     Choice("language", "Language", s.menu_language_auto ? 0 : int(s.menu_language.load()) + 1,
            BbSettings::MenuLanguageCount + 1,
            [](int i) {

@@ -85,6 +85,7 @@ F Game(u64 va) {
 constexpr u32 IdBase = 0x7f0000;
 struct Text {
     std::u16string by_language[BbSettings::MenuLanguageCount];
+    std::u16string arabic_from, arabic_game;  // TextOf: the Arabic text laid out for the game's font
 };
 std::vector<Text> texts;
 
@@ -128,10 +129,189 @@ u32 AddBlankText() {
     return IdBase + u32(texts.size() - 1);
 }
 
-/// In the game's own language (the one it reads, BB_LANGUAGE), whatever the port's menus speak.
+// ---- Arabic in the game's own menus (CLS_AMG 2026-11-08) ----
+// With an Arabic translation of the game in place (it stores its text with the letters already joined,
+// Presentation Forms-B, and every line reversed, since the game draws a line left to right as stored), the
+// port's rows follow it: the game's own texts are looked at as they are handed out (LookupHook), and while
+// they hold Arabic the port's rows are its Arabic table texts (menu_texts/ar.json, joined by menu_texts.py)
+// laid out the same way - long ones broken into lines as the translation breaks its own, each line in
+// display order, a button's <img> tag, numbers and Latin words kept as they read.
+std::atomic<long long> arabic_until_ms{0};
+
+long long NowMs() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+}
+
+bool GameShowsArabic() {
+    return NowMs() < arabic_until_ms.load(std::memory_order_relaxed);
+}
+
+/// A game text the repository handed out: Arabic letters in it mean the game speaks Arabic now.
+void NoteGameText(const char16_t* text) {
+    for (int i = 0; text && i < 64 && text[i]; ++i) {
+        if (text[i] >= 0xfe70 && text[i] <= 0xfeff) {
+            arabic_until_ms.store(NowMs() + 4000, std::memory_order_relaxed);
+            return;
+        }
+    }
+}
+
+bool RtlChar(char16_t c) {
+    return (c >= 0x0590 && c <= 0x08ff && !(c >= 0x0660 && c <= 0x0669)) || (c >= 0xfb1d && c <= 0xfdff) ||
+           (c >= 0xfe70 && c <= 0xfeff);
+}
+
+/// One line in display order: units are single characters, or a whole <...> tag (a button icon).
+std::u16string RtlLine(const std::u16string& line) {
+    std::vector<std::u16string> units;
+    for (std::size_t i = 0; i < line.size();) {
+        std::size_t end = i + 1;
+        if (line[i] == u'<') {
+            const std::size_t close = line.find(u'>', i);
+            end = close == std::u16string::npos ? line.size() : close + 1;
+        }
+        units.push_back(line.substr(i, end - i));
+        i = end;
+    }
+    const int n = int(units.size());
+    std::vector<int> dir(n);  // 2 right to left, 1 left to right, 0 neutral
+    bool any_rtl = false;
+    for (int i = 0; i < n; ++i) {
+        const char16_t c = units[i][0];
+        if (units[i].size() > 1 || (c >= u'0' && c <= u'9') || (c >= u'A' && c <= u'Z') || (c >= u'a' && c <= u'z') ||
+            (c >= 0xc0 && !RtlChar(c) && !(c >= 0x2000 && c <= 0x2bff))) {
+            dir[i] = 1;
+        } else if (RtlChar(c)) {
+            dir[i] = 2;
+            any_rtl = true;
+        }
+    }
+    if (!any_rtl) {
+        return line;
+    }
+    for (int i = 0; i < n; ++i) {  // signs that belong to a number: 50%, +3, 1.5, 12:30
+        const char16_t c = units[i][0];
+        const bool digit_before = i > 0 && units[i - 1][0] >= u'0' && units[i - 1][0] <= u'9';
+        const bool digit_after = i + 1 < n && units[i + 1][0] >= u'0' && units[i + 1][0] <= u'9';
+        if (dir[i] == 0 && ((c == u'%' && digit_before) || ((c == u'+' || c == u'-') && digit_after) ||
+                            ((c == u'.' || c == u',' || c == u':' || c == u'/' || c == 0xd7) && digit_before && digit_after))) {
+            dir[i] = 1;
+        }
+    }
+    for (int i = 0; i < n;) {  // neutrals: their neighbours' direction when both agree, else right to left
+        if (dir[i]) {
+            ++i;
+            continue;
+        }
+        int j = i;
+        while (j < n && !dir[j]) {
+            ++j;
+        }
+        const int left = i > 0 ? dir[i - 1] : 2, right = j < n ? dir[j] : 2;
+        for (int k = i; k < j; ++k) {
+            dir[k] = left == right ? left : 2;
+        }
+        i = j;
+    }
+    std::vector<int> order(n);
+    for (int i = 0; i < n; ++i) {
+        order[i] = i;
+    }
+    for (int level = 2; level >= 1; --level) {  // Arabic level 1, the rest 2 (a right-to-left line)
+        for (int i = 0; i < n;) {
+            if ((dir[order[i]] == 2 ? 1 : 2) < level) {
+                ++i;
+                continue;
+            }
+            int j = i;
+            while (j < n && (dir[order[j]] == 2 ? 1 : 2) >= level) {
+                ++j;
+            }
+            std::reverse(order.begin() + i, order.begin() + j);
+            i = j;
+        }
+    }
+    std::u16string out;
+    for (const int i : order) {
+        std::u16string unit = units[i];
+        if (dir[i] == 2 && unit.size() == 1) {
+            const char16_t c = unit[0];
+            unit[0] = c == u'(' ? u')' : c == u')' ? u'(' : c == u'[' ? u']' : c == u']' ? u'[' : c;
+        }
+        out += unit;
+    }
+    return out;
+}
+
+/// An Arabic text as the game's font is given its own: lines of at most `width` letters (a tag counts one),
+/// broken at spaces, each in display order.
+std::u16string GameArabic(const std::u16string& text, std::size_t width = 70) {
+    std::u16string out;
+    std::size_t start = 0;
+    while (start <= text.size()) {
+        const std::size_t newline = text.find(u'\n', start);
+        const std::u16string paragraph = text.substr(start, newline == std::u16string::npos ? std::u16string::npos
+                                                                                            : newline - start);
+        std::u16string line;
+        std::size_t letters = 0, word_letters = 0;
+        std::u16string word;
+        const auto flush_word = [&] {
+            if (!line.empty() && letters + 1 + word_letters > width) {
+                out += RtlLine(line) + u'\n';
+                line.clear();
+                letters = 0;
+            }
+            if (!line.empty()) {
+                line += u' ';
+                ++letters;
+            }
+            line += word;
+            letters += word_letters;
+            word.clear();
+            word_letters = 0;
+        };
+        for (std::size_t i = 0; i < paragraph.size(); ++i) {
+            if (paragraph[i] == u' ') {
+                flush_word();
+                continue;
+            }
+            if (paragraph[i] == u'<') {
+                const std::size_t close = paragraph.find(u'>', i);
+                const std::size_t end = close == std::u16string::npos ? paragraph.size() : close + 1;
+                word += paragraph.substr(i, end - i);
+                ++word_letters;
+                i = end - 1;
+                continue;
+            }
+            word += paragraph[i];
+            ++word_letters;
+        }
+        flush_word();
+        out += RtlLine(line);
+        if (newline == std::u16string::npos) {
+            break;
+        }
+        out += u'\n';
+        start = newline + 1;
+    }
+    return out;
+}
+
+/// In the game's own language (the one it reads, BB_LANGUAGE), whatever the port's menus speak; in Arabic
+/// while the game shows Arabic (an Arabic translation picked in System > Language), whatever BB_LANGUAGE says.
 const char16_t* TextOf(u32 id) {
     static const BbSettings::MenuLanguage game = BbSettings::GameLanguage();
-    return texts[id - IdBase].by_language[int(game)].c_str();
+    Text& text = texts[id - IdBase];
+    if (GameShowsArabic()) {
+        const std::u16string& arabic = text.by_language[int(BbSettings::MenuLanguage::Ar)];
+        if (text.arabic_from != arabic || text.arabic_game.empty()) {
+            text.arabic_from = arabic;
+            text.arabic_game = GameArabic(arabic);
+        }
+        return text.arabic_game.c_str();
+    }
+    return text.by_language[int(game)].c_str();
 }
 
 // Texts the trade menus change while the game runs (SetDynamicText): ids from DynamicIdBase, one
@@ -139,6 +319,7 @@ const char16_t* TextOf(u32 id) {
 constexpr u32 DynamicIdBase = IdBase + 0x8000;
 constexpr int DynamicSlots = 8;
 std::u16string dynamic_texts[DynamicSlots];
+std::u16string dynamic_arabic[DynamicSlots];  // a dynamic text laid out for the game's font (GameArabic)
 
 // ---- The port's values the game's rows edit (ints: the list rows bind ints). ----
 enum Field : int {
@@ -782,7 +963,12 @@ const char16_t* SignInDialogText() {
 
 GAME_ABI const char16_t* LookupHook(void* repository, u32 table, u32 category, u32 id) {
     if (id >= DynamicIdBase && id < DynamicIdBase + DynamicSlots) {
-        return dynamic_texts[id - DynamicIdBase].c_str();
+        const u32 slot = id - DynamicIdBase;
+        if (GameShowsArabic()) {
+            dynamic_arabic[slot] = GameArabic(dynamic_texts[slot]);
+            return dynamic_arabic[slot].c_str();
+        }
+        return dynamic_texts[slot].c_str();
     }
     if (bbcoop_is_psn_sign_in_text(category, id)) {
         if (const char16_t* reason = SignInDialogText()) {
@@ -814,6 +1000,7 @@ GAME_ABI const char16_t* LookupHook(void* repository, u32 table, u32 category, u
         return title_override;
     }
     const char16_t* text = lookup_original(repository, table, category, id);
+    NoteGameText(text);
     static const bool trace = [] {
         const char* env = std::getenv("BB_GAME_MENU_TRACE");
         return env && env[0] == '1';
@@ -1012,6 +1199,38 @@ bool SignInNotice(SignInWords& words, bool game_language) {
 
 std::uint32_t AddGameText(const char* english, const char* russian) {
     return AddText(english, russian);
+}
+
+std::string TextNow(std::uint32_t id) {
+    if (id < IdBase || id >= IdBase + texts.size()) {
+        return {};
+    }
+    static const BbSettings::MenuLanguage game = BbSettings::GameLanguage();
+    const std::u16string& text =
+        texts[id - IdBase].by_language[int(GameShowsArabic() ? BbSettings::MenuLanguage::Ar : game)];
+    std::string out;
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        u32 c = text[i];
+        if (c >= 0xd800 && c < 0xdc00 && i + 1 < text.size()) {
+            c = 0x10000 + ((c - 0xd800) << 10) + (text[++i] - 0xdc00);
+        }
+        if (c < 0x80) {
+            out += char(c);
+        } else if (c < 0x800) {
+            out += char(0xc0 | c >> 6);
+            out += char(0x80 | (c & 0x3f));
+        } else if (c < 0x10000) {
+            out += char(0xe0 | c >> 12);
+            out += char(0x80 | (c >> 6 & 0x3f));
+            out += char(0x80 | (c & 0x3f));
+        } else {
+            out += char(0xf0 | c >> 18);
+            out += char(0x80 | (c >> 12 & 0x3f));
+            out += char(0x80 | (c >> 6 & 0x3f));
+            out += char(0x80 | (c & 0x3f));
+        }
+    }
+    return out;
 }
 
 std::uint32_t SetDynamicText(int slot, const char* utf8) {

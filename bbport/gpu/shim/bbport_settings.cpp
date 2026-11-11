@@ -273,6 +273,18 @@ MenuLanguage LanguageFromPs4(int id) {
     return MenuLanguage::English;
 }
 
+/// What Auto means for the menus: the launcher's language when the game has none of its own text in it
+/// (BB_MENU_LANGUAGE, set by the launcher for Arabic), else the game's (BBSC 2026-11-08).
+MenuLanguage AutoMenuLanguage() {
+    const char* code = std::getenv("BB_MENU_LANGUAGE");
+    if (code && *code) {
+        if (const auto language = LanguageFromCode(code)) {
+            return *language;
+        }
+    }
+    return GameLanguage();
+}
+
 MenuLanguage GameLanguage() {
     // runtime_services.c answers the game's language query from the same variable.
     const char* id = std::getenv("BB_LANGUAGE");
@@ -300,7 +312,7 @@ std::optional<MenuLanguage> LanguageFromCode(std::string_view code) {
 void SetMenuLanguage(std::optional<MenuLanguage> language) {
     auto& v = Get();
     v.menu_language_auto = !language;
-    v.menu_language = language ? *language : GameLanguage();
+    v.menu_language = language ? *language : AutoMenuLanguage();
 }
 
 void Load() {
@@ -400,7 +412,7 @@ void Load() {
     }
     v.startup_live_resolution = v.live_resolution;
     if (v.menu_language_auto) {
-        v.menu_language = GameLanguage();
+        v.menu_language = AutoMenuLanguage();
     }
 }
 

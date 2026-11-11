@@ -142,6 +142,30 @@ def mod_files(folder):
             yield relative, source
 
 
+# The game's text folders (msg/<folder>, menu/<folder>) by PS4 system language id (BB_LANGUAGE).
+LANGUAGE_FOLDERS = {'0': 'jpnjp', '1': 'engus', '2': 'frafr', '3': 'spaes', '4': 'deude', '5': 'itait', '6': 'nldnl',
+                    '7': 'porpt', '8': 'rusru', '9': 'korkr', '10': 'zhotw', '11': 'zhocn', '12': 'finfi', '13': 'swese',
+                    '14': 'dandk', '15': 'norno', '16': 'polpl', '17': 'porbr', '18': 'enggb', '19': 'turtr',
+                    '20': 'spaar'}
+
+
+def language_copies(game, replacements, folder):
+    """A mod's menu files of one language: dvdroot_ps4/menu/<folder>/<file> for a file the game keeps once for every
+    language (menu/<file>: item boxes, loading screens). A translation that brings such a file of its own (an Arabic
+    translation in the English (UK) slot, set right to left) has it used while the game reads that language, and the
+    other languages keep the shared one. The game itself only reads menu/<folder>/font.gfx per language."""
+    if not folder:
+        return []
+    copies = []
+    for relative, source in replacements:
+        parts = relative.parts
+        if (len(parts) == 4 and parts[0].casefold() == 'dvdroot_ps4' and parts[1].casefold() == 'menu'
+                and parts[2].casefold() == folder.casefold()
+                and (Path(game) / 'dvdroot_ps4' / 'menu' / parts[3]).is_file()):
+            copies.append((Path(parts[0], parts[1], parts[3]), source))
+    return copies
+
+
 # On Windows the overlay never holds a symlink, whether or not the user may create them (Developer
 # Mode): the game panics reading files through symlinks (Dantelion2 FileTransferTask.cpp(865), every
 # boot, with any loose-file mod; upstream #102). Directories become junctions, files hard links
@@ -350,10 +374,11 @@ def new_view(folder, game, owner):
 GAME_PARTS = ('eboot.bin', 'sce_module', 'sce_sys', 'dvdroot_ps4')
 
 
-def build_overlay(game, out, mods, beside=True, owner=None):
+def build_overlay(game, out, mods, beside=True, owner=None, language=None):
     """beside: with the game on another drive than out, the overlay goes beside the game (beside_game); False
     keeps it in out (files are then copied, folders linked). owner: the process the view is for (the launch that
-    removes it when the game ends; default view_owner()); views of owners that are gone are removed."""
+    removes it when the game ends; default view_owner()); views of owners that are gone are removed. language: the
+    game's text folder this launch (LANGUAGE_FOLDERS); its own menu files are used (language_copies)."""
     owner = view_owner() if owner is None else owner
     game = Path(game).resolve(strict=True)
     replacements = []
@@ -368,6 +393,10 @@ def build_overlay(game, out, mods, beside=True, owner=None):
             replacements.append((relative, source))
             count += 1
         print(f'Mods: {name}: {count} files', file=sys.stderr)
+    copies = language_copies(game, replacements, language)
+    if copies:
+        print(f'Mods: {len(copies)} menu files of the {language} text', file=sys.stderr)
+        replacements.extend(copies)
     if not replacements:
         return game
     out = Path(out).resolve()
@@ -489,6 +518,8 @@ def main():
     parser.add_argument('--icons-layer', type=Path, help='a folder with the generated button icons (a layer under the mods)')
     parser.add_argument('--layer', type=Path, action='append', default=[],
                         help="a folder of the port's own (fov.py's camera table): a layer under the icons and the mods")
+    parser.add_argument('--language', default='',
+                        help="the game's language this launch (BB_LANGUAGE, a PS4 language id): its own menu files")
     parser.add_argument('--party-hud', action='store_true',
                         help='put the party HUD (hud_patch.py: the HUD the layers show, patched) over the mods')
     args = parser.parse_args()
@@ -499,7 +530,7 @@ def main():
         for line in notes:
             print(f'Mods: {line}', file=sys.stderr)
     try:
-        print(build_overlay(args.game, args.out, layers))
+        print(build_overlay(args.game, args.out, layers, language=LANGUAGE_FOLDERS.get(args.language)))
     except OSError as error:
         # [WinError 1] "Incorrect function": without symlink rights a folder becomes a junction, and junctions
         # exist only on NTFS. A port on an exFAT or FAT32 drive (USB, external) gets its game view in the system
@@ -510,7 +541,7 @@ def main():
         fallback.mkdir(parents=True, exist_ok=True)
         print(f'Mods: links are not supported on the drive of {args.out}; '
               f'the game view is made in {fallback}', file=sys.stderr)
-        print(build_overlay(args.game, fallback, layers, beside=False))
+        print(build_overlay(args.game, fallback, layers, beside=False, language=LANGUAGE_FOLDERS.get(args.language)))
 
 
 if __name__ == '__main__':
