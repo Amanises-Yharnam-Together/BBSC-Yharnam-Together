@@ -306,10 +306,13 @@ def only_kill(handle: str, *beside: str) -> list[str]:
             rf"(?: (?:{ours}) \(dead [^)]*\))+\s*$)"]
 
 
-def attack(target: str) -> list[str]:
+def attack(target: str, seconds: int = 40) -> list[str]:
     """A real kill of an ordinary enemy (the kill reward and the death run as in play; the
-    game's own kill leaves one standing in a party)."""
-    return [f"attack {target} 40"]
+    game's own kill leaves one standing in a party), in at most `seconds`. The step puts it at
+    1 HP first, which holds only in the game that runs the enemy: another game's kill takes
+    all of its HP (full rig 2026-11-10: a guest's 8 hits in 40 s left three hunters' enemy at 31
+    of 968)."""
+    return [f"attack {target} {seconds}"]
 
 
 
@@ -2200,12 +2203,17 @@ SCENARIOS = {
         "about": "a party of three: the first guest picks up an item and attacks an enemy while "
                  "the second guest stands still; the second guest's own character stays put",
         "roles": {
-            "host": [START, "godmode", "wait-session 3 480", "wait 70", "expect-session 3"],
+            "host": [START, "godmode", "wait-session 3 480", "sync acted", "wait 10",
+                     "expect-session 3"],
+            # 90 s: the guest does not run the enemy, so its kill is of all three hunters' HP.
             "guest": [START, "godmode", "wait-session 3 480", "wait 15", "pickup 60", "wait 5",
-                      *attack(ENEMY), "wait 10", "expect-session 3"],
+                      *attack(ENEMY, 90), "sync acted", "wait 10", "expect-session 3"],
+            # Its last census once the first guest's kill is done, however long that took.
             "guest2": [START, "godmode", "wait-session 3 480", "wait 10", "census 5", "wait 20",
-                       "census 5", "wait 25", "census 5", "expect-session 3"],
+                       "census 5", "sync acted", "wait 5", "census 5", "expect-session 3"],
         },
+        "syncs": {"acted": {"chapter": "guest-acts-for-two",
+                            "roles": ["host", "guest", "guest2"]}},
         "stays": {"guest2": 3.0},
         "timeout": 900,
     },
@@ -4461,27 +4469,33 @@ SCENARIOS["duel"] = {
 # a notice): two against one. The host's picks: it and the guest The Hunters (2), guest2 The
 # Yharnamites (1). The host strikes guest2 at 1 HP; the guest stands off, out of reach. The whole
 # team wins, every duelist hears which team, nobody has a party death.
+# The two who fight stay where they woke, at the lamp (as in "duel"; full rig 2026-11-10: on spots
+# 8 m from ENEMY it came over and downed guest2 after the duel, 1 run of 3 green). The guest, whom
+# nobody strikes, is the one who stands off, 13 m away and by ENEMY: in godmode. guest2's HP is
+# back once the duel is over (the down came 1.4 s after its give-back: if this check fails, the
+# give-back did not hold, and that is the game's).
 DUEL_GUEST2_ID = "rig_guest2".encode().hex()
 DUEL_TEAM_NAMES = ("duel-together", "duel-fighting", "duel-low", "duel-over")
 SCENARIOS["duel-teams"] = {
     "about": "a teams' duel: two against one from the Teams page, the last team standing wins "
              "together, the notice names it, no party death",
     "roles": {
-        "host": [START, "godmode", "wait-session 3 300", "wait 5", "teleport -212.0 -54.5 174.0",
-                 "sync duel-together",
+        "host": [START, "godmode", "wait-session 3 300", "wait 5", "sync duel-together",
                  f"duel-propose-teams {RIG_HOST_ID}=2 {RIG_GUEST_ID}=2 {DUEL_GUEST2_ID}=1",
                  "wait-duel countdown 40", "wait-duel fighting 10", "sync duel-fighting",
                  "sync duel-low", "duel-strike 60", "wait-duel none 20", "sync duel-over",
                  "wait 3", "snapshot", "expect-session 3"],
-        "guest": [START, "wait-session 3 300", "wait 5", f"teleport {GUEST_PAIR_SPOT}",
+        "guest": [START, "godmode", "wait-session 3 300", "wait 5",
+                  f"teleport {GUEST_PAIR_SPOT}",
                   "sync duel-together", "duel-answer yes 40", "wait-duel countdown 10",
                   "wait-duel fighting 10", "sync duel-fighting", "sync duel-low",
                   "wait-duel none 80", "sync duel-over", "wait 3", "snapshot",
                   "expect-session 3"],
-        "guest2": [START, "wait-session 3 300", "wait 5", "teleport -209.0 -54.5 174.0",
+        "guest2": [START, "wait-session 3 300", "wait 5",
                    "sync duel-together", "duel-answer yes 40", "wait-duel countdown 10",
                    "wait-duel fighting 10", "sync duel-fighting", "hurt self 1", "sync duel-low",
-                   "wait-duel none 80", "sync duel-over", "wait 3", "snapshot",
+                   "wait-duel none 80", "sync duel-over", f"expect-hp self >= {DUEL_HP_FLOOR}",
+                   "wait 3", "snapshot", f"expect-hp self >= {DUEL_HP_FLOOR}",
                    "expect-session 3"],
     },
     "syncs": {name: {"chapter": "duel-teams", "roles": ["host", "guest", "guest2"]}

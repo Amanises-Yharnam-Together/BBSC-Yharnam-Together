@@ -77,7 +77,6 @@ def restart_with(saves: str) -> str:
 AS_PLAYERS = {**PARTY_DEATH, "BB_FPS": "30"}
 # Without party death: a death is the game's own (a guest gets up at its lamp in the session).
 
-DOG_MAX_HP = 364
 # An enemy no chapter before these hurts, awake by the first lamp (179 HP, 30 m away). The dog is
 # not one for real hits: in the rig's saves the game keeps it hidden (+0x28, no backread) at 35 m,
 # so no swing lands (rig 2026-10-13), and after hp-apart its HP is the host's shared damage.
@@ -1209,11 +1208,16 @@ SUITES = {
             chapter("hurt-before-join", "an enemy hurt in the guest's own world before it joins "
                                         "stays whole in the host's; the session forming kills "
                                         "nothing",
-                    {"host": ["godmode", "wait 20", f"expect-hp {DOG} == {DOG_MAX_HP}",
+                    # Whole in the host's game before the session (its first census) and after
+                    # (its last), each against the dog's own max there, never a number: the team
+                    # rules' enemy strength moves it (full rig 2026-11-10: 546, not 364).
+                    {"host": ["godmode", "wait 20", "census 60",
                               "wait-session 2 300", "wait 30", "census 60", "expect-session 2"],
                      "guest": ["godmode", f"hurt {DOG} 5", "wait-session 2 300", "wait 30",
                                "census 60", f"expect-hp {DOG} > 300", "expect-session 2"]},
-                    fatal=True, setup=True, hp_state=whole(["host"], DOG),
+                    fatal=True, setup=True,
+                    hp_state=[{"handle": DOG, "is": "whole", "census": 0, "roles": ["host"]},
+                              *whole(["host"], DOG)],
                     forbid={"host": SESSION_HOLDS + [r"Bloodborne echoes: \+\d+"],
                             "guest": SESSION_HOLDS}),
             chapter("join-after-trip", "a guest that travelled on its own before any session (to "
@@ -1230,9 +1234,13 @@ SUITES = {
                                         "comes over",
                     {"host": [f"hurt {ENEMY} 200", "sync hab-hurt"],
                      "guest": ["sync hab-hurt", f"travel {CENTRAL_YHARNAM_LAMP}",
-                               "wait-members 2 240", "wait 20", f"expect-hp {ENEMY} <= 200"]},
-                    # Its expect-hp is the check: the lowering's line comes only when the guest's
-                    # copy had the old HP when it came over (rig 2026-10-15: 1 run of 2).
+                               "wait-members 2 240", "wait 20", "census 40"]},
+                    # The guest's census is the check: the lowering's line comes only when the
+                    # guest's copy had the old HP when it came over (rig 2026-10-15: 1 run of 2).
+                    # Hurt against its own max there, not "<= 200": with both on the map the
+                    # enemy strength rule raises its HP with its max (full rig 2026-11-10: 300 of
+                    # 726).
+                    hp_state=[{"handle": ENEMY, "is": "hurt", "roles": ["guest"]}],
                     forbid=holds(PARTY2)),
             chapter("join-ward", "joining in Cathedral Ward, whose co-op the guest's own world has "
                                  "not opened",

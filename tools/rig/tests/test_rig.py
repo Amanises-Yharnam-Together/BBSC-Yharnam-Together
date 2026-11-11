@@ -371,6 +371,53 @@ class EdgeTest(unittest.TestCase):
                 self.assertIn(suites.RESTART, steps, "joins again from the title")
                 self.assertIn("expect-session 2", steps[steps.index(suites.RESTART):])
 
+    def test_the_joins_suite_names_no_enemy_hp(self):
+        # Full rig 2026-11-10: the dog's 364 and "<= 200" were the HP of one hunter's enemies; the
+        # team rules' enemy strength made them 546 and 300 of 726, and the suite stopped.
+        chapters = {c["name"]: c for c in suites.SUITES["joins"]["chapters"]}
+        for name in ("hurt-before-join", "hp-across-blocks"):
+            for role, steps in chapters[name]["steps"].items():
+                for step in steps:
+                    self.assertNotRegex(step, r"expect-hp 0x\w+ (==|<=) \d", f"{name} {role}")
+        self.assertFalse(hasattr(suites, "DOG_MAX_HP"))
+        first = chapters["hurt-before-join"]
+        self.assertIn({"handle": scenarios.DOG, "is": "whole", "census": 0, "roles": ["host"]},
+                      first["hp_state"], "whole before the session too")
+        self.assertIn({"handle": scenarios.DOG, "is": "whole", "roles": ["host"]},
+                      first["hp_state"])
+        self.assertEqual(sum(step.startswith("census ") for step in first["steps"]["host"]), 2)
+        across = chapters["hp-across-blocks"]
+        self.assertEqual(across["hp_state"],
+                         [{"handle": scenarios.ENEMY, "is": "hurt", "roles": ["guest"]}])
+        self.assertTrue(across["steps"]["guest"][-1].startswith("census "))
+
+    def test_a_guests_kill_of_a_party_of_threes_enemy_gets_the_time_it_takes(self):
+        # Full rig 2026-11-10: a guest's attack does not start from 1 HP (the owner's HP comes
+        # back), and three hunters' enemy has twice the HP: 8 hits in 40 s left it at 31 of 968.
+        scenario = scenarios.SCENARIOS["guest-acts-for-two"]
+        [attack] = [step for step in scenario["roles"]["guest"] if step.startswith("attack ")]
+        self.assertGreaterEqual(int(attack.split()[2]), 90)
+        self.assertEqual(scenarios.attack(scenarios.ENEMY), [f"attack {scenarios.ENEMY} 40"])
+        # The second guest's last census comes after the first one's kill, not after a fixed wait.
+        for role, steps in scenario["roles"].items():
+            self.assertIn("sync acted", steps, role)
+        still = scenario["roles"]["guest2"]
+        self.assertLess(still.index("sync acted"), len(still) - 1 - still[::-1].index("census 5"))
+        self.assertEqual(scenario["syncs"]["acted"]["roles"], ["host", "guest", "guest2"])
+
+    def test_the_teams_duel_is_fought_away_from_the_enemy(self):
+        # Full rig 2026-11-10: the duel's spots were 8 m from ENEMY, which came over and downed
+        # the loser after the duel. The duelists stay at the lamp (as in "duel"); the teammate
+        # who stands off is the only one near it, in godmode.
+        roles = scenarios.SCENARIOS["duel-teams"]["roles"]
+        for role in ("host", "guest2"):
+            self.assertFalse([step for step in roles[role] if step.startswith("teleport ")], role)
+        self.assertNotIn("godmode", roles["guest2"], "its lethal hit is the duel's")
+        self.assertIn("godmode", roles["guest"])
+        # Its HP is back once the duel is over.
+        after = roles["guest2"][roles["guest2"].index("sync duel-over"):]
+        self.assertIn(f"expect-hp self >= {scenarios.DUEL_HP_FLOOR}", after)
+
     def test_insert_is_pressed_in_the_world_while_the_team_load_screen_is_up(self):
         # The team's load screen is in the world since the join's reload: title-keys did nothing
         # there (rig 2026-10-22), so the presses come after the guest's arrival, an even number.
