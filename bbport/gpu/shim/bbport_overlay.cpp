@@ -3407,10 +3407,11 @@ void DrawDuelSetup(ImDrawList* draw, ImVec2 win, ImVec2 size) {
 
 /// Kaniel 2026-10-29 ("too overcrowded"): how the team is joined, invaders and the death mode, one
 /// choice each for the whole team, on their own page behind the settings button in the screen's top
-/// right corner (Triangle opens it too). Its leader changes them, the others see them; the host
-/// rules (the leader's launcher's Co-op settings) are listed under them.
+/// right corner (Triangle opens it too). Its leader changes them, the others see them.
 /// Kaniel 2026-11-05: the team rules on the settings page, as the lobby has them (the team's) or
 /// as its leader just set them.
+/// Kaniel 2026-11-11: this page is the one place for them (the launcher has none): the game keeps
+/// what the leader sets for its next start (the game's SetOwnRules).
 struct TeamRules {
     bool scale = true, rot = false, travel = false, vote = false;
     int tempo = 0;
@@ -3458,7 +3459,7 @@ std::string StrengthText(const TeamRules& rules) {
                   index < 0 ? "" : T(Strengths[index].en, Strengths[index].ru), index < 0 ? "" : "  (",
                   double(rules.hp), T("damage", "урон"), double(rules.damage), T("poise", "стойкость"),
                   double(rules.poise), index < 0 ? "" : ")");
-    return text; // without a step's name: a server's own default or a launcher's custom one
+    return text; // without a step's name: a server's own default or an older launcher's custom one
 }
 
 void NextStrength(TeamRules& rules) {

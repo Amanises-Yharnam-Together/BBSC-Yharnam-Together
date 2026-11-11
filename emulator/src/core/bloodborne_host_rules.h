@@ -204,6 +204,14 @@ std::optional<HarderEnemies> TeamScaledEnemies(std::size_t hunters, const Harder
 // (0/1 each, tempo 0-2, the strength 1-10 or 0 for the standard). nullopt when it is not that.
 std::string ScreenRulesText(const HostRules& rules);
 std::optional<HostRules> ParseScreenRules(std::string_view text);
+// Kaniel 2026-11-11: the launcher sets no party rules any more (the team screen is the one place
+// for them). This player's own rules at the game's start, the ones the team it makes starts with:
+// the dev settings' when given (`env_rules`, SHADPS4_BLOODBORNE_HOST_RULES with `env_harder`,
+// SHADPS4_BLOODBORNE_HARDER_ENEMIES, for the strength: the rig's), else the ones it last set on the
+// team screen (`saved`: the user folder's file, one ScreenRulesText line), else none (the team
+// takes the server's default).
+std::optional<HostRules> OwnRulesAtStart(const char* env_rules, const char* env_harder,
+                                         std::string_view saved);
 // The team's strength from its rules' three numbers (TeamRules enemy_hp/damage/poise): all 0 is
 // none (the standard); a 0 among others is that one's standard value.
 std::optional<HarderEnemies> TeamStrength(float hp, float damage, float poise);

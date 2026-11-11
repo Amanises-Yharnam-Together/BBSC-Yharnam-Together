@@ -38,7 +38,7 @@ class BundleTests(unittest.TestCase):
         write(self.user / 'savedata' / '1' / 'userdata0010', 'a save')
         write(self.user / 'last_run.log', 'the game exited')
         self.settings = {'game': 'C:/Games/CUSA03173', 'host_ip': '26.1.2.3', 'account': 'p0123456789abcd',
-                         'password': 'the-secret', 'harder': 'off'}
+                         'password': 'the-secret'}
 
     def tearDown(self):
         self.folder.cleanup()

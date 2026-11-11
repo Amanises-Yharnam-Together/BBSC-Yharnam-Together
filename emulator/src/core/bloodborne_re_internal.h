@@ -689,9 +689,12 @@ u64 FindLoadedParam(std::string_view type);
 void KeepGuestFullHp();
 void HidePhantomGlow();
 void MakeEnemiesHarder();
-// Kaniel 2026-10-25, the host rules (bloodborne_host_rules.h): this launcher's own, and the ones
+// Kaniel 2026-10-25, the host rules (bloodborne_host_rules.h): this player's own (the ones it set
+// on the team screen, kept over starts; Kaniel 2026-11-11: the launcher has none), and the ones
 // this game plays by (its team's while in one, else its own).
-const HostRules& OwnHostRules();
+HostRules OwnHostRules();
+// Whether it has any of its own (none: the team it makes takes the server's default).
+bool HasOwnHostRules();
 HostRules ActiveHostRules();
 // Whether this game plays in a team (its rules the team's).
 bool InTeamNow();

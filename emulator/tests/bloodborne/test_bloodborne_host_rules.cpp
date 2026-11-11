@@ -301,6 +301,29 @@ TEST(BloodborneHostRules, TheTeamScreensRulesAsOneText) {
     EXPECT_FALSE(ParseScreenRules("").has_value());
 }
 
+// Kaniel 2026-11-11: the launcher has no party settings any more: the rules a player set on the
+// team screen are kept in its user folder and are its own at the next start.
+TEST(BloodborneHostRules, TheTeamScreensRulesAreThePlayersOwnAtTheNextStart) {
+    // Nothing set anywhere: none of its own (the team it makes takes the server's default).
+    EXPECT_FALSE(OwnRulesAtStart(nullptr, nullptr, "").has_value());
+    EXPECT_FALSE(OwnRulesAtStart(nullptr, nullptr, "not rules\n").has_value());
+    // The saved line, as the team screen sent it (ScreenRulesText), a line end or not.
+    HostRules saved;
+    saved.rot = true;
+    saved.boss_tempo = BossTempo::Relentless;
+    saved.enemies = HarderEnemies{4.0f, 2.0f, 4.0f};
+    EXPECT_EQ(OwnRulesAtStart(nullptr, nullptr, ScreenRulesText(saved)), saved);
+    EXPECT_EQ(OwnRulesAtStart(nullptr, nullptr, ScreenRulesText(saved) + "\r\n"), saved);
+    // An enemy strength alone is no rule: only the rules' setting or the saved ones count.
+    EXPECT_FALSE(OwnRulesAtStart(nullptr, "3,1.5,3", "").has_value());
+    // The dev settings (the rig's) go over the saved ones, with their own strength.
+    HostRules dev = ParseHostRules("travel,vote");
+    EXPECT_EQ(OwnRulesAtStart("travel,vote", nullptr, ScreenRulesText(saved)), dev);
+    dev.enemies = HarderEnemies{5.0f, 2.0f, 5.0f};
+    EXPECT_EQ(OwnRulesAtStart("travel,vote", "5,2,5", ScreenRulesText(saved)), dev);
+    EXPECT_EQ(OwnRulesAtStart("off", nullptr, ScreenRulesText(saved)), HostRules{});
+}
+
 TEST(BloodborneEnemyScaling, CountsTheHuntersOnThisMap) {
     const std::vector<MemberMap> board{{"me", 0x15000000}, {"b", 0x15000000}, {"c", 0x18000000}};
     EXPECT_EQ(HuntersOnMap(board, "me", 0x15000000), 2u);

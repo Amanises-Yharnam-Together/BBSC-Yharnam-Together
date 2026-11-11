@@ -626,7 +626,10 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
         lobby->rule_rot = rules.rot ? 1 : 0;
         lobby->rule_travel = rules.travel_together ? 1 : 0;
         lobby->rule_vote = rules.travel_vote ? 1 : 0;
-        lobby->rule_scale = rules.enemy_scaling ? 1 : 0;
+        // Out of a team with no rules of its own yet: the team it makes takes the server's default,
+        // Auto (Kaniel 2026-11-05), so the screen shows that and not Fixed.
+        lobby->rule_scale =
+            rules.enemy_scaling || (!Coop::InTeamNow() && !Coop::HasOwnHostRules()) ? 1 : 0;
         lobby->rule_tempo = static_cast<int>(rules.boss_tempo);
         // Kaniel 2026-11-05: the team's enemy strength (the standard when it set none).
         const Core::Bloodborne::HarderEnemies strength = rules.enemies.value_or(

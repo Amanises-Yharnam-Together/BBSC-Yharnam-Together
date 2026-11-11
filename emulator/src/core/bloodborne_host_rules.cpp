@@ -317,6 +317,19 @@ std::optional<HostRules> ParseScreenRules(std::string_view text) {
     return rules;
 }
 
+std::optional<HostRules> OwnRulesAtStart(const char* env_rules, const char* env_harder,
+                                         std::string_view saved) {
+    if (env_rules != nullptr) {
+        HostRules rules = ParseHostRules(env_rules);
+        rules.enemies = ParseHarderEnemies(env_harder != nullptr ? env_harder : "");
+        return rules;
+    }
+    while (!saved.empty() && (saved.back() == '\n' || saved.back() == '\r' || saved.back() == ' ')) {
+        saved.remove_suffix(1);
+    }
+    return ParseScreenRules(saved);
+}
+
 std::optional<HarderEnemies> TeamStrength(float hp, float damage, float poise) {
     if (hp == 0.0f && damage == 0.0f && poise == 0.0f) {
         return std::nullopt;
