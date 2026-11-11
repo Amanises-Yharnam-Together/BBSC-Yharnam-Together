@@ -3084,6 +3084,10 @@ bool RecreateIsForAJoin(bool pending, bool for_join) {
     return !pending || for_join;
 }
 
+bool TripsAfterJoin(const char* setting) {
+    return setting == nullptr || std::string_view{setting} != "0";
+}
+
 bool TripAfterJoin::Tick(const Input& in) {
     if (!in.in_session) {
         arrived_ms.reset();

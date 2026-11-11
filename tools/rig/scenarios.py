@@ -262,7 +262,7 @@ PLAYS_AS_GUEST = r"Co-op team lobby: the save plays in team \w+ as its guest"
 PARTY_DEATH = {"SHADPS4_BLOODBORNE_PARTY_DEATH": "1"}
 # A guest's real death in a party session ends with it up again and no world reload: as the
 # join's white phantom ("party guest died; revived"), or, once any trip made it a live player
-# (the experiment SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN makes one right after the join), as the
+# (the join makes one right away, see trip-after-join), as the
 # host does ("live player died in a party session (state N); revived without a world reload").
 GUEST_REVIVED = (r"(?:party guest died; revived|live player died in a party session "
                  r"\(state \d+\); revived without a world reload)")
@@ -1030,14 +1030,13 @@ SCENARIOS = {
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 300,
     },
-    # Kaniel 2026-11-11, an experiment (SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN=1, off by default): a
+    # Kaniel 2026-11-11 (on by default; SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN=0 turns it off): a
     # guest that joined makes one trip right away, a reload in place, so it is a live player (type
     # 0, +0x78) as after any trip, not the join's white phantom (1). Both then see each other and
     # each one's hit reaches the other's game.
     "trip-after-join": {
-        "about": "the experiment's switch on: the guest that joined reloads in place once, is a "
+        "about": "the guest that joined reloads in place once, is a "
                  "live player after it (no phantom), both see each other and hit one enemy",
-        "settings": {"SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN": "1"},
         "roles": {
             "host": [START, "godmode", "wait-session 2 300", "sync taj-tripped",
                      "wait-members 2 120", "wait 10", "expect-session 2",

@@ -2651,7 +2651,15 @@ TEST(BloodborneTripAfterJoin, AJoinedPhantomTripsOnceAfterItSettles) {
     EXPECT_TRUE(trip.Tick(JoinedPhantom(31000 + TripAfterJoin::SettleMs + 1)));
 }
 
-TEST(BloodborneTripAfterJoin, OffByDefaultAndOnlyForAPhantomGuest) {
+// Kaniel 2026-11-11, after the rig comparison: on by default; "0" turns it off (tests).
+TEST(BloodborneTripAfterJoin, OnUnlessSwitchedOff) {
+    EXPECT_TRUE(TripsAfterJoin(nullptr));
+    EXPECT_TRUE(TripsAfterJoin("1"));
+    EXPECT_TRUE(TripsAfterJoin(""));
+    EXPECT_FALSE(TripsAfterJoin("0"));
+}
+
+TEST(BloodborneTripAfterJoin, OnlyWhenSwitchedOnAndForAPhantomGuest) {
     for (int which = 0; which < 3; ++which) {
         TripAfterJoin trip;
         bool any = false;
