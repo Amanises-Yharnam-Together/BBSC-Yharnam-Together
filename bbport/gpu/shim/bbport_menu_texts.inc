@@ -4883,7 +4883,7 @@ BB_MENU_TEXT("Custom",
              "Własna",
              "Personalizada",
              "Özel",
-             nullptr})
+             "กําหนดเอง"})
 BB_MENU_TEXT("damage",
             {"ダメージ",
              "dégâts",
@@ -5283,7 +5283,7 @@ BB_MENU_TEXT("Enemy HP",
              "HP wrogów",
              "PV dos inimigos",
              "Düşman HP'si",
-             nullptr})
+             "HP ศัตรู"})
 BB_MENU_TEXT("Enemy damage",
             {"敵のダメージ",
              "Dégâts des ennemis",
@@ -5303,7 +5303,7 @@ BB_MENU_TEXT("Enemy damage",
              "Obrażenia wrogów",
              "Dano dos inimigos",
              "Düşman hasarı",
-             nullptr})
+             "ดาเมจศัตรู"})
 BB_MENU_TEXT("Enemy poise",
             {"敵の強靭度",
              "Équilibre des ennemis",
@@ -5323,7 +5323,7 @@ BB_MENU_TEXT("Enemy poise",
              "Równowaga wrogów",
              "Equilíbrio dos inimigos",
              "Düşman dengesi",
-             nullptr})
+             "poise ศัตรู"})
 BB_MENU_TEXT("Rot",
             {"腐敗",
              "Pourriture",
@@ -5483,7 +5483,7 @@ BB_MENU_TEXT("Friendly fire",
              "Ogień sojuszniczy",
              "Fogo amigo",
              "Dost ateşi",
-             nullptr})
+             "โจมตีโดนเพือนร่วมทีม"})
 BB_MENU_TEXT("Invite only: hunters come in when invited. On request: the team is listed and its leader takes who asks. Open to all: anyone listed joins at once.",
             {"招待のみ：招待された狩人だけが参加します。申請制：チームが一覧に載り、リーダーが申請者を受け入れます。誰でも可：一覧の誰でもすぐに参加できます。",
              "Sur invitation : les chasseurs entrent quand on les invite. Sur demande : l'équipe est listée et son chef accepte qui demande. Ouvert à tous : tout chasseur listé entre aussitôt.",
@@ -5643,7 +5643,7 @@ BB_MENU_TEXT("For a harder hunt: teammates' attacks hurt each other at all times
              "Dla trudniejszych łowów: ataki towarzyszy zawsze ranią się nawzajem. Śmiertelny cios towarzysza liczy się jak każda inna śmierć.",
              "Para uma caçada mais difícil: os ataques dos companheiros ferem uns aos outros o tempo todo. O golpe fatal de um companheiro conta como qualquer outra morte.",
              "Daha zorlu bir av için: takım arkadaşlarının saldırıları her zaman birbirine hasar verir. Bir takım arkadaşının öldürücü darbesi diğer ölümler gibi sayılır.",
-             nullptr})
+             "สําหรับการล่าทียากขึน: การโจมตีของเพือนร่วมทีมทําร้ายกันได้ตลอดเวลา การถูกเพือนร่วมทีมฆ่านับเหมือนการตายแบบอืน"})
 BB_MENU_TEXT("Choose a World",
             {"ワールドを選択",
              "Choisir un monde",
@@ -10443,7 +10443,7 @@ BB_MENU_TEXT("Update the game and the server to the same release, then start the
              "Zaktualizuj grę i serwer do tej samej wersji, a potem uruchom grę ponownie.",
              "Atualize o jogo e o servidor para a mesma versão e inicie o jogo novamente.",
              "Oyunu ve sunucuyu aynı sürüme güncelleyin, ardından oyunu yeniden başlatın.",
-             nullptr})
+             "อัปเดตเกมและเซิร์ฟเวอร์ให้เปนเวอร์ชันเดียวกัน แล้วเริมเกมใหม่"})
 BB_MENU_TEXT("Can't reach the co-op server at %s",
             {"協力サーバー %s に接続できません",
              "Impossible de joindre le serveur coop à l'adresse %s",
@@ -10463,7 +10463,7 @@ BB_MENU_TEXT("Can't reach the co-op server at %s",
              "Nie można połączyć się z serwerem co-op pod adresem %s",
              "Não foi possível conectar ao servidor cooperativo em %s",
              "%s adresindeki co-op sunucusuna ulaşılamıyor",
-             nullptr})
+             "ติดต่อเซิร์ฟเวอร์ co-op ที %s ไม่ได้"})
 BB_MENU_TEXT("The server may not be started, a firewall may be blocking it, or the address is wrong. Fix it, then start the game again.",
             {"サーバーが起動していない、ファイアウォールにブロックされている、またはアドレスが間違っている可能性があります。修正してから、ゲームを起動し直してください。",
              "Le serveur n'est peut-être pas démarré, un pare-feu le bloque peut-être, ou l'adresse est incorrecte. Corrigez cela, puis relancez le jeu.",
@@ -10483,7 +10483,7 @@ BB_MENU_TEXT("The server may not be started, a firewall may be blocking it, or t
              "Serwer może nie być uruchomiony, może go blokować zapora albo adres jest błędny. Napraw to, a potem uruchom grę ponownie.",
              "O servidor pode não ter sido iniciado, um firewall pode estar bloqueando ou o endereço está errado. Corrija isso e inicie o jogo novamente.",
              "Sunucu başlatılmamış olabilir, bir güvenlik duvarı engelliyor olabilir veya adres yanlış olabilir. Düzeltin, ardından oyunu yeniden başlatın.",
-             nullptr})
+             "เซิร์ฟเวอร์อาจยังไม่ได้เปด ไฟร์วอลล์อาจบล็อกอยู่ หรือทีอยู่ไม่ถูกต้อง แก้ไขแล้วเริมเกมใหม่"})
 BB_MENU_TEXT("The co-op server at %s did not accept your login or password",
             {"協力サーバー %s がログイン名またはパスワードを受け付けませんでした",
              "Le serveur coop à l'adresse %s n'a pas accepté votre identifiant ou votre mot de passe",
@@ -10503,7 +10503,7 @@ BB_MENU_TEXT("The co-op server at %s did not accept your login or password",
              "Serwer co-op pod adresem %s nie przyjął twojego loginu lub hasła",
              "O servidor cooperativo em %s não aceitou seu login ou sua senha",
              "%s adresindeki co-op sunucusu kullanıcı adınızı veya parolanızı kabul etmedi",
-             nullptr})
+             "เซิร์ฟเวอร์ co-op ที %s ไม่ยอมรับชือผู้ใช้หรือรหัสผ่านของคุณ"})
 BB_MENU_TEXT("Check them in the launcher's co-op settings, then start the game again.",
             {"ランチャーの協力プレイ設定で確認してから、ゲームを起動し直してください。",
              "Vérifiez-les dans les paramètres coop du lanceur, puis relancez le jeu.",
@@ -10523,7 +10523,7 @@ BB_MENU_TEXT("Check them in the launcher's co-op settings, then start the game a
              "Sprawdź je w ustawieniach co-op w launcherze, a potem uruchom grę ponownie.",
              "Confira-os nas configurações de cooperativo do launcher e inicie o jogo novamente.",
              "Bunları başlatıcının co-op ayarlarından kontrol edin, ardından oyunu yeniden başlatın.",
-             nullptr})
+             "ตรวจสอบในตังค่า co-op ของลอนเชอร์ แล้วเริมเกมใหม่"})
 BB_MENU_TEXT("Could not sign in to the co-op server at %s",
             {"協力サーバー %s にサインインできませんでした",
              "Impossible de se connecter au serveur coop à l'adresse %s",
@@ -10543,7 +10543,7 @@ BB_MENU_TEXT("Could not sign in to the co-op server at %s",
              "Nie udało się zalogować do serwera co-op pod adresem %s",
              "Não foi possível entrar no servidor cooperativo em %s",
              "%s adresindeki co-op sunucusunda oturum açılamadı",
-             nullptr})
+             "เข้าสู่ระบบเซิร์ฟเวอร์ co-op ที %s ไม่สําเร็จ"})
 BB_MENU_TEXT("Start the game again. If it stays, update the game and the server to the same release.",
             {"ゲームを起動し直してください。解決しない場合は、ゲームとサーバーを同じバージョンに更新してください。",
              "Relancez le jeu. Si le problème persiste, mettez le jeu et le serveur à jour vers la même version.",
@@ -10563,7 +10563,7 @@ BB_MENU_TEXT("Start the game again. If it stays, update the game and the server 
              "Uruchom grę ponownie. Jeśli problem pozostanie, zaktualizuj grę i serwer do tej samej wersji.",
              "Inicie o jogo novamente. Se continuar, atualize o jogo e o servidor para a mesma versão.",
              "Oyunu yeniden başlatın. Sorun sürerse oyunu ve sunucuyu aynı sürüme güncelleyin.",
-             nullptr})
+             "เริมเกมใหม่ ถ้ายังเปนอยู่ ให้อัปเดตเกมและเซิร์ฟเวอร์ให้เปนเวอร์ชันเดียวกัน"})
 BB_MENU_TEXT("Your team: invite hunters, remove a member, leave, or join the hunt",
             {"あなたのチーム：狩人を招待、メンバーを除名、脱退、または狩りに参加",
              "Votre équipe : invitez des chasseurs, retirez un membre, partez ou rejoignez la chasse",
