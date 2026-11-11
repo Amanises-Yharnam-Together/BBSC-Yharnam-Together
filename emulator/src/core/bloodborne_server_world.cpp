@@ -23,6 +23,7 @@
 #include <deque>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <mutex>
 #include <optional>
 #include <random>
@@ -310,6 +311,9 @@ BossTempo BossTempoOf(bbcoop::BossTempo tempo) {
     }
 }
 
+void SetOwnRules(const HostRules& rules, bool keep);
+TeamChoices KeptTeamChoices();
+
 void NoteTeamRules(const bbcoop::LobbyState& state, const std::string& me) {
     const bool team = state.has_team();
     const bbcoop::TeamRules& r = state.team().rules();
@@ -332,6 +336,46 @@ void NoteTeamRules(const bbcoop::LobbyState& state, const std::string& me) {
                                                rules.enemies->damage, rules.enemies->poise)
                                  : std::string{"standard"});
     }
+    // Kaniel 2026-11-11: a team this player just made (alone in it, not started) takes the joining,
+    // invaders and death mode it kept from its last one, where the team still has the defaults.
+    // Under team_mutex (TakeLobbyMessage): straight into the outbox.
+    if (team && !was_in && state.team().leader() == me && state.team().members_size() == 1 &&
+        !state.team().started()) {
+        const bbcoop::Team& made = state.team();
+        const TeamChoices now{.join = static_cast<u32>(made.join()),
+                              .invaders = made.allow_invaders(),
+                              .death_mode = made.death_mode()};
+        const TeamChoices wanted = ChoicesForNewTeam(now, KeptTeamChoices());
+        const auto ask = [](bbcoop::TeamRequest::Action action) {
+            bbcoop::Envelope envelope;
+            envelope.mutable_team_request()->set_action(action);
+            return envelope;
+        };
+        if (wanted.join != now.join) {
+            bbcoop::Envelope envelope = ask(bbcoop::TeamRequest::OPEN);
+            envelope.mutable_team_request()->set_join(static_cast<bbcoop::Team::Join>(wanted.join));
+            lobby_outbox.push_back(std::move(envelope));
+        }
+        if (wanted.invaders != now.invaders) {
+            bbcoop::Envelope envelope = ask(bbcoop::TeamRequest::INVADERS);
+            envelope.mutable_team_request()->set_allow(wanted.invaders);
+            lobby_outbox.push_back(std::move(envelope));
+        }
+        if (wanted.death_mode != now.death_mode) {
+            bbcoop::Envelope envelope = ask(bbcoop::TeamRequest::DEATH_MODE);
+            envelope.mutable_team_request()->set_death_mode(wanted.death_mode);
+            lobby_outbox.push_back(std::move(envelope));
+        }
+        if (wanted != now) {
+            LOG_NOTICE(Debug, "Co-op team lobby: the new team takes this leader's kept settings {}",
+                       TeamChoicesText(wanted));
+        }
+    }
+    // The team this player leads (its own, or one a leader that left handed over): its rules are
+    // this player's own until it sets others, so a hello again (the link back) asks for the same.
+    if (team && state.team().leader() == me) {
+        SetOwnRules(rules, false);
+    }
     if (team) {
         for (const bbcoop::TeamMember& m : state.team().members()) {
             if (m.member() == me) {
@@ -342,38 +386,147 @@ void NoteTeamRules(const bbcoop::LobbyState& state, const std::string& me) {
     }
 }
 
-// Kaniel 2026-11-05: the rules this game asks for its team: the ones its leader set on the team
-// screen (SetTeamRulesFromScreen), else its launcher's (SHADPS4_BLOODBORNE_HOST_RULES and the
-// enemies' strength, SHADPS4_BLOODBORNE_HARDER_ENEMIES), else none (the public server's launcher
-// sets none: the team starts with the server's default rules).
-std::mutex screen_rules_mutex;
-std::optional<bbcoop::TeamRules> screen_rules;
+// Kaniel 2026-11-11: the launcher sets no party rules any more: the team screen is the one place
+// for them. This player's own rules (the team it makes starts with them, and it plays by them out
+// of a team): the ones it set on the team screen, kept in the user folder for the next start
+// (OwnRulesAtStart: the dev settings' go over the kept ones); none until it sets any (the team it
+// makes takes the server's default).
+std::mutex own_rules_mutex;
+std::optional<HostRules> own_rules;
+bool own_rules_read = false;
 
-std::optional<bbcoop::TeamRules> OwnTeamRules() {
+std::filesystem::path OwnRulesFile() {
+    return Common::FS::GetUserPath(Common::FS::PathType::UserDir) / "bloodborne_team_rules.txt";
+}
+
+// Under own_rules_mutex.
+std::optional<HostRules>& OwnRulesLocked() {
+    if (!own_rules_read) {
+        own_rules_read = true;
+        std::string saved;
+        {
+            std::ifstream file{OwnRulesFile(), std::ios::binary};
+            std::getline(file, saved);
+        }
+        own_rules = OwnRulesAtStart(std::getenv("SHADPS4_BLOODBORNE_HOST_RULES"),
+                                    std::getenv("SHADPS4_BLOODBORNE_HARDER_ENEMIES"), saved);
+        LOG_INFO(Debug, "Co-op host rules: this player's own are {}",
+                 own_rules ? ScreenRulesText(*own_rules) : std::string{"not set"});
+    }
+    return own_rules;
+}
+
+// The team screen's rules of the team this player leads: its own from now on (a hello again asks
+// for them, not for older ones); `keep` (its own press) writes them for the next start.
+void SetOwnRules(const HostRules& rules, bool keep) {
+    std::scoped_lock lock{own_rules_mutex};
+    OwnRulesLocked() = rules;
+    if (!keep) {
+        return;
+    }
+    // Whole or not at all: a game closed mid-write leaves the old line.
+    const std::filesystem::path path = OwnRulesFile();
+    std::filesystem::path partial = path;
+    partial += ".part";
+    std::error_code error;
     {
-        std::scoped_lock lock{screen_rules_mutex};
-        if (screen_rules) {
-            return screen_rules;
+        std::ofstream file{partial, std::ios::binary | std::ios::trunc};
+        file << ScreenRulesText(rules) << '\n';
+        if (!file.flush()) {
+            LOG_WARNING(Debug, "Co-op host rules: the team's rules could not be kept in {}",
+                        path.string());
+            return;
         }
     }
-    if (std::getenv("SHADPS4_BLOODBORNE_HOST_RULES") == nullptr) {
-        return std::nullopt;
+    std::filesystem::rename(partial, path, error);
+    if (error) {
+        LOG_WARNING(Debug, "Co-op host rules: the team's rules could not be kept in {}: {}",
+                    path.string(), error.message());
+    } else {
+        LOG_INFO(Debug, "Co-op host rules: kept {} for the next start", ScreenRulesText(rules));
     }
-    const HostRules& own = OwnHostRules();
+}
+
+bbcoop::TeamRules TeamRulesOf(const HostRules& rules) {
     bbcoop::TeamRules r;
-    r.set_rot(own.rot);
-    r.set_travel_together(own.travel_together);
-    r.set_travel_vote(own.travel_vote);
-    r.set_enemy_scaling(own.enemy_scaling);
-    r.set_boss_tempo(static_cast<bbcoop::BossTempo>(own.boss_tempo));
-    r.set_friendly_fire(own.friendly_fire);
-    const char* harder = std::getenv("SHADPS4_BLOODBORNE_HARDER_ENEMIES");
-    if (const auto strength = ParseHarderEnemies(harder != nullptr ? harder : "")) {
-        r.set_enemy_hp(strength->hp);
-        r.set_enemy_damage(strength->damage);
-        r.set_enemy_poise(strength->poise);
+    r.set_rot(rules.rot);
+    r.set_travel_together(rules.travel_together);
+    r.set_travel_vote(rules.travel_vote && rules.travel_together);
+    r.set_enemy_scaling(rules.enemy_scaling);
+    r.set_boss_tempo(static_cast<bbcoop::BossTempo>(rules.boss_tempo));
+    r.set_friendly_fire(rules.friendly_fire);
+    if (rules.enemies) {
+        r.set_enemy_hp(rules.enemies->hp);
+        r.set_enemy_damage(rules.enemies->damage);
+        r.set_enemy_poise(rules.enemies->poise);
     }
     return r;
+}
+
+// Kaniel 2026-11-11: the leader's joining, invaders and death mode (TeamChoices), kept the same
+// way: read once, written at each press of its own on the team screen.
+std::mutex team_choices_mutex;
+std::optional<TeamChoices> team_choices;
+
+std::filesystem::path TeamChoicesFile() {
+    return Common::FS::GetUserPath(Common::FS::PathType::UserDir) / "bloodborne_team_choices.txt";
+}
+
+// Under team_choices_mutex.
+TeamChoices& TeamChoicesLocked() {
+    if (!team_choices) {
+        std::string saved;
+        {
+            std::ifstream file{TeamChoicesFile(), std::ios::binary};
+            std::getline(file, saved);
+        }
+        team_choices = ParseTeamChoices(saved).value_or(TeamChoices{});
+        LOG_INFO(Debug, "Co-op team lobby: this player's kept team settings are {}",
+                 TeamChoicesText(*team_choices));
+    }
+    return *team_choices;
+}
+
+TeamChoices KeptTeamChoices() {
+    std::scoped_lock lock{team_choices_mutex};
+    return TeamChoicesLocked();
+}
+
+// A press on the team screen's joining, invaders or death mode row (KeepTeamChoice): kept for
+// the next team.
+void StoreTeamChoice(const std::function<void(TeamChoices&)>& set) {
+    std::scoped_lock lock{team_choices_mutex};
+    TeamChoices& choices = TeamChoicesLocked();
+    const TeamChoices before = choices;
+    set(choices);
+    if (choices == before) {
+        return;
+    }
+    const std::filesystem::path path = TeamChoicesFile();
+    std::filesystem::path partial = path;
+    partial += ".part";
+    {
+        std::ofstream file{partial, std::ios::binary | std::ios::trunc};
+        file << TeamChoicesText(choices) << '\n';
+        if (!file.flush()) {
+            return;
+        }
+    }
+    std::error_code error;
+    std::filesystem::rename(partial, path, error);
+    if (!error) {
+        LOG_INFO(Debug, "Co-op team lobby: kept the team settings {} for the next team",
+                 TeamChoicesText(choices));
+    }
+}
+
+// The rules this game asks for its team at its hello: its own, when it has any.
+std::optional<bbcoop::TeamRules> OwnTeamRules() {
+    std::scoped_lock lock{own_rules_mutex};
+    if (const std::optional<HostRules>& own = OwnRulesLocked()) {
+        return TeamRulesOf(*own);
+    }
+    return std::nullopt;
 }
 
 bool TakeLobbyMessage(const bbcoop::Envelope& envelope) {
@@ -2504,14 +2657,14 @@ std::string CharacterNameOf(std::string_view member) {
     return {};
 }
 
-const HostRules& OwnHostRules() {
-    static const HostRules own = [] {
-        const char* setting = std::getenv("SHADPS4_BLOODBORNE_HOST_RULES");
-        const HostRules rules = ParseHostRules(setting != nullptr ? setting : "");
-        LOG_INFO(Debug, "Co-op host rules: this launcher's are {}", HostRulesText(rules));
-        return rules;
-    }();
-    return own;
+HostRules OwnHostRules() {
+    std::scoped_lock lock{own_rules_mutex};
+    return OwnRulesLocked().value_or(HostRules{});
+}
+
+bool HasOwnHostRules() {
+    std::scoped_lock lock{own_rules_mutex};
+    return OwnRulesLocked().has_value();
 }
 
 HostRules ActiveHostRules() {
@@ -2548,29 +2701,15 @@ void ReportRot(std::span<const u32> rot) {
 void TeamLobbyRequest(bbcoop::TeamRequest::Action action, const std::string& id) {
     bbcoop::Envelope envelope;
     // Kaniel 2026-11-05: the leader's rules from the team screen (ScreenRulesText): the team's
-    // from now on, and this game's own for its next hellos (OwnTeamRules).
+    // from now on, and this player's own for its next hellos and its next start (SetOwnRules).
     if (action == bbcoop::TeamRequest::RULES) {
         const auto parsed = ParseScreenRules(id);
         if (!parsed) {
             LOG_WARNING(Debug, "Co-op team lobby: the team screen's rules {} are not rules", id);
             return;
         }
-        bbcoop::TeamRules r;
-        r.set_rot(parsed->rot);
-        r.set_travel_together(parsed->travel_together);
-        r.set_travel_vote(parsed->travel_vote && parsed->travel_together);
-        r.set_enemy_scaling(parsed->enemy_scaling);
-        r.set_boss_tempo(static_cast<bbcoop::BossTempo>(parsed->boss_tempo));
-        r.set_friendly_fire(parsed->friendly_fire);
-        if (parsed->enemies) {
-            r.set_enemy_hp(parsed->enemies->hp);
-            r.set_enemy_damage(parsed->enemies->damage);
-            r.set_enemy_poise(parsed->enemies->poise);
-        }
-        {
-            std::scoped_lock lock{screen_rules_mutex};
-            screen_rules = r;
-        }
+        const bbcoop::TeamRules r = TeamRulesOf(*parsed);
+        SetOwnRules(*parsed, true);
         envelope.mutable_team_request()->set_action(bbcoop::TeamRequest::RULES);
         *envelope.mutable_team_request()->mutable_rules() = r;
         LOG_NOTICE(Debug, "Co-op team lobby: the team screen sets the team's rules {}", id);
@@ -3651,6 +3790,16 @@ void InvasionRequest(bool cancel) {
              send ? "to the server" : "nothing to send");
     if (send) {
         SendInvadeRequest(cancel);
+    }
+}
+
+void KeepTeamChoice(bbcoop::TeamRequest::Action action, u32 value) {
+    if (action == bbcoop::TeamRequest::OPEN && value <= 2) {
+        StoreTeamChoice([value](TeamChoices& choices) { choices.join = value; });
+    } else if (action == bbcoop::TeamRequest::INVADERS) {
+        StoreTeamChoice([value](TeamChoices& choices) { choices.invaders = value != 0; });
+    } else if (action == bbcoop::TeamRequest::DEATH_MODE && value <= 1) {
+        StoreTeamChoice([value](TeamChoices& choices) { choices.death_mode = value; });
     }
 }
 

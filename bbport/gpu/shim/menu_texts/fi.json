@@ -557,6 +557,10 @@
  "Check them in the launcher's co-op settings, then start the game again.": "Tarkista ne käynnistimen yhteispeliasetuksista ja käynnistä peli sitten uudelleen.",
  "Could not sign in to the co-op server at %s": "Kirjautuminen yhteispelipalvelimeen osoitteessa %s epäonnistui",
  "Start the game again. If it stays, update the game and the server to the same release.": "Käynnistä peli uudelleen. Jos ongelma jatkuu, päivitä peli ja palvelin samaan versioon.",
+ "Custom": "Mukautettu",
+ "Enemy HP": "Vihollisten HP",
+ "Enemy damage": "Vihollisten vahinko",
+ "Enemy poise": "Vihollisten tasapaino",
  "Friendly fire": "Oma tuli",
  "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Vaikeampaa metsästystä varten: tiimiläisten hyökkäykset vahingoittavat toisiaan koko ajan. Tiimiläisen tappava isku lasketaan kuten mikä tahansa muu kuolema."
 }

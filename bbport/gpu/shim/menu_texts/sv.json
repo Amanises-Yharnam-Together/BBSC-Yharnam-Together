@@ -557,6 +557,10 @@
  "Check them in the launcher's co-op settings, then start the game again.": "Kontrollera dem i startprogrammets co-op-inställningar och starta sedan spelet igen.",
  "Could not sign in to the co-op server at %s": "Det gick inte att logga in på co-op-servern på %s",
  "Start the game again. If it stays, update the game and the server to the same release.": "Starta spelet igen. Om felet kvarstår, uppdatera spelet och servern till samma version.",
+ "Custom": "Anpassad",
+ "Enemy HP": "Fiendernas HP",
+ "Enemy damage": "Fiendernas skada",
+ "Enemy poise": "Fiendernas balans",
  "Friendly fire": "Vådabeskjutning",
  "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "För en hårdare jakt: lagkamraters attacker skadar varandra hela tiden. En lagkamrats dödande slag räknas som vilken annan död som helst."
 }

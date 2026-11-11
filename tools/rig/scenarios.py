@@ -260,6 +260,12 @@ PLAYS_AS_GUEST = r"Co-op team lobby: the save plays in team \w+ as its guest"
 # open sky (WIPE_SPOT; rig 2026-10-18: 12 m did nothing, 18 m about 60% of max HP, 20 m and more
 # a death outright, not a hit); under a roof the player lands on it (the old spots, a roof 9 m up).
 PARTY_DEATH = {"SHADPS4_BLOODBORNE_PARTY_DEATH": "1"}
+# A guest's real death in a party session ends with it up again and no world reload: as the
+# join's white phantom ("party guest died; revived"), or, once any trip made it a live player
+# (the experiment SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN makes one right after the join), as the
+# host does ("live player died in a party session (state N); revived without a world reload").
+GUEST_REVIVED = (r"(?:party guest died; revived|live player died in a party session "
+                 r"\(state \d+\); revived without a world reload)")
 # After a real death each player has its own bloodstain where it fell (GameDataMan's record on
 # this map) and no enemy takes it (no echo theft): the bloodstain state lines say so.
 BLOODSTAIN_DROPPED = (r"bloodstain state map=0x18010000 has_mark=1 record_valid=\d+ "
@@ -1020,8 +1026,41 @@ SCENARIOS = {
         },
         "expect": {"host": [r"body 0x[0-9a-f]+ is up but kept its death mark; cleared"],
                    "guest": [r"party death: giving up ends down \d+; dies \(reset=false",
-                             r"party guest died; revived"]},
+                             GUEST_REVIVED]},
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+        "timeout": 300,
+    },
+    # Kaniel 2026-11-11, an experiment (SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN=1, off by default): a
+    # guest that joined makes one trip right away, a reload in place, so it is a live player (type
+    # 0, +0x78) as after any trip, not the join's white phantom (1). Both then see each other and
+    # each one's hit reaches the other's game.
+    "trip-after-join": {
+        "about": "the experiment's switch on: the guest that joined reloads in place once, is a "
+                 "live player after it (no phantom), both see each other and hit one enemy",
+        "settings": {"SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN": "1"},
+        "roles": {
+            "host": [START, "godmode", "wait-session 2 300", "sync taj-tripped",
+                     "wait-members 2 120", "wait 10", "expect-session 2",
+                     "expect-others-near 1 30", "expect-others-shown 1",
+                     f"hit {ENEMY} 30", "sync taj-hit-1", "sync taj-hit-2", "wait 8", "census 40"],
+            "guest": [START, "godmode", "wait-session 2 300", "peek self 78", "wait 25",
+                      "wait 20", "wait-members 2 120", "peek self 78", "sync taj-tripped",
+                      "wait 10", "expect-session 2", "expect-others-near 1 30",
+                      "expect-others-shown 1", "sync taj-hit-1", f"hit {ENEMY} 30",
+                      "sync taj-hit-2", "wait 8", "census 40"],
+        },
+        "syncs": {name: {"chapter": "trip-after-join", "roles": ["host", "guest"]}
+                  for name in ("taj-tripped", "taj-hit-1", "taj-hit-2")},
+        "expect": {"host": [HOST_JOINS],
+                   "guest": [GUEST_JOINS,
+                             r"trip after the join: reloading in place on map 0x18010000",
+                             r"trip after the join: reloading in place[\s\S]*"
+                             r"Bloodborne party trip: arrived map=0x18010000",
+                             r"autoplay peek: 0x[0-9a-f]+ \+0x78 = 0x0\b"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
+        "same_hp": ENEMY,
+        "hp_sums_hits": ENEMY,
         "timeout": 300,
     },
     # Phase 5: the team lobby. The party is no setting: on the title the host creates a team and
@@ -2075,7 +2114,39 @@ SCENARIOS = {
         "expect": {role: [r"Co-op host rules: the team's rules are off; enemies fixed 2,1.25,2",
                           r"Bloodborne harder enemies: \d+ NpcParam rows, x2\.00 HP, x1\.25 damage, "
                           r"x2\.00 poise"]
+                         + ([rf"Co-op host rules: kept {TEAM_RULES_FIXED} for the next start"]
+                            if role == "host" else [])
                    for role in ("host", "guest")},
+        "forbid": {role: [*SESSION_HOLDS, r"harder enemies: \d+ NpcParam rows, x3\.00 HP"]
+                   for role in ("host", "guest")},
+        "timeout": 300,
+    },
+    # Kaniel 2026-11-11: the launcher has no party settings: the rules a leader set on the team
+    # screen are kept by its game (bloodborne_team_rules.txt in its user folder), and the team it
+    # makes after a restart starts with them, with no press on the team screen.
+    "team-rules-kept": {
+        "about": "the rules a leader set on the team screen in an earlier run (kept in its user "
+                 "folder) are its new team's from the start, in both games",
+        # The joining, invaders and death mode it kept too: open to all, spectate.
+        "role_settings": {"host": {"rig.team_rules": TEAM_RULES_FIXED, "rig.team_choices": "2,0,1"}},
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                     "wait-session 2 300", "wait 10", "sync rules-seen", "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_FIXED}", "team-ready", START,
+                      "wait-session 2 300", "wait 10", "sync rules-seen", "snapshot"],
+        },
+        "syncs": {"rules-seen": {"chapter": "team-rules-kept", "roles": ["host", "guest"]}},
+        "expect": {
+            "host": [rf"Co-op host rules: this player's own are {TEAM_RULES_FIXED}",
+                     r"Co-op team lobby: the new team takes this leader's kept settings 2,0,1",
+                     r"Co-op host rules: the team's rules are off; enemies fixed 2,1.25,2",
+                     r"Bloodborne harder enemies: \d+ NpcParam rows, x2\.00 HP, x1\.25 damage, "
+                     r"x2\.00 poise"],
+            "guest": [r"Co-op host rules: this player's own are not set",
+                      r"Co-op host rules: the team's rules are off; enemies fixed 2,1.25,2",
+                      r"Bloodborne harder enemies: \d+ NpcParam rows, x2\.00 HP, x1\.25 damage, "
+                      r"x2\.00 poise"],
+        },
         "forbid": {role: [*SESSION_HOLDS, r"harder enemies: \d+ NpcParam rows, x3\.00 HP"]
                    for role in ("host", "guest")},
         "timeout": 300,

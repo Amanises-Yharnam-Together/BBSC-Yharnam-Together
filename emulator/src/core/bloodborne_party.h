@@ -2085,6 +2085,38 @@ private:
     std::optional<s64> joined_ms;
     bool done = false;
 };
+// Experiment (Kaniel 2026-11-11, SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN=1, off by default): many
+// co-op bugs show only between a join and a player's first trip. Joined, a guest is a white
+// phantom (type 1) in the host's world; after any trip it is a live player (type 0) and every
+// member runs its own copy of the map, which most of the party code is built around. So a guest
+// that joined makes one trip right away, a reload in place where it stands. Tick says when: a
+// party guest still a phantom, SettleMs after it `arrived` in the session's world and SettleMs
+// with nothing `busy` (a load, a trip, its arrival's placing, no position, dead), within
+// WindowMs of the arrival; once per session.
+class TripAfterJoin {
+public:
+    static constexpr s64 SettleMs = 3000;
+    static constexpr s64 WindowMs = 60000;
+    struct Input {
+        bool switched_on = false;
+        bool guest = false;
+        bool in_session = false;
+        bool arrived = false;
+        bool phantom = false;
+        bool busy = false;
+        s64 now_ms = 0;
+    };
+    bool Tick(const Input& in);
+    // Whether this session's trip went: a join's re-create (RecreateAfterJoin) is then the trip's.
+    bool Went() const {
+        return went;
+    }
+
+private:
+    std::optional<s64> arrived_ms;
+    std::optional<s64> calm_since;
+    bool went = false;
+};
 // Kaniel 2026-11-03: Lisara's game dropped out of the room and joined again within a second. The
 // member count never stayed down for MemberDepartures, so nothing re-created her and the host saw
 // her old body hidden until a trip. Tick says when to re-create: `left` is a member's leave the

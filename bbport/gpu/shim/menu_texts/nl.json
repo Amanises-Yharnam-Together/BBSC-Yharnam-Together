@@ -557,6 +557,10 @@
  "Check them in the launcher's co-op settings, then start the game again.": "Controleer ze in de co-opinstellingen van de launcher en start de game daarna opnieuw.",
  "Could not sign in to the co-op server at %s": "Aanmelden bij de co-opserver op %s is mislukt",
  "Start the game again. If it stays, update the game and the server to the same release.": "Start de game opnieuw. Blijft het zo, werk dan de game en de server bij naar dezelfde versie.",
+ "Custom": "Aangepast",
+ "Enemy HP": "HP van vijanden",
+ "Enemy damage": "Schade van vijanden",
+ "Enemy poise": "Evenwicht van vijanden",
  "Friendly fire": "Eigen vuur",
  "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Voor een zwaardere jacht: aanvallen van teamgenoten verwonden elkaar altijd. De dodelijke klap van een teamgenoot telt als elke andere dood."
 }

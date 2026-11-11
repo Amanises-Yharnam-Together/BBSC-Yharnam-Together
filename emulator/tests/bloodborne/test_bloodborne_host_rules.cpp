@@ -326,6 +326,51 @@ TEST(BloodborneHostRules, FriendlyFireIsARuleOffByDefault) {
     EXPECT_FALSE(ParseScreenRules("0,0,0,1,0,0,0,0,").has_value());
 }
 
+// Kaniel 2026-11-11: the launcher has no party settings any more: the rules a player set on the
+// team screen are kept in its user folder and are its own at the next start.
+TEST(BloodborneHostRules, TheTeamScreensRulesAreThePlayersOwnAtTheNextStart) {
+    // Nothing set anywhere: none of its own (the team it makes takes the server's default).
+    EXPECT_FALSE(OwnRulesAtStart(nullptr, nullptr, "").has_value());
+    EXPECT_FALSE(OwnRulesAtStart(nullptr, nullptr, "not rules\n").has_value());
+    // The saved line, as the team screen sent it (ScreenRulesText), a line end or not.
+    HostRules saved;
+    saved.rot = true;
+    saved.boss_tempo = BossTempo::Relentless;
+    saved.enemies = HarderEnemies{4.0f, 2.0f, 4.0f};
+    EXPECT_EQ(OwnRulesAtStart(nullptr, nullptr, ScreenRulesText(saved)), saved);
+    EXPECT_EQ(OwnRulesAtStart(nullptr, nullptr, ScreenRulesText(saved) + "\r\n"), saved);
+    // An enemy strength alone is no rule: only the rules' setting or the saved ones count.
+    EXPECT_FALSE(OwnRulesAtStart(nullptr, "3,1.5,3", "").has_value());
+    // The dev settings (the rig's) go over the saved ones, with their own strength.
+    HostRules dev = ParseHostRules("travel,vote");
+    EXPECT_EQ(OwnRulesAtStart("travel,vote", nullptr, ScreenRulesText(saved)), dev);
+    dev.enemies = HarderEnemies{5.0f, 2.0f, 5.0f};
+    EXPECT_EQ(OwnRulesAtStart("travel,vote", "5,2,5", ScreenRulesText(saved)), dev);
+    EXPECT_EQ(OwnRulesAtStart("off", nullptr, ScreenRulesText(saved)), HostRules{});
+}
+
+// Kaniel 2026-11-11: joining, invaders and the death mode are kept for the leader's next team.
+TEST(BloodborneHostRules, TheLeadersTeamChoicesAreKeptForItsNextTeam) {
+    const TeamChoices kept{.join = 2, .invaders = true, .death_mode = 1};
+    EXPECT_EQ(TeamChoicesText(kept), "2,1,1");
+    EXPECT_EQ(TeamChoicesText({}), "0,0,0");
+    EXPECT_EQ(ParseTeamChoices("2,1,1"), kept);
+    EXPECT_EQ(ParseTeamChoices("2,1,1\r\n"), kept);
+    EXPECT_EQ(ParseTeamChoices("0,0,0"), TeamChoices{});
+    for (const char* bad : {"", "2,1", "3,0,0", "0,2,0", "0,0,2", "2;1;1", "2,1,1,0", "a,b,c"}) {
+        EXPECT_FALSE(ParseTeamChoices(bad).has_value()) << bad;
+    }
+    // A team just made has the server's defaults: it takes the kept ones.
+    EXPECT_EQ(ChoicesForNewTeam({}, kept), kept);
+    EXPECT_EQ(ChoicesForNewTeam({}, {}), TeamChoices{});
+    // What something already set stays (a quick match's team is open: a kept "on request" must
+    // not close it), each choice by itself.
+    EXPECT_EQ(ChoicesForNewTeam({.join = 2}, {.join = 1, .death_mode = 1}),
+              (TeamChoices{.join = 2, .death_mode = 1}));
+    EXPECT_EQ(ChoicesForNewTeam({.invaders = true, .death_mode = 1}, {}),
+              (TeamChoices{.invaders = true, .death_mode = 1}));
+}
+
 TEST(BloodborneEnemyScaling, CountsTheHuntersOnThisMap) {
     const std::vector<MemberMap> board{{"me", 0x15000000}, {"b", 0x15000000}, {"c", 0x18000000}};
     EXPECT_EQ(HuntersOnMap(board, "me", 0x15000000), 2u);

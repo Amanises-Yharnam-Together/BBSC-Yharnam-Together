@@ -328,7 +328,9 @@ def make_bundle(destination, user_dir, settings=None, extra_files=(), texts=None
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
     files = log_files(user_dir / 'log')
-    for name in ('last_run.log', 'host_overrides.custom.json'):
+    # The team rules and team settings the player last set on the game's team screen.
+    for name in ('last_run.log', 'host_overrides.custom.json', 'bloodborne_team_rules.txt',
+                 'bloodborne_team_choices.txt'):
         if (user_dir / name).is_file():
             files.append((user_dir / name, name))
     files += [(Path(path), name) for path, name in extra_files if Path(path).is_file()]

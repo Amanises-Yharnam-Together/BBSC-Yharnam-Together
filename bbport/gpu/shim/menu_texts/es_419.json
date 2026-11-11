@@ -557,6 +557,10 @@
  "Check them in the launcher's co-op settings, then start the game again.": "Revísalos en la configuración del cooperativo del lanzador y vuelve a iniciar el juego.",
  "Could not sign in to the co-op server at %s": "No se pudo iniciar sesión en el servidor cooperativo en %s",
  "Start the game again. If it stays, update the game and the server to the same release.": "Vuelve a iniciar el juego. Si continúa, actualiza el juego y el servidor a la misma versión.",
+ "Custom": "Personalizada",
+ "Enemy HP": "PS de los enemigos",
+ "Enemy damage": "Daño de los enemigos",
+ "Enemy poise": "Equilibrio de los enemigos",
  "Friendly fire": "Fuego amigo",
  "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Para una cacería más difícil: los ataques de los compañeros se dañan entre sí en todo momento. El golpe mortal de un compañero cuenta como cualquier otra muerte."
 }

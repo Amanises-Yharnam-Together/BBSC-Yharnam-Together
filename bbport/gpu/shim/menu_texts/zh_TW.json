@@ -557,6 +557,10 @@
  "Check them in the launcher's co-op settings, then start the game again.": "請在啟動器的合作設定中檢查，然後重新啟動遊戲。",
  "Could not sign in to the co-op server at %s": "無法登入合作伺服器 %s",
  "Start the game again. If it stays, update the game and the server to the same release.": "請重新啟動遊戲。若問題仍在，請將遊戲與伺服器更新至相同版本。",
+ "Custom": "自訂",
+ "Enemy HP": "敵人HP",
+ "Enemy damage": "敵人傷害",
+ "Enemy poise": "敵人韌性",
  "Friendly fire": "友軍傷害",
  "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "為了更艱難的狩獵：隊友的攻擊隨時都會互相造成傷害。被隊友擊殺與其他死亡相同。"
 }

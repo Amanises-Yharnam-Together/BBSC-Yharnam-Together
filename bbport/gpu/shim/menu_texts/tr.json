@@ -557,6 +557,10 @@
  "Check them in the launcher's co-op settings, then start the game again.": "Bunları başlatıcının co-op ayarlarından kontrol edin, ardından oyunu yeniden başlatın.",
  "Could not sign in to the co-op server at %s": "%s adresindeki co-op sunucusunda oturum açılamadı",
  "Start the game again. If it stays, update the game and the server to the same release.": "Oyunu yeniden başlatın. Sorun sürerse oyunu ve sunucuyu aynı sürüme güncelleyin.",
+ "Custom": "Özel",
+ "Enemy HP": "Düşman HP'si",
+ "Enemy damage": "Düşman hasarı",
+ "Enemy poise": "Düşman dengesi",
  "Friendly fire": "Dost ateşi",
  "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Daha zorlu bir av için: takım arkadaşlarının saldırıları her zaman birbirine hasar verir. Bir takım arkadaşının öldürücü darbesi diğer ölümler gibi sayılır."
 }
