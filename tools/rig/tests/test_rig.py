@@ -258,6 +258,8 @@ class ScenarioTest(unittest.TestCase):
                     first = run_scenario.stages_of(script)[0]
                     # The lobby's and the title's steps (team-*, title-*) run before the world.
                     first = [step for step in first if not step.startswith(("team-", "title-"))]
+                    if first == ["done"]:
+                        continue  # it ends at the title (no-game-server-said: it never leaves it)
                     self.assertEqual(first[0], scenarios.START)
 
     def test_only_the_kill_made_is_posted(self):
