@@ -15,6 +15,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from thai_shaping import shape as shape_thai  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 SHIM = ROOT / 'gpu/shim'
 SOURCES = ['bbport_overlay.cpp', 'bbport_game_menu.cpp', 'bbport_trade_menu.cpp', 'bbport_settings.h']
@@ -42,7 +45,12 @@ LANGUAGES = [
     ('pl', 'Polski', [16]),
     ('pt_BR', 'Português (Brasil)', [17]),
     ('tr', 'Türkçe', [19]),
+    # Not a language of the game (no PS4 id picks it): chosen in the port's menu, drawn with the
+    # port's own Thai font (thai_shaping.py places its marks, thai_font.py makes the font).
+    ('th', 'ไทย', []),
 ]
+# Texts written with their marks already placed for a renderer without shaping.
+SHAPED = {'th'}
 
 _TOKEN = re.compile(r'''
     (?P<comment>//[^\n]*|/\*.*?\*/)
@@ -232,10 +240,11 @@ def render(texts=None):
     ]
     for code, name, ids in LANGUAGES:
         enum = ''.join(part.capitalize() for part in code.split('_'))
-        lines.append(f'BB_MENU_LANG({enum}, "{code}", {_c_string(name)}, {", ".join(map(str, ids))})')
+        lines.append(f'BB_MENU_LANG({enum}, "{code}", {_c_string(name)}' + ''.join(f', {i}' for i in ids) + ')')
     lines += ['#endif', '#ifdef BB_MENU_TEXT']
     for english in texts:
         row = [tables[code].get(english) for code, _, _ in LANGUAGES]
+        row = [shape_thai(t) if t and code in SHAPED else t for t, (code, _, _) in zip(row, LANGUAGES)]
         cells = ',\n             '.join(_c_string(t) if t else 'nullptr' for t in row)
         lines.append(f'BB_MENU_TEXT({_c_string(english)},\n            {{{cells}}})')
     lines += ['#endif', '']

@@ -504,6 +504,16 @@ int main() {
         assert(std::string(BbSettings::Translate(MenuLanguage::Fr, "not a menu text", "нет")) == "not a menu text");
         const std::string german(BbSettings::Translate(MenuLanguage::De, "Level %d, HP %d / %d", "Уровень %d, здоровье %d / %d"));
         assert(german.find("%d") != std::string::npos && german != "Level %d, HP %d / %d");
+        // Thai: chosen in the menu only (no PS4 id), its marks placed for the port's Thai font:
+        // sara am (U+0E33) comes as nikhahit (U+0E4D) + sara aa (U+0E32).
+        assert(BbSettings::LanguageFromPs4(27) == MenuLanguage::English && "Thai is not a game language");
+        assert(std::string(BbSettings::LanguageCode(MenuLanguage::Th)) == "th");
+        assert(std::string(BbSettings::Translate(MenuLanguage::Th, "Cancel", "Отмена")) == "ยกเลิก");
+        // ป is tall: its upper vowel is the one moved left (U+F706 for sara i).
+        assert(std::string(BbSettings::Translate(MenuLanguage::Th, "Off", "Выкл")) == "ปด");
+        const std::string thai(BbSettings::Translate(MenuLanguage::Th, "Spectating %s", "Наблюдение: %s"));
+        assert(thai.find("%s") != std::string::npos && thai.find("ำ") == std::string::npos &&
+               thai.find("ํา") != std::string::npos);
 
         char path[512];
         std::snprintf(path, sizeof(path), "%s/bbport-settings-test-XXXXXX", temp && temp[0] ? temp : "/tmp");
