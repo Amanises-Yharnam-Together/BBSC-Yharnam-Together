@@ -33,6 +33,7 @@ VERBS = {
     "expect-stains", "pickup-stain",  # Kaniel 2026-10-20: bloodstains on the compass and map
     "ping-aim", "ping-map", "expect-pings",  # Kaniel 2026-10-24: team pings
     "duel-propose", "duel-answer", "duel-cancel", "wait-duel", "duel-strike",  # 2026-10-25: duels
+    "strike-player",  # Kaniel 2026-11-11: the friendly fire rule
     "pickup", "hit", "rise", "approach-downed", "revive-downed", "wait-vital", "wait-member-vital",
     "shot", "expect-hidden", "expect-disabled", "set-disabled", "census", "peek", "poke", "dump", "raise-stat",
     "add-effect",  # #300: Insight for Hemwick's mist ambush

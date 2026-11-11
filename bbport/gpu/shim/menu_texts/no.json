@@ -560,5 +560,7 @@
  "Custom": "Egendefinert",
  "Enemy HP": "Fiendenes HP",
  "Enemy damage": "Fiendenes skade",
- "Enemy poise": "Fiendenes balanse"
+ "Enemy poise": "Fiendenes balanse",
+ "Friendly fire": "Egen ild",
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "For en hardere jakt: lagkameraters angrep skader hverandre hele tiden. Et drepende slag fra en lagkamerat teller som enhver annen død."
 }

@@ -560,5 +560,7 @@
  "Custom": "自定义",
  "Enemy HP": "敌人HP",
  "Enemy damage": "敌人伤害",
- "Enemy poise": "敌人韧性"
+ "Enemy poise": "敌人韧性",
+ "Friendly fire": "友军伤害",
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "为了更艰难的狩猎：队友的攻击随时都会互相造成伤害。被队友击杀与其他死亡相同。"
 }

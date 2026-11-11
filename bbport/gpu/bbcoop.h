@@ -346,6 +346,8 @@ typedef struct bbcoop_lobby {
     int rule_rot, rule_travel, rule_vote, rule_scale;
     /* Kaniel 2026-10-28: the boss tempo (0 Vanilla, 1 Aggressive, 2 Relentless). */
     int rule_tempo;
+    /* Kaniel 2026-11-11: friendly fire (the teammates' strikes land on each other). */
+    int rule_friendly_fire;
     /* Kaniel 2026-11-05: the enemies' strength, the team's: HP, damage and poise multipliers (a
      * full team's with rule_scale, Auto; everyone's without, Fixed). */
     float rule_hp, rule_damage, rule_poise;
@@ -448,7 +450,8 @@ enum { BBCOOP_TEAM_CREATE = 1, BBCOOP_TEAM_INVITE = 2, BBCOOP_TEAM_ACCEPT = 3,
        /* Provi 2026-10-29: the leader puts out every lamp of a world (`id`) not played now. */
        BBCOOP_TEAM_RESET_LAMPS = 28,
        /* Kaniel 2026-11-05: the leader sets the team's rules on the team screen; `id` is
-        * "rot,travel,vote,scale,tempo,hp,damage,poise" (ScreenRulesText). */
+        * "rot,travel,vote,scale,tempo,hp,damage,poise" (ScreenRulesText), and ",1" after
+        * them with friendly fire. */
        BBCOOP_TEAM_RULES = 16 };
 enum { BBCOOP_JOIN_INVITE_ONLY = 0, BBCOOP_JOIN_ASK = 1, BBCOOP_JOIN_OPEN = 2 };
 void bbcoop_lobby_request(int action, const char *id);

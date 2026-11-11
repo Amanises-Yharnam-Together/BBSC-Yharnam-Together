@@ -3416,6 +3416,7 @@ struct TeamRules {
     bool scale = true, rot = false, travel = false, vote = false;
     int tempo = 0;
     float hp = 3.0f, damage = 1.5f, poise = 3.0f;
+    bool friendly_fire = false; // Kaniel 2026-11-11
     bool operator==(const TeamRules&) const = default;
 };
 
@@ -3427,7 +3428,8 @@ TeamRules LobbyRules() {
                      .tempo = lobby.rule_tempo,
                      .hp = lobby.rule_hp,
                      .damage = lobby.rule_damage,
-                     .poise = lobby.rule_poise};
+                     .poise = lobby.rule_poise,
+                     .friendly_fire = lobby.rule_friendly_fire != 0};
 }
 
 /// The strength row's steps (HP, damage, poise): each press the next, the standard in the middle.
@@ -3497,9 +3499,9 @@ float NextCustomRate(float rate) {
 /// The text bbcoop_lobby_request(BBCOOP_TEAM_RULES) takes (the game's ScreenRulesText).
 std::string ScreenRules(const TeamRules& rules) {
     char text[96];
-    std::snprintf(text, sizeof(text), "%d,%d,%d,%d,%d,%g,%g,%g", rules.rot ? 1 : 0, rules.travel ? 1 : 0,
+    std::snprintf(text, sizeof(text), "%d,%d,%d,%d,%d,%g,%g,%g%s", rules.rot ? 1 : 0, rules.travel ? 1 : 0,
                   rules.travel && rules.vote ? 1 : 0, rules.scale ? 1 : 0, rules.tempo, double(rules.hp),
-                  double(rules.damage), double(rules.poise));
+                  double(rules.damage), double(rules.poise), rules.friendly_fire ? ",1" : "");
     return text;
 }
 
@@ -3635,12 +3637,13 @@ void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
 
     ImGui::PushFont(MenuArt::Font(), 22.0f);
     // Kaniel 2026-11-05: the team rules are here too, so the rows are lower.
-    // Kaniel 2026-11-11: Custom's three rows make eleven: lower still where they would put the
+    // Kaniel 2026-11-11: Custom's three rows and friendly fire make twelve: lower still where they
+    // would put the
     // focused row's meaning onto the key guide (720p; BbPartyLayout::TeamSettingsRows).
     float y = win.y + S(130.0f) + under;
     const float guide_top = win.y + size.y - S(BbKeyGuide::BottomClearance + 27.0f);
     const BbPartyLayout::SettingsRows fit =
-        BbPartyLayout::TeamSettingsRows(custom ? 11 : 8, (guide_top - y) / base_scale);
+        BbPartyLayout::TeamSettingsRows(custom ? 12 : 9, (guide_top - y) / base_scale);
     const ImVec2 row(std::min(S(820.0f), size.x - S(160.0f)), S(fit.height));
     const float rx = mid - row.x * 0.5f, gap = S(fit.gap);
     // Amanises 2026-10-25, open teams: how the team is joined, each press the next way (by invite
@@ -3737,6 +3740,13 @@ void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
         rules.tempo = (rules.tempo + 1) % 3;
         changed = true;
     }
+    y += row.y + gap;
+    // Kaniel 2026-11-11: friendly fire, for a harder hunt (no duel: the strikes just land).
+    if (SettingRow(draw, "rule_friendly", T("Friendly fire", "Огонь по своим"),
+                   rules.friendly_fire ? T("On", "Вкл.") : T("Off", "Выкл."), ImVec2(rx, y), row, leads)) {
+        rules.friendly_fire = !rules.friendly_fire;
+        changed = true;
+    }
     if (changed) {
         settings.rules = rules;
         settings.pressed_at = now;
@@ -3782,6 +3792,11 @@ void DrawSettings(ImDrawList* draw, ImVec2 win, ImVec2 size) {
                         : focus.id == "rule_tempo"
                             ? T("Bosses rest less between attacks and turn faster.",
                                 "Боссы меньше отдыхают между атаками и быстрее поворачиваются.")
+                        : focus.id == "rule_friendly"
+                            ? T("For a harder hunt: teammates' attacks hurt each other at all times. A teammate's "
+                                "killing blow counts as any other death.",
+                                "Для более трудной охоты: атаки союзников всегда ранят друг друга. Смертельный удар "
+                                "союзника считается обычной смертью.")
                             : "";
     if (about[0]) {
         WrappedText(draw, ImVec2(rx, y), row.x, Plain(0.8f), about);

@@ -4541,6 +4541,94 @@ SCENARIOS["duel"] = {
 }
 
 
+# Kaniel 2026-11-11, the friendly fire rule ("you hit your teammates always ... just for harder
+# play"), a team rule its leader sets on the team screen, off by default. Off: the host's strikes
+# pass through the guest (its HP stays). On: they land (its HP drops), and a lethal one is a
+# death as any other: the guest goes down (party death, no duel), and the host strikes it up
+# again. Off again: the guest's body takes its own team back.
+# ScreenRulesText: Auto enemies of the standard strength (a team's default), and the rule's ninth.
+FRIENDLY_FIRE_ON = "0,0,0,1,0,0,0,0,1"
+FRIENDLY_FIRE_OFF = "0,0,0,1,0,0,0,0"
+FRIENDLY_FIRE_HP = 300  # the guest's HP put under any hunter's max: a hit shows as less
+FRIENDLY_FIRE_HP_AFTER = 200  # and under what a revive gives (half the max), for the end's strikes
+FRIENDLY_FIRE_SYNCS = ("ff-together", "ff-passed", "ff-on", "ff-struck", "ff-low", "ff-down",
+                       "ff-up", "ff-off", "ff-set", "ff-after")
+SCENARIOS["friendly-fire"] = {
+    "about": "the friendly fire team rule: off, a teammate's strikes pass through; on (set on the "
+             "team screen), they land, a lethal one downs the teammate as any death and strikes "
+             "revive it; off again, the bodies are friendly",
+    "roles": {
+        # A script that sets the team's rules makes its team itself (run_scenario.with_team).
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 5", "sync ff-together",
+                 "strike-player 8", "sync ff-passed", f"team-rules {FRIENDLY_FIRE_ON}",
+                 "sync ff-on", "strike-player 30", "sync ff-struck", "sync ff-low",
+                 "strike-player 40 down", "sync ff-down", "approach-downed", "wait 2",
+                 *REVIVE_HITS, "wait-member-vital up 30", "sync ff-up",
+                 f"team-rules {FRIENDLY_FIRE_OFF}", "sync ff-off", "sync ff-set",
+                 "strike-player 8", "sync ff-after", "wait 3", "snapshot", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "wait-session 2 300", "wait 5",
+                  f"hurt self {FRIENDLY_FIRE_HP}",
+                  "sync ff-together", "sync ff-passed",
+                  f"expect-hp self == {FRIENDLY_FIRE_HP}",
+                  f"team-wait-rules {FRIENDLY_FIRE_ON}", "sync ff-on",
+                  f"wait-hp self < {FRIENDLY_FIRE_HP} 30", "sync ff-struck", "hurt self 1",
+                  "sync ff-low", "wait-vital down 40", "sync ff-down", "wait-vital up 180",
+                  "sync ff-up", f"team-wait-rules {FRIENDLY_FIRE_OFF}", "sync ff-off",
+                  # Off again: the host's strikes pass through as at the start.
+                  f"hurt self {FRIENDLY_FIRE_HP_AFTER}", "sync ff-set", "sync ff-after",
+                  f"expect-hp self == {FRIENDLY_FIRE_HP_AFTER}", "wait 3", "snapshot",
+                  "expect-session 2"],
+    },
+    "settings": {"SHADPS4_BLOODBORNE_PARTY_DEATH": "1"},
+    "syncs": {name: {"chapter": "friendly-fire", "roles": ["host", "guest"]}
+              for name in FRIENDLY_FIRE_SYNCS},
+    "expect": {
+        "host": [r"Co-op host rules: the team's rules are scale,friendlyfire",
+                 r"Bloodborne party death: friendly fire on \(1 teammates' bodies here\)",
+                 r"Bloodborne party death: body 0x[0-9a-f]+ takes team 21",
+                 r"Bloodborne party death: friendly fire off",
+                 r"Bloodborne party death: body 0x[0-9a-f]+ takes team (?!21\b)\d+"],
+        "guest": [r"Co-op host rules: the team's rules are scale,friendlyfire",
+                  r"Bloodborne party death: friendly fire on \(1 teammates' bodies here\)",
+                  r"Bloodborne party death: down \d"],
+    },
+    "forbid": {role: [*SESSION_HOLDS, r"Co-op duel: duel \d+ fights", r"Bloodborne party wipe"]
+               for role in ("host", "guest")},
+    "timeout": 300,
+}
+
+
+# Kaniel 2026-11-11, the friendly fire rule: what the enemies make of a teammate's body on the
+# invaders' team. Both hunters stand 7 m from ENEMY (close enough for it to notice a player), the
+# rule off, then on, then off again; each game's "Bloodborne enemy targets" lines say whom the
+# enemy holds as a target in each part (a probe: read from the logs, nothing is judged).
+FRIENDLY_FIRE_ENEMY_SYNCS = ("ffe-together", "ffe-base", "ffe-on", "ffe-fought", "ffe-off")
+SCENARIOS["friendly-fire-enemy"] = {
+    "about": "the friendly fire team rule beside an enemy: whom it targets with the rule off, on "
+             "and off again (a probe for the logs' enemy targets lines)",
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 5", "sync ffe-together",
+                 f"teleport {GUEST_PAIR_SPOT}", "wait 20", "census 15", "sync ffe-base",
+                 f"team-rules {FRIENDLY_FIRE_ON}", "sync ffe-on", "wait 25", "census 15",
+                 "sync ffe-fought", f"team-rules {FRIENDLY_FIRE_OFF}", "sync ffe-off", "wait 12",
+                 "census 15", "snapshot", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300", "wait 5",
+                  "sync ffe-together", f"teleport {GUEST_ALONE_SPOT}", "wait 20", "census 15",
+                  "sync ffe-base", f"team-wait-rules {FRIENDLY_FIRE_ON}", "sync ffe-on",
+                  "wait 25", "census 15", "sync ffe-fought",
+                  f"team-wait-rules {FRIENDLY_FIRE_OFF}", "sync ffe-off", "wait 12", "census 15",
+                  "snapshot", "expect-session 2"],
+    },
+    "settings": {"SHADPS4_BLOODBORNE_PARTY_DEATH": "1"},
+    "syncs": {name: {"chapter": "friendly-fire-enemy", "roles": ["host", "guest"]}
+              for name in FRIENDLY_FIRE_ENEMY_SYNCS},
+    "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
+    "timeout": 300,
+}
+
+
 # Amanises 2026-10-29, teams' duels (Kaniel 2026-11-01: the game's own banners, the winning team in
 # a notice): two against one. The host's picks: it and the guest The Hunters (2), guest2 The
 # Yharnamites (1). The host strikes guest2 at 1 HP; the guest stands off, out of reach. The whole
@@ -6195,6 +6283,8 @@ PROBE_NAMES = (
     "setup", "boot",
     # textures after trips: the game's null table pointers per far trip, and pictures of it
     "far-trips-soak", "far-trips-look",
+    # Kaniel 2026-11-11: the enemies' targets with the friendly fire rule
+    "friendly-fire-enemy",
     # packet trace for tools/re/packet_summary.py
     "fps-pace",
     # 2026-10-10/11 investigations; mine/prey use whatever saves the games have now

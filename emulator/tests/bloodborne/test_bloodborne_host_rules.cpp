@@ -301,6 +301,31 @@ TEST(BloodborneHostRules, TheTeamScreensRulesAsOneText) {
     EXPECT_FALSE(ParseScreenRules("").has_value());
 }
 
+// Kaniel 2026-11-11: friendly fire is a team rule ("you hit your teammates always ... just for
+// harder play"), off unless its leader turns it on. The screen's text has it as a ninth value
+// only when it is on, so the texts from before the rule read as they did.
+TEST(BloodborneHostRules, FriendlyFireIsARuleOffByDefault) {
+    EXPECT_FALSE(HostRules{}.friendly_fire);
+    EXPECT_FALSE(ParseHostRules("rot,travel,vote,scale,relentless").friendly_fire);
+    const HostRules on = ParseHostRules("scale, friendlyfire");
+    EXPECT_TRUE(on.friendly_fire);
+    EXPECT_EQ(HostRulesText(on), "scale,friendlyfire");
+    EXPECT_EQ(ParseHostRules(HostRulesText(on)), on);
+
+    HostRules rules;
+    rules.enemy_scaling = true;
+    rules.friendly_fire = true;
+    EXPECT_EQ(ScreenRulesText(rules), "0,0,0,1,0,0,0,0,1");
+    EXPECT_EQ(ParseScreenRules("0,0,0,1,0,0,0,0,1"), rules);
+    rules.friendly_fire = false;
+    EXPECT_EQ(ScreenRulesText(rules), "0,0,0,1,0,0,0,0");
+    EXPECT_EQ(ParseScreenRules("0,0,0,1,0,0,0,0"), rules);
+    EXPECT_EQ(ParseScreenRules("0,0,0,1,0,0,0,0,0"), rules);
+    EXPECT_FALSE(ParseScreenRules("0,0,0,1,0,0,0,0,2").has_value()) << "on or off";
+    EXPECT_FALSE(ParseScreenRules("0,0,0,1,0,0,0,0,1,1").has_value()) << "nothing after it";
+    EXPECT_FALSE(ParseScreenRules("0,0,0,1,0,0,0,0,").has_value());
+}
+
 // Kaniel 2026-11-11: the launcher has no party settings any more: the rules a player set on the
 // team screen are kept in its user folder and are its own at the next start.
 TEST(BloodborneHostRules, TheTeamScreensRulesAreThePlayersOwnAtTheNextStart) {

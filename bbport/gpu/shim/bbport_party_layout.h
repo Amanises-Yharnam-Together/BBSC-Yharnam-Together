@@ -35,9 +35,10 @@ inline float TeamScreenScale(float scale, float display_w) {
     return std::min(scale, display_w / (TeamWindowWidth + TeamWindowMargin));
 }
 
-/// Kaniel 2026-11-11: the team settings page (bbport_overlay.cpp DrawSettings) has eleven rows
-/// while the enemy strength is Custom, eight otherwise. At 720p (the overlay's scale stops at 0.75,
-/// so the page is 960 units high, not 1080) eleven rows of the usual height put the focused row's
+/// Kaniel 2026-11-11: the team settings page (bbport_overlay.cpp DrawSettings) has twelve rows
+/// while the enemy strength is Custom, nine otherwise (friendly fire is the last). At 720p (the
+/// overlay's scale stops at 0.75,
+/// so the page is 960 units high, not 1080) those rows of the usual height put the focused row's
 /// meaning under them onto the key guide. The rows' height and the gap between them, at scale 1,
 /// for `rows` rows in `room` (from the first row's top to the key guide's top, at scale 1): the
 /// usual ones where the rows, the space under them and three lines of meaning fit, else lower rows

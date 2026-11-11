@@ -669,6 +669,62 @@ TEST(BloodbornePartyDeath, ADownedBodyTakesTheInvadersTeamUntilItIsUp) {
     EXPECT_EQ(teams.Tick({{10, 6}}, {{10, 6}}), std::vector<CopyTeam>{});
 }
 
+// Kaniel 2026-11-11, the friendly fire rule: with it on every teammate's body here is on the
+// invaders' team, as a downed one, so this player's strikes land on it; a downed one stays there
+// when it gets up; with the rule off again each takes its own team back.
+TEST(BloodbornePartyDeath, FriendlyFirePutsEveryTeammatesBodyOnTheInvadersTeam) {
+    const std::vector<CopyTeam> present{{7, 20}, {8, 19}};
+    // Off: only the downed.
+    EXPECT_EQ(WithFriendlyFire({}, present, false), std::vector<CopyTeam>{});
+    EXPECT_EQ(WithFriendlyFire({{7, 20}}, present, false), (std::vector<CopyTeam>{{7, 20}}));
+    // On: everyone here, each once.
+    EXPECT_EQ(WithFriendlyFire({}, present, true), present);
+    EXPECT_EQ(WithFriendlyFire({{8, 19}}, present, true),
+              (std::vector<CopyTeam>{{8, 19}, {7, 20}}));
+
+    DownedTeams teams;
+    EXPECT_EQ(teams.Tick(WithFriendlyFire({}, present, true), present),
+              (std::vector<CopyTeam>{{7, DownedTeams::Hostile}, {8, DownedTeams::Hostile}}));
+    const std::vector<CopyTeam> hostile{{7, DownedTeams::Hostile}, {8, DownedTeams::Hostile}};
+    EXPECT_EQ(teams.Tick(WithFriendlyFire({}, hostile, true), hostile), std::vector<CopyTeam>{});
+    // 7 goes down and gets up: nothing changes while the rule is on.
+    EXPECT_EQ(teams.Tick(WithFriendlyFire({{7, DownedTeams::Hostile}}, hostile, true), hostile),
+              std::vector<CopyTeam>{});
+    EXPECT_EQ(teams.Tick(WithFriendlyFire({}, hostile, true), hostile), std::vector<CopyTeam>{});
+    // The rule goes off while 8 is down: 7 is a friend again, 8 once it is up.
+    EXPECT_EQ(teams.Tick(WithFriendlyFire({{8, DownedTeams::Hostile}}, hostile, false), hostile),
+              (std::vector<CopyTeam>{{7, 20}}));
+    const std::vector<CopyTeam> one_back{{7, 20}, {8, DownedTeams::Hostile}};
+    EXPECT_EQ(teams.Tick(WithFriendlyFire({}, one_back, false), one_back),
+              (std::vector<CopyTeam>{{8, 19}}));
+}
+
+// The rule turned on while a duel has a foe's body on the invaders' team already: that is not the
+// body's own team, so it is never given "back" as one (the foe stayed hostile for good); the body's
+// own team is learnt once the duel gave it back.
+TEST(BloodbornePartyDeath, FriendlyFireNeverTakesTheInvadersTeamForABodysOwn) {
+    DownedTeams teams;
+    const std::vector<CopyTeam> in_duel{{7, DownedTeams::Hostile}};
+    EXPECT_EQ(teams.Tick(WithFriendlyFire({}, in_duel, true), in_duel), std::vector<CopyTeam>{});
+    // The duel ends and gives the body its team: the rule takes it, and knows it now.
+    const std::vector<CopyTeam> after_duel{{7, 20}};
+    EXPECT_EQ(teams.Tick(WithFriendlyFire({}, after_duel, true), after_duel),
+              (std::vector<CopyTeam>{{7, DownedTeams::Hostile}}));
+    EXPECT_EQ(teams.Tick({}, in_duel), (std::vector<CopyTeam>{{7, 20}}));
+}
+
+// A body on the invaders' team for the rule alone is not a downed one (the enemies' stale death
+// marks and the rig's revive look for the downed by that team).
+TEST(BloodbornePartyDeath, AFriendlyFireBodyIsNotADownedOne) {
+    const std::vector<u32> downed{7}, rule{7, 8};
+    EXPECT_TRUE(OnDownedTeam(7, DownedTeams::Hostile, downed, rule));
+    EXPECT_FALSE(OnDownedTeam(8, DownedTeams::Hostile, downed, rule));
+    EXPECT_FALSE(OnDownedTeam(7, 20, downed, rule));
+    // Without the rule the team alone says so (as before it).
+    EXPECT_TRUE(OnDownedTeam(9, DownedTeams::Hostile, {}, {}));
+    EXPECT_FALSE(OnDownedTeam(9, 20, {}, {}));
+}
+
 // Which body is a downed member's: with three players the reviver stands over the body, nearer to
 // where the downed member posted than its own body (pushed off by the killing hit). The nearest
 // body flipped between the two each tick, so the downed one went back to its own team and the
