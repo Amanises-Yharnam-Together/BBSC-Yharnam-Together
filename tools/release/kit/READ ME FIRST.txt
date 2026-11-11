@@ -37,7 +37,6 @@ STEPS (everyone)
        Host's IP address       the host's VPN or public IP (the host types their own)
        Account name/password   pick any; your account is made on the host's server the first
                                time you press PLAY
-       Enemies                 the same for every player
   3. Press PLAY. The first time, Windows asks once to let co-op through its firewall (say yes),
      and the launcher prepares the game from your copy (links to it, nothing is copied) and makes
      the co-op map event files. On Local, the host presses Start server (bottom left) before PLAY.
