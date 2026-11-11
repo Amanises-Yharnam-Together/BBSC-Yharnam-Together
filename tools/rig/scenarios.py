@@ -4480,8 +4480,9 @@ SCENARIOS["duel"] = {
 FRIENDLY_FIRE_ON = "0,0,0,1,0,0,0,0,1"
 FRIENDLY_FIRE_OFF = "0,0,0,1,0,0,0,0"
 FRIENDLY_FIRE_HP = 300  # the guest's HP put under any hunter's max: a hit shows as less
+FRIENDLY_FIRE_HP_AFTER = 200  # and under what a revive gives (half the max), for the end's strikes
 FRIENDLY_FIRE_SYNCS = ("ff-together", "ff-passed", "ff-on", "ff-struck", "ff-low", "ff-down",
-                       "ff-up", "ff-off")
+                       "ff-up", "ff-off", "ff-set", "ff-after")
 SCENARIOS["friendly-fire"] = {
     "about": "the friendly fire team rule: off, a teammate's strikes pass through; on (set on the "
              "team screen), they land, a lethal one downs the teammate as any death and strikes "
@@ -4494,8 +4495,8 @@ SCENARIOS["friendly-fire"] = {
                  "sync ff-on", "strike-player 30", "sync ff-struck", "sync ff-low",
                  "strike-player 40 down", "sync ff-down", "approach-downed", "wait 2",
                  *REVIVE_HITS, "wait-member-vital up 30", "sync ff-up",
-                 f"team-rules {FRIENDLY_FIRE_OFF}", "sync ff-off", "wait 3", "snapshot",
-                 "expect-session 2"],
+                 f"team-rules {FRIENDLY_FIRE_OFF}", "sync ff-off", "sync ff-set",
+                 "strike-player 8", "sync ff-after", "wait 3", "snapshot", "expect-session 2"],
         "guest": ["team-accept", "team-ready", START, "wait-session 2 300", "wait 5",
                   f"hurt self {FRIENDLY_FIRE_HP}",
                   "sync ff-together", "sync ff-passed",
@@ -4503,8 +4504,11 @@ SCENARIOS["friendly-fire"] = {
                   f"team-wait-rules {FRIENDLY_FIRE_ON}", "sync ff-on",
                   f"wait-hp self < {FRIENDLY_FIRE_HP} 30", "sync ff-struck", "hurt self 1",
                   "sync ff-low", "wait-vital down 40", "sync ff-down", "wait-vital up 180",
-                  "sync ff-up", f"team-wait-rules {FRIENDLY_FIRE_OFF}", "sync ff-off", "wait 3",
-                  "snapshot", "expect-session 2"],
+                  "sync ff-up", f"team-wait-rules {FRIENDLY_FIRE_OFF}", "sync ff-off",
+                  # Off again: the host's strikes pass through as at the start.
+                  f"hurt self {FRIENDLY_FIRE_HP_AFTER}", "sync ff-set", "sync ff-after",
+                  f"expect-hp self == {FRIENDLY_FIRE_HP_AFTER}", "wait 3", "snapshot",
+                  "expect-session 2"],
     },
     "settings": {"SHADPS4_BLOODBORNE_PARTY_DEATH": "1"},
     "syncs": {name: {"chapter": "friendly-fire", "roles": ["host", "guest"]}
@@ -4513,7 +4517,8 @@ SCENARIOS["friendly-fire"] = {
         "host": [r"Co-op host rules: the team's rules are scale,friendlyfire",
                  r"Bloodborne party death: friendly fire on \(1 teammates' bodies here\)",
                  r"Bloodborne party death: body 0x[0-9a-f]+ takes team 21",
-                 r"Bloodborne party death: friendly fire off"],
+                 r"Bloodborne party death: friendly fire off",
+                 r"Bloodborne party death: body 0x[0-9a-f]+ takes team (?!21\b)\d+"],
         "guest": [r"Co-op host rules: the team's rules are scale,friendlyfire",
                   r"Bloodborne party death: friendly fire on \(1 teammates' bodies here\)",
                   r"Bloodborne party death: down \d"],
