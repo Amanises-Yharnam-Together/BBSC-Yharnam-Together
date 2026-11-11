@@ -560,5 +560,7 @@
  "Custom": "Personalizada",
  "Enemy HP": "PS de los enemigos",
  "Enemy damage": "Daño de los enemigos",
- "Enemy poise": "Equilibrio de los enemigos"
+ "Enemy poise": "Equilibrio de los enemigos",
+ "Friendly fire": "Fuego amigo",
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Para una cacería más difícil: los ataques de los compañeros se dañan entre sí en todo momento. El golpe mortal de un compañero cuenta como cualquier otra muerte."
 }

@@ -560,5 +560,7 @@
  "Custom": "Eigene Werte",
  "Enemy HP": "Gegner-HP",
  "Enemy damage": "Gegnerschaden",
- "Enemy poise": "Gegnerhaltung"
+ "Enemy poise": "Gegnerhaltung",
+ "Friendly fire": "Eigenbeschuss",
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Für eine härtere Jagd: Angriffe von Teamkameraden verletzen einander jederzeit. Der tödliche Treffer eines Teamkameraden zählt wie jeder andere Tod."
 }

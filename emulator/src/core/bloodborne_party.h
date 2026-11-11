@@ -4392,6 +4392,17 @@ public:
 private:
     std::vector<CopyTeam> saved; // each taken body's own team
 };
+// Kaniel 2026-11-11, the friendly fire rule ("you hit your teammates always ... just for harder
+// play"): with it `on`, every other player's body in this world (`present`) is struck as a downed
+// one is, on the invaders' team, so the game's own hits land on it (as in a duel); its own team
+// comes back when the rule goes off. The bodies for DownedTeams::Tick's `downed`: the downed ones
+// (`downed`) and, with the rule, the rest of `present`.
+std::vector<CopyTeam> WithFriendlyFire(std::vector<CopyTeam> downed,
+                                       std::span<const CopyTeam> present, bool on);
+// Whether the body `handle`, on team `team`, is a downed member's: on the invaders' team, and
+// not only for the friendly fire (`friendly_fire`, the rule's bodies; `downed`, the downed ones).
+bool OnDownedTeam(u32 handle, s32 team, std::span<const u32> downed,
+                  std::span<const u32> friendly_fire);
 // Another player's body in this world and where it stands.
 struct BodyPosition {
     u32 handle = 0;

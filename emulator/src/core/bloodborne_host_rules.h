@@ -45,12 +45,15 @@ struct HostRules {
     // Kaniel 2026-11-05: the team's enemy strength (TeamRules enemy_hp/damage/poise): a full
     // team's with enemy_scaling, everyone's without; none, the standard (HarderDefault*).
     std::optional<HarderEnemies> enemies;
+    // Kaniel 2026-11-11: friendly fire, for a harder hunt (TeamRules friendly_fire): the
+    // teammates' strikes land on each other at all times.
+    bool friendly_fire = false;
     bool operator==(const HostRules&) const = default;
 };
 
 // The launcher's setting: words split by commas ("rot", "travel", "vote", "scale", and the boss
-// tempo's "aggressive" or "relentless", the last one given); anything else (or "off", or
-// nothing) is off. "vote" alone is nothing: it is a part of "travel".
+// tempo's "aggressive" or "relentless", the last one given, and "friendlyfire"); anything else (or
+// "off", or nothing) is off. "vote" alone is nothing: it is a part of "travel".
 HostRules ParseHostRules(std::string_view setting);
 // The same words back ("off" for none), for the log and the build's line.
 std::string HostRulesText(const HostRules& rules);
@@ -202,6 +205,8 @@ std::optional<HarderEnemies> TeamScaledEnemies(std::size_t hunters, const Harder
 // Kaniel 2026-11-05: the team screen's rules as its leader sets them, one text for the overlay's
 // request (bbcoop_lobby_request BBCOOP_TEAM_RULES): "rot,travel,vote,scale,tempo,hp,damage,poise"
 // (0/1 each, tempo 0-2, the strength 1-10 or 0 for the standard). nullopt when it is not that.
+// Kaniel 2026-11-11: with friendly fire a ninth value, ",1" (none without it: the texts from
+// before the rule stay what they were, and are read as friendly fire off).
 std::string ScreenRulesText(const HostRules& rules);
 std::optional<HostRules> ParseScreenRules(std::string_view text);
 // Kaniel 2026-11-11: the launcher sets no party rules any more (the team screen is the one place

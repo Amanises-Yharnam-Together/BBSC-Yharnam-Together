@@ -6904,7 +6904,11 @@ std::vector<CopyTeam> DownedTeams::Tick(const std::vector<CopyTeam>& downed,
         if (body.team == Unchangeable || invader(body.handle)) {
             continue;
         }
-        if (std::ranges::find(saved, body.handle, &CopyTeam::handle) == saved.end()) {
+        // A body first seen on the invaders' team was put there by something else (a duel): that
+        // is not its own team, and nothing of this is to give back (Kaniel 2026-11-11: the
+        // friendly fire rule turned on in a duel kept the duel's foe hostile for good).
+        if (body.team != Hostile &&
+            std::ranges::find(saved, body.handle, &CopyTeam::handle) == saved.end()) {
             saved.push_back(body);
         }
         if (body.team != Hostile) {
@@ -6922,6 +6926,26 @@ std::vector<CopyTeam> DownedTeams::Tick(const std::vector<CopyTeam>& downed,
         return true;
     });
     return writes;
+}
+
+std::vector<CopyTeam> WithFriendlyFire(std::vector<CopyTeam> downed,
+                                       std::span<const CopyTeam> present, bool on) {
+    if (!on) {
+        return downed;
+    }
+    for (const CopyTeam& body : present) {
+        if (std::ranges::find(downed, body.handle, &CopyTeam::handle) == downed.end()) {
+            downed.push_back(body);
+        }
+    }
+    return downed;
+}
+
+bool OnDownedTeam(u32 handle, s32 team, std::span<const u32> downed,
+                  std::span<const u32> friendly_fire) {
+    return team == DownedTeams::Hostile &&
+           (std::ranges::find(friendly_fire, handle) == friendly_fire.end() ||
+            std::ranges::find(downed, handle) != downed.end());
 }
 
 std::vector<DownedBodyPick> DownedBodyPicker::Pick(std::span<const MemberVitals> board,

@@ -560,5 +560,7 @@
  "Custom": "사용자 지정",
  "Enemy HP": "적의 HP",
  "Enemy damage": "적의 대미지",
- "Enemy poise": "적의 강인도"
+ "Enemy poise": "적의 강인도",
+ "Friendly fire": "아군 공격",
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "더 어려운 사냥을 위해: 팀원의 공격이 항상 서로에게 피해를 줍니다. 팀원의 마지막 일격은 다른 죽음과 똑같이 처리됩니다."
 }

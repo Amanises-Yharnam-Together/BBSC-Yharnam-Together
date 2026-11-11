@@ -284,10 +284,10 @@ std::mutex kept_rot_mutex;
 std::optional<std::vector<u32>> kept_rot;
 
 u8 RulesBits(const HostRules& rules) {
-    return static_cast<u8>((rules.rot ? 1 : 0) | (rules.travel_together ? 2 : 0) |
-                           (rules.travel_vote && rules.travel_together ? 4 : 0) |
-                           (rules.enemy_scaling ? 8 : 0) |
-                           (static_cast<u8>(rules.boss_tempo) & 3) << 4);
+    return static_cast<u8>(
+        (rules.rot ? 1 : 0) | (rules.travel_together ? 2 : 0) |
+        (rules.travel_vote && rules.travel_together ? 4 : 0) | (rules.enemy_scaling ? 8 : 0) |
+        (static_cast<u8>(rules.boss_tempo) & 3) << 4 | (rules.friendly_fire ? 0x40 : 0));
 }
 
 HostRules RulesOf(u8 bits) {
@@ -296,7 +296,8 @@ HostRules RulesOf(u8 bits) {
             .travel_together = (bits & 2) != 0,
             .travel_vote = (bits & 4) != 0,
             .enemy_scaling = (bits & 8) != 0,
-            .boss_tempo = tempo <= 2 ? static_cast<BossTempo>(tempo) : BossTempo::Vanilla};
+            .boss_tempo = tempo <= 2 ? static_cast<BossTempo>(tempo) : BossTempo::Vanilla,
+            .friendly_fire = (bits & 0x40) != 0};
 }
 
 BossTempo BossTempoOf(bbcoop::BossTempo tempo) {
@@ -321,7 +322,8 @@ void NoteTeamRules(const bbcoop::LobbyState& state, const std::string& me) {
                           .travel_vote = r.travel_vote(),
                           .enemy_scaling = r.enemy_scaling(),
                           .boss_tempo = BossTempoOf(r.boss_tempo()),
-                          .enemies = TeamStrength(r.enemy_hp(), r.enemy_damage(), r.enemy_poise())};
+                          .enemies = TeamStrength(r.enemy_hp(), r.enemy_damage(), r.enemy_poise()),
+                          .friendly_fire = r.friendly_fire()};
     const u8 bits = RulesBits(rules);
     const bool was_in = in_team.exchange(team);
     const bool strength_changed = team_enemy_hp.exchange(r.enemy_hp()) != r.enemy_hp() |
@@ -452,6 +454,7 @@ bbcoop::TeamRules TeamRulesOf(const HostRules& rules) {
     r.set_travel_vote(rules.travel_vote && rules.travel_together);
     r.set_enemy_scaling(rules.enemy_scaling);
     r.set_boss_tempo(static_cast<bbcoop::BossTempo>(rules.boss_tempo));
+    r.set_friendly_fire(rules.friendly_fire);
     if (rules.enemies) {
         r.set_enemy_hp(rules.enemies->hp);
         r.set_enemy_damage(rules.enemies->damage);
@@ -3479,7 +3482,8 @@ bool RunTeamTitleVerb(const AutoplayCommand& command, bool begun, double elapsed
                  .travel_vote = r.travel_vote(),
                  .enemy_scaling = r.enemy_scaling(),
                  .boss_tempo = BossTempoOf(r.boss_tempo()),
-                 .enemies = TeamStrength(r.enemy_hp(), r.enemy_damage(), r.enemy_poise())});
+                 .enemies = TeamStrength(r.enemy_hp(), r.enemy_damage(), r.enemy_poise()),
+                 .friendly_fire = r.friendly_fire()});
         };
         done =
             lobby && lobby->has_team() && team_rules_text(lobby->team().rules()) == command.args[0];
