@@ -856,6 +856,9 @@ def prune_runs(runs: pathlib.Path, kept: int):
         shutil.rmtree(old, ignore_errors=True)
 
 
+TEAM_RULES_FILE = "bloodborne_team_rules.txt"  # the game's OwnRulesFile
+
+
 def user_dir(role: str) -> pathlib.Path:
     return ENGINE.user_dir(role)
 
@@ -1142,6 +1145,15 @@ def launch(role: str, script: list[str] | None, party: str = "rig:hunters",
     headless_roles = settings.pop("rig.headless_roles", "").split(",")
     if role in headless_roles:
         settings.update(HEADLESS)
+    # Kaniel 2026-11-11: the game keeps the rules its player set on the team screen in its user
+    # folder for its next start. A run starts with none of an earlier run's (they would be the
+    # next team's), or with the scenario's own ("rig.team_rules", the file's line).
+    kept_rules = ENGINE.user_dir(role) / TEAM_RULES_FILE
+    if (line := settings.pop("rig.team_rules", None)) is not None:
+        kept_rules.parent.mkdir(parents=True, exist_ok=True)
+        kept_rules.write_text(line + "\n", encoding="utf-8", newline="\n")
+    else:
+        kept_rules.unlink(missing_ok=True)
     ENGINE.prepare(role, backend_port=server_port(BACKEND_PORT), ini=ini)
     build_lock.refuse_if_memory_low(f"the {role} game")  # leaked memory froze the PC
     build_lock.wait_for_builds()  # beside builds unless BB_BUILD_BESIDE_GAMES=0

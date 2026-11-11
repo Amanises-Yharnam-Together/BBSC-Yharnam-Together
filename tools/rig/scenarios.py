@@ -2072,7 +2072,37 @@ SCENARIOS = {
         "expect": {role: [r"Co-op host rules: the team's rules are off; enemies fixed 2,1.25,2",
                           r"Bloodborne harder enemies: \d+ NpcParam rows, x2\.00 HP, x1\.25 damage, "
                           r"x2\.00 poise"]
+                         + ([rf"Co-op host rules: kept {TEAM_RULES_FIXED} for the next start"]
+                            if role == "host" else [])
                    for role in ("host", "guest")},
+        "forbid": {role: [*SESSION_HOLDS, r"harder enemies: \d+ NpcParam rows, x3\.00 HP"]
+                   for role in ("host", "guest")},
+        "timeout": 300,
+    },
+    # Kaniel 2026-11-11: the launcher has no party settings: the rules a leader set on the team
+    # screen are kept by its game (bloodborne_team_rules.txt in its user folder), and the team it
+    # makes after a restart starts with them, with no press on the team screen.
+    "team-rules-kept": {
+        "about": "the rules a leader set on the team screen in an earlier run (kept in its user "
+                 "folder) are its new team's from the start, in both games",
+        "role_settings": {"host": {"rig.team_rules": TEAM_RULES_FIXED}},
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                     "wait-session 2 300", "wait 10", "sync rules-seen", "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_FIXED}", "team-ready", START,
+                      "wait-session 2 300", "wait 10", "sync rules-seen", "snapshot"],
+        },
+        "syncs": {"rules-seen": {"chapter": "team-rules-kept", "roles": ["host", "guest"]}},
+        "expect": {
+            "host": [rf"Co-op host rules: this player's own are {TEAM_RULES_FIXED}",
+                     r"Co-op host rules: the team's rules are off; enemies fixed 2,1.25,2",
+                     r"Bloodborne harder enemies: \d+ NpcParam rows, x2\.00 HP, x1\.25 damage, "
+                     r"x2\.00 poise"],
+            "guest": [r"Co-op host rules: this player's own are not set",
+                      r"Co-op host rules: the team's rules are off; enemies fixed 2,1.25,2",
+                      r"Bloodborne harder enemies: \d+ NpcParam rows, x2\.00 HP, x1\.25 damage, "
+                      r"x2\.00 poise"],
+        },
         "forbid": {role: [*SESSION_HOLDS, r"harder enemies: \d+ NpcParam rows, x3\.00 HP"]
                    for role in ("host", "guest")},
         "timeout": 300,

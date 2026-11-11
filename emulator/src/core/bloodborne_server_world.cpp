@@ -403,6 +403,8 @@ void SetOwnRules(const HostRules& rules, bool keep) {
     if (error) {
         LOG_WARNING(Debug, "Co-op host rules: the team's rules could not be kept in {}: {}",
                     path.string(), error.message());
+    } else {
+        LOG_INFO(Debug, "Co-op host rules: kept {} for the next start", ScreenRulesText(rules));
     }
 }
 
