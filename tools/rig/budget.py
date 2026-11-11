@@ -115,7 +115,7 @@ LONG = {
     "guest-mobs-host-comes": "40 s waits for the mob",
     "guest-hits-host-comes": "a 50 s wait for the mob",
     "guest-mobs-host-near": "40 s waits for the mob",
-    "guest-acts-for-two": "a 70 s wait for the mob",
+    "guest-acts-for-two": "a guest's kill of three hunters' enemy, up to 90 s",
     "early-trip": "a 60 s wait",
     "gascoigne-together": "a 40 s wait",
     "echoes-apart": "an 80 s wait",

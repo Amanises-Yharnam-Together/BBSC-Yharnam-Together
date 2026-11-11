@@ -306,10 +306,13 @@ def only_kill(handle: str, *beside: str) -> list[str]:
             rf"(?: (?:{ours}) \(dead [^)]*\))+\s*$)"]
 
 
-def attack(target: str) -> list[str]:
+def attack(target: str, seconds: int = 40) -> list[str]:
     """A real kill of an ordinary enemy (the kill reward and the death run as in play; the
-    game's own kill leaves one standing in a party)."""
-    return [f"attack {target} 40"]
+    game's own kill leaves one standing in a party), in at most `seconds`. The step puts it at
+    1 HP first, which holds only in the game that runs the enemy: another game's kill takes
+    all of its HP (full rig 2026-11-10: a guest's 8 hits in 40 s left three hunters' enemy at 31
+    of 968)."""
+    return [f"attack {target} {seconds}"]
 
 
 
@@ -2200,12 +2203,17 @@ SCENARIOS = {
         "about": "a party of three: the first guest picks up an item and attacks an enemy while "
                  "the second guest stands still; the second guest's own character stays put",
         "roles": {
-            "host": [START, "godmode", "wait-session 3 480", "wait 70", "expect-session 3"],
+            "host": [START, "godmode", "wait-session 3 480", "sync acted", "wait 10",
+                     "expect-session 3"],
+            # 90 s: the guest does not run the enemy, so its kill is of all three hunters' HP.
             "guest": [START, "godmode", "wait-session 3 480", "wait 15", "pickup 60", "wait 5",
-                      *attack(ENEMY), "wait 10", "expect-session 3"],
+                      *attack(ENEMY, 90), "sync acted", "wait 10", "expect-session 3"],
+            # Its last census once the first guest's kill is done, however long that took.
             "guest2": [START, "godmode", "wait-session 3 480", "wait 10", "census 5", "wait 20",
-                       "census 5", "wait 25", "census 5", "expect-session 3"],
+                       "census 5", "sync acted", "wait 5", "census 5", "expect-session 3"],
         },
+        "syncs": {"acted": {"chapter": "guest-acts-for-two",
+                            "roles": ["host", "guest", "guest2"]}},
         "stays": {"guest2": 3.0},
         "timeout": 900,
     },
@@ -3756,23 +3764,29 @@ SCENARIOS["boss-hp-staggered-wipe"] = {
              "respawn: the hurt boss-sized enemy is back at full HP in all three games",
     "settings": PARTY_DEATH,
     "roles": {
+        # Host and guest2 hold godmode until the guest is dead (rig 2026-11-11: at 1 HP while
+        # they waited, an enemy killed both first and the wipe ended the guest's down before
+        # its give-up).
         "host": [START, "godmode", "wait-session 3 480", f"approach {BIG_BY_THE_LAMP} 4 0",
                  "wait 3", f"hurt {BIG_BY_THE_LAMP} 900", "wait 5", "census 40", "sync sw-hurt",
-                 "godmode off", f"teleport {WIPE3_SPOT['host']}", "wait 2", "hurt self 1",
-                 "sync sw-guest-dead", "rise 18", "wait-vital dead 60", "wait-vital up 150",
-                 "wait-members 3 300", "wait 20", "census 80",
+                 f"teleport {WIPE3_SPOT['host']}", "wait 2", "sync sw-guest-dead",
+                 "godmode off", *LETHAL_FALL, "wait-vital dead 60", "wait-vital up 150",
+                 "wait-members 3 300", "wait 20", *BIG_CHECKED_AGAIN,
                  "sync sw-checked", "expect-session 3"],
         "guest": [START, "godmode", "wait-session 3 480", "sync sw-hurt", "wait 3", "census 60",
                   "godmode off", f"teleport {WIPE3_SPOT['guest']}", "wait 2", *GIVE_UP,
                   "sync sw-guest-dead", "wait-vital up 60", "wait-members 3 300", "wait 20",
-                  "census 80", "sync sw-checked",
+                  *BIG_CHECKED_AGAIN, "sync sw-checked",
                   "expect-session 3"],
         "guest2": [START, "godmode", "wait-session 3 480", "sync sw-hurt", "wait 3", "census 60",
-                   "godmode off", f"teleport {WIPE3_SPOT['guest2']}", "wait 2", "hurt self 1",
-                   "sync sw-guest-dead", "rise 18", "wait-vital dead 60", "wait-vital up 150",
-                   "wait-members 3 300", "wait 20", "census 80",
+                   f"teleport {WIPE3_SPOT['guest2']}", "wait 2", "sync sw-guest-dead",
+                   "godmode off", *LETHAL_FALL, "wait-vital dead 60", "wait-vital up 150",
+                   "wait-members 3 300", "wait 20", *BIG_CHECKED_AGAIN,
                    "sync sw-checked", "expect-session 3"],
     },
+    # Each wakes at the lamp, about 147 m from the enemy (full rig 2026-11-10: "not whole
+    # 900/3833", "no census", the census from before the wipe): counted beside it, as in
+    # boss-hp-after-wipe. Whole by each game's own census.
     "hp_state": [{"handle": BIG_BY_THE_LAMP, "is": "whole",
                   "roles": ["host", "guest", "guest2"]}],
     "expect": {"guest": [r"giving up ends down \d+; dies \(reset=false",
@@ -4514,27 +4528,33 @@ SCENARIOS["friendly-fire"] = {
 # a notice): two against one. The host's picks: it and the guest The Hunters (2), guest2 The
 # Yharnamites (1). The host strikes guest2 at 1 HP; the guest stands off, out of reach. The whole
 # team wins, every duelist hears which team, nobody has a party death.
+# The two who fight stay where they woke, at the lamp (as in "duel"; full rig 2026-11-10: on spots
+# 8 m from ENEMY it came over and downed guest2 after the duel, 1 run of 3 green). The guest, whom
+# nobody strikes, is the one who stands off, 13 m away and by ENEMY: in godmode. guest2's HP is
+# back once the duel is over (the down came 1.4 s after its give-back: if this check fails, the
+# give-back did not hold, and that is the game's).
 DUEL_GUEST2_ID = "rig_guest2".encode().hex()
 DUEL_TEAM_NAMES = ("duel-together", "duel-fighting", "duel-low", "duel-over")
 SCENARIOS["duel-teams"] = {
     "about": "a teams' duel: two against one from the Teams page, the last team standing wins "
              "together, the notice names it, no party death",
     "roles": {
-        "host": [START, "godmode", "wait-session 3 300", "wait 5", "teleport -212.0 -54.5 174.0",
-                 "sync duel-together",
+        "host": [START, "godmode", "wait-session 3 300", "wait 5", "sync duel-together",
                  f"duel-propose-teams {RIG_HOST_ID}=2 {RIG_GUEST_ID}=2 {DUEL_GUEST2_ID}=1",
                  "wait-duel countdown 40", "wait-duel fighting 10", "sync duel-fighting",
                  "sync duel-low", "duel-strike 60", "wait-duel none 20", "sync duel-over",
                  "wait 3", "snapshot", "expect-session 3"],
-        "guest": [START, "wait-session 3 300", "wait 5", f"teleport {GUEST_PAIR_SPOT}",
+        "guest": [START, "godmode", "wait-session 3 300", "wait 5",
+                  f"teleport {GUEST_PAIR_SPOT}",
                   "sync duel-together", "duel-answer yes 40", "wait-duel countdown 10",
                   "wait-duel fighting 10", "sync duel-fighting", "sync duel-low",
                   "wait-duel none 80", "sync duel-over", "wait 3", "snapshot",
                   "expect-session 3"],
-        "guest2": [START, "wait-session 3 300", "wait 5", "teleport -209.0 -54.5 174.0",
+        "guest2": [START, "wait-session 3 300", "wait 5",
                    "sync duel-together", "duel-answer yes 40", "wait-duel countdown 10",
                    "wait-duel fighting 10", "sync duel-fighting", "hurt self 1", "sync duel-low",
-                   "wait-duel none 80", "sync duel-over", "wait 3", "snapshot",
+                   "wait-duel none 80", "sync duel-over", f"expect-hp self >= {DUEL_HP_FLOOR}",
+                   "wait 3", "snapshot", f"expect-hp self >= {DUEL_HP_FLOOR}",
                    "expect-session 3"],
     },
     "syncs": {name: {"chapter": "duel-teams", "roles": ["host", "guest", "guest2"]}
@@ -5611,7 +5631,6 @@ def _ludwig_retry(chapter: str, during_change: bool) -> dict:
 # 3200200-3200229 (317 HP) by her; at 3/4 HP 13204807 moves her and sets 13204811, at 1/2 HP
 # 13204812; 13204808/09 call more spiders at 1/2 and 1/4. Her lamp (3202950) is on her map.
 ROM = "0x1003004c"
-ROM_FULL_HP = 6352
 ROM_FIGHT_OFF = [f"expect-flag {flag} 0" for flag in (ROM_DEFEATED, 13204811, 13204812)]
 ROM_START = [START, f"ensure-map {BYRGENWERTH} {BYRGENWERTH_LAMP}", "godmode",
              f"expect-flag {ROM_DEFEATED} 0", "wait-session 2 240", "wait 5"]
@@ -5627,20 +5646,26 @@ SCENARIOS["rom-retry"] = {
     "settings": PARTY_DEATH,
     "game_kill": True,
     "roles": {
+        # Her swings put a host beside her down, godmode or not (full rig 2026-11-10, twice: the
+        # guest's death was then the party's wipe, no spectate): one hit, then 20 m off (still in
+        # her fight, 45 m) before her later phases, and again once she moved for them. The guest
+        # checks the host stands before it dies.
         "host": [*ROM_START, *ROM_DIVE_IN, "sync rr-in", "census 150",
-                 f"approach {ROM} 5 0", f"hit {ROM} 30", "wait 5", f"hurt {ROM} 2800",
-                 "wait-flag 13204812 1 60", "wait 15", ROM_FLAGS, "census 150", "sync rr-hurt",
+                 f"approach {ROM} 5 0", f"hit {ROM} 30", f"approach {ROM} 20 0", "wait 3",
+                 f"hurt {ROM} 2800", "wait-flag 13204812 1 60", f"approach {ROM} 20 0", "wait 5",
+                 ROM_FLAGS, "census 150", "sync rr-hurt",
                  "wait-member-vital spectate 60", "godmode off", "kill self",
-                 "wait-vital dead 30", *ROM_BACK, "sync rr-woke", *ROM_DIVE_IN, "census 150",
-                 ROM_FLAGS, f"expect-hp {ROM} == {ROM_FULL_HP}", *ROM_FIGHT_OFF[1:],
-                 "sync rr-done", "expect-session 2"],
+                 "wait-vital dead 30", *ROM_BACK, "sync rr-woke", *ROM_DIVE_IN, ROM_FLAGS,
+                 *ROM_FIGHT_OFF[1:], "census 150", "sync rr-done", "expect-session 2"],
         "guest": [*ROM_START, "sync rr-in", "wait 5", *ROM_DIVE_IN, "sync rr-hurt",
-                  f"approach {ROM} 6 3.14", "wait 2", "godmode off", "kill self",
-                  "wait-vital spectate 20", "wait-vital dead 90", *ROM_BACK, "sync rr-woke",
-                  "wait 5", *ROM_DIVE_IN, "census 150", ROM_FLAGS,
-                  f"expect-hp {ROM} == {ROM_FULL_HP}", *ROM_FIGHT_OFF[1:], "sync rr-done",
-                  "expect-session 2"],
+                  f"approach {ROM} 6 3.14", "wait 2", "wait-member-vital up 5", "godmode off",
+                  "kill self", "wait-vital spectate 20", "wait-vital dead 90", *ROM_BACK,
+                  "sync rr-woke", "wait 5", *ROM_DIVE_IN, ROM_FLAGS, *ROM_FIGHT_OFF[1:],
+                  "census 150", "sync rr-done", "expect-session 2"],
     },
+    # Whole again by each game's own last census (the enemy strength rule moves her max with the
+    # hunters on the map).
+    "hp_state": [{"handle": ROM, "is": "whole", "roles": ["host", "guest"]}],
     "syncs": {sync: {"chapter": "rom-retry", "roles": ["host", "guest"]}
               for sync in ("rr-in", "rr-hurt", "rr-woke", "rr-done")},
     "expect": {"host": [r"party death: died for real on map 0x20000000 \(reset=true\)"],
