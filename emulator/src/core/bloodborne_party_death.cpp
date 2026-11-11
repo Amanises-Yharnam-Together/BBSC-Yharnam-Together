@@ -979,22 +979,41 @@ void PS4_SYSV_ABI RecordReviveHit(u64, const GuestRegisterSnapshot* registers) {
 }
 
 // The downed bodies' handles for the enemy bar hook (SkipsEnemyBarDamage), as of the last tick.
+// Kaniel 2026-11-11: and the friendly fire rule's bodies (the teammates' standing here, on the
+// invaders' team for the rule alone): no damage is counted for them either.
 std::mutex bar_bodies_mutex;
 std::vector<u32> bar_bodies;
+std::vector<u32> friendly_fire_bodies;
 
 bool PS4_SYSV_ABI SkipDownedBodyBarDamage(u64, const GuestRegisterSnapshot* registers) {
     std::scoped_lock lock{bar_bodies_mutex};
-    return SkipsEnemyBarDamage(static_cast<u32>(registers->rsi), bar_bodies);
+    const u32 handle = static_cast<u32>(registers->rsi);
+    return SkipsEnemyBarDamage(handle, bar_bodies) ||
+           SkipsEnemyBarDamage(handle, friendly_fire_bodies);
 }
 
-// The downed bodies here take the invaders' team (DownedTeams) and give it back once up.
+// The downed bodies here take the invaders' team (DownedTeams) and give it back once up; with
+// the friendly fire rule (`friendly_fire`) every teammate's body here has it.
 void SetDownedTeams(PartyDeathRun& run, std::span<const DownedBody> bodies,
-                    std::span<const OtherPlayer> players) {
+                    std::span<const OtherPlayer> players, bool friendly_fire) {
+    const std::vector<u32> invaders = InvaderHandles();
     {
         std::scoped_lock lock{bar_bodies_mutex};
         bar_bodies.clear();
         for (const DownedBody& body : bodies) {
             bar_bodies.push_back(body.handle);
+        }
+        const bool was_on = !friendly_fire_bodies.empty();
+        friendly_fire_bodies.clear();
+        for (const OtherPlayer& other : players) {
+            const u32 handle = ReadValue<u32>(other.character, 0x08);
+            if (friendly_fire && !std::ranges::contains(invaders, handle)) {
+                friendly_fire_bodies.push_back(handle);
+            }
+        }
+        if (was_on != !friendly_fire_bodies.empty()) {
+            LOG_INFO(Debug, "Bloodborne party death: friendly fire {} ({} teammates' bodies here)",
+                     was_on ? "off" : "on", friendly_fire_bodies.size());
         }
     }
     std::vector<CopyTeam> downed, present;
@@ -1006,9 +1025,9 @@ void SetDownedTeams(PartyDeathRun& run, std::span<const DownedBody> bodies,
         present.push_back(CopyTeam{ReadValue<u32>(other.character, 0x08),
                                    ReadValue<s32>(other.character, CharacterTeamOffset)});
     }
-    const std::vector<u32> invaders = InvaderHandles();
     for (const CopyTeam& write :
-         run.downed_teams.Tick(downed, present, invaders, invasion_fallback_switch)) {
+         run.downed_teams.Tick(WithFriendlyFire(std::move(downed), present, friendly_fire), present,
+                               invaders, invasion_fallback_switch)) {
         for (const OtherPlayer& other : players) {
             if (ReadValue<u32>(other.character, 0x08) == write.handle &&
                 HasMemoryAccess(other.character + CharacterTeamOffset, 4, MemoryProt::CpuWrite)) {
@@ -1066,7 +1085,9 @@ void StrikeDownedBodies(PartyDeathRun& run, std::span<const MemberVitals> board,
     const std::vector<DownedBody> bodies =
         in_session ? DownedBodies(run.downed_bodies, board, self, map, players)
                    : std::vector<DownedBody>{};
-    SetDownedTeams(run, bodies, players);
+    // Kaniel 2026-11-11: the team's friendly fire rule, while this game plays in its session.
+    SetDownedTeams(run, bodies, players,
+                   in_session && InTeamNow() && ActiveHostRules().friendly_fire);
     CountRealReviveHits(run, bodies);
 }
 
@@ -1232,6 +1253,11 @@ std::vector<MemberVitals> hostile_vitals;
 } // namespace Coop
 
 namespace Coop {
+
+bool BodyOnDownedTeam(u32 handle, s32 team) {
+    std::scoped_lock lock{bar_bodies_mutex};
+    return OnDownedTeam(handle, team, bar_bodies, friendly_fire_bodies);
+}
 
 void SetInvaderHandles(std::vector<u32> handles) {
     std::scoped_lock lock{invader_handles_mutex};
@@ -3180,7 +3206,8 @@ void ClearStaleDeathMarks() {
             .handle = handle,
             .marked = (ReadValue<u8>(info, 0x18) & 1) != 0,
             .dead = (other.dead_flags & 0x05) != 0,
-            .downed = ReadValue<s32>(other.character, CharacterTeamOffset) == DownedTeams::Hostile,
+            .downed =
+                BodyOnDownedTeam(handle, ReadValue<s32>(other.character, CharacterTeamOffset)),
             .invader = std::ranges::contains(invaders, handle),
         });
         infos.push_back(info);

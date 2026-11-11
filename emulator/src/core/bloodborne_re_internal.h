@@ -1100,6 +1100,9 @@ void RestoreInvasionHomeOnLoad();
 // finds them, InvaderBodies), its hits on the local player (the hit hook), whether a lethal check
 // lets the death through, and the invader's own death in the target's world (revived in place,
 // InvaderGoHome takes it home).
+// Kaniel 2026-11-11: whether another player's body (`handle`, on `team`) is a downed member's
+// (OnDownedTeam): the friendly fire rule's bodies are on the invaders' team standing up.
+bool BodyOnDownedTeam(u32 handle, s32 team);
 void SetInvaderHandles(std::vector<u32> handles);
 std::vector<u32> InvaderHandles();
 bool IsInvaderHandle(u32 handle);

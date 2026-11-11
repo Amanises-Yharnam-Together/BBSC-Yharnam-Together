@@ -628,6 +628,7 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
         lobby->rule_vote = rules.travel_vote ? 1 : 0;
         lobby->rule_scale = rules.enemy_scaling ? 1 : 0;
         lobby->rule_tempo = static_cast<int>(rules.boss_tempo);
+        lobby->rule_friendly_fire = rules.friendly_fire ? 1 : 0;
         // Kaniel 2026-11-05: the team's enemy strength (the standard when it set none).
         const Core::Bloodborne::HarderEnemies strength = rules.enemies.value_or(
             Core::Bloodborne::HarderEnemies{Core::Bloodborne::HarderDefaultHp,

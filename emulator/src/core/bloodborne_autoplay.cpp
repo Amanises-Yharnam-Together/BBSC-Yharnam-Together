@@ -1074,7 +1074,8 @@ bool AutoplayReviveDowned(const AutoplayStep& step) {
             continue;
         }
         const bool is_downed =
-            ReadValue<s32>(other.character, CharacterTeamOffset) == DownedTeams::Hostile;
+            Coop::BodyOnDownedTeam(ReadValue<u32>(other.character, 0x08),
+                                   ReadValue<s32>(other.character, CharacterTeamOffset));
         const float d = std::hypot((*other.at)[0] - posted[0], (*other.at)[2] - posted[2]);
         if (d < 4.0f &&
             ((is_downed && !nearest_downed) || (is_downed == nearest_downed && d < nearest))) {
@@ -2531,6 +2532,31 @@ bool AutoplayDuelStrike(const AutoplayStep& step) {
     return false;
 }
 
+// Kaniel 2026-11-11, the friendly fire rule: strike-player <seconds> [down]: light attacks on the
+// nearest other player from each side in turn (as duel-strike) for <seconds>; with "down", until
+// a teammate on the board is down (a failure after <seconds>).
+bool AutoplayStrikePlayer(const AutoplayStep& step) {
+    const bool until_down = step.Arg(1) == "down";
+    const VitalsView view = ReadVitalsBoard();
+    const bool down = std::ranges::any_of(view.board.members, [&](const MemberVitals& member) {
+        return member.member != view.member && member.vital == Vital::Down;
+    });
+    if (until_down ? down : step.elapsed > step.Number(0, 10)) {
+        autoplay_buttons.store(0);
+        LOG_INFO(Debug, "Bloodborne autoplay: strikes at a teammate done after {:.1f} s{}",
+                 step.elapsed, down ? " (a teammate is down)" : "");
+        return true;
+    }
+    if (const auto found = FindAutoplayCharacter(AutoplayPlayer)) {
+        AutoplayAttackCycle(*found, step.elapsed, false);
+    }
+    if (until_down && step.elapsed > step.Number(0, 10)) {
+        autoplay_buttons.store(0);
+        step.failure = fmt::format("no teammate down after {:.0f} s of strikes", step.elapsed);
+    }
+    return false;
+}
+
 bool AutoplayWaitDuel(const AutoplayStep& step) {
     static constexpr std::array<std::string_view, 6> Parts{"none",      "asked",    "answered",
                                                            "countdown", "fighting", "out"};
@@ -2596,6 +2622,7 @@ constexpr auto AutoplayVerbs = std::to_array<std::pair<std::string_view, Autopla
     {"duel-answer", AutoplayDuelAnswer},
     {"wait-duel", AutoplayWaitDuel},
     {"duel-strike", AutoplayDuelStrike},
+    {"strike-player", AutoplayStrikePlayer},
     {"wait-flag", AutoplayExpectOrWaitFlag},
     {"flags", AutoplayLogFlags},
     {"altar-record", AutoplayAltarRecord},

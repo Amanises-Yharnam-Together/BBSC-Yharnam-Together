@@ -556,5 +556,7 @@
  "The co-op server at %s did not accept your login or password": "협력 서버 %s에서 로그인 이름 또는 비밀번호를 받아들이지 않았습니다",
  "Check them in the launcher's co-op settings, then start the game again.": "런처의 협력 설정에서 확인한 다음 게임을 다시 시작하세요.",
  "Could not sign in to the co-op server at %s": "협력 서버 %s에 로그인하지 못했습니다",
- "Start the game again. If it stays, update the game and the server to the same release.": "게임을 다시 시작하세요. 계속되면 게임과 서버를 같은 버전으로 업데이트하세요."
+ "Start the game again. If it stays, update the game and the server to the same release.": "게임을 다시 시작하세요. 계속되면 게임과 서버를 같은 버전으로 업데이트하세요.",
+ "Friendly fire": "아군 공격",
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "더 어려운 사냥을 위해: 팀원의 공격이 항상 서로에게 피해를 줍니다. 팀원의 마지막 일격은 다른 죽음과 똑같이 처리됩니다."
 }

@@ -556,5 +556,7 @@
  "The co-op server at %s did not accept your login or password": "Der Koop-Server unter %s hat Login oder Passwort nicht akzeptiert",
  "Check them in the launcher's co-op settings, then start the game again.": "Prüfe sie in den Koop-Einstellungen des Launchers und starte das Spiel dann neu.",
  "Could not sign in to the co-op server at %s": "Anmeldung am Koop-Server unter %s fehlgeschlagen",
- "Start the game again. If it stays, update the game and the server to the same release.": "Starte das Spiel neu. Wenn es so bleibt, aktualisiere Spiel und Server auf dieselbe Version."
+ "Start the game again. If it stays, update the game and the server to the same release.": "Starte das Spiel neu. Wenn es so bleibt, aktualisiere Spiel und Server auf dieselbe Version.",
+ "Friendly fire": "Eigenbeschuss",
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Für eine härtere Jagd: Angriffe von Teamkameraden verletzen einander jederzeit. Der tödliche Treffer eines Teamkameraden zählt wie jeder andere Tod."
 }
