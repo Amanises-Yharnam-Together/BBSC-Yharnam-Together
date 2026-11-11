@@ -273,6 +273,9 @@ std::optional<LampPoint> guest_trip_planned;
 // The arrival's move tries left (ArrivalMoveTries: the lamp may resolve only once the dungeon's
 // blocks loaded).
 int guest_trip_fixup_tries = 0;
+// The trip in flight is TripAfterJoin's reload in place: its arrival goes back to the spot it
+// left, never to a lamp.
+bool guest_trip_in_place = false;
 
 } // namespace
 
@@ -294,6 +297,17 @@ void TickGuestLampTrip() {
                  "planned at the lamp={}",
                  at.has_value(), at ? (*at)[0] : 0.0f, at ? (*at)[1] : 0.0f, at ? (*at)[2] : 0.0f,
                  guest_trip_planned.has_value());
+        if (std::exchange(guest_trip_in_place, false) && guest_trip_planned) {
+            if (ArrivalNeedsMove(&*guest_trip_planned, at)) {
+                TeleportLocalPlayer(
+                    {guest_trip_planned->x, guest_trip_planned->y, guest_trip_planned->z},
+                    guest_trip_planned->heading);
+                LOG_INFO(Debug, "Bloodborne party: trip after the join put back where it left");
+            }
+            guest_trip_fixup_tries = 0;
+            guest_trip_planned.reset();
+            return;
+        }
         if (ArrivalNeedsMove(guest_trip_planned ? &*guest_trip_planned : nullptr, at) &&
             !MoveToRespawnPoint(true) && ++guest_trip_fixup_tries < ArrivalMoveTries) {
             LOG_INFO(Debug,
@@ -2006,6 +2020,55 @@ void KeepOwnedWeaponFlagsOwn() {
 
 namespace Coop {
 
+// See TripAfterJoin (SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN=1): a guest just joined makes one trip,
+// a reload in place, so it plays as it would after any trip. Not in a chalice dungeon (area
+// 0x1D): its layout is built by the load, and a reload in place there is not tried yet.
+void TickTripAfterJoin(TripAfterJoin& trip, bool in_session, u32 map) {
+    static const bool switched_on = SettingIsOn(std::getenv("SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN"));
+    if (!switched_on) {
+        return;
+    }
+    const u64 player = GetLocalPlayer();
+    const bool readable = player >= 0x10000 && HasMemoryAccess(player, 0x7C, MemoryProt::CpuRead);
+    const u64 global = GetGlobalState();
+    const bool loading = global < 0x10000 || ReadValue<u8>(global, 0x08) != 0;
+    const auto at = LocalPlayerPosition();
+    const bool busy = loading || !readable || !at || PartyTripActive() || guest_trip_in_flight ||
+                      guest_trip_fixup_at.has_value() || guest_lamp_trip_at.has_value() ||
+                      TeamResumeDue() || CharacterHp(player) <= 0 || !IsUsablePackedMap(map) ||
+                      (map >> 24) == 0x1D;
+    const bool go = trip.Tick({
+        .switched_on = true,
+        .guest = IsPartyGuestRole(),
+        .in_session = in_session,
+        .arrived = in_session && InSessionWorld(),
+        .phantom = readable && ReadValue<s32>(player, 0x78) == WhiteGhostCharacterType,
+        .busy = busy,
+        .now_ms = SteadyMilliseconds(),
+    });
+    if (!go) {
+        return;
+    }
+    const LampPoint here{
+        .warp_point = 0,
+        .packed_map = map,
+        .x = (*at)[0],
+        .y = (*at)[1],
+        .z = (*at)[2],
+        .heading = LocalPlayerHeading().value_or(0.0f),
+    };
+    if (!WarpGuestToLampPoint(here)) {
+        LOG_WARNING(Debug, "Bloodborne party: trip after the join did not start (map {:#x})", map);
+        return;
+    }
+    guest_trip_planned = here;
+    guest_trip_in_place = true;
+    guest_trip_in_flight = true;
+    LOG_INFO(Debug,
+             "Bloodborne party: trip after the join: reloading in place on map {:#x} ({}, {}, {})",
+             map, here.x, here.y, here.z);
+}
+
 void TickPlayersOnThisMap() {
     if (CoopTraceOn()) {
         TimeTickStep("LogItemModuleChecks", LogItemModuleChecks);
@@ -2096,10 +2159,13 @@ void TickPlayersOnThisMap() {
     EndDollBlessingWhenSheIsHit();
     ClearDollLevelUpFlagAfterHerBlessing();
     KeepDollGiveFlagOwn();
+    static TripAfterJoin trip_after_join;
+    TimeTickStep("TripAfterJoin", [&] { TickTripAfterJoin(trip_after_join, in_session, map); });
     static RecreateAfterJoin recreate_after_join;
     if (recreate_after_join.Tick(IsPartyGuestRole(), in_session,
                                  in_session ? OtherSessionMembers().size() : 0,
-                                 in_session && InSessionWorld(), SteadyMilliseconds())) {
+                                 in_session && InSessionWorld(), SteadyMilliseconds()) &&
+        !trip_after_join.Went()) { // the trip's own re-create builds the others' copies
         LOG_INFO(Debug, "Bloodborne party: joined where another guest is; re-creating the others");
         recreate_pending_after_join =
             RecreateIsForAJoin(recreate_players_pending, recreate_pending_after_join);
