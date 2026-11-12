@@ -255,14 +255,18 @@ bool BossBarsUp(std::span<const u8> gauges) {
 bool BossFightCatchesDeath(bool bars_up, std::span<const MemberVitals> board, std::string_view self,
                            u32 map, const std::optional<LampPosition>& me,
                            const std::optional<LampPosition>& boss) {
-    const std::optional<LampPosition> centre = boss ? boss : me;
-    if (!bars_up || !centre || map == 0) {
+    if (!bars_up || (!boss && !me) || map == 0) {
         return false;
     }
+    const auto near = [](const MemberVitals& member, const std::optional<LampPosition>& at) {
+        return at && std::hypot(member.at[0] - (*at)[0], member.at[1] - (*at)[1],
+                                member.at[2] - (*at)[2]) <= BossLeaveMetres;
+    };
+    // Near the boss, or beside this player: a live player's own copy of the boss (a guest after
+    // its join's reload) can stand apart from where a teammate fights its copy (rig 2026-11-12).
     return std::ranges::any_of(board, [&](const MemberVitals& member) {
         return member.member != self && member.map == map && member.vital == Vital::Up &&
-               std::hypot(member.at[0] - (*centre)[0], member.at[1] - (*centre)[1],
-                          member.at[2] - (*centre)[2]) <= BossLeaveMetres;
+               (near(member, boss) || near(member, me));
     });
 }
 

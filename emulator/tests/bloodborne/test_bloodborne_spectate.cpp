@@ -297,7 +297,7 @@ TEST(BloodborneBossFightDeath, ABossFightCatchesTheGamesKills) {
 
 // Rig 2026-10-25 (Paarl's arena): two fighters can stand further apart than BossLeaveMetres, each
 // near the boss. A teammate is in the fight when it stands within BossLeaveMetres of the boss
-// (where its bar's character is), and of this player only while the boss's place is not known.
+// (where its bar's character is) or of this player.
 TEST(BloodborneBossFightDeath, InTheFightIsNearTheBoss) {
     const LampPosition me{0.0f, 0.0f, 0.0f};
     const LampPosition boss{40.0f, 0.0f, 0.0f};
@@ -309,6 +309,21 @@ TEST(BloodborneBossFightDeath, InTheFightIsNearTheBoss) {
     teammate.at = {100.0f, 0.0f, 0.0f};
     EXPECT_FALSE(BossFightCatchesDeath(true, std::vector{Member("me", Vital::Up), teammate}, "me",
                                        Map, me, boss));
+}
+
+// Rig 2026-11-12 (1.5.0, join reload on): a guest that reloaded after its join is a live player
+// and runs its own copy of the boss, which can stand apart from where the host fights its own
+// copy. A teammate beside this player is in the fight too, wherever this game's boss stands.
+TEST(BloodborneBossFightDeath, ATeammateBesideMeIsInTheFightWhereverMyBossStands) {
+    const LampPosition me{0.0f, 0.0f, 0.0f};
+    const LampPosition boss{80.0f, 0.0f, 0.0f}; // this game's copy of the boss, apart
+    MemberVitals teammate = Member("ada", Vital::Up);
+    teammate.at = {6.0f, 0.0f, 0.0f};
+    EXPECT_TRUE(BossFightCatchesDeath(true, std::vector{Member("me", Vital::Up), teammate}, "me",
+                                      Map, me, boss));
+    EXPECT_FALSE(BossFightCatchesDeath(false, std::vector{Member("me", Vital::Up), teammate}, "me",
+                                       Map, me, boss))
+        << "no boss bar: nothing changes";
 }
 
 // Kaniel 2026-11-03 (an idea of Amanises's): the spectator's body trails the teammate it watches.
