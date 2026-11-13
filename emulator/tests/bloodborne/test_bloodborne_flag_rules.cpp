@@ -483,8 +483,8 @@ TEST(BloodborneFlagRules, OwnedWeaponFlagsAreEachPlayersOwn) {
 
 // Fran on Discord (2026-11-10, a guest): the armor the host bought vanished from the guest's shop,
 // and stayed so after a restart. ShopLineupParam (01.09) sells a row once (sellQuantity 1) until
-// its stock flag (eventFlag) is on: 70009000 + 10 * row for the Bath and Insight messengers' attire,
-// the Sinister root chalices and the Hunter Chief Emblem, 6610 and 6650 for the Insight
+// its stock flag (eventFlag) is on: 70009000 + 10 * row for the Bath and Insight messengers'
+// attire, the Sinister root chalices and the Hunter Chief Emblem, 6610 and 6650 for the Insight
 // messenger's bells. As host world flags, the host's purchase came over to the guest and the team's
 // world carried it into the guest's save. Each player's own purchase, kept for its own world.
 TEST(BloodborneFlagRules, ShopStockIsEachPlayersOwn) {
@@ -502,12 +502,13 @@ TEST(BloodborneFlagRules, ShopStockIsEachPlayersOwn) {
     }
     // Every tenth flag of 70009000-70009490, and nothing between or around them.
     for (s32 flag = 70009000; flag <= 70009490; flag += 10) {
-        EXPECT_TRUE(std::ranges::any_of(ShopStockFlags,
-                                        [&](const ShopStockFlag& s) { return s.flag == flag; }))
-            << flag;
+        EXPECT_TRUE(std::ranges::any_of(ShopStockFlags, [&](const ShopStockFlag& s) {
+            return s.flag == flag;
+        })) << flag;
     }
+    // (6649 below 6650 is a hunter badge's held flag, PerPlayer of its own.)
     for (const s32 flag : {70008990, 70009001, 70009005, 70009009, 70009489, 70009491, 70009500,
-                           6609, 6611, 6649, 6651, 6660}) {
+                           6609, 6611, 6651, 6660}) {
         EXPECT_EQ(RuleFor(flag).owner, FlagOwner::Host) << flag;
     }
     const auto item_of = [](s32 flag) -> u32 {
