@@ -5344,7 +5344,10 @@ for _word, _level in _TEMPO_LEVELS.items():
                    rf"Bloodborne boss tempo: \d+ boss NpcParam rows turn x{_turn} \(Father "
                    rf"Gascoigne {_gascoigne} degrees a second\)",
                    _BOSS_FOUND,
-                   _BOSS_GOAL.format(boss=PAARL, life=rf"\d+\.\d\d -> {_gap}", level=_name)]
+                   # Any of his breathers: at a level he makes only 1-8 of them in 90 s (on
+                   # main 0bb87c1b too, rig 2026-11-13), so a cut one is a coin flip; the cut
+                   # floor and the streak are the unit tests' and the Rom probes'.
+                   _BOSS_GOAL.format(boss=PAARL, life=r"\d+\.\d\d -> \d+\.\d\d", level=_name)]
         _forbid = [_CUT_TOO_SHORT]
     SCENARIOS[f"boss-tempo-{_word}"] = {
         "about": f"the boss tempo rule at {_word}: Paarl fights the host alone for 90 s; his "
