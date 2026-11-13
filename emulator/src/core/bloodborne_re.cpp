@@ -1038,7 +1038,8 @@ void TickPlace() {
         .map = GetCurrentPackedMap(),
         .player = player >= 0x10000 ? player : 0,
         .at = LocalPlayerPosition(),
-        .loading = global < 0x10000 || TryRead<u8>(global, 0x08).value_or(1) != 0,
+        .loading =
+            global < 0x10000 || TryRead<u8>(global, 0x08).value_or(1) != 0 || StuckLoadTestHolds(),
         .trip = trip,
         .dead = data >= 0x10000 && ReadValue<s32>(data, 0xF8) <= 0,
     };
@@ -1050,6 +1051,29 @@ void TickPlace() {
         if (change) {
             listeners = place_listeners;
         }
+    }
+    // Kept in production logs (Raziel's guest, Discord 2026-11-12).
+    static StuckLoadWatch stuck_load;
+    if (const auto why = stuck_load.Tick(CurrentPlace().state, reading)) {
+        // What the stage transition waits for before it clears the loading flag (eboot
+        // 0x01940FD5..0x01941013: GlobalState +0x1554, +0x1547 and +0x1548 all 0, and the list at
+        // [[0x05540058]+8]+0xD0 empty, its count at +0xD8).
+        const bool global_ok =
+            global >= 0x10000 && HasMemoryAccess(global, 0x1558, MemoryProt::CpuRead);
+        const u64 waits = ReadValue<u64>(image_base + 0x05540058, 0);
+        const u64 waits_on = waits >= 0x10000 ? ReadValue<u64>(waits, 0x08) : 0;
+        LOG_WARNING(Debug,
+                    "Co-op place: still loading {} s with a character in the world, held by {}; "
+                    "stage gate +0x1554 {} +0x1547 {} +0x1548 {} list {}, partytrip {} "
+                    "guest trip {}",
+                    StuckLoadWatch::StuckMs / 1000, *why,
+                    global_ok ? ReadValue<s32>(global, 0x1554) : -1,
+                    global_ok ? ReadValue<u8>(global, 0x1547) : 0xFF,
+                    global_ok ? ReadValue<u8>(global, 0x1548) : 0xFF,
+                    waits_on >= 0x10000 && HasMemoryAccess(waits_on, 0xE0, MemoryProt::CpuRead)
+                        ? static_cast<s64>(ReadValue<u64>(waits_on, 0xD8))
+                        : -1,
+                    trip, guest_trip_in_flight);
     }
     if (change) {
         for (const auto& listener : listeners) {

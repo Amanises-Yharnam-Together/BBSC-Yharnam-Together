@@ -241,6 +241,9 @@ SESSION_HOLDS = [r"sceNpMatching2LeaveRoom: called"]
 # Kaniel 2026-11-05: the team screen's rules text (ScreenRulesText): no Rot, travel or boss tempo,
 # Fixed enemies of x2 HP, x1.25 damage, x2 poise.
 TEAM_RULES_FIXED = "0,0,0,0,0,2,1.25,2"
+# The scale rule alone (Raziel's team, Discord 2026-11-12: bloodborne_team_rules.txt 1,0,0,1,...).
+TEAM_RULES_SCALE = "0,0,0,1,0,0,0,0"
+TEAM_RULES_ROT_SCALE = "1,0,0,1,0,0,0,0"
 # The party boards' member ids of the rig's accounts (their names in hex).
 RIG_HOST_ID = "rig_host".encode().hex()
 RIG_GUEST_ID = "rig_guest".encode().hex()
@@ -1094,6 +1097,129 @@ SCENARIOS = {
             "guest": [r"Co-op team lobby: the save plays in team \w+ as its guest"],
         },
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+        "timeout": 300,
+    },
+    # Discord 2026-11-12 (Raziel, 1.5.0): a team from the lobby with the scale rule, both start
+    # in Central Yharnam; after the guest's trip after the join its vitals said map 0 for minutes,
+    # so the host never showed it and the enemies never went for it. After that trip the guest
+    # stands on its map again, and each one shows the other.
+    "team-join-seen": {
+        "about": "a team from the lobby (scale rule) starts in Central Yharnam; after the guest's "
+                 "trip after the join its vitals name the map again and both see each other",
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_SCALE}", "team-start", START, "godmode",
+                     "wait-session 2 300", "sync tjs-tripped", "wait-members 2 60", "wait 10",
+                     "expect-session 2", "expect-others-near 1 30", "expect-others-shown 1",
+                     "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_SCALE}", "team-ready", START,
+                      "godmode", "wait-session 2 300", "wait 25", "wait 20", "wait-members 2 60",
+                      "sync tjs-tripped", "wait 10", "expect-session 2",
+                      "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+        },
+        "syncs": {"tjs-tripped": {"chapter": "team-join-seen", "roles": ["host", "guest"]}},
+        "expect": {"host": [HOST_JOINS, r"Co-op host rules: the team's rules are scale"],
+                   "guest": [GUEST_JOINS,
+                             r"trip after the join: reloading in place on map 0x18010000",
+                             r"trip after the join: reloading in place[\s\S]*"
+                             r"Bloodborne party vitals: posting up \(map 0x18010000\)"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
+        "timeout": 300,
+    },
+    # The same, with both standing away from the lamp when the guest's trip after the join goes
+    # (the rig's characters start on the lamp, so that trip's spot was always the lamp's): 17 m
+    # off, and by Iosefka's door (Raziel's guest was put in her clinic by a load).
+    **{f"team-join-seen-{where}": {
+        "about": f"team-join-seen with both {about} when the guest's trip after the join goes",
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_SCALE}", "team-start", START, "godmode",
+                     f"teleport {host_at}", "wait-session 2 300", "sync tjs-tripped",
+                     "wait-members 2 60", "wait 10", "expect-session 2",
+                     "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+            # The join is in place: the guest walks there before it joins (rig 2026-11-13: a
+            # teleport after the session came too late, the trip had gone from the lamp).
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_SCALE}", "team-ready", START,
+                      "godmode", f"teleport {guest_at}", "wait-session 2 300", "wait 25",
+                      "wait 20",
+                      "wait-members 2 60", "sync tjs-tripped", "wait 10", "expect-session 2",
+                      "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+        },
+        "syncs": {"tjs-tripped": {"chapter": f"team-join-seen-{where}",
+                                  "roles": ["host", "guest"]}},
+        "expect": {"host": [HOST_JOINS],
+                   "guest": [GUEST_JOINS,
+                             # Not from the lamp's spot (-199.74, -50.76, 179.42).
+                             r"trip after the join: reloading in place on map 0x18010000 "
+                             r"\((?!-199\.7)",
+                             r"trip after the join: reloading in place[\s\S]*"
+                             r"Bloodborne party vitals: posting up \(map 0x18010000\)"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
+        "timeout": 300,
+        "settings": settings,
+    } for where, about, host_at, guest_at, settings in (
+        ("away", "17 m from the lamp", GUEST_PAIR_SPOT, GUEST_ALONE_SPOT, {}),
+        ("clinic", "by Iosefka's door", COMPASS_HOST + " 0.0", COMPASS_GUEST + " 0.0", {}),
+        # Radmin VPN: the games' packets to each other lose some on the way.
+        ("lossy", "17 m from the lamp, 5% of the games' packets lost", GUEST_PAIR_SPOT,
+         GUEST_ALONE_SPOT, {"SHADPS4_P2P_LOSS_PERCENT": "5"}))},
+    # Raziel's own team rules (Rot and the scale rule, bloodborne_team_rules.txt 1,0,0,1,...).
+    "team-join-seen-rot": {
+        "about": "team-join-seen-away with the Rot rule on too, as Raziel's team had it",
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_ROT_SCALE}", "team-start", START, "godmode",
+                     f"teleport {GUEST_PAIR_SPOT}", "wait-session 2 300", "sync tjs-tripped",
+                     "wait-members 2 60", "wait 10", "expect-session 2",
+                     "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_ROT_SCALE}", "team-ready",
+                      START, "godmode", f"teleport {GUEST_ALONE_SPOT}", "wait-session 2 300",
+                      "wait 25", "wait 20", "wait-members 2 60", "sync tjs-tripped", "wait 10",
+                      "expect-session 2",
+                      "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+        },
+        "syncs": {"tjs-tripped": {"chapter": "team-join-seen-rot", "roles": ["host", "guest"]}},
+        "expect": {"host": [HOST_JOINS, r"Co-op host rules: the team's rules are rot,scale"],
+                   "guest": [GUEST_JOINS,
+                             r"trip after the join: reloading in place[\s\S]*"
+                             r"Bloodborne party vitals: posting up \(map 0x18010000\)"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
+        "timeout": 300,
+    },
+    # Raziel's guest (Discord 2026-11-12) as the rig can make it: after its trip after the join
+    # its place reads a load (SHADPS4_BLOODBORNE_TEST_STUCK_LOAD; the game is left alone) while it
+    # stands and plays. Its place must still end its load (PlaceTracker::StandingInLoadMs), its vitals name
+    # the map, and the host show it; on 1.5.0 its vitals said map 0 and the host never showed it.
+    "team-join-stuck-load": {
+        "about": "after the guest's trip after the join its place reads a load for 150 s: it is "
+                 "still on its map for the party, the host shows it and both are near",
+        "role_settings": {"guest": {"SHADPS4_BLOODBORNE_TEST_STUCK_LOAD": "150"}},
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_SCALE}", "team-start", START, "godmode",
+                     f"teleport {GUEST_PAIR_SPOT}", "wait-session 2 300", "sync tsl-held",
+                     "wait 25", "wait-members 2 30", "expect-session 2",
+                     "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_SCALE}", "team-ready", START,
+                      "godmode", f"teleport {GUEST_ALONE_SPOT}", "wait-session 2 300",
+                      "wait 25", "wait 20", "sync tsl-held", "wait 25",
+                      "wait-members 2 30", "expect-session 2", "expect-others-near 1 30",
+                      "expect-others-shown 1", "snapshot"],
+        },
+        "syncs": {"tsl-held": {"chapter": "team-join-stuck-load", "roles": ["host", "guest"]}},
+        "expect": {"host": [HOST_JOINS],
+                   "guest": [GUEST_JOINS,
+                             r"test: the loading flag held up 150 s",
+                             r"Co-op place: still loading 20 s with a character in the world, "
+                             r"held by the loading flag",
+                             r"test: the loading flag held up[\s\S]*"
+                             r"Co-op place: Loading -> Playing map 0x18010000[\s\S]*"
+                             r"Bloodborne party vitals: posting up \(map 0x18010000\)"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
         "timeout": 300,
     },
     # Kaniel 2026-10-17: a cutscene both see (Vicar Amelia's entrance, m24_00 12401802: the host

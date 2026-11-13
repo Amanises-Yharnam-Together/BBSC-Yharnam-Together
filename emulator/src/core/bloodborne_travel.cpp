@@ -278,6 +278,8 @@ int guest_trip_fixup_tries = 0;
 bool guest_trip_in_place = false;
 // TripAfterJoin::Due as of the last tick, for the team's load (TripAfterJoinDue).
 std::atomic<bool> trip_after_join_due{false};
+// Rig only (SHADPS4_BLOODBORNE_TEST_STUCK_LOAD=<seconds>, see StuckLoadTestHolds).
+std::atomic<s64> stuck_load_test_until_ms{0};
 
 } // namespace
 
@@ -308,6 +310,11 @@ void TickGuestLampTrip() {
             }
             guest_trip_fixup_tries = 0;
             guest_trip_planned.reset();
+            if (const char* hold = std::getenv("SHADPS4_BLOODBORNE_TEST_STUCK_LOAD");
+                hold != nullptr && std::atoi(hold) > 0) {
+                stuck_load_test_until_ms.store(SteadyMilliseconds() + 1000LL * std::atoi(hold));
+                LOG_INFO(Debug, "Bloodborne party: test: the loading flag held up {} s", hold);
+            }
             return;
         }
         if (ArrivalNeedsMove(guest_trip_planned ? &*guest_trip_planned : nullptr, at) &&
@@ -2079,6 +2086,11 @@ void TickTripAfterJoin(TripAfterJoin& trip, bool in_session, u32 map) {
 
 bool TripAfterJoinDue() {
     return trip_after_join_due.load(std::memory_order_relaxed);
+}
+
+bool StuckLoadTestHolds() {
+    const s64 until = stuck_load_test_until_ms.load(std::memory_order_relaxed);
+    return until != 0 && SteadyMilliseconds() < until;
 }
 
 void TickPlayersOnThisMap() {
