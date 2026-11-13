@@ -57,6 +57,8 @@ LONG = {
     "key-items-silent": "Kaniel 2026-10-23: a join, two trips",
     "key-items-after-quit": "Discord 2026-11-07: two stages (two boots), a join each, two trips",
     "team-world-other-block": "the 10-19 playtest case #266: two team sessions",
+    "guest-own-lamps": "players 2026-11-12 own progress: one game alone, a quit, a team join, a quit and a load alone",
+    "guest-new-world-own-progress": "players 2026-11-12 own progress: one game alone, a quit, a team join, a quit and a new world",
     "home-world": "players' rolled-back saves 2026-11: one game, three returns to the title and four loads",
     "npc-progress-after-trip": "the 10-19 playtest case #269: a join, two trips",
     "wipe-one-map": "the 10-19 playtest case #270: three games, a death and a wake",

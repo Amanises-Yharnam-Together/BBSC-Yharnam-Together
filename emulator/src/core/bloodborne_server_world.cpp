@@ -3027,6 +3027,19 @@ void ApplyTeamWorldOnLoad(bool trip) {
         // the server's copy back over it, a report up to 10 s old (rig 2026-10-20, boss-refight:
         // the host's next load put back Father Gascoigne's kill it had cleared after its report).
         if (team_host) {
+            // Players 2026-11-12 (Prohorov's friend, 1.4.0): a save that last played another's
+            // world has that world's flags, its own kept aside; a new world made from it started
+            // from the other one's progress (Old Yharnam, Hemwick gone) and its own was retired.
+            // Its own world comes back first, block by block as the loads bring them (the blocks
+            // still to come at this world's next loads, its home world's).
+            std::error_code error;
+            if (std::filesystem::exists(PersonalWorldFile(slot), error) &&
+                PutOwnWorldBack(slot, "makes a new world")) {
+                store = ReadWorldStore();
+                if (!store) {
+                    return;
+                }
+            }
             for (const FlagBlockBits& block : store->blocks) {
                 team_world_blocks.insert(block.id);
             }
@@ -3034,7 +3047,6 @@ void ApplyTeamWorldOnLoad(bool trip) {
             HomeWorlds home = ReadHomeWorlds(slot).value_or(HomeWorlds{});
             if (home.Add(world_id)) {
                 WriteWholeFile(HomeWorldFile(slot), FormatHomeWorlds(home));
-                RetireOwnWorld(slot);
                 LOG_INFO(Debug,
                          "Co-op team world: world {} is made from slot {}'s save: its home "
                          "world ({} in all)",
@@ -3099,22 +3111,6 @@ void ApplyTeamWorldOnLoad(bool trip) {
         return;
     }
     const WorldFlags target = WorldFlagsOf(*world);
-    if (!team_host) {
-        // Every load of a guest (its join's reload and its trips give it its own saved world
-        // back): the team's lamps lit again, and on this character's lamp list, or the game puts
-        // them out again (Kaniel's play test 2026-10-18: krolebord's lamps listed only Cathedral
-        // Ward, his own save's).
-        using SetFlag = void PS4_SYSV_ABI (*)(u64, s32, bool);
-        const std::vector<s32> lamp_flags = TeamLampFlagsToSet(target, EventFlagOn);
-        for (const s32 flag : lamp_flags) {
-            reinterpret_cast<SetFlag>(image_base + PartyGhostSetEventFlagOffset)(0, flag, true);
-        }
-        if (!lamp_flags.empty()) {
-            ListLamps(TeamWorldLamps(store->store.flags_per_block, target.blocks, target));
-            LOG_INFO(Debug, "Co-op team world: {} of the team's lamp flags lit again in this load",
-                     lamp_flags.size());
-        }
-    }
     // The blocks this load brings that the team's world covers and no earlier load took; on a
     // guest's trip every one again, the global flags (NPCs' steps) too: the trip's load gave its
     // game its own saved world back (the host's save is the team's world, never retaken). The
@@ -3123,13 +3119,12 @@ void ApplyTeamWorldOnLoad(bool trip) {
     std::erase_if(store->blocks, [&](const FlagBlockBits& block) {
         return !TakesTeamWorldBlock(block.id, team_world_blocks, target.blocks, retake);
     });
-    if (store->blocks.empty()) {
-        return;
-    }
     // This save's own world aside first, block by block as the loads bring them: a block the file
     // has already (a save that held a team's before) keeps what the file says. Never in its home
     // world: its own world is that one.
-    if (*team_take == TeamWorldTake::Aside) {
+    // Before the team's lamps go in below (Lisara 2026-11-12: her own world must be as it was,
+    // without the lamps of the world she visited).
+    if (*team_take == TeamWorldTake::Aside && !store->blocks.empty()) {
         // A world kept aside from here on has a list beside it (an empty one for a save that made
         // no world): only a save from before the lists has the one without the other.
         std::error_code error;
@@ -3158,6 +3153,25 @@ void ApplyTeamWorldOnLoad(bool trip) {
                      slot, added.blocks.size(), own.on.size());
         }
     }
+    if (!team_host) {
+        // Every load of a guest (its join's reload and its trips give it its own saved world
+        // back): the team's lamps lit again, and on this character's lamp list, or the game puts
+        // them out again (Kaniel's play test 2026-10-18: krolebord's lamps listed only Cathedral
+        // Ward, his own save's).
+        using SetFlag = void PS4_SYSV_ABI (*)(u64, s32, bool);
+        const std::vector<s32> lamp_flags = TeamLampFlagsToSet(target, EventFlagOn);
+        for (const s32 flag : lamp_flags) {
+            reinterpret_cast<SetFlag>(image_base + PartyGhostSetEventFlagOffset)(0, flag, true);
+        }
+        if (!lamp_flags.empty()) {
+            ListLamps(TeamWorldLamps(store->store.flags_per_block, target.blocks, target));
+            LOG_INFO(Debug, "Co-op team world: {} of the team's lamp flags lit again in this load",
+                     lamp_flags.size());
+        }
+    }
+    if (store->blocks.empty()) {
+        return;
+    }
     const size_t changed = SetWorldFlags(*store, target);
     for (const FlagBlockBits& block : store->blocks) {
         team_world_blocks.insert(block.id);
@@ -3185,6 +3199,33 @@ std::vector<u32> TeamWorldBlocksForGuest() {
 bool SavePlaysInTeam() {
     std::scoped_lock lock{team_mutex};
     return team_switch && !team_party.empty();
+}
+
+std::vector<s32> OwnWorldAsideFlagsOn() {
+    const int slot = character_slot.load();
+    if (!team_switch || slot < 0 || !SavePlaysInTeam()) {
+        return {};
+    }
+    // Read again only when the file changed (KeepGuestLampsLit asks every second).
+    static std::mutex cache_mutex;
+    static int cached_slot = -1;
+    static std::filesystem::file_time_type cached_time{};
+    static std::vector<s32> cached;
+    std::scoped_lock lock{cache_mutex};
+    std::error_code error;
+    const auto path = PersonalWorldFile(slot);
+    const auto time = std::filesystem::last_write_time(path, error);
+    if (error) {
+        cached_slot = -1;
+        cached.clear();
+        return {};
+    }
+    if (slot != cached_slot || time != cached_time) {
+        cached_slot = slot;
+        cached_time = time;
+        cached = ParseWorldFlags(ReadWholeFile(path)).value_or(WorldFlags{}).on;
+    }
+    return cached;
 }
 
 std::vector<s32> TeamWorldFlagsOnForGuest() {
