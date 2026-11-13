@@ -5884,15 +5884,18 @@ SCENARIOS["rom-retry-guest-alone"] = {
 def _boss_tempo_rom_steps() -> list[str]:
     return [START, f"ensure-map {BYRGENWERTH} {BYRGENWERTH_LAMP}", "godmode",
             f"expect-flag {ROM_DEFEATED} 0", "wait 5", f"teleport {ROM_DIVE}", "wait 25",
-            f"approach {ROM} 8 0", "log tempo: rom fight on", "wait 30", f"approach {ROM} 8 0",
-            "wait 30", f"approach {ROM} 8 0", "wait 30", "log tempo: rom fight checked",
+            # Rom makes no AI goals at all (her fight's flags on) until she is struck once.
+            f"approach {ROM} 5 0", f"hit {ROM} 30", f"approach {ROM} 8 0",
+            "log tempo: rom fight on", "wait 30", f"approach {ROM} 8 0", "wait 30",
+            f"approach {ROM} 8 0", "wait 30", "log tempo: rom fight checked",
             ROM_FLAGS, "census 150", "snapshot"]
 
 
 for _word, _name in (("vanilla", "Vanilla"), ("aggressive", "Aggressive")):
     SCENARIOS[f"boss-tempo-rom-{_word}"] = {
         "about": f"the boss tempo rule at {_word} in Rom's fight (Discord: she cast nonstop at "
-                 "Aggressive): the host alone by her for 90 s, her breathers logged",
+                 "Aggressive): the host strikes her once, then stays by her for 90 s, her "
+                 "breathers logged",
         "settings": {"SHADPS4_BLOODBORNE_HOST_RULES": _word if _word != "vanilla" else "off"},
         "roles": {"host": _boss_tempo_rom_steps()},
         "expect": {"host": [rf"Bloodborne boss tempo: \d+ boss\(es\) on map 0x[0-9a-f]+: "
