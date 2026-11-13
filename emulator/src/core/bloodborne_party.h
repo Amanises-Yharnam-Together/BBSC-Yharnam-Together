@@ -1075,6 +1075,12 @@ bool HoldsWeapon(u32 weapon, std::span<const u32> held);
 // weapons only (Kaniel 2026-10-21). The value it must take, else nothing.
 std::optional<bool> OwnedWeaponFlagFix(bool party_configured, bool flag_on, bool holds,
                                        bool recheck);
+// A shop row's stock flag (ShopStockFlags) in a party: off once per save slot (`recheck`) while
+// this player holds none of what the row sells (`holds`: the inventory, not the storage box), so
+// a save that took the host's purchase from a team world can buy the row itself (Fran 2026-11-10);
+// never set: only the player's own purchase does that. The value it must take, else nothing.
+std::optional<bool> ShopStockFlagFix(bool party_configured, bool flag_on, bool holds,
+                                     bool recheck);
 // Common events 5500-5521 (the Uncanny and Lost DLC weapons) end at once unless the local player
 // is a host-type character (4:3 10000 type 0, then 1000:2), and an event that ends sets its own
 // flag: a phantom guest's game set all 22 on every load in a session, so the shop sold them all

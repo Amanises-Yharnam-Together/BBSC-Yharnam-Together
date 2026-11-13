@@ -224,6 +224,8 @@ TEAM_WORLD_FLAG = 12410999
 BLOOD_MOON = 9802  # the time of day the maps' events pick (9800 evening, 9801 night)
 # The Blood Gem Workshop Tool's chest (its item lot's flag; neither rig character has opened it).
 WORKSHOP_TOOL_CHEST = 52411005
+# The Insight messenger's Bone Ash Mask sold (ShopLineupParam row 200060's stock flag, 01.09).
+BONE_ASH_MASK_SOLD = 70009380
 LEVEL_SYNC = 9200  # the SpEffect that scales a guest down to the host's level
 # The "Impurity" rune (the League oath, GemeffectParam 2127001) puts 6142 on the player; common
 # event 9035 adds 180040 (max HP x1.02) to a white phantom wearing it, KeepImpurityBonus to
@@ -1167,6 +1169,27 @@ SCENARIOS = {
                        f"expect-flag {WORKSHOP_TOOL_CHEST} 0", "wait 25", "done"],
                       [START, "godmode", "wait-session 2 420", "wait 10",
                        f"expect-flag {WORKSHOP_TOOL_CHEST} 0", "done"]],
+        },
+        "expect": {"guest": [r"team's world is in this save: \d+ blocks"]},
+        "allow": CRASH_CLEANUP,
+        "timeout": 900,
+    },
+    # Fran on Discord (2026-11-10, a guest): attire the host bought was sold out in the guest's
+    # shop too, and stayed so after a restart. A shop row's stock flag (ShopLineupParam eventFlag,
+    # 70009380 the Insight messenger's Bone Ash Mask) is each player's own purchase: here the host
+    # sets it, the guest's game starts again and takes the team's world as it loads, and its row
+    # is still for sale.
+    "team-world-shop-stock": {
+        "about": "attire the host bought (its shop row's stock flag) stays for sale for a guest "
+                 "whose save takes the team's world as it loads",
+        "roles": {
+            "host": [START, "godmode", "wait-session 2 300", f"set-flag {BONE_ASH_MASK_SOLD} 1",
+                     "wait 15", "wait-solo 200", "wait-session 2 420", "wait 30",
+                     f"expect-flag {BONE_ASH_MASK_SOLD} 1", "done"],
+            "guest": [[START, "godmode", "wait-session 2 300",
+                       f"expect-flag {BONE_ASH_MASK_SOLD} 0", "wait 25", "done"],
+                      [START, "godmode", "wait-session 2 420", "wait 10",
+                       f"expect-flag {BONE_ASH_MASK_SOLD} 0", "done"]],
         },
         "expect": {"guest": [r"team's world is in this save: \d+ blocks"]},
         "allow": CRASH_CLEANUP,
