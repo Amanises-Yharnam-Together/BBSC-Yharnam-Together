@@ -239,10 +239,40 @@ static PadData key_read(int left, int right, int up, int down, uint64_t now) {
     PadData d;
     memset(&d,0,sizeof d);
     d.left_x=d.left_y=d.right_x=d.right_y=128;
-    key_left_stick(&d,left,right,up,down,now);
+    key_left_stick(&d,left,right,up,down,0,now);
     return d;
 }
 static int full_push(const PadData *d) { return d->left_x==0 || d->left_x==255 || d->left_y==0 || d->left_y==255; }
+/* Walk (players on Discord 2026-11-09: "how to walk with half joystick on mouse and keyboard"): held with the movement
+ * keys, the larger axis is WALK_PUSH of the way at every angle, so the game walks; let go, the next read runs again.
+ * It has no default key, can't take a gamepad button and is read from a key.walk= line. */
+static PadData walk_read(int left, int right, int up, int down, int walk, uint64_t now) {
+    PadData d;
+    memset(&d,0,sizeof d);
+    d.left_x=d.left_y=d.right_x=d.right_y=128;
+    key_left_stick(&d,left,right,up,down,walk,now);
+    return d;
+}
+static void walk(void) {
+    uint64_t now=1000000;
+    memset(&key_stick,0,sizeof key_stick);
+    PadData d=walk_read(0,0,1,0,1,now);                  /* W + walk: half forward, no sideways */
+    assert(close_to((float)stick_y(&d),-0.5f,0.01f) && d.left_x==128);
+    now+=READ_US;
+    d=walk_read(1,0,1,0,1,now);                          /* W + A: on the way to the corner, the larger axis half */
+    assert(close_to((float)fmax(fabs(stick_x(&d)),fabs(stick_y(&d))),0.5f,0.01f));
+    for (int i=0;i<10;++i) { now+=READ_US; d=walk_read(1,0,1,0,1,now); }
+    assert(close_to((float)stick_x(&d),-0.5f,0.01f) && close_to((float)stick_y(&d),-0.5f,0.01f));
+    now+=READ_US;
+    d=walk_read(1,0,1,0,0,now);                          /* walk let go: a full push again */
+    assert(full_push(&d));
+    now+=READ_US;
+    d=walk_read(0,0,0,0,1,now+KEY_RELEASE_HOLD_US);      /* walk alone moves nothing */
+    assert(d.left_x==128 && d.left_y==128);
+    bind_defaults();
+    assert(bindings[IN_WALK].key_count==0 && bindings[IN_WALK].pad_count==0);
+    assert(!runtime_pad_input_takes_pad(IN_WALK) && !strcmp(runtime_pad_input_name(IN_WALK),"walk"));
+}
 /* Reads with the keys `to` held after `from` until the stick is at (x, y); every read a full push and no turn of 30
  * degrees or more (plus rounding). Returns the reads it took; *passed_right / *passed_forward: a read on that side. */
 static int turn_to(const int from[4], const int to[4], int x, int y, uint64_t *now, int *passed_right, int *passed_forward) {
@@ -569,9 +599,11 @@ static void menu_controls(void) {
             assert(!memcmp(&before,&bindings[i],sizeof before));
         }
     /* The menu writes the file, then asks for the reload: the next read takes it. */
-    write_config("mouse-camera-test.ini","key.cross=Ctrl+F\npad.cross=y\nmouse_sensitivity=2.5\n");
+    write_config("mouse-camera-test.ini","key.cross=Ctrl+F\npad.cross=y\nmouse_sensitivity=2.5\nkey.walk=Left Alt\npad.walk=a\n");
     runtime_pad_reload_controls();
     runtime_pad_binding_text(IN_CROSS,0,text,sizeof text); assert(!strcmp(text,"Ctrl+F"));
+    runtime_pad_binding_text(IN_WALK,0,text,sizeof text); assert(!strcmp(text,"Left Alt"));
+    assert(bindings[IN_WALK].pad_count==0); /* walk takes no gamepad button */
     runtime_pad_binding_text(IN_CROSS,1,text,sizeof text); assert(!strcmp(text,"y"));
     assert(kbm.sensitivity==2.5f);
     /* An emptied line unbinds; no line is the default again. */
@@ -644,6 +676,7 @@ int main(void) {
     settings();
     defaults();
     sprint();
+    walk();
     stick();
     turn();
     hook_turn();
@@ -653,5 +686,5 @@ int main(void) {
 #ifdef _WIN32
     hook_install();
 #endif
-    puts("PASS: mouse input names and modifiers, held buttons, wheel steps, mouse settings, Dark Souls III default layout, keyboard sprint kept through direction changes, stick fallback, camera turn, hook refusals, hook install (stub page not writable, data page not executable), menu controls, the touchpad hold for the map and double tap for a ping");
+    puts("PASS: mouse input names and modifiers, held buttons, wheel steps, mouse settings, Dark Souls III default layout, keyboard sprint kept through direction changes, keyboard walk, stick fallback, camera turn, hook refusals, hook install (stub page not writable, data page not executable), menu controls, the touchpad hold for the map and double tap for a ping");
 }
