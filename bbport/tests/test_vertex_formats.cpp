@@ -5,6 +5,7 @@
 // "Unknown data_format=15 and num_format=7": without dynamic vertex input the pipeline key takes
 // the formats of the V#s as they are in guest memory, and 15 is a value the hardware reserves.
 #include <cstdio>
+#include "shader_recompiler/frontend/fetch_shader.h"
 #include "video_core/renderer_vulkan/liverpool_to_vk.h"
 
 static int failures;
@@ -40,6 +41,45 @@ int main() {
           vk::Format::eR16G16Sfloat);
     CHECK(VertexInputFormat(DataFormat::FormatInvalid, NumberFormat::Float) ==
           vk::Format::eUndefined);
+
+    // A V# without records (a zeroed one: data format 0, number format 0) is a float4 that reads
+    // zero from no buffer, never a VK_FORMAT_UNDEFINED attribute: an NVIDIA driver lost the
+    // device ("WriteInvalid 0") on the first submit after a draw with one (PR #543).
+    {
+        using namespace Shader::Gcn;
+        const Buffer zeroed{};
+        CHECK(IsNullVertexInput(zeroed, true));
+        const auto input = GetVertexInputFormat(zeroed, true);
+        CHECK(input.data_format == DataFormat::Format32_32_32_32);
+        CHECK(input.num_format == NumberFormat::Float);
+        CHECK(input.stride == 0);
+        CHECK(VertexInputFormat(input.data_format, input.num_format) ==
+              vk::Format::eR32G32B32A32Sfloat);
+        CHECK(TrySurfaceFormat(input.data_format, input.num_format) ==
+              vk::Format::eR32G32B32A32Sfloat);
+
+        // A V# with no records but leftover fields still reads zero (every fetch is out of range).
+        Buffer leftover{};
+        leftover.base_address = 0x1000;
+        leftover.stride = 12;
+        leftover.data_format = static_cast<u32>(DataFormat::Format32_32_32);
+        leftover.num_format = static_cast<u32>(NumberFormat::Float);
+        CHECK(IsNullVertexInput(leftover, true));
+        CHECK(GetVertexInputFormat(leftover, true).stride == 0);
+
+        // A V# with records keeps its own format and stride.
+        Buffer stream = leftover;
+        stream.num_records = 64;
+        CHECK(!IsNullVertexInput(stream, true));
+        const auto own = GetVertexInputFormat(stream, IsNullVertexInput(stream, true));
+        CHECK(own.data_format == DataFormat::Format32_32_32);
+        CHECK(own.num_format == NumberFormat::Float);
+        CHECK(own.stride == 12);
+
+        // BB_NULL_VERTEX_INPUT=0 describes a zeroed V# from its own fields, as before.
+        CHECK(!IsNullVertexInput(zeroed, false));
+        CHECK(GetVertexInputFormat(zeroed, false).data_format == DataFormat::FormatInvalid);
+    }
 
     if (failures != 0) {
         std::fprintf(stderr, "vertex formats: %d check(s) failed\n", failures);
