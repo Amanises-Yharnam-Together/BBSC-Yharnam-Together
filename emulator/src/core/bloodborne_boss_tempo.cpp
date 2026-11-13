@@ -40,21 +40,24 @@ std::atomic<u8> tempo_level{0};
 // them: the hook's whole check.
 constexpr std::size_t MaxTempoBosses = 16;
 std::array<std::atomic<u64>, MaxTempoBosses> tempo_bosses{};
+// Whether each boss's last pause was cut (BossBreathers: never two in a row), by its slot above.
+std::array<std::atomic<bool>, MaxTempoBosses> tempo_after_cut{};
 
 std::atomic<u32> boss_goals_seen{0};
 std::atomic<u32> boss_goals_changed{0};
 std::atomic<u32> goal_lines{0};
 
-bool IsTempoBoss(u64 character) {
+// The boss's slot in tempo_bosses, if the character is one.
+std::optional<std::size_t> TempoBossSlot(u64 character) {
     if (character < 0x10000) {
-        return false;
+        return std::nullopt;
     }
-    for (const auto& boss : tempo_bosses) {
-        if (boss.load(std::memory_order_relaxed) == character) {
-            return true;
+    for (std::size_t i = 0; i < tempo_bosses.size(); ++i) {
+        if (tempo_bosses[i].load(std::memory_order_relaxed) == character) {
+            return i;
         }
     }
-    return false;
+    return std::nullopt;
 }
 
 const char* GoalName(s32 goal) {
@@ -87,7 +90,8 @@ void PS4_SYSV_ABI BossTempoGoal(u64 tag, const GuestRegisterSnapshot* registers)
     const u64 parent = registers->rdi;
     const u64 ai = parent >= 0x10000 ? ReadValue<u64>(parent, 0) : 0;
     const u64 character = ai >= 0x10000 ? ReadValue<u64>(ai, AiCharacterOffset) : 0;
-    if (!IsTempoBoss(character)) {
+    const auto slot = TempoBossSlot(character);
+    if (!slot) {
         return;
     }
     const u64 at =
@@ -101,7 +105,10 @@ void PS4_SYSV_ABI BossTempoGoal(u64 tag, const GuestRegisterSnapshot* registers)
     const BossTempoTuning tuning = BossTempoTuningFor(level, tempo_tuned);
     thread_local std::minstd_rand random{std::random_device{}()};
     const u32 roll = static_cast<u32>(random() % 100);
-    const float now = BossGoalLife(goal, *life, tuning, roll);
+    // Two pauses of one boss at once (its AI on two workers) is rare; the worst is one more cut.
+    BossBreathers breathers{tempo_after_cut[*slot].load(std::memory_order_relaxed)};
+    const float now = breathers.Life(goal, *life, tuning, roll);
+    tempo_after_cut[*slot].store(breathers.AfterCut(), std::memory_order_relaxed);
     const bool changed = now != *life && WriteValue(at, 0, now);
     boss_goals_seen.fetch_add(1, std::memory_order_relaxed);
     if (changed) {
@@ -204,7 +211,9 @@ void TickBossTempo() {
                  boss_goals_changed.load());
     }
     for (std::size_t i = 0; i < tempo_bosses.size(); ++i) {
-        tempo_bosses[i].store(found[i], std::memory_order_relaxed);
+        if (tempo_bosses[i].exchange(found[i], std::memory_order_relaxed) != found[i]) {
+            tempo_after_cut[i].store(false, std::memory_order_relaxed);
+        }
     }
 }
 

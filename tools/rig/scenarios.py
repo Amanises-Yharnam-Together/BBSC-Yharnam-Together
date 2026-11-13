@@ -5325,6 +5325,11 @@ _TEMPO_LEVELS = {
     "aggressive": ("Aggressive", "0\\.50", "50", "1\\.30", "156"),
     "relentless": ("Relentless", "0\\.25", "25", "1\\.60", "192"),
 }
+# Discord audit 2026-11-13 T5 (Backand: Rom cast nonstop at Aggressive): a cut breather keeps
+# the level's gap in seconds (0.50 / 0.25), never the old 0.05; a breather shorter than the floor
+# is only scaled (0.10 or more: Paarl's and Rom's are 1 s and up).
+_CUT_TOO_SHORT = (r"Bloodborne boss tempo: boss \S+ \(think \d+\) goal 20\d\d \w+ life "
+                  r"[\d.]+ -> 0\.0\d ")
 for _word, _level in _TEMPO_LEVELS.items():
     if _level is None:
         _expect = [_BOSS_FOUND,
@@ -5339,8 +5344,8 @@ for _word, _level in _TEMPO_LEVELS.items():
                    rf"Bloodborne boss tempo: \d+ boss NpcParam rows turn x{_turn} \(Father "
                    rf"Gascoigne {_gascoigne} degrees a second\)",
                    _BOSS_FOUND,
-                   _BOSS_GOAL.format(boss=PAARL, life=r"\d+\.\d\d -> 0\.05", level=_name)]
-        _forbid = []
+                   _BOSS_GOAL.format(boss=PAARL, life=rf"\d+\.\d\d -> {_gap}", level=_name)]
+        _forbid = [_CUT_TOO_SHORT]
     SCENARIOS[f"boss-tempo-{_word}"] = {
         "about": f"the boss tempo rule at {_word}: Paarl fights the host alone for 90 s; his "
                  "breathers and turn speed are logged",
@@ -5373,16 +5378,15 @@ SCENARIOS["boss-tempo-party"] = {
     "expect": {
         "host": [r"Co-op host rules: the team's rules are [^\n]*relentless",
                  r"Bloodborne boss tempo: \d+ boss NpcParam rows turn x1\.60",
-                 _BOSS_GOAL.format(boss=PAARL, life=r"\d+\.\d\d -> 0\.05",
+                 _BOSS_GOAL.format(boss=PAARL, life=r"\d+\.\d\d -> 0\.25",
                                    level="Relentless")],
         "guest": [r"Co-op host rules: the team's rules are [^\n]*relentless",
                   r"Bloodborne boss tempo: Relentless: breathers x0\.25",
                   r"Bloodborne boss tempo: \d+ boss NpcParam rows turn x1\.60"],
     },
-    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "forbid": {"host": SESSION_HOLDS + [_CUT_TOO_SHORT], "guest": SESSION_HOLDS},
     "timeout": 600,
 }
-
 
 # Kaniel's play test 2026-11-03: a guest who had just joined could not level up at the Doll again
 # until it left the Dream (6700, her level-up flag, stayed on after her talk), and the host's level
@@ -5873,6 +5877,33 @@ SCENARIOS["rom-retry-guest-alone"] = {
     "timeout": 600,
 }
 
+# Discord audit 2026-11-13 T5 (Backand, 1.4.0, Aggressive): Rom cast spell after spell with no
+# pause, unfightable for a duo. The host dives into her lake alone (godmode) and stands by her for
+# 90 s; each of her breathers is logged. At Aggressive a cut one keeps 0.50 s (never the old
+# 0.05) and two cuts never come in a row; vanilla logs her own gaps to compare.
+def _boss_tempo_rom_steps() -> list[str]:
+    return [START, f"ensure-map {BYRGENWERTH} {BYRGENWERTH_LAMP}", "godmode",
+            f"expect-flag {ROM_DEFEATED} 0", "wait 5", f"teleport {ROM_DIVE}", "wait 25",
+            f"approach {ROM} 8 0", "log tempo: rom fight on", "wait 30", f"approach {ROM} 8 0",
+            "wait 30", f"approach {ROM} 8 0", "wait 30", "log tempo: rom fight checked",
+            ROM_FLAGS, "census 150", "snapshot"]
+
+
+for _word, _name in (("vanilla", "Vanilla"), ("aggressive", "Aggressive")):
+    SCENARIOS[f"boss-tempo-rom-{_word}"] = {
+        "about": f"the boss tempo rule at {_word} in Rom's fight (Discord: she cast nonstop at "
+                 "Aggressive): the host alone by her for 90 s, her breathers logged",
+        "settings": {"SHADPS4_BLOODBORNE_HOST_RULES": _word if _word != "vanilla" else "off"},
+        "roles": {"host": _boss_tempo_rom_steps()},
+        "expect": {"host": [rf"Bloodborne boss tempo: \d+ boss\(es\) on map 0x[0-9a-f]+: "
+                            rf"[^\n]*{ROM}",
+                            _BOSS_GOAL.format(boss=ROM, life=r"\d+\.\d\d -> \d+\.\d\d",
+                                              level=_name)]},
+        "forbid": {"host": SESSION_HOLDS + [_CUT_TOO_SHORT]},
+        "timeout": 420,
+    }
+
+
 SCENARIOS["ludwig-retry"] = _ludwig_retry("ludwig-retry", during_change=False)
 SCENARIOS["ludwig-retry-mid-change"] = _ludwig_retry("ludwig-retry-mid-change",
                                                      during_change=True)
@@ -6312,6 +6343,7 @@ PROBE_NAMES = (
     "guest-follower-player-build",
     # boss tempo tuning logs
     "boss-tempo-vanilla", "boss-tempo-aggressive", "boss-tempo-relentless",
+    "boss-tempo-rom-vanilla", "boss-tempo-rom-aggressive",
     # altar record captures (RE)
     "altar-record-capture", "chalice-remove-record",
     # known failure kept for the uncapped-FPS summon bug

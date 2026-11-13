@@ -431,27 +431,74 @@ TEST(BloodborneBossTempo, TheDevSettingTunesALevelThatIsOn) {
 }
 
 // A boss's breathers (AddSubGoal of GOAL_COMMON_Wait 2000, Turn 2001, LeaveTarget 2016 and
-// SidewayMove 2017) last `gap` of their time; a Wait, LeaveTarget or SidewayMove is cut to
-// almost nothing unless the roll (0-99) is under `odds`. A turn is never cut: the boss would
-// swing facing away.
+// SidewayMove 2017) last `gap` of their time; a Wait, LeaveTarget or SidewayMove is cut short
+// unless the roll (0-99) is under `odds`. A turn is never cut: the boss would swing facing away.
 TEST(BloodborneBossTempo, BreathersShortenAndMostlyGo) {
     const BossTempoTuning aggressive = BossTempoTuningFor(BossTempo::Aggressive);
-    EXPECT_FLOAT_EQ(BossGoalLife(GoalCommonWait, 2.0f, aggressive, 0), 1.0f);
-    EXPECT_FLOAT_EQ(BossGoalLife(GoalCommonWait, 2.0f, aggressive, 49), 1.0f);
-    EXPECT_FLOAT_EQ(BossGoalLife(GoalCommonWait, 2.0f, aggressive, 50), CutGoalLife);
-    EXPECT_FLOAT_EQ(BossGoalLife(GoalCommonLeaveTarget, 3.0f, aggressive, 10), 1.5f);
-    EXPECT_FLOAT_EQ(BossGoalLife(GoalCommonSidewayMove, 3.0f, aggressive, 99), CutGoalLife);
-    EXPECT_FLOAT_EQ(BossGoalLife(GoalCommonTurn, 2.0f, aggressive, 99), 1.0f);
-    EXPECT_FLOAT_EQ(BossGoalLife(2002, 2.0f, aggressive, 99), 2.0f) << "not a breather";
-    EXPECT_FLOAT_EQ(BossGoalLife(GoalCommonWait, -1.0f, aggressive, 99), -1.0f)
-        << "no time limit stays";
-    EXPECT_FLOAT_EQ(BossGoalLife(GoalCommonWait, 0.02f, aggressive, 99), 0.02f)
-        << "never longer than the game's";
+    const auto life = [&](s32 goal, float game, u32 roll) {
+        BossBreathers breathers;
+        return breathers.Life(goal, game, aggressive, roll);
+    };
+    EXPECT_FLOAT_EQ(life(GoalCommonWait, 2.0f, 0), 1.0f);
+    EXPECT_FLOAT_EQ(life(GoalCommonWait, 2.0f, 49), 1.0f);
+    EXPECT_FLOAT_EQ(life(GoalCommonWait, 2.0f, 50), BossPauseFloor(aggressive));
+    EXPECT_FLOAT_EQ(life(GoalCommonLeaveTarget, 3.0f, 10), 1.5f);
+    EXPECT_FLOAT_EQ(life(GoalCommonSidewayMove, 3.0f, 99), BossPauseFloor(aggressive));
+    EXPECT_FLOAT_EQ(life(GoalCommonTurn, 2.0f, 99), 1.0f);
+    EXPECT_FLOAT_EQ(life(2002, 2.0f, 99), 2.0f) << "not a breather";
+    EXPECT_FLOAT_EQ(life(GoalCommonWait, -1.0f, 99), -1.0f) << "no time limit stays";
+    EXPECT_FLOAT_EQ(life(GoalCommonWait, 0.02f, 99), 0.01f) << "a cut never outlasts a kept one";
     for (const s32 goal : {GoalCommonWait, GoalCommonTurn, 2002}) {
-        EXPECT_FLOAT_EQ(BossGoalLife(goal, 2.0f, BossTempoTuning{}, 99), 2.0f);
+        BossBreathers breathers;
+        EXPECT_FLOAT_EQ(breathers.Life(goal, 2.0f, BossTempoTuning{}, 99), 2.0f);
     }
     EXPECT_TRUE(IsBossTempoGoal(GoalCommonSidewayMove));
     EXPECT_FALSE(IsBossTempoGoal(2015)) << "ApproachTarget is no breather";
+}
+
+// Discord audit 2026-11-13 T5 (Backand, 1.4.0, Aggressive: turn x1.3): Rom cast with no pause at
+// all. A caster's act is one long spell and a breather; the old cut (0.05 s, any number of them in
+// a row) chained spell after spell. Now a cut breather keeps a short pause (the level's `gap` in
+// seconds: 0.5 s Aggressive, 0.25 s Relentless), and a boss never gets two cuts in a row: the
+// breather after a cut keeps its halved (quartered) time, whatever the roll.
+TEST(BloodborneBossTempo, CastersKeepAPauseBetweenSpells) {
+    const BossTempoTuning aggressive = BossTempoTuningFor(BossTempo::Aggressive);
+    const BossTempoTuning relentless = BossTempoTuningFor(BossTempo::Relentless);
+    EXPECT_FLOAT_EQ(BossPauseFloor(aggressive), 0.5f);
+    EXPECT_FLOAT_EQ(BossPauseFloor(relentless), 0.25f);
+    EXPECT_GT(BossPauseFloor(relentless), CutGoalLife);
+
+    BossBreathers rom;
+    EXPECT_FLOAT_EQ(rom.Life(GoalCommonWait, 4.0f, aggressive, 99), 0.5f) << "cut, short pause";
+    EXPECT_FLOAT_EQ(rom.Life(GoalCommonWait, 4.0f, aggressive, 99), 2.0f)
+        << "never two cuts in a row";
+    EXPECT_FLOAT_EQ(rom.Life(GoalCommonWait, 4.0f, aggressive, 99), 0.5f);
+    EXPECT_FLOAT_EQ(rom.Life(GoalCommonTurn, 2.0f, aggressive, 99), 1.0f)
+        << "a turn is no pause: it keeps the streak";
+    EXPECT_FLOAT_EQ(rom.Life(GoalCommonSidewayMove, 3.0f, aggressive, 99), 1.5f);
+    EXPECT_FLOAT_EQ(rom.Life(GoalCommonWait, 4.0f, aggressive, 0), 2.0f) << "kept by the roll";
+    EXPECT_FLOAT_EQ(rom.Life(GoalCommonWait, 0.3f, aggressive, 99), 0.15f)
+        << "a short breather is halved, not stretched to the floor";
+
+    // Over many acts at Relentless: never two cut pauses back to back, at least half the
+    // breathers keep a real pause, and the total rest stays well above nothing.
+    BossBreathers caster;
+    u32 rng = 12345;
+    float rest = 0.0f;
+    float game = 0.0f;
+    bool last_cut = false;
+    for (int act = 0; act < 400; ++act) {
+        rng = rng * 1103515245u + 12345u;
+        const float now = caster.Life(GoalCommonWait, 3.0f, relentless, (rng >> 16) % 100);
+        const bool cut = now < 3.0f * relentless.gap;
+        EXPECT_FALSE(cut && last_cut) << "act " << act;
+        EXPECT_GE(now, BossPauseFloor(relentless));
+        last_cut = cut;
+        rest += now;
+        game += 3.0f;
+    }
+    EXPECT_GT(rest, game * relentless.gap * 0.5f);
+    EXPECT_LT(rest, game * relentless.gap) << "still faster than only the shorter breathers";
 }
 
 } // namespace

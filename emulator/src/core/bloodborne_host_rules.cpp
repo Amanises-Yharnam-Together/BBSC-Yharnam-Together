@@ -446,13 +446,21 @@ bool IsBossTempoGoal(s32 goal) {
            goal == GoalCommonSidewayMove;
 }
 
-float BossGoalLife(s32 goal, float life, const BossTempoTuning& tuning, u32 roll) {
+float BossPauseFloor(const BossTempoTuning& tuning) {
+    return std::max(CutGoalLife, tuning.gap);
+}
+
+float BossBreathers::Life(s32 goal, float life, const BossTempoTuning& tuning, u32 roll) {
     if (!IsBossTempoGoal(goal) || !(life > 0.0f) || !tuning.Changes()) {
         return life;
     }
-    const bool cut =
-        goal != GoalCommonTurn && static_cast<float>(roll % 100) >= tuning.odds * 100.0f;
-    return std::min(life, cut ? CutGoalLife : life * tuning.gap);
+    const float kept = std::min(life, life * tuning.gap);
+    if (goal == GoalCommonTurn) {
+        return kept;
+    }
+    const bool cut = !after_cut_ && static_cast<float>(roll % 100) >= tuning.odds * 100.0f;
+    after_cut_ = cut;
+    return cut ? std::min(kept, BossPauseFloor(tuning)) : kept;
 }
 
 } // namespace Core::Bloodborne
