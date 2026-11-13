@@ -3232,9 +3232,16 @@ class Launcher:
 
     def light(self, card, value):
         card.glow = value
-        card.configure(highlightbackground=mix(LINE, ACCENT, value * 0.75))
-        for corner in getattr(card, 'corners', ()):
-            corner.itemconfigure('arm', fill=mix(GOLD_DIM, GOLD, value * 0.8))
+        try:
+            card.configure(highlightbackground=mix(LINE, ACCENT, value * 0.75))
+            for corner in getattr(card, 'corners', ()):
+                corner.itemconfigure('arm', fill=mix(GOLD_DIM, GOLD, value * 0.8))
+        except tk.TclError:
+            # The card's page was rebuilt under the pointer: forget it. Every pointer move logged
+            # this traceback again (a player's launcher-errors.txt grew to 15.8 MB).
+            self.cards.discard(card)
+            if self.hot_card is card:
+                self.hot_card = None
 
     def next_row(self, parent):
         return parent.grid_size()[1]
