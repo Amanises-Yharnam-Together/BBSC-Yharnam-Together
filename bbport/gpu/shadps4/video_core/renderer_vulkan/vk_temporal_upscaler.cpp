@@ -9,6 +9,9 @@
 #include "video_core/renderer_vulkan/ui_composition.h"
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <mutex>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -17,7 +20,10 @@
 
 #include <vk_mem_alloc.h>
 
+#include "../bbcoop.h"
 #include "bbport_guest_hooks.h"
+#include "bbport_map_art.h"
+#include "bbport_screen_tint.h"
 #include "bbport_settings.h"
 #include "bbport_toggles.h"
 #include "ffx_vk_portable.h"
@@ -171,6 +177,119 @@ void DumpFinalFrameIfDue(const Instance& instance, Scheduler& scheduler, vk::Com
     const bool bgra = format == vk::Format::eB8G8R8A8Unorm || format == vk::Format::eB8G8R8A8Srgb;
     DumpImages(instance, scheduler, cmdbuf, index++,
                {{image, width, height, 4, "final", bgra ? "bgra" : "rgba"}});
+}
+
+namespace {
+/// What the upscaler last ran on, for the screen tint line: 0 off, 1 the HDR scene colour (its
+/// auto exposure), 2 the game's tonemapped frame (scaled presets).
+std::atomic<int> scene_input{0};
+} // namespace
+
+void CheckScreenTintIfDue(const Instance& instance, Scheduler& scheduler, vk::CommandBuffer cmdbuf,
+                          vk::Image image, u32 width, u32 height, vk::Format format,
+                          bool hdr_output) {
+    using Clock = std::chrono::steady_clock;
+    static const bool off = [] {
+        const char* env = std::getenv("BB_SCREEN_TINT_CHECK");
+        return env && env[0] == '0';
+    }();
+    static std::mutex mutex;
+    static BbScreenTint::Schedule schedule;
+    static const Clock::time_point start = Clock::now();
+    static double map_read_at = -1.0;
+    static u32 map = 0;
+    const bool bgra = format == vk::Format::eB8G8R8A8Unorm || format == vk::Format::eB8G8R8A8Srgb;
+    const bool rgba = format == vk::Format::eR8G8B8A8Unorm || format == vk::Format::eR8G8B8A8Srgb;
+    if (off || !image || width == 0 || height == 0 || (!bgra && !rgba)) {
+        return;
+    }
+    const double now = std::chrono::duration<double>(Clock::now() - start).count();
+    u32 area = 0;
+    {
+        std::scoped_lock lock{mutex};
+        // The area reads the game's memory: once a second, not every frame.
+        if (now - map_read_at >= 1.0) {
+            map_read_at = now;
+            map = bbcoop_current_map();
+        }
+        area = map;
+        if (!schedule.Due(now, map)) {
+            return;
+        }
+    }
+    const auto rows = BbScreenTint::SampleRows(height);
+    const VkDeviceSize row_bytes = VkDeviceSize(width) * 4;
+    const VkBufferCreateInfo buffer_ci{
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size = row_bytes * rows.size(),
+        .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    };
+    const VmaAllocationCreateInfo alloc_ci{
+        .flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+        .usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
+    };
+    VkBuffer buffer{};
+    VmaAllocation allocation{};
+    VmaAllocationInfo info{};
+    if (vmaCreateBuffer(instance.GetAllocator(), &buffer_ci, &alloc_ci, &buffer, &allocation,
+                        &info) != VK_SUCCESS) {
+        return; // the schedule looks again once its wait for this look runs out
+    }
+    std::vector<vk::BufferImageCopy> regions;
+    for (std::size_t i = 0; i < rows.size(); ++i) {
+        regions.push_back(vk::BufferImageCopy{
+            .bufferOffset = row_bytes * i,
+            .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .imageOffset = {0, s32(rows[i]), 0},
+            .imageExtent = {width, 1, 1},
+        });
+    }
+    const vk::MemoryBarrier2 before{
+        .srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+        .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
+        .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+        .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+    };
+    cmdbuf.pipelineBarrier2({.memoryBarrierCount = 1, .pMemoryBarriers = &before});
+    cmdbuf.copyImageToBuffer(image, vk::ImageLayout::eGeneral, buffer, regions);
+    const vk::MemoryBarrier2 after{
+        .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+        .srcAccessMask = vk::AccessFlagBits2::eNone,
+        .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+        .dstAccessMask = vk::AccessFlagBits2::eNone,
+    };
+    cmdbuf.pipelineBarrier2({.memoryBarrierCount = 1, .pMemoryBarriers = &after});
+    const int upscaler = BbSettings::Get().upscaler;
+    const int input = scene_input.load(std::memory_order_relaxed);
+    // Read once the GPU is done with this frame: no wait here.
+    scheduler.DeferPriorityOperation([allocator = instance.GetAllocator(), buffer, allocation, info,
+                                      pixels = std::size_t(width) * rows.size(), bgra, upscaler,
+                                      input, hdr_output, area] {
+        vmaInvalidateAllocation(allocator, allocation, 0, VK_WHOLE_SIZE);
+        BbScreenTint::Stats stats;
+        stats.Add(static_cast<const std::uint8_t*>(info.pMappedData), pixels, bgra,
+                  BbScreenTint::PixelStep);
+        vmaDestroyBuffer(allocator, buffer, allocation);
+        const auto verdict = BbScreenTint::Judge(stats);
+        const double done = std::chrono::duration<double>(Clock::now() - start).count();
+        BbScreenTint::Report report;
+        {
+            std::scoped_lock lock{mutex};
+            report = schedule.Result(verdict.tinted, done);
+        }
+        const std::string area_name = area ? BbMapArt::MapNameOf(area) : std::string("none");
+        if (report == BbScreenTint::Report::Tinted) {
+            static const char* const inputs[3] = {"no scene input",
+                                                  "HDR scene input (auto exposure)",
+                                                  "tonemapped scene input"};
+            const std::string line =
+                BbScreenTint::Line(verdict, BbSettings::UpscalerName(upscaler),
+                                   inputs[std::clamp(input, 0, 2)], hdr_output, area_name);
+            std::printf("%s\n", line.c_str());
+        } else if (report == BbScreenTint::Report::Cleared) {
+            std::printf("%s\n", BbScreenTint::ClearedLine(area_name).c_str());
+        }
+    });
 }
 
 TemporalUpscaler::TemporalUpscaler(const Instance& instance_, Scheduler& scheduler_,
@@ -419,6 +538,7 @@ bool TemporalUpscaler::OnFrameStart() {
     applied_output = output;
     applied_upscaler = upscaler;
     last_active = active;
+    scene_input.store(active ? (Scaled() ? 2 : 1) : 0, std::memory_order_relaxed);
     last_jitter = jitter_on;
     dispatched_last_frame = false;
 

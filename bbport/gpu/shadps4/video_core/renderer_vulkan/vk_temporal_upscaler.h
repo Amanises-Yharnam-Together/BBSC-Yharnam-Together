@@ -46,6 +46,14 @@ class SceneHdr;
 void DumpFinalFrameIfDue(const Instance& instance, Scheduler& scheduler, vk::CommandBuffer cmdbuf,
                          vk::Image image, u32 width, u32 height, vk::Format format);
 
+/// bbport: the screen tint check (shim/bbport_screen_tint.h): some seconds after each area load,
+/// every 30 s while a tint holds and every 5 minutes otherwise, copies a few rows of the presented
+/// frame and logs "Screen tint: ..." when one or two channels sit at full while another follows
+/// the scene. No wait on the GPU. BB_SCREEN_TINT_CHECK=0 turns it off. `image` in General.
+void CheckScreenTintIfDue(const Instance& instance, Scheduler& scheduler, vk::CommandBuffer cmdbuf,
+                          vk::Image image, u32 width, u32 height, vk::Format format,
+                          bool hdr_output);
+
 class TemporalUpscaler {
 public:
     TemporalUpscaler(const Instance& instance, Scheduler& scheduler,
