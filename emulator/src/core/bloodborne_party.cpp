@@ -1217,6 +1217,14 @@ std::optional<bool> OwnedWeaponFlagFix(bool party_configured, bool flag_on, bool
     return holds;
 }
 
+std::optional<bool> ShopStockFlagFix(bool party_configured, bool flag_on, bool holds,
+                                     bool recheck) {
+    if (!party_configured || !recheck || !flag_on || holds) {
+        return std::nullopt;
+    }
+    return false;
+}
+
 bool RechecksOwnedWeaponFlagAlways(s32 flag) {
     return flag >= 5500 && flag <= 5521;
 }

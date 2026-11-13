@@ -2018,6 +2018,45 @@ void KeepOwnedWeaponFlagsOwn() {
     }
 }
 
+// See ShopStockFlagFix: once per save slot (a file marks it done) in a loaded world, a shop row's
+// stock flag goes off while this player holds none of what it sells, so a save that took the
+// host's purchases from a team world can buy them itself.
+void KeepShopStockOwn() {
+    static int checked_slot = -2;
+    if (!party_controller || GetLocalPlayer() < 0x10000 || !PlayerItemsReadable() ||
+        !IsUsablePackedMap(PlayingMap())) {
+        return;
+    }
+    const int slot = character_slot.load();
+    if (slot == checked_slot) {
+        return;
+    }
+    checked_slot = slot;
+    const auto marker = Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
+                        fmt::format("bloodborne_party_shop_stock_slot{}.txt", slot);
+    std::error_code error;
+    if (slot < 0 || std::filesystem::exists(marker, error)) {
+        return;
+    }
+    const std::vector<u32> held = HeldItemIds();
+    int cleared = 0;
+    for (const ShopStockFlag& stock : ShopStockFlags) {
+        const bool holds = std::ranges::find(held, stock.item) != held.end();
+        const auto fix = ShopStockFlagFix(true, EventFlagOn(stock.flag), holds, true);
+        if (!fix) {
+            continue;
+        }
+        reinterpret_cast<bool PS4_SYSV_ABI (*)(u64, s32, bool)>(
+            image_base + PartyGhostSetEventFlagOffset)(0, stock.flag, *fix);
+        ++cleared;
+    }
+    std::ofstream{marker} << "rechecked" << std::endl;
+    LOG_INFO(Debug,
+             "Bloodborne party: cleared {} shop stock flags in save slot {} (items this character "
+             "does not hold)",
+             cleared, slot);
+}
+
 } // namespace
 
 namespace Coop {
@@ -2167,6 +2206,7 @@ void TickPlayersOnThisMap() {
     KeepGestureFlagsOwn();
     KeepGiftTalkFlagsOwn();
     KeepOwnedWeaponFlagsOwn();
+    KeepShopStockOwn();
     KeepHeadstoneFlagsOwn();
     EndDollBlessingWhenSheIsHit();
     ClearDollLevelUpFlagAfterHerBlessing();
