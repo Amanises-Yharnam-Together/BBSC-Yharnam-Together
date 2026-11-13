@@ -5,7 +5,13 @@
 // "Unknown data_format=15 and num_format=7": without dynamic vertex input the pipeline key takes
 // the formats of the V#s as they are in guest memory, and 15 is a value the hardware reserves.
 #include <cstdio>
+// The recompiler's headers (info.h, regs_shader.h) are not -Wall -Wextra clean; this test is.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma clang diagnostic ignored "-Wreorder-ctor"
 #include "shader_recompiler/frontend/fetch_shader.h"
+#pragma clang diagnostic pop
 #include "video_core/renderer_vulkan/liverpool_to_vk.h"
 
 static int failures;
@@ -53,7 +59,7 @@ int main() {
         CHECK(input.data_format == DataFormat::Format32_32_32_32);
         CHECK(input.num_format == NumberFormat::Float);
         CHECK(input.stride == 0);
-        CHECK(VertexInputFormat(input.data_format, input.num_format) ==
+        CHECK(Vulkan::LiverpoolToVK::VertexInputFormat(input.data_format, input.num_format) ==
               vk::Format::eR32G32B32A32Sfloat);
         CHECK(TrySurfaceFormat(input.data_format, input.num_format) ==
               vk::Format::eR32G32B32A32Sfloat);
