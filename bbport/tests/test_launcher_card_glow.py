@@ -4,6 +4,7 @@ player's log/launcher-errors.txt grew to 15.8 MB of that one traceback (support 
 20261112-234320)."""
 import sys
 import types
+import tkinter
 import unittest
 from pathlib import Path
 
@@ -17,7 +18,7 @@ class DestroyedCard:
     corners = ()
 
     def configure(self, **_options):
-        raise launcher.tk.TclError('invalid command name ".!frame3.!frame.!frame"')
+        raise tkinter.TclError('invalid command name ".!frame3.!frame.!frame"')
 
 
 class LiveCard:
@@ -33,14 +34,14 @@ class LiveCard:
 class CardGlowTests(unittest.TestCase):
     def test_destroyed_card_is_forgotten(self):
         card = DestroyedCard()
-        owner = types.SimpleNamespace(cards={card}, hot_card=card)
+        owner = types.SimpleNamespace(cards={card}, hot_card=card, tk=tkinter)
         launcher.Launcher.light(owner, card, 0.5)
         self.assertNotIn(card, owner.cards)
         self.assertIsNone(owner.hot_card)
 
     def test_live_card_lights(self):
         card = LiveCard()
-        owner = types.SimpleNamespace(cards={card}, hot_card=card)
+        owner = types.SimpleNamespace(cards={card}, hot_card=card, tk=tkinter)
         launcher.Launcher.light(owner, card, 1.0)
         self.assertIn('highlightbackground', card.options)
         self.assertIs(owner.hot_card, card)
