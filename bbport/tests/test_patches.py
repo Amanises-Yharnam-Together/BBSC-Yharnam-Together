@@ -3,6 +3,7 @@ import os
 import struct
 import tempfile
 import unittest
+from unittest import mock
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -843,6 +844,51 @@ class BuildCheckNamesTests(unittest.TestCase):
         # cheat this game does not have (nor keep the names of an earlier run).
         names = self.run_main_on_a_blank_eboot(BB_FORCE_PATCHES='')
         self.assertEqual(names, {'gameplay': [], 'other': []})
+
+
+
+def param_sfo(app_ver):
+    """A param.sfo with one string entry, APP_VER."""
+    key, value = b'APP_VER\0', app_ver.encode() + b'\0'
+    keys, values = 20 + 16, 20 + 16 + len(key)
+    return (struct.pack('<4sIIII', b'\0PSF', 0x101, keys, values, 1)
+            + struct.pack('<HHIII', 0, 0x204, len(value), len(value), 0) + key + value)
+
+
+class GameVersionTests(unittest.TestCase):
+    """Game of the Year discs say APP_VER 01.00 over the 1.09 executable (Supermedo a872ed3)."""
+
+    def game(self, app_ver, eboot=True):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        game = Path(directory.name)
+        (game / 'sce_sys').mkdir()
+        (game / 'sce_sys/param.sfo').write_bytes(param_sfo(app_ver))
+        if eboot:
+            (game / 'eboot.bin').write_bytes(b'eboot')
+        return game
+
+    def test_goty_dump_with_the_109_code_is_109(self):
+        with mock.patch('patches.eboot_is_109', return_value=True):
+            self.assertEqual(patches.game_app_version(self.game('01.00')), '01.09')
+
+    def test_other_code_keeps_the_app_ver(self):
+        with mock.patch('patches.eboot_is_109', return_value=False):
+            self.assertEqual(patches.game_app_version(self.game('01.00')), '01.00')
+
+    def test_missing_eboot_keeps_the_app_ver(self):
+        with mock.patch('patches.eboot_is_109') as check:
+            self.assertEqual(patches.game_app_version(self.game('01.00', eboot=False)), '01.00')
+        check.assert_not_called()
+
+    def test_109_app_ver_skips_the_fingerprint(self):
+        with mock.patch('patches.eboot_is_109') as check:
+            self.assertEqual(patches.game_app_version(self.game('01.09')), '01.09')
+        check.assert_not_called()
+
+    def test_unreadable_eboot_is_not_109(self):
+        game = self.game('01.00')
+        self.assertFalse(patches.eboot_is_109(str(game / 'eboot.bin')))
 
 
 if __name__ == '__main__':
