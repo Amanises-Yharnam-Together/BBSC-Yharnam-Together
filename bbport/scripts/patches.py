@@ -495,7 +495,7 @@ PATCH_FINGERPRINTS={'01.09':{
     'fps':'d38e60663e70814b91d955578eb96c778378fb4a2f67ce5d41bf4e94a1bb99e2',
     'resolution':'e9a46a62677b9892744ffcbeae8639aa166c597ca22b8999d63e42a32145285f',
     'effects':'d18f58dbf11ba2b02662c51f9e4090c69c89dd302aae8701b0ce10aa34ea3d3b',
-    'fixes':'ebba53663144d9fbf8ed0c7ee4e16c71b68c2af830125190e78bb43c2bbe77aa',
+    'fixes':'85f55fd7e8541a9ffe77dcac8b465e07b256feb917d4c035702a59afebb09b72',
 }}
 
 
