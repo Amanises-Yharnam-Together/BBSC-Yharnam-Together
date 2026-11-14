@@ -151,8 +151,9 @@ bool FreeCameraHotkey(u32 before, u32 now);
 // slot with a boss's handle (-1 none; 0 never one either).
 bool BossBarsUp(std::span<const u8> gauges);
 // A boss fight (its bars up in this game) with a teammate standing in it: another member up on
-// `map` within BossLeaveMetres of the boss (`boss`, its bar's character), or of this player (`me`)
-// while the boss's place is not known; nothing while neither is.
+// `map` within BossLeaveMetres of the boss (`boss`, its bar's character) or of this player (`me`);
+// nothing while neither place is known. Beside this player counts as well since a guest after its
+// join's reload runs its own copy of the boss, which can stand apart from the host's.
 bool BossFightCatchesDeath(bool bars_up, std::span<const MemberVitals> board, std::string_view self,
                            u32 map, const std::optional<LampPosition>& me,
                            const std::optional<LampPosition>& boss = std::nullopt);
