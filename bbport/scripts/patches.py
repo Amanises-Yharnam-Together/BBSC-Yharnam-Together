@@ -121,6 +121,12 @@ SKIP_NETWORK_CHOICE='Skip Online/Offline Choice'
 GX_COMMAND_HEAP='Larger GX Per-Frame Command Heap'
 
 
+# Two game crashes fixed in the eboot (Jin-Gu, Supermedo 1.9.8.5): the per-frame render command
+# list (216 entries) written through NULL when full, and an event/NPC talk routine calling a method
+# on a talk target its lookup did not find. On by default; BB_GAME_CRASH_FIXES=0 leaves them.
+GAME_CRASH_FIXES=('More Render Commands','NPC Talk Crash Fix')
+
+
 # Brazilian Portuguese and Latin American Spanish (PS4 system languages 17 and 20, the launcher's
 # BB_LANGUAGE): the game picks its text and voice by sell region (GetSellRegion 0x1fb9190: 0 Japan,
 # 1 North America, 2 Europe, 3 Asia, 4 UK). Europe turns 17 into Portugal Portuguese and 20 into
@@ -140,6 +146,10 @@ def language_region(env=os.environ):
 
 def gx_command_heap(env=os.environ):
     return env.get('BB_GX_COMMAND_HEAP','1')!='0'
+
+
+def game_crash_fixes(env=os.environ):
+    return env.get('BB_GAME_CRASH_FIXES','1')!='0'
 
 
 def skip_network_choice(env=os.environ):
@@ -452,7 +462,7 @@ PATCH_GROUPS={
     'fps':sorted({n for names in FPS_PRESETS.values() for n in names}|SHARES_FPS_CODE),
     'resolution':sorted({RESOLUTION_TEMPLATE,HEAP_PATCH}),
     'effects':sorted(({n for pair in EFFECTS.values() for n in pair if n}|set(MODEL_LOD.values()))-SHARES_FPS_CODE),
-    'fixes':sorted({INTEL_TONEMAP,SKIP_NETWORK_CHOICE,GX_COMMAND_HEAP}),
+    'fixes':sorted({INTEL_TONEMAP,SKIP_NETWORK_CHOICE,GX_COMMAND_HEAP,*GAME_CRASH_FIXES}),
 }
 GROUP_OF={name:group for group,names in PATCH_GROUPS.items() for name in names}
 GROUP_TEXT={'fps':'frame rate','resolution':'resolution','effects':'effect options','fixes':'game fixes'}
@@ -832,6 +842,8 @@ def main():
             names.append(SKIP_NETWORK_CHOICE)
         if gx_command_heap() and GX_COMMAND_HEAP not in names:
             names.append(GX_COMMAND_HEAP)
+        if game_crash_fixes():
+            names+=[name for name in GAME_CRASH_FIXES if name not in names]
     names=validate_patch_requirements(names,a.game_dir)
     segments=eboot_segments((a.out/'eboot.elf').read_bytes())
     named=compile_named(a.xml,names,a.app_version,segments)

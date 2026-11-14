@@ -614,7 +614,32 @@ class GxCommandHeapTests(unittest.TestCase):
         writes = compile_patches(XML, [patches.GX_COMMAND_HEAP], '01.09', SEGMENTS)
         self.assertEqual([(offset + EBOOT_BASE, data) for offset, data in writes],
                          [(0x02595c0a, (1 << 20).to_bytes(4, 'little')),
-                          (0x02595c47, (1 << 20).to_bytes(4, 'little'))])
+                          (0x02595c47, (1 << 20).to_bytes(4, 'little')),
+                          (0x04b36dc8, (278 << 20).to_bytes(4, 'little'))])
+
+
+class GameCrashFixTests(unittest.TestCase):
+    """Supermedo 1.9.8.5's eboot crash fixes (render command list, NPC talk lookup): in the fixes
+    group, on by default, BB_GAME_CRASH_FIXES=0 off, and only patches.py's switch turns them on."""
+
+    def test_on_unless_the_environment_turns_it_off(self):
+        self.assertTrue(patches.game_crash_fixes({}))
+        self.assertFalse(patches.game_crash_fixes({'BB_GAME_CRASH_FIXES': '0'}))
+
+    def test_patches_are_fixes_off_in_the_file(self):
+        for name in patches.GAME_CRASH_FIXES:
+            self.assertIn(name, patches.PATCH_GROUPS['fixes'])
+            meta = [m for m in ET.parse(XML).getroot().iter('Metadata')
+                    if m.get('Name') == name and m.get('AppVer') == '01.09']
+            self.assertEqual(len(meta), 1, name)
+            self.assertEqual(meta[0].get('isEnabled'), 'false')
+
+    def test_writes(self):
+        writes = compile_patches(XML, list(patches.GAME_CRASH_FIXES), '01.09', SEGMENTS)
+        self.assertEqual([(offset + EBOOT_BASE, data) for offset, data in writes],
+                         [(0x02196b26, (864).to_bytes(4, 'little')),
+                          (0x01BBCB33, bytes.fromhex('EB0B4885C07406488B08EB1D90')),
+                          (0x01BBCB59, bytes.fromhex('EBDA90'))])
 
 
 class SkipNetworkChoiceTests(unittest.TestCase):

@@ -795,6 +795,21 @@ bool Liverpool::PendingFenceValue(VAddr address, u32& value) {
 
 Liverpool::Task Liverpool::ProcessCeUpdate(std::span<const u32> ccb) {
     FIBER_ENTER(ccb_task_name);
+    // bbport: a garbage header ends the constant buffer instead of the game ("Invalid PM4 type",
+    // "Unknown PM4 type 3 opcode" stopped it: a buffer the game was already reusing). It costs
+    // the constants of one submission; the draw engine stops waiting for this task once it is
+    // done (ProcessGraphics). From Supermedo 1.9.8.5.
+    const auto base_addr = reinterpret_cast<uintptr_t>(ccb.data());
+    static std::atomic<int> reported{0};
+    const auto drop_rest = [&](const PM4Header* header) {
+        if (reported.fetch_add(1, std::memory_order_relaxed) < 16) {
+            LOG_WARNING(Render,
+                        "PM4 header {:#010x} (type {}) at +{:#x} of a constant buffer: rest of "
+                        "the buffer dropped",
+                        header->raw, header->type.Value(),
+                        reinterpret_cast<uintptr_t>(header) - base_addr);
+        }
+    };
 
     while (!ccb.empty()) {
         ProcessCommands();
@@ -802,8 +817,9 @@ Liverpool::Task Liverpool::ProcessCeUpdate(std::span<const u32> ccb) {
         const auto* header = reinterpret_cast<const PM4Header*>(ccb.data());
         const u32 type = header->type;
         if (type != 3) {
-            // No other types of packets were spotted so far
-            UNREACHABLE_MSG("Invalid PM4 type {}", type);
+            drop_rest(header);
+            ccb = {};
+            continue;
         }
 
         const PM4ItOpcode opcode = header->type3.opcode;
@@ -852,10 +868,14 @@ Liverpool::Task Liverpool::ProcessCeUpdate(std::span<const u32> ccb) {
         }
         case PM4ItOpcode::WaitOnDeCounterDiff: {
             const auto diff = it_body[0];
-            while (cblock.ce_count >= cblock.de_count &&
+            // bbport: ProcessGraphics ends this wait when the draw engine is done (Supermedo
+            // 1.9.8.5): the increments it waits for were cut off by a garbage header.
+            cblock.ce_waits_for_de = true;
+            while (cblock.ce_waits_for_de && cblock.ce_count >= cblock.de_count &&
                    (cblock.ce_count - cblock.de_count) >= diff) {
                 YIELD_CE();
             }
+            cblock.ce_waits_for_de = false;
             break;
         }
         case PM4ItOpcode::IndirectBufferConst: {
@@ -872,9 +892,9 @@ Liverpool::Task Liverpool::ProcessCeUpdate(std::span<const u32> ccb) {
             break;
         }
         default:
-            const u32 count = header->type3.NumWords();
-            UNREACHABLE_MSG("Unknown PM4 type 3 opcode {:#x} with count {}",
-                            static_cast<u32>(opcode), count);
+            drop_rest(header);
+            ccb = {};
+            continue;
         }
         ccb = NextPacket(ccb, packet_words);
     }
@@ -2356,9 +2376,19 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
                 }
                 break;
             }
-            default:
-                UNREACHABLE_MSG("Unknown PM4 type 3 opcode {:#x} with count {}",
+            default: {
+                // bbport: a garbage dword can also read as a type-3 header with an opcode this
+                // switch does not know ("Unknown PM4 type 3 opcode 0x0 with count 9329" stopped
+                // the game; Supermedo 1.9.8.5). It is stepped over by its count, as the draw
+                // preparation scanner does (ForEachPacket), so both register states stay equal;
+                // a count past the end ends the buffer (NextPacket).
+                static std::atomic<int> unknown_reports{0};
+                if (unknown_reports.fetch_add(1, std::memory_order_relaxed) < 16) {
+                    LOG_WARNING(Render, "PM4: unknown type 3 opcode {:#x} with count {} skipped",
                                 static_cast<u32>(opcode), count);
+                }
+                break;
+            }
             }
             // The size read before running the packet: a flip or an EOP interrupt lets the guest
             // reuse this buffer while we are still on it, so the header may be gone by now
@@ -2381,6 +2411,13 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
 
     if (ce_task.handle) {
         while (!ce_task.handle.done()) {
+            // bbport: the draw engine is done, so the increments the constant engine waits for
+            // (WaitOnDeCounterDiff) were in a part a garbage header cut off; without this the
+            // loop never ended (Supermedo 1.9.8.5).
+            if (cblock.ce_waits_for_de) {
+                cblock.de_count = cblock.ce_count;
+                cblock.ce_waits_for_de = false;
+            }
             RESUME_GFX(ce_task);
         }
         ce_task.handle.destroy();
