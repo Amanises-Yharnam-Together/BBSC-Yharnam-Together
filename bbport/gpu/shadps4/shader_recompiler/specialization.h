@@ -193,7 +193,16 @@ struct StageSpecialization {
     }
 
     bool operator==(const StageSpecialization& other) const {
-        if (!Valid()) {
+        if (!Valid() || !other.Valid()) {
+            return false;
+        }
+
+        // bbport: the port's own buffers (flat buffer, page table, fault buffer, clip planes)
+        // have no guest sharp yet bind from `start`: a stage with fewer resources is not the
+        // same stage whatever the bitset says (an NVIDIA device loss, "WriteInvalid at 0x0",
+        // came from a vertex module reused under another binding start).
+        if (buffers.size() != other.buffers.size() || images.size() != other.images.size() ||
+            samplers.size() != other.samplers.size()) {
             return false;
         }
 
@@ -217,7 +226,8 @@ struct StageSpecialization {
         // bindings still may change as they depend on previously processed FS. The check below
         // handles this case and prevents generation of redundant permutations. This is also safe
         // for other types of shaders with no bindings.
-        if (buffers.empty() && images.empty() && samplers.empty()) {
+        // bbport: only a stage with no resources at all may skip the binding start.
+        if (buffers.empty() && images.empty() && samplers.empty() && fmasks.empty()) {
             return true;
         }
 

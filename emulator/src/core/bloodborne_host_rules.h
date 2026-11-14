@@ -45,12 +45,15 @@ struct HostRules {
     // Kaniel 2026-11-05: the team's enemy strength (TeamRules enemy_hp/damage/poise): a full
     // team's with enemy_scaling, everyone's without; none, the standard (HarderDefault*).
     std::optional<HarderEnemies> enemies;
+    // Kaniel 2026-11-11: friendly fire, for a harder hunt (TeamRules friendly_fire): the
+    // teammates' strikes land on each other at all times.
+    bool friendly_fire = false;
     bool operator==(const HostRules&) const = default;
 };
 
 // The launcher's setting: words split by commas ("rot", "travel", "vote", "scale", and the boss
-// tempo's "aggressive" or "relentless", the last one given); anything else (or "off", or
-// nothing) is off. "vote" alone is nothing: it is a part of "travel".
+// tempo's "aggressive" or "relentless", the last one given, and "friendlyfire"); anything else (or
+// "off", or nothing) is off. "vote" alone is nothing: it is a part of "travel".
 HostRules ParseHostRules(std::string_view setting);
 // The same words back ("off" for none), for the log and the build's line.
 std::string HostRulesText(const HostRules& rules);
@@ -202,8 +205,33 @@ std::optional<HarderEnemies> TeamScaledEnemies(std::size_t hunters, const Harder
 // Kaniel 2026-11-05: the team screen's rules as its leader sets them, one text for the overlay's
 // request (bbcoop_lobby_request BBCOOP_TEAM_RULES): "rot,travel,vote,scale,tempo,hp,damage,poise"
 // (0/1 each, tempo 0-2, the strength 1-10 or 0 for the standard). nullopt when it is not that.
+// Kaniel 2026-11-11: with friendly fire a ninth value, ",1" (none without it: the texts from
+// before the rule stay what they were, and are read as friendly fire off).
 std::string ScreenRulesText(const HostRules& rules);
 std::optional<HostRules> ParseScreenRules(std::string_view text);
+// Kaniel 2026-11-11: the launcher sets no party rules any more (the team screen is the one place
+// for them). This player's own rules at the game's start, the ones the team it makes starts with:
+// the dev settings' when given (`env_rules`, SHADPS4_BLOODBORNE_HOST_RULES with `env_harder`,
+// SHADPS4_BLOODBORNE_HARDER_ENEMIES, for the strength: the rig's), else the ones it last set on the
+// team screen (`saved`: the user folder's file, one ScreenRulesText line), else none (the team
+// takes the server's default).
+std::optional<HostRules> OwnRulesAtStart(const char* env_rules, const char* env_harder,
+                                         std::string_view saved);
+// Kaniel 2026-11-11: the team settings that are not rules (how the team is joined, invaders, the
+// death mode: bbcoop::Team's join, allow_invaders and death_mode) are kept for the leader's next
+// team too: one line "join,invaders,deaths" (join 0-2, the others 0/1) in the user folder.
+struct TeamChoices {
+    u32 join = 0; // bbcoop::Team::Join: invite only, ask, open
+    bool invaders = false;
+    u32 death_mode = 0; // DeathMode: down, spectate
+    bool operator==(const TeamChoices&) const = default;
+};
+std::string TeamChoicesText(const TeamChoices& choices);
+std::optional<TeamChoices> ParseTeamChoices(std::string_view text);
+// What a team just made (`team`: the server's, its defaults unless something set them, a quick
+// match's open team for one) takes from the leader's kept ones: each choice the team still has at
+// its default and the leader kept otherwise. The team's own where nothing is to take.
+TeamChoices ChoicesForNewTeam(const TeamChoices& team, const TeamChoices& kept);
 // The team's strength from its rules' three numbers (TeamRules enemy_hp/damage/poise): all 0 is
 // none (the standard); a 0 among others is that one's standard value.
 std::optional<HarderEnemies> TeamStrength(float hp, float damage, float poise);
@@ -249,11 +277,29 @@ constexpr s32 GoalCommonTurn = 2001;
 constexpr s32 GoalCommonLeaveTarget = 2016;
 constexpr s32 GoalCommonSidewayMove = 2017;
 bool IsBossTempoGoal(s32 goal);
-// A cut goal's life: one frame or two, so the next act comes right away.
+// The shortest a cut goal's life ever is: one frame or two.
 constexpr float CutGoalLife = 0.05f;
-// The life a boss's `goal` gets for the scripts' `life` (0 or less: no limit, kept), with `roll`
-// (0-99) against the tuning's odds; never longer than the game's.
-float BossGoalLife(s32 goal, float life, const BossTempoTuning& tuning, u32 roll);
+// Discord audit 2026-11-13 T5 (Backand: Rom cast nonstop at Aggressive): a cut breather still
+// keeps a short pause, the level's `gap` in seconds (0.5 s Aggressive, 0.25 s Relentless), so a
+// caster's spells never chain with nothing between them.
+float BossPauseFloor(const BossTempoTuning& tuning);
+// One boss's breathers in a row: Life is the life a boss's `goal` gets for the scripts' `life`
+// (0 or less: no limit, kept), with `roll` (0-99) against the tuning's odds; never longer than
+// the game's. A cut one keeps BossPauseFloor (never more than a kept one), and the next Wait,
+// LeaveTarget or SidewayMove after a cut is never cut (a Turn is never cut and keeps the streak),
+// so at most every other pause of a boss goes.
+class BossBreathers {
+public:
+    BossBreathers() = default;
+    explicit BossBreathers(bool after_cut) : after_cut_{after_cut} {}
+    float Life(s32 goal, float life, const BossTempoTuning& tuning, u32 roll);
+    bool AfterCut() const {
+        return after_cut_;
+    }
+
+private:
+    bool after_cut_ = false;
+};
 
 // AddSubGoal (0x0124CC60): goal (rdi), its new sub-goal's id (esi), life time (xmm0), up to
 // seven float parameters and more on the stack; every Lua overload and the native goals call it.

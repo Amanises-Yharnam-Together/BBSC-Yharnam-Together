@@ -240,6 +240,7 @@
  "Camera down": "カメラ下",
  "Camera left": "カメラ左",
  "Camera right": "カメラ右",
+ "Walk (hold with the move keys)": "歩く（移動キーと一緒に押し続ける）",
  "Vitality": "体力",
  "Endurance": "持久力",
  "Strength": "筋力",
@@ -556,5 +557,11 @@
  "The co-op server at %s did not accept your login or password": "協力サーバー %s がログイン名またはパスワードを受け付けませんでした",
  "Check them in the launcher's co-op settings, then start the game again.": "ランチャーの協力プレイ設定で確認してから、ゲームを起動し直してください。",
  "Could not sign in to the co-op server at %s": "協力サーバー %s にサインインできませんでした",
- "Start the game again. If it stays, update the game and the server to the same release.": "ゲームを起動し直してください。解決しない場合は、ゲームとサーバーを同じバージョンに更新してください。"
+ "Start the game again. If it stays, update the game and the server to the same release.": "ゲームを起動し直してください。解決しない場合は、ゲームとサーバーを同じバージョンに更新してください。",
+ "Custom": "カスタム",
+ "Enemy HP": "敵のHP",
+ "Enemy damage": "敵のダメージ",
+ "Enemy poise": "敵の強靭度",
+ "Friendly fire": "フレンドリーファイア",
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "より厳しい狩りのために：仲間の攻撃が常に互いにダメージを与えます。仲間によるとどめは通常の死と同じ扱いです。"
 }

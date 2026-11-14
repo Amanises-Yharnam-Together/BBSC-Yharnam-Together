@@ -353,6 +353,75 @@ inline constexpr std::array OwnedWeaponFlags{
     OwnedWeaponFlag{6696, 34000000}, OwnedWeaponFlag{6697, 19100000},
 };
 
+// A shop row's stock flag (ShopLineupParam's eventFlag, 01.09): a row that sells one (sellQuantity
+// 1) shows "sold out" once its flag is on, and only the purchase itself sets it. The Bath
+// messengers' attire (100000-149999: Yharnam Hunter, Gehrman's, Crowfeather, Tomb Prospector,
+// Gold Ardeo, Cainhurst, the Hunter Chief Emblem), the Insight messenger's (200000-200099: the
+// bells, Henryk's, Gascoigne's, Ashen, Bone Ash, Madman, Maria's) and the chalice messengers'
+// Sinister root chalices (510000-540000). As host world flags, the host's purchase sold the row
+// out in a guest's game, and the team's world kept it so after a restart (Fran on Discord,
+// 2026-11-10). Each player's own; `item` is the inventory id it sells (category bits included).
+struct ShopStockFlag {
+    s32 flag;
+    u32 item;
+};
+inline constexpr u32 ShopArmor = 0x10000000;
+inline constexpr u32 ShopGoods = 0x40000000;
+inline constexpr std::array ShopStockFlags{
+    ShopStockFlag{6610, ShopGoods | 205},        // Small Resonant Bell
+    ShopStockFlag{6650, ShopGoods | 225},        // Sinister Resonant Bell
+    ShopStockFlag{70009000, ShopArmor | 60000},  // Yharnam Hunter Cap
+    ShopStockFlag{70009010, ShopArmor | 61000},  // Yharnam Hunter Garb
+    ShopStockFlag{70009020, ShopArmor | 62000},  // Yharnam Hunter Gloves
+    ShopStockFlag{70009030, ShopArmor | 63000},  // Yharnam Hunter Trousers
+    ShopStockFlag{70009040, ShopArmor | 200000}, // Gehrman's Hunter Cap
+    ShopStockFlag{70009050, ShopArmor | 201000}, // Gehrman's Hunter Garb
+    ShopStockFlag{70009060, ShopArmor | 203000}, // Gehrman's Hunter Trousers
+    ShopStockFlag{70009070, ShopArmor | 180000}, // Beak Mask
+    ShopStockFlag{70009080, ShopArmor | 181000}, // Crowfeather Garb
+    ShopStockFlag{70009090, ShopArmor | 182000}, // Crowfeather Manchettes
+    ShopStockFlag{70009100, ShopArmor | 183000}, // Crowfeather Trousers
+    ShopStockFlag{70009110, ShopArmor | 140000}, // Tomb Prospector Hood
+    ShopStockFlag{70009120, ShopArmor | 141000}, // Tomb Prospector Garb
+    ShopStockFlag{70009130, ShopArmor | 142000}, // Tomb Prospector Gloves
+    ShopStockFlag{70009140, ShopArmor | 143000}, // Tomb Prospector Trousers
+    ShopStockFlag{70009150, ShopArmor | 150000}, // Gold Ardeo
+    ShopStockFlag{70009160, ShopArmor | 100000}, // Cainhurst Helmet
+    ShopStockFlag{70009170, ShopArmor | 101000}, // Cainhurst Armor
+    ShopStockFlag{70009180, ShopArmor | 102000}, // Cainhurst Gauntlets
+    ShopStockFlag{70009190, ShopArmor | 103000}, // Cainhurst Leggings
+    ShopStockFlag{70009200, ShopGoods | 6302},   // Sinister Lower Pthumeru Root Chalice
+    ShopStockFlag{70009210, ShopGoods | 6312},   // Sinister Hintertomb Root Chalice
+    ShopStockFlag{70009220, ShopGoods | 6502},   // Sinister Pthumeru Ihyll Root Chalice
+    ShopStockFlag{70009230, ShopGoods | 6522},   // Sinister Lower Loran Root Chalice
+    ShopStockFlag{70009240, ShopGoods | 6532},   // Sinister Isz Root Chalice
+    ShopStockFlag{70009250, ShopGoods | 4011},   // Hunter Chief Emblem
+    ShopStockFlag{70009260, ShopArmor | 50000},  // Henryk's Hunter Cap
+    ShopStockFlag{70009270, ShopArmor | 51000},  // Henryk's Hunter Garb
+    ShopStockFlag{70009280, ShopArmor | 52000},  // Henryk's Hunter Gloves
+    ShopStockFlag{70009290, ShopArmor | 53000},  // Henryk's Hunter Trousers
+    ShopStockFlag{70009300, ShopArmor | 130000}, // Gascoigne's Cap
+    ShopStockFlag{70009310, ShopArmor | 131000}, // Gascoigne's Garb
+    ShopStockFlag{70009320, ShopArmor | 132000}, // Gascoigne's Gloves
+    ShopStockFlag{70009330, ShopArmor | 133000}, // Gascoigne's Trousers
+    ShopStockFlag{70009340, ShopArmor | 10000},  // Gray Wolf Cap
+    ShopStockFlag{70009350, ShopArmor | 241000}, // Ashen Hunter Garb
+    ShopStockFlag{70009360, ShopArmor | 242000}, // Ashen Hunter Gloves
+    ShopStockFlag{70009370, ShopArmor | 243000}, // Ashen Hunter Trousers
+    ShopStockFlag{70009380, ShopArmor | 40000},  // Bone Ash Mask
+    ShopStockFlag{70009390, ShopArmor | 41000},  // Bone Ash Armor
+    ShopStockFlag{70009400, ShopArmor | 42000},  // Bone Ash Gauntlets
+    ShopStockFlag{70009410, ShopArmor | 43000},  // Bone Ash Leggings
+    ShopStockFlag{70009420, ShopArmor | 210000}, // Madman Hood
+    ShopStockFlag{70009430, ShopArmor | 211000}, // Madman Garb
+    ShopStockFlag{70009440, ShopArmor | 212000}, // Madman Manchettes
+    ShopStockFlag{70009450, ShopArmor | 213000}, // Madman Leggings
+    ShopStockFlag{70009460, ShopArmor | 370000}, // Maria Hunter Cap
+    ShopStockFlag{70009470, ShopArmor | 371000}, // Maria Hunter Garb
+    ShopStockFlag{70009480, ShopArmor | 372000}, // Maria Hunter Gloves
+    ShopStockFlag{70009490, ShopArmor | 373000}, // Maria Hunter Trousers
+};
+
 // The Dream's headstones (m21_00 12105020-12105024, 01.09): each one's flag is on while any of
 // its lamps' active flags is (0 pads a list). Its talk (t210000-t210004) reads only that flag:
 // off, "no place to awaken". Each game works it out from its own lamps (HeadstoneLampsLit).
@@ -403,11 +472,17 @@ inline constexpr std::array FirstRows{
     Range(6071, 6085, FlagOwner::PerPlayer, FlagCarriesHome,
           "the Bath messengers' attire this player received (m21_00 12100020 from its goods "
           "4900-4914, 12105064's gifts): the stump's talk lists it, each player's own"),
+    Range(6610, 6610, FlagOwner::PerPlayer, FlagCarriesHome,
+          "the Insight messenger's Small Resonant Bell sold (ShopStockFlags; also shows the "
+          "Sinister one): this player's own purchase"),
     Range(6630, 6633, FlagOwner::PerPlayer, FlagCarriesHome,
           "holds a workshop tool (HeldItemFlags, the Dream's 12100450): what this player holds"),
     Range(6640, 6649, FlagOwner::PerPlayer, FlagCarriesHome,
           "holds a hunter badge (HeldItemFlags): what this player holds; as the host's (a team "
           "world) a guest never got its own Sword Hunter Badge from the Cleric Beast"),
+    Range(6650, 6650, FlagOwner::PerPlayer, FlagCarriesHome,
+          "the Insight messenger's Sinister Resonant Bell sold (ShopStockFlags): this player's "
+          "own purchase"),
     Range(6680, 6697, FlagOwner::PerPlayer, FlagCarriesHome,
           "had a weapon the Bath shop then sells (OwnedWeaponFlags, common events 6680-6697: "
           "Ludwig's Holy Blade, the DLC weapons): this player's own"),
@@ -528,6 +603,17 @@ inline constexpr std::array LastRows{
               .rule = {FlagOwner::Shared, FlagCarriesHome | FlagTakesHostMap},
               .why = "a lamp's active flag (10007810 + map * 10000 + lamp * 20, maps 210-399, "
                      "lamps 0-19) and the one after: the game does not sync them"},
+    FlagRange{.first = 70009000,
+              .last = 70009490,
+              .period = 10,
+              .low = 0,
+              .high = 0,
+              .rule = {FlagOwner::PerPlayer, FlagCarriesHome},
+              .why = "a shop row's \"sold out\" (ShopStockFlags, 70009000 + 10 * row: the Bath "
+                     "and Insight messengers' attire, the Sinister root chalices, the Hunter "
+                     "Chief Emblem): this player's own purchase; as the host's, the host's buy "
+                     "sold it out for a guest, and the team's world kept it so (Fran, "
+                     "2026-11-10)"},
     Range(70000007, 70000007, FlagOwner::PerPlayer, FlagCarriesHome,
           "an NPC's gesture given (GestureFlags: t240339's Church Bow (Female))"),
     FlagRange{.first = 12004000,

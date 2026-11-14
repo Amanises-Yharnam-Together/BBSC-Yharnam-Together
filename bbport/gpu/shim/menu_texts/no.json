@@ -240,6 +240,7 @@
  "Camera down": "Kamera ned",
  "Camera left": "Kamera venstre",
  "Camera right": "Kamera høyre",
+ "Walk (hold with the move keys)": "Gå (hold inne sammen med bevegelsestastene)",
  "Vitality": "Vitalitet",
  "Endurance": "Utholdenhet",
  "Strength": "Styrke",
@@ -556,5 +557,11 @@
  "The co-op server at %s did not accept your login or password": "Co-op-serveren på %s godtok ikke brukernavnet eller passordet ditt",
  "Check them in the launcher's co-op settings, then start the game again.": "Sjekk dem i co-op-innstillingene i launcheren, og start deretter spillet på nytt.",
  "Could not sign in to the co-op server at %s": "Kunne ikke logge inn på co-op-serveren på %s",
- "Start the game again. If it stays, update the game and the server to the same release.": "Start spillet på nytt. Hvis det fortsetter, oppdater spillet og serveren til samme versjon."
+ "Start the game again. If it stays, update the game and the server to the same release.": "Start spillet på nytt. Hvis det fortsetter, oppdater spillet og serveren til samme versjon.",
+ "Custom": "Egendefinert",
+ "Enemy HP": "Fiendenes HP",
+ "Enemy damage": "Fiendenes skade",
+ "Enemy poise": "Fiendenes balanse",
+ "Friendly fire": "Egen ild",
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "For en hardere jakt: lagkameraters angrep skader hverandre hele tiden. Et drepende slag fra en lagkamerat teller som enhver annen død."
 }

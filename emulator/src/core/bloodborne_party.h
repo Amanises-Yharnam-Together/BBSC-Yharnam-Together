@@ -1075,6 +1075,11 @@ bool HoldsWeapon(u32 weapon, std::span<const u32> held);
 // weapons only (Kaniel 2026-10-21). The value it must take, else nothing.
 std::optional<bool> OwnedWeaponFlagFix(bool party_configured, bool flag_on, bool holds,
                                        bool recheck);
+// A shop row's stock flag (ShopStockFlags) in a party: off once per save slot (`recheck`) while
+// this player holds none of what the row sells (`holds`: the inventory, not the storage box), so
+// a save that took the host's purchase from a team world can buy the row itself (Fran 2026-11-10);
+// never set: only the player's own purchase does that. The value it must take, else nothing.
+std::optional<bool> ShopStockFlagFix(bool party_configured, bool flag_on, bool holds, bool recheck);
 // Common events 5500-5521 (the Uncanny and Lost DLC weapons) end at once unless the local player
 // is a host-type character (4:3 10000 type 0, then 1000:2), and an event that ends sets its own
 // flag: a phantom guest's game set all 22 on every load in a session, so the shop sold them all
@@ -1540,6 +1545,13 @@ public:
     // warp without a load screen), committed at once.
     static constexpr float TeleportMeters = 50.0f;
     static constexpr s64 TeleportWindowMs = 1'000;
+    // Discord 2026-11-12 (Raziel, 1.5.0): a guest's game kept its loading flag up for minutes
+    // after its trip after the join, its character standing and playing in the world (its stage
+    // transition's gate at eboot 0x01940FD5 never opened). A Loading with a character standing
+    // at a position for this long is a load that ended: it plays on the map it reads, else on
+    // the last one. A healthy reload in place holds that state about 3.5 s, a lamp trip out of a
+    // session up to 14 s (rig 2026-11-13, joins restart-keeps: gate +0x1547 and +0x1548 set).
+    static constexpr s64 StandingInLoadMs = 30'000;
 
     std::optional<PlaceChange> Update(const PlaceReading& reading);
     const Place& Current() const {
@@ -1559,6 +1571,22 @@ private:
     bool arrival_due = false; // a new player character: the world loaded between two ticks
     bool trip_seen = false;
     bool death_seen = false;
+    std::optional<s64> standing_since;  // a character stood at a position since, in this stretch
+    bool loading_flag_outlived = false; // Playing although the loading flag stays up
+};
+// Discord 2026-11-12 (Raziel, 1.5.0): a guest's vitals said map 0 for six minutes after its trip
+// after the join while it played on, so its host never showed it, and production logs could not
+// say which reading held its place in Loading. Tick says it once, when a stretch of Loading has
+// had a character in the world for StuckMs: what holds it ("the loading flag", "the map read
+// 0x..."), for a warning production logs keep.
+class StuckLoadWatch {
+public:
+    static constexpr s64 StuckMs = 20'000; // before PlaceTracker::StandingInLoadMs ends it
+    std::optional<std::string> Tick(PlaceState state, const PlaceReading& reading);
+
+private:
+    std::optional<s64> stands; // since when a character stood in the world in this Loading
+    bool said = false;
 };
 std::string_view PlaceStateName(PlaceState state);
 std::string_view PlaceCauseName(PlaceCause cause);
@@ -2084,6 +2112,52 @@ public:
 private:
     std::optional<s64> joined_ms;
     bool done = false;
+};
+// Kaniel 2026-11-11 (on by default after the rig comparison; SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN=0
+// turns it off, see TripsAfterJoin): many
+// co-op bugs show only between a join and a player's first trip. Joined, a guest is a white
+// phantom (type 1) in the host's world; after any trip it is a live player (type 0) and every
+// member runs its own copy of the map, which most of the party code is built around. So a guest
+// that joined makes one trip right away, a reload in place where it stands. Tick says when: a
+// party guest still a phantom, SettleMs after it `arrived` in the session's world and SettleMs
+// with nothing `busy` (a load, a trip, its arrival's placing, no position, dead), within
+// WindowMs of the arrival; once per session.
+// Due says whether that trip is still to come (rig 2026-11-11: a guest that joined on another map
+// than its host had the team's loading screen open after 1 s and the trip's load 9-14 s later, a
+// second loading screen in the middle of play): the team's load counts the guest as loading while
+// it is, so the one screen stays up over both: from the join on (the guest becomes a phantom only
+// as it arrives in the session's world), then while it is a phantom. Not where no trip is made
+// (`never_here`, a chalice dungeon), and for HoldMs after the join at most, so a trip that cannot
+// start (the guest busy, down) never keeps the screen.
+bool TripsAfterJoin(const char* setting);
+class TripAfterJoin {
+public:
+    static constexpr s64 SettleMs = 3000;
+    static constexpr s64 WindowMs = 60000;
+    static constexpr s64 HoldMs = 30000;
+    struct Input {
+        bool switched_on = false;
+        bool guest = false;
+        bool in_session = false;
+        bool arrived = false;
+        bool phantom = false;
+        bool busy = false;
+        bool never_here = false;
+        s64 now_ms = 0;
+    };
+    bool Tick(const Input& in);
+    // After Tick with the same input.
+    bool Due(const Input& in) const;
+    // Whether this session's trip went: a join's re-create (RecreateAfterJoin) is then the trip's.
+    bool Went() const {
+        return went;
+    }
+
+private:
+    std::optional<s64> joined_ms;
+    std::optional<s64> arrived_ms;
+    std::optional<s64> calm_since;
+    bool went = false;
 };
 // Kaniel 2026-11-03: Lisara's game dropped out of the room and joined again within a second. The
 // member count never stayed down for MemberDepartures, so nothing re-created her and the host saw
@@ -4358,6 +4432,17 @@ public:
 private:
     std::vector<CopyTeam> saved; // each taken body's own team
 };
+// Kaniel 2026-11-11, the friendly fire rule ("you hit your teammates always ... just for harder
+// play"): with it `on`, every other player's body in this world (`present`) is struck as a downed
+// one is, on the invaders' team, so the game's own hits land on it (as in a duel); its own team
+// comes back when the rule goes off. The bodies for DownedTeams::Tick's `downed`: the downed ones
+// (`downed`) and, with the rule, the rest of `present`.
+std::vector<CopyTeam> WithFriendlyFire(std::vector<CopyTeam> downed,
+                                       std::span<const CopyTeam> present, bool on);
+// Whether the body `handle`, on team `team`, is a downed member's: on the invaders' team, and
+// not only for the friendly fire (`friendly_fire`, the rule's bodies; `downed`, the downed ones).
+bool OnDownedTeam(u32 handle, s32 team, std::span<const u32> downed,
+                  std::span<const u32> friendly_fire);
 // Another player's body in this world and where it stands.
 struct BodyPosition {
     u32 handle = 0;

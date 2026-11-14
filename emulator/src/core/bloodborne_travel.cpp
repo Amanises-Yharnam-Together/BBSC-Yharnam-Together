@@ -273,6 +273,13 @@ std::optional<LampPoint> guest_trip_planned;
 // The arrival's move tries left (ArrivalMoveTries: the lamp may resolve only once the dungeon's
 // blocks loaded).
 int guest_trip_fixup_tries = 0;
+// The trip in flight is TripAfterJoin's reload in place: its arrival goes back to the spot it
+// left, never to a lamp.
+bool guest_trip_in_place = false;
+// TripAfterJoin::Due as of the last tick, for the team's load (TripAfterJoinDue).
+std::atomic<bool> trip_after_join_due{false};
+// Rig only (SHADPS4_BLOODBORNE_TEST_STUCK_LOAD=<seconds>, see StuckLoadTestHolds).
+std::atomic<s64> stuck_load_test_until_ms{0};
 
 } // namespace
 
@@ -294,6 +301,22 @@ void TickGuestLampTrip() {
                  "planned at the lamp={}",
                  at.has_value(), at ? (*at)[0] : 0.0f, at ? (*at)[1] : 0.0f, at ? (*at)[2] : 0.0f,
                  guest_trip_planned.has_value());
+        if (std::exchange(guest_trip_in_place, false) && guest_trip_planned) {
+            if (ArrivalNeedsMove(&*guest_trip_planned, at)) {
+                TeleportLocalPlayer(
+                    {guest_trip_planned->x, guest_trip_planned->y, guest_trip_planned->z},
+                    guest_trip_planned->heading);
+                LOG_INFO(Debug, "Bloodborne party: trip after the join put back where it left");
+            }
+            guest_trip_fixup_tries = 0;
+            guest_trip_planned.reset();
+            if (const char* hold = std::getenv("SHADPS4_BLOODBORNE_TEST_STUCK_LOAD");
+                hold != nullptr && std::atoi(hold) > 0) {
+                stuck_load_test_until_ms.store(SteadyMilliseconds() + 1000LL * std::atoi(hold));
+                LOG_INFO(Debug, "Bloodborne party: test: the loading flag held up {} s", hold);
+            }
+            return;
+        }
         if (ArrivalNeedsMove(guest_trip_planned ? &*guest_trip_planned : nullptr, at) &&
             !MoveToRespawnPoint(true) && ++guest_trip_fixup_tries < ArrivalMoveTries) {
             LOG_INFO(Debug,
@@ -2002,9 +2025,112 @@ void KeepOwnedWeaponFlagsOwn() {
     }
 }
 
+// See ShopStockFlagFix: once per save slot (a file marks it done) in a loaded world, a shop row's
+// stock flag goes off while this player holds none of what it sells, so a save that took the
+// host's purchases from a team world can buy them itself.
+void KeepShopStockOwn() {
+    static int checked_slot = -2;
+    if (!party_controller || GetLocalPlayer() < 0x10000 || !PlayerItemsReadable() ||
+        !IsUsablePackedMap(PlayingMap())) {
+        return;
+    }
+    const int slot = character_slot.load();
+    if (slot == checked_slot) {
+        return;
+    }
+    checked_slot = slot;
+    const auto marker = Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
+                        fmt::format("bloodborne_party_shop_stock_slot{}.txt", slot);
+    std::error_code error;
+    if (slot < 0 || std::filesystem::exists(marker, error)) {
+        return;
+    }
+    const std::vector<u32> held = HeldItemIds();
+    int cleared = 0;
+    for (const ShopStockFlag& stock : ShopStockFlags) {
+        const bool holds = std::ranges::find(held, stock.item) != held.end();
+        const auto fix = ShopStockFlagFix(true, EventFlagOn(stock.flag), holds, true);
+        if (!fix) {
+            continue;
+        }
+        reinterpret_cast<bool PS4_SYSV_ABI (*)(u64, s32, bool)>(
+            image_base + PartyGhostSetEventFlagOffset)(0, stock.flag, *fix);
+        ++cleared;
+    }
+    std::ofstream{marker} << "rechecked" << std::endl;
+    LOG_INFO(Debug,
+             "Bloodborne party: cleared {} shop stock flags in save slot {} (items this character "
+             "does not hold)",
+             cleared, slot);
+}
+
 } // namespace
 
 namespace Coop {
+
+// See TripAfterJoin (SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN=0 turns it off): a guest just joined makes
+// one trip, a reload in place, so it plays as it would after any trip. Not in a chalice dungeon
+// (area 0x1D): its layout is built by the load, and a reload in place there is not tried yet.
+void TickTripAfterJoin(TripAfterJoin& trip, bool in_session, u32 map) {
+    static const bool switched_on =
+        TripsAfterJoin(std::getenv("SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN"));
+    if (!switched_on) {
+        return;
+    }
+    const u64 player = GetLocalPlayer();
+    const bool readable = player >= 0x10000 && HasMemoryAccess(player, 0x7C, MemoryProt::CpuRead);
+    const u64 global = GetGlobalState();
+    const bool loading = global < 0x10000 || ReadValue<u8>(global, 0x08) != 0;
+    const auto at = LocalPlayerPosition();
+    const bool busy = loading || !readable || !at || PartyTripActive() || guest_trip_in_flight ||
+                      guest_trip_fixup_at.has_value() || guest_lamp_trip_at.has_value() ||
+                      TeamResumeDue() || CharacterHp(player) <= 0 || !IsUsablePackedMap(map);
+    const TripAfterJoin::Input input{
+        .switched_on = true,
+        .guest = IsPartyGuestRole(),
+        .in_session = in_session,
+        .arrived = in_session && InSessionWorld(),
+        .phantom = readable && ReadValue<s32>(player, 0x78) == WhiteGhostCharacterType,
+        .busy = busy,
+        .never_here = (map >> 24) == 0x1D,
+        .now_ms = SteadyMilliseconds(),
+    };
+    const bool go = trip.Tick(input);
+    // The team's loading screen stays up until the trip went (UpdateTeamLoad), unless the guest
+    // is dead or down: that is for the player to see.
+    trip_after_join_due.store(trip.Due(input) && (!readable || CharacterHp(player) > 0),
+                              std::memory_order_relaxed);
+    if (!go) {
+        return;
+    }
+    const LampPoint here{
+        .warp_point = 0,
+        .packed_map = map,
+        .x = (*at)[0],
+        .y = (*at)[1],
+        .z = (*at)[2],
+        .heading = LocalPlayerHeading().value_or(0.0f),
+    };
+    if (!WarpGuestToLampPoint(here)) {
+        LOG_WARNING(Debug, "Bloodborne party: trip after the join did not start (map {:#x})", map);
+        return;
+    }
+    guest_trip_planned = here;
+    guest_trip_in_place = true;
+    guest_trip_in_flight = true;
+    LOG_INFO(Debug,
+             "Bloodborne party: trip after the join: reloading in place on map {:#x} ({}, {}, {})",
+             map, here.x, here.y, here.z);
+}
+
+bool TripAfterJoinDue() {
+    return trip_after_join_due.load(std::memory_order_relaxed);
+}
+
+bool StuckLoadTestHolds() {
+    const s64 until = stuck_load_test_until_ms.load(std::memory_order_relaxed);
+    return until != 0 && SteadyMilliseconds() < until;
+}
 
 void TickPlayersOnThisMap() {
     if (CoopTraceOn()) {
@@ -2092,14 +2218,18 @@ void TickPlayersOnThisMap() {
     KeepGestureFlagsOwn();
     KeepGiftTalkFlagsOwn();
     KeepOwnedWeaponFlagsOwn();
+    KeepShopStockOwn();
     KeepHeadstoneFlagsOwn();
     EndDollBlessingWhenSheIsHit();
     ClearDollLevelUpFlagAfterHerBlessing();
     KeepDollGiveFlagOwn();
+    static TripAfterJoin trip_after_join;
+    TimeTickStep("TripAfterJoin", [&] { TickTripAfterJoin(trip_after_join, in_session, map); });
     static RecreateAfterJoin recreate_after_join;
     if (recreate_after_join.Tick(IsPartyGuestRole(), in_session,
                                  in_session ? OtherSessionMembers().size() : 0,
-                                 in_session && InSessionWorld(), SteadyMilliseconds())) {
+                                 in_session && InSessionWorld(), SteadyMilliseconds()) &&
+        !trip_after_join.Went()) { // the trip's own re-create builds the others' copies
         LOG_INFO(Debug, "Bloodborne party: joined where another guest is; re-creating the others");
         recreate_pending_after_join =
             RecreateIsForAJoin(recreate_players_pending, recreate_pending_after_join);

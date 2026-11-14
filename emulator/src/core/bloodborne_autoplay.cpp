@@ -1074,7 +1074,8 @@ bool AutoplayReviveDowned(const AutoplayStep& step) {
             continue;
         }
         const bool is_downed =
-            ReadValue<s32>(other.character, CharacterTeamOffset) == DownedTeams::Hostile;
+            Coop::BodyOnDownedTeam(ReadValue<u32>(other.character, 0x08),
+                                   ReadValue<s32>(other.character, CharacterTeamOffset));
         const float d = std::hypot((*other.at)[0] - posted[0], (*other.at)[2] - posted[2]);
         if (d < 4.0f &&
             ((is_downed && !nearest_downed) || (is_downed == nearest_downed && d < nearest))) {
@@ -2194,6 +2195,13 @@ bool AutoplayTeamVerb(const AutoplayStep&) {
     return true;
 }
 
+// Kaniel 2026-11-11 (the friendly fire rule, set mid-hunt): team-rules <rules> and
+// team-wait-rules <rules> work in the world too, as the leader's team screen in game does
+// (RunTeamTitleVerb: at once when the team has those rules already, as after the title's).
+bool AutoplayTeamRulesVerb(const AutoplayStep& step) {
+    return Coop::RunTeamTitleVerb(step.command, step.begun, step.elapsed, step.failure);
+}
+
 // Kaniel 2026-10-16: the team menu in game, what its buttons do (menu-invite <online id>,
 // menu-kick <online id>, menu-join, menu-leave; each [timeout]). Invasions: menu-invade,
 // menu-invade-leave, menu-allow-invaders <0|1>, wait-invader <0|1> (RunTeamMenuVerb).
@@ -2531,6 +2539,31 @@ bool AutoplayDuelStrike(const AutoplayStep& step) {
     return false;
 }
 
+// Kaniel 2026-11-11, the friendly fire rule: strike-player <seconds> [down]: light attacks on the
+// nearest other player from each side in turn (as duel-strike) for <seconds>; with "down", until
+// a teammate on the board is down (a failure after <seconds>).
+bool AutoplayStrikePlayer(const AutoplayStep& step) {
+    const bool until_down = step.Arg(1) == "down";
+    const VitalsView view = ReadVitalsBoard();
+    const bool down = std::ranges::any_of(view.board.members, [&](const MemberVitals& member) {
+        return member.member != view.member && member.vital == Vital::Down;
+    });
+    if (until_down ? down : step.elapsed > step.Number(0, 10)) {
+        autoplay_buttons.store(0);
+        LOG_INFO(Debug, "Bloodborne autoplay: strikes at a teammate done after {:.1f} s{}",
+                 step.elapsed, down ? " (a teammate is down)" : "");
+        return true;
+    }
+    if (const auto found = FindAutoplayCharacter(AutoplayPlayer)) {
+        AutoplayAttackCycle(*found, step.elapsed, false);
+    }
+    if (until_down && step.elapsed > step.Number(0, 10)) {
+        autoplay_buttons.store(0);
+        step.failure = fmt::format("no teammate down after {:.0f} s of strikes", step.elapsed);
+    }
+    return false;
+}
+
 bool AutoplayWaitDuel(const AutoplayStep& step) {
     static constexpr std::array<std::string_view, 6> Parts{"none",      "asked",    "answered",
                                                            "countdown", "fighting", "out"};
@@ -2596,6 +2629,7 @@ constexpr auto AutoplayVerbs = std::to_array<std::pair<std::string_view, Autopla
     {"duel-answer", AutoplayDuelAnswer},
     {"wait-duel", AutoplayWaitDuel},
     {"duel-strike", AutoplayDuelStrike},
+    {"strike-player", AutoplayStrikePlayer},
     {"wait-flag", AutoplayExpectOrWaitFlag},
     {"flags", AutoplayLogFlags},
     {"altar-record", AutoplayAltarRecord},
@@ -2647,8 +2681,8 @@ constexpr auto AutoplayVerbs = std::to_array<std::pair<std::string_view, Autopla
     {"team-wait", AutoplayTeamVerb},
     {"team-leave", AutoplayTeamVerb},
     {"team-open", AutoplayTeamVerb},
-    {"team-rules", AutoplayTeamVerb},
-    {"team-wait-rules", AutoplayTeamVerb},
+    {"team-rules", AutoplayTeamRulesVerb},
+    {"team-wait-rules", AutoplayTeamRulesVerb},
     {"team-join-open", AutoplayTeamVerb},
     {"team-wait-open", AutoplayTeamVerb},
     {"team-code-share", AutoplayTeamVerb},

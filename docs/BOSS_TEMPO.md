@@ -12,9 +12,11 @@ moves, damage and HP stay the game's.
 | Relentless | x0.25                 | about a quarter         | x1.6                |
 
 It is wired like the other host rules (`TeamRules.boss_tempo` in the server's team, the RULES
-request from the leader only): the launcher's Co-op page (step 2, "Boss tempo") writes
-`aggressive` or `relentless` into `SHADPS4_BLOODBORNE_HOST_RULES`, and the team screen shows
-"Host rules: ... Boss tempo: Relentless" to everyone.
+request from the leader only): the leader picks it on the game's team screen (Team settings,
+"Boss tempo"), everyone sees it there, and the game keeps the leader's rules for its next start
+(`bloodborne_team_rules.txt` in the user folder). The launcher has no party settings (Kaniel
+2026-11-11); for the rig and development `aggressive` or `relentless` in
+`SHADPS4_BLOODBORNE_HOST_RULES` still sets it.
 
 For tuning, `SHADPS4_BLOODBORNE_BOSS_TEMPO=gap,odds,turn,anim` replaces a level's numbers while
 that level is on (gap in (0, 1], odds in [0, 1], turn and anim in [0.5, 4]; `anim` is not used
@@ -62,9 +64,17 @@ runner's game only) checks the goal id and whether the AI's character is one of 
 map (found once a second on the game's thread, `TickBossTempo`), and then:
 
 - scales the life of the four breather goals by `gap`;
-- cuts a Wait, LeaveTarget or SidewayMove to 0.05 s unless a roll (0-99) is under `odds`; that
+- cuts a Wait, LeaveTarget or SidewayMove short unless a roll (0-99) is under `odds`; that
   is the act-after chance times `odds`, and the same for the breathers inside an act. A Turn is
   never cut (the boss would swing facing away).
+
+A cut breather still keeps a short pause, the level's `gap` in seconds (0.5 s Aggressive, 0.25 s
+Relentless; never more than the halved breather), and a boss never gets two cuts in a row: the
+pause after a cut keeps its scaled time whatever the roll (a Turn neither cuts nor ends the
+streak). Until 1.5.1 a cut was 0.05 s and any number came in a row; Backand (Discord 2026-11-13,
+1.4.0, Aggressive) found Rom casting spell after spell with no pause, since a caster's act is one
+long spell and one breather (`BossBreathers`, bloodborne_host_rules.h; the streak is kept per
+boss in the hook).
 
 Lever B could also be the act-after roll itself, but that roll is an ordinary
 `ai:GetRandam_Int(1, 100)` in Lua, the same call every other roll makes; the goals it adds are
@@ -98,4 +108,5 @@ are cut the same way; they do nothing anyway.
 `boss-tempo-vanilla`, `boss-tempo-aggressive`, `boss-tempo-relentless` (Paarl fights the host
 alone for 90 s; each breather is logged as `goal 2000 Wait life 5.00 -> 2.50 (Aggressive)`) and
 `boss-tempo-party` (only the leader picks Relentless; the guest's game turns the bosses faster
-too).
+too). `boss-tempo-rom-vanilla` and `boss-tempo-rom-aggressive`: the host dives into Rom's lake alone
+and stands by her for 90 s; no breather of hers (or Paarl's) is cut below 0.10 s.

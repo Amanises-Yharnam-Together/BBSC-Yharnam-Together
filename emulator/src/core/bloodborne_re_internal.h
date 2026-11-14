@@ -355,6 +355,12 @@ size_t SessionMembers();
 // In the session and in its world (see SessionArrival): a summoned guest only once it arrived.
 // Party death counts and posts this member as in the party only then.
 bool InSessionWorld();
+// Whether a joined guest's trip in place is still to come (TripAfterJoin::Due, the last tick's).
+bool TripAfterJoinDue();
+// Rig only (SHADPS4_BLOODBORNE_TEST_STUCK_LOAD=<seconds>): for that long after the trip after the
+// join arrived, the place's reading says loading, as Raziel's guest's did for six minutes while it
+// played on (Discord 2026-11-12); the game itself is left alone.
+bool StuckLoadTestHolds();
 void ShowGuestBloodstain();
 void KeepGuestBloodstainMark();
 
@@ -689,9 +695,12 @@ u64 FindLoadedParam(std::string_view type);
 void KeepGuestFullHp();
 void HidePhantomGlow();
 void MakeEnemiesHarder();
-// Kaniel 2026-10-25, the host rules (bloodborne_host_rules.h): this launcher's own, and the ones
+// Kaniel 2026-10-25, the host rules (bloodborne_host_rules.h): this player's own (the ones it set
+// on the team screen, kept over starts; Kaniel 2026-11-11: the launcher has none), and the ones
 // this game plays by (its team's while in one, else its own).
-const HostRules& OwnHostRules();
+HostRules OwnHostRules();
+// Whether it has any of its own (none: the team it makes takes the server's default).
+bool HasOwnHostRules();
 HostRules ActiveHostRules();
 // Whether this game plays in a team (its rules the team's).
 bool InTeamNow();
@@ -1084,6 +1093,10 @@ void TeamLobbyRequest(bbcoop::TeamRequest::Action action, const std::string& id)
 // notice shows; whether the team allows invaders now.
 void InvasionRequest(bool cancel);
 void TeamAllowInvaders(bool allow);
+// Kaniel 2026-11-11: the leader's own press on the team screen's joining (OPEN, 0-2), invaders
+// (INVADERS, 0/1) or death mode (DEATH_MODE, 0/1) row: kept in the user folder, and the next team
+// this player makes takes it (a script's requests are not kept).
+void KeepTeamChoice(bbcoop::TeamRequest::Action action, u32 value);
 InvasionView InvasionViewNow();
 bool TeamAllowsInvaders();
 // This game is in a world it invades, or on its way in or home: that world is not its own (its
@@ -1100,6 +1113,9 @@ void RestoreInvasionHomeOnLoad();
 // finds them, InvaderBodies), its hits on the local player (the hit hook), whether a lethal check
 // lets the death through, and the invader's own death in the target's world (revived in place,
 // InvaderGoHome takes it home).
+// Kaniel 2026-11-11: whether another player's body (`handle`, on `team`) is a downed member's
+// (OnDownedTeam): the friendly fire rule's bodies are on the invaders' team standing up.
+bool BodyOnDownedTeam(u32 handle, s32 team);
 void SetInvaderHandles(std::vector<u32> handles);
 std::vector<u32> InvaderHandles();
 bool IsInvaderHandle(u32 handle);

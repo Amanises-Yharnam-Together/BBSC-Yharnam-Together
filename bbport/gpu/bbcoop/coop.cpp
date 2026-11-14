@@ -626,8 +626,12 @@ extern "C" int bbcoop_lobby_view(bbcoop_lobby* lobby) {
         lobby->rule_rot = rules.rot ? 1 : 0;
         lobby->rule_travel = rules.travel_together ? 1 : 0;
         lobby->rule_vote = rules.travel_vote ? 1 : 0;
-        lobby->rule_scale = rules.enemy_scaling ? 1 : 0;
+        // Out of a team with no rules of its own yet: the team it makes takes the server's default,
+        // Auto (Kaniel 2026-11-05), so the screen shows that and not Fixed.
+        lobby->rule_scale =
+            rules.enemy_scaling || (!Coop::InTeamNow() && !Coop::HasOwnHostRules()) ? 1 : 0;
         lobby->rule_tempo = static_cast<int>(rules.boss_tempo);
+        lobby->rule_friendly_fire = rules.friendly_fire ? 1 : 0;
         // Kaniel 2026-11-05: the team's enemy strength (the standard when it set none).
         const Core::Bloodborne::HarderEnemies strength = rules.enemies.value_or(
             Core::Bloodborne::HarderEnemies{Core::Bloodborne::HarderDefaultHp,
@@ -871,6 +875,7 @@ extern "C" void bbcoop_invade(int on) {
 }
 
 extern "C" void bbcoop_team_allow_invaders(int allow) {
+    Core::Bloodborne::Coop::KeepTeamChoice(bbcoop::TeamRequest::INVADERS, allow != 0 ? 1 : 0);
     Core::Bloodborne::Coop::TeamAllowInvaders(allow != 0);
 }
 
@@ -931,6 +936,13 @@ static_assert(BBCOOP_JOIN_INVITE_ONLY == bbcoop::Team::INVITE_ONLY &&
               BBCOOP_JOIN_ASK == bbcoop::Team::ASK && BBCOOP_JOIN_OPEN == bbcoop::Team::OPEN);
 
 extern "C" void bbcoop_lobby_request(int action, const char* id) {
+    // Kaniel 2026-11-11: the team screen's joining and death mode rows ("0", "1" or "2") are kept for
+    // the leader's next team.
+    if ((action == BBCOOP_TEAM_OPEN || action == BBCOOP_TEAM_DEATH_MODE) && id && id[0] >= '0' &&
+        id[0] <= '2' && id[1] == 0) {
+        Core::Bloodborne::Coop::KeepTeamChoice(static_cast<bbcoop::TeamRequest::Action>(action),
+                                               static_cast<u32>(id[0] - '0'));
+    }
     Core::Bloodborne::Coop::TeamLobbyRequest(static_cast<bbcoop::TeamRequest::Action>(action),
                                              id ? id : "");
 }

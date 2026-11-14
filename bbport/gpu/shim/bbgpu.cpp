@@ -38,6 +38,16 @@
 #include "sdl_window.h"
 #include "video_core/cache_storage.h"
 #include "video_core/renderer_vulkan/vk_rasterizer.h"
+#ifdef _WIN32
+// After the other headers, so that its macros reach none of them (TerminateProcess below).
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 extern "C" {
 // runtime_memory.c
@@ -246,6 +256,19 @@ std::thread g_window_thread;
 std::mutex g_window_mutex;
 std::condition_variable g_window_cv;
 bool g_window_ready;
+
+// bbport: ends the process at once (Supermedo 1.9.8.5). On Windows std::_Exit still goes through
+// ExitProcess, which first stops every other thread and then runs each loaded DLL's
+// process-detach code; a driver DLL (DLSS Frame Generation's) that waits there for one of its own
+// threads waits forever, and the game stayed in the background after its window was closed.
+// TerminateProcess runs no detach code.
+[[noreturn]] void EndProcessNow(int code) {
+    std::fflush(nullptr);
+#ifdef _WIN32
+    TerminateProcess(GetCurrentProcess(), static_cast<UINT>(code));
+#endif
+    std::_Exit(code);
+}
 } // namespace
 
 #ifdef BB_PGO_GENERATE
@@ -299,8 +322,7 @@ extern "C" int bbgpu_init(const BbGpuConfig* config) {
         bbcoop_window_closing();
         // The process ends here without destructors: caches that save at shutdown run now.
         Storage::RunShutdownHooks();
-        std::fflush(stdout);
-        std::_Exit(0);
+        EndProcessNow(0);
     });
     g_window_thread.detach();
     {

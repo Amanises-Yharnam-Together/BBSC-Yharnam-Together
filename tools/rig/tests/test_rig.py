@@ -33,6 +33,7 @@ VERBS = {
     "expect-stains", "pickup-stain",  # Kaniel 2026-10-20: bloodstains on the compass and map
     "ping-aim", "ping-map", "expect-pings",  # Kaniel 2026-10-24: team pings
     "duel-propose", "duel-answer", "duel-cancel", "wait-duel", "duel-strike",  # 2026-10-25: duels
+    "strike-player",  # Kaniel 2026-11-11: the friendly fire rule
     "pickup", "hit", "rise", "approach-downed", "revive-downed", "wait-vital", "wait-member-vital",
     "shot", "expect-hidden", "expect-disabled", "set-disabled", "census", "peek", "poke", "dump", "raise-stat",
     "add-effect",  # #300: Insight for Hemwick's mist ambush
@@ -137,6 +138,119 @@ class ScenarioTest(unittest.TestCase):
                 godmode = [command for command in commands if command.split()[0] == "godmode"]
                 with self.subTest(scenario=name, role=role):
                     self.assertEqual(godmode, ["godmode"])
+
+    def test_a_fighter_stands_out_of_roms_swings_while_a_teammate_dies_to_spectate(self):
+        # Full rig 2026-11-10 (1.5.0, rom-retry red twice): the host stood 5 m from Rom in
+        # godmode, her later phase put it down, and the guest's death was the party's wipe, as
+        # the game means it: no spectate. Whoever hurts her does it from 20 m and steps 20 m off
+        # again once her half-HP phase began; whoever dies to spectate checks a teammate stands.
+        rom = scenarios.ROM
+        for name, scenario in scenarios.SCENARIOS.items():
+            for role, script in scenario["roles"].items():
+                commands = sum(run_scenario.stages_of(script), [])
+                hurts = [at for at, command in enumerate(commands)
+                         if command.startswith(f"hurt {rom} ")]
+                for at in hurts:
+                    steps = [command for command in commands[:at]
+                             if command.startswith(f"approach {rom} ")]
+                    after = commands[at + 1:at + 3]
+                    with self.subTest(scenario=name, role=role, hurt=commands[at]):
+                        self.assertEqual(steps[-1:], [f"approach {rom} 20 0"])
+                        self.assertEqual(after[:1], ["wait-flag 13204812 1 60"])
+                        self.assertEqual(after[1:], [f"approach {rom} 20 0"])
+                if not any(rom in command for command in commands):
+                    continue
+                for at, command in enumerate(commands):
+                    if command == "wait-vital spectate 20":
+                        with self.subTest(scenario=name, role=role):
+                            self.assertEqual(
+                                commands[at - 3:at],
+                                ["wait-member-vital up 5", "godmode off", "kill self"])
+
+    def test_an_enemy_whole_after_a_wake_is_counted_beside_it(self):
+        # The same run (boss-hp-staggered-wipe: "not whole in its last census: 900/3833", "no
+        # census"): a wipe wakes each game at the lamp, about 147 m from the boss-sized enemy, so
+        # a census there never lists it and the check read the one from before the wipe. Every
+        # game in the check walks back to it after its last wake and counts it there.
+        big = scenarios.BIG_BY_THE_LAMP
+        for name, scenario in scenarios.SCENARIOS.items():
+            for check in scenario.get("hp_state", []):
+                if check["handle"] != big or check["is"] != "whole" or "census" in check:
+                    continue
+                for role in check["roles"]:
+                    commands = sum(run_scenario.stages_of(scenario["roles"][role]), [])
+                    woke = max(at for at, command in enumerate(commands)
+                               if command.startswith("wait-vital up "))
+                    with self.subTest(scenario=name, role=role):
+                        self.assertIn(f"approach {big} 4 0", commands[woke:])
+                        last = [command for command in commands[woke:]
+                                if command.split()[0] in ("approach", "teleport", "census")]
+                        self.assertEqual(last[-2:], [f"approach {big} 4 0", "census 40"])
+
+    def test_those_who_fall_later_hold_godmode_until_the_first_is_dead(self):
+        # Rig 2026-11-11 (boss-hp-staggered-wipe): host and guest2 waited at 1 HP without
+        # godmode, an enemy killed both and the wipe ended the guest's down before its give-up.
+        roles = scenarios.SCENARIOS["boss-hp-staggered-wipe"]["roles"]
+        for role in ("host", "guest2"):
+            commands = sum(run_scenario.stages_of(roles[role]), [])
+            at = commands.index("sync sw-guest-dead")
+            with self.subTest(role=role):
+                self.assertNotIn("godmode off", commands[:at])
+                self.assertNotIn("hurt self 1", commands[:at])
+                self.assertEqual(commands[at + 1:at + 4], ["godmode off", "hurt self 1", "rise 18"])
+
+    def test_down_by_enemy_leaves_the_enemy_to_the_guest(self):
+        # Rig 2026-11-11 (1.5.0 test 4, three runs): the enemy had fought the godmode host since
+        # down-revive and stayed on it; the guest, up at its lamp after down-no-kneel's give-up
+        # (a live player since the join's reload), stood 3 m from it for 90 s and never went
+        # down. The host is far away first, and the guest's own hit turns the enemy to it.
+        chapter = next(c for c in suites.SUITES["party-death"]["chapters"]
+                       if c["name"] == "down-by-enemy")
+        host, guest = chapter["steps"]["host"], chapter["steps"]["guest"]
+        # At the lamp: by Iosefka's clinic the host fell through the floor (rig 2026-11-12).
+        self.assertEqual(host[:2], [f"teleport {suites.AT_THE_LAMP}", "sync dbe-apart"])
+        # Back by the others for the chapters after it.
+        self.assertEqual(host[-2:], [f"teleport {suites.WIPE_SPOT['host']}", "wait 3"])
+        self.assertEqual(guest[:6], ["sync dbe-apart", f"hit {scenarios.ENEMY} 30", "godmode off",
+                                     "hurt self 1", f"approach {scenarios.ENEMY}",
+                                     "press r3 200"])
+        # The enemy runs in the guest's game (the nearest player's): its game forgets the target.
+        self.assertTrue(any("self down=true" in line for line in chapter["expect"]["guest"]))
+        self.assertNotIn("host", chapter["expect"])
+
+    def test_a_wipes_guest_holds_godmode_until_its_own_point_stands(self):
+        # The same run's wipe: the enemy stood by the guest and downed it the moment godmode went
+        # off, before its return point had stood 10 s: the death took the point for a special one
+        # ("respawn at the own special point 2412951") and the guest woke 113 m from the host.
+        chapter = next(c for c in suites.SUITES["party-death"]["chapters"] if c["name"] == "wipe")
+        guest = chapter["steps"]["guest"]
+        point = guest.index("return-point 2412951")
+        self.assertNotIn("godmode off", guest[:point])
+        self.assertEqual(guest[point:point + 3], ["return-point 2412951", "wait 12", "godmode off"])
+
+    def test_a_wipes_host_is_back_on_its_spot_for_the_census_of_its_hit(self):
+        # The same run: the enemy stood by the drop south of the lamp, the host's last attack
+        # stance was past the edge and it fell (godmode) through its census: "0 characters within
+        # 40 m of (-199.8, -351.5, 161.6)", so the enemy was "not hurt in its census".
+        chapter = next(c for c in suites.SUITES["party-death"]["chapters"] if c["name"] == "wipe")
+        host = chapter["steps"]["host"]
+        hit = host.index(f"hit {scenarios.ENEMY} 30")
+        self.assertEqual(host[hit + 1:hit + 3],
+                         [f"teleport {suites.WIPE_SPOT['host']}", "wait 2"])
+        self.assertLess(hit + 2, host.index("census 40"))
+
+    def test_rom_whole_again_is_judged_against_her_own_max(self):
+        # The enemy strength rule moves her max with the hunters on the map (9528 for two): no
+        # full-HP number, each game's last census against its own max.
+        scenario = scenarios.SCENARIOS["rom-retry"]
+        self.assertEqual(scenario["hp_state"], [{"handle": scenarios.ROM, "is": "whole",
+                                                 "roles": ["host", "guest"]}])
+        for role, script in scenario["roles"].items():
+            commands = sum(run_scenario.stages_of(script), [])
+            with self.subTest(role=role):
+                self.assertEqual([c for c in commands if c.startswith("expect-hp")], [])
+                last = [c for c in commands if c.split()[0] in ("teleport", "census")]
+                self.assertEqual(last[-2:], [f"teleport {scenarios.ROM_DIVE}", "census 150"])
 
     def test_nothing_plays_without_party_death_or_dies_by_the_games_own_kill(self):
         # Party death is always on in the port (Kaniel 2026-10-13): a player dies by going down and
@@ -370,6 +484,53 @@ class EdgeTest(unittest.TestCase):
                 steps = chapter["steps"][role]
                 self.assertIn(suites.RESTART, steps, "joins again from the title")
                 self.assertIn("expect-session 2", steps[steps.index(suites.RESTART):])
+
+    def test_the_joins_suite_names_no_enemy_hp(self):
+        # Full rig 2026-11-10: the dog's 364 and "<= 200" were the HP of one hunter's enemies; the
+        # team rules' enemy strength made them 546 and 300 of 726, and the suite stopped.
+        chapters = {c["name"]: c for c in suites.SUITES["joins"]["chapters"]}
+        for name in ("hurt-before-join", "hp-across-blocks"):
+            for role, steps in chapters[name]["steps"].items():
+                for step in steps:
+                    self.assertNotRegex(step, r"expect-hp 0x\w+ (==|<=) \d", f"{name} {role}")
+        self.assertFalse(hasattr(suites, "DOG_MAX_HP"))
+        first = chapters["hurt-before-join"]
+        self.assertIn({"handle": scenarios.DOG, "is": "whole", "census": 0, "roles": ["host"]},
+                      first["hp_state"], "whole before the session too")
+        self.assertIn({"handle": scenarios.DOG, "is": "whole", "roles": ["host"]},
+                      first["hp_state"])
+        self.assertEqual(sum(step.startswith("census ") for step in first["steps"]["host"]), 2)
+        across = chapters["hp-across-blocks"]
+        self.assertEqual(across["hp_state"],
+                         [{"handle": scenarios.ENEMY, "is": "hurt", "roles": ["guest"]}])
+        self.assertTrue(across["steps"]["guest"][-1].startswith("census "))
+
+    def test_a_guests_kill_of_a_party_of_threes_enemy_gets_the_time_it_takes(self):
+        # Full rig 2026-11-10: a guest's attack does not start from 1 HP (the owner's HP comes
+        # back), and three hunters' enemy has twice the HP: 8 hits in 40 s left it at 31 of 968.
+        scenario = scenarios.SCENARIOS["guest-acts-for-two"]
+        [attack] = [step for step in scenario["roles"]["guest"] if step.startswith("attack ")]
+        self.assertGreaterEqual(int(attack.split()[2]), 90)
+        self.assertEqual(scenarios.attack(scenarios.ENEMY), [f"attack {scenarios.ENEMY} 40"])
+        # The second guest's last census comes after the first one's kill, not after a fixed wait.
+        for role, steps in scenario["roles"].items():
+            self.assertIn("sync acted", steps, role)
+        still = scenario["roles"]["guest2"]
+        self.assertLess(still.index("sync acted"), len(still) - 1 - still[::-1].index("census 5"))
+        self.assertEqual(scenario["syncs"]["acted"]["roles"], ["host", "guest", "guest2"])
+
+    def test_the_teams_duel_is_fought_away_from_the_enemy(self):
+        # Full rig 2026-11-10: the duel's spots were 8 m from ENEMY, which came over and downed
+        # the loser after the duel. The duelists stay at the lamp (as in "duel"); the teammate
+        # who stands off is the only one near it, in godmode.
+        roles = scenarios.SCENARIOS["duel-teams"]["roles"]
+        for role in ("host", "guest2"):
+            self.assertFalse([step for step in roles[role] if step.startswith("teleport ")], role)
+        self.assertNotIn("godmode", roles["guest2"], "its lethal hit is the duel's")
+        self.assertIn("godmode", roles["guest"])
+        # Its HP is back once the duel is over.
+        after = roles["guest2"][roles["guest2"].index("sync duel-over"):]
+        self.assertIn(f"expect-hp self >= {scenarios.DUEL_HP_FLOOR}", after)
 
     def test_insert_is_pressed_in_the_world_while_the_team_load_screen_is_up(self):
         # The team's load screen is in the world since the join's reload: title-keys did nothing

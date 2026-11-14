@@ -56,16 +56,13 @@ DETACH_SESSION = sys.platform != 'win32'
 # The answers, as 1 - SETUP asked them (FPS is gone: co-op is always the fixed 60 FPS mode). No party
 # settings: the team is made in the game's team screen (phase 6). `role` 'host' runs the co-op server.
 DEFAULTS = {'game': '', 'update': '', 'role': 'guest', 'host_ip': '', 'account': '', 'password': '',
-            'p2p_port': 'auto', 'harder': 'off', 'prepared': '',
+            'p2p_port': 'auto', 'prepared': '',
             # '1': teammates are drawn without the blue phantom glow, on this player's screen only.
             'hide_glow': '',
             # '1' once the player pressed Done in the launcher's co-op settings (they open by themselves until then).
             'confirmed': '',
             # The PC the player id was made on (this_machine()): a copied install makes its own id.
             'machine': '',
-            # Kaniel 2026-10-25: the host rules ('1' on): the leader's are its team's. Off by default but
-            # the enemies' Auto scaling (Kaniel 2026-11-05: "please default to auto").
-            'rule_rot': '', 'rule_travel': '', 'rule_vote': '', 'rule_scale': '1',
             # Kaniel 2026-11-01: '1' shows the game on Discord (off by default).
             'discord_status': '',
             # Kaniel 2026-11-01: 'local' (a host's own server, by its address: as ever) or 'global' (the
@@ -74,14 +71,13 @@ DEFAULTS = {'game': '', 'update': '', 'role': 'guest', 'host_ip': '', 'account':
             # server).
             'server_type': 'local', 'global_name': '', 'global_server': '',
             # Kaniel 2026-11-06: '1' once the player answered the launcher's offer of the public server.
-            'public_asked': '',
-            # Kaniel 2026-10-28: the boss tempo host rule, '' (Vanilla), 'aggressive' or 'relentless'.
-            'rule_tempo': ''}
-BOSS_TEMPOS = ('', 'aggressive', 'relentless')
-HARDER_ON = '3,1.5,3'  # the kit's harder enemies: HP, damage and poise multipliers
-HARDER_BIT, HARDER_MUCH = '1.5,1.25,1.5', '5,2,5'
-# What the game takes for each multiplier (ParseHarderEnemies in the emulator); all 1 is the normal game.
-HARDER_LOWEST, HARDER_HIGHEST = 1.0, 10.0
+            'public_asked': ''}
+# Kaniel 2026-11-11: no party settings here at all ("fully remove it from launcher"): the enemies, Rot,
+# travelling together and the boss tempo are the team's rules, its leader's on the game's team screen
+# (Team settings), kept by the game in TEAM_RULES_FILE of its user folder. What an older launcher kept of
+# them in coop.json (OLD_RULE_KEYS) goes there once (move_old_rules).
+OLD_RULE_KEYS = ('harder', 'rule_rot', 'rule_travel', 'rule_vote', 'rule_scale', 'rule_tempo')
+TEAM_RULES_FILE = 'bloodborne_team_rules.txt'
 # The switch for 'hide_glow' (Kaniel 2026-10-25), in every launcher language.
 NO_GLOW_TEXT = 'Show teammates without the blue phantom glow (on your screen only)'
 
@@ -291,31 +287,6 @@ def valid_name(value):
 
 def valid_secret(value):
     return bool(re.fullmatch(r'[A-Za-z0-9_-]{1,32}', value or ''))
-
-
-def valid_harder(value):
-    if value == 'off':
-        return True
-    if not re.fullmatch(r'\d+(\.\d+)?,\d+(\.\d+)?,\d+(\.\d+)?', value or ''):
-        return False
-    rates = [float(part) for part in value.split(',')]
-    return all(HARDER_LOWEST <= rate <= HARDER_HIGHEST for rate in rates) and rates != [1.0, 1.0, 1.0]
-
-
-def harder_value(hp, damage, poise):
-    """The setting for the player's own multipliers (Kaniel 2026-10-21: the presets were too specific),
-    each held to what the game takes; 'off' when they make the normal game. A decimal comma counts as a
-    point (players typed 1,5 and got 1: Custom looked unsaved, Kaniel 2026-10-26)."""
-    rates = []
-    for rate in (hp, damage, poise):
-        try:
-            rate = float(str(rate).strip().replace(',', '.'))
-        except (TypeError, ValueError):
-            rate = HARDER_LOWEST
-        rate = min(max(rate, HARDER_LOWEST), HARDER_HIGHEST) if rate == rate else HARDER_LOWEST
-        rates.append(f'{round(rate, 2):g}')
-    value = ','.join(rates)
-    return 'off' if value == '1,1,1' else value
 
 
 def missing(settings):
@@ -633,17 +604,56 @@ def with_own_player_id(settings, machine):
     return settings
 
 
-def host_rules_value(settings):
-    """The game's SHADPS4_BLOODBORNE_HOST_RULES (ParseHostRules): the rules turned on, 'off' for none. The
-    vote is a part of travelling together."""
-    on = lambda key: str(settings.get(key, '')) == '1'
-    words = [word for word, key in (('rot', 'rule_rot'), ('travel', 'rule_travel'), ('scale', 'rule_scale'))
-             if on(key)]
-    if on('rule_travel') and on('rule_vote'):
-        words.insert(words.index('travel') + 1, 'vote')
-    if (tempo := str(settings.get('rule_tempo', ''))) in BOSS_TEMPOS[1:]:
-        words.append(tempo)
-    return ','.join(words) or 'off'
+def old_rules_line(saved):
+    """The team rules an older launcher kept in coop.json (`saved`: the file's own keys), as the game keeps
+    the ones set on its team screen (TEAM_RULES_FILE: rot,travel,vote,scale,tempo,hp,damage,poise; a
+    strength of 0,0,0 is the standard one). None when it kept none, they were never the player's own
+    (the public server never took the launcher's; a setup never finished) or they were the default
+    (Auto and nothing else: the server's own)."""
+    if not any(key in saved for key in OLD_RULE_KEYS):
+        return None
+    if saved.get('server_type') == 'global' or str(saved.get('confirmed', '')) != '1':
+        return None
+    on = lambda key: str(saved.get(key, '')) == '1'
+    scale = str(saved.get('rule_scale', '1')) == '1'
+    harder = str(saved.get('harder', 'off'))
+    rates = None
+    if re.fullmatch(r'\d+(\.\d+)?,\d+(\.\d+)?,\d+(\.\d+)?', harder):
+        rates = [float(part) for part in harder.split(',')]
+        if not all(1.0 <= rate <= 10.0 for rate in rates):
+            rates = None
+    if rates is None:
+        # Fixed with the enemies Off was the normal game; Auto without a level grows to the standard one.
+        rates = [0.0, 0.0, 0.0] if scale else [1.0, 1.0, 1.0]
+    tempo = {'aggressive': 1, 'relentless': 2}.get(str(saved.get('rule_tempo', '')), 0)
+    travel = on('rule_travel')
+    line = ','.join([str(int(on('rule_rot'))), str(int(travel)), str(int(travel and on('rule_vote'))),
+                     str(int(scale)), str(tempo)] + [f'{rate:g}' for rate in rates])
+    return None if line == '0,0,0,1,0,0,0,0' else line
+
+
+def move_old_rules(install):
+    """An older launcher's team rules, from coop.json to where the game keeps the team screen's (never over
+    ones the player set there since); coop.json is written again without them. True when it moved any."""
+    path = settings_path(install)
+    try:
+        saved = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return False
+    if not isinstance(saved, dict) or not any(key in saved for key in OLD_RULE_KEYS):
+        return False
+    line = old_rules_line(saved)
+    rules = path.parent / TEAM_RULES_FILE
+    moved = False
+    try:
+        if line and not rules.exists():
+            rules.write_text(line + '\n', encoding='utf-8')
+            moved = True
+        path.write_text(json.dumps({key: value for key, value in saved.items() if key not in OLD_RULE_KEYS},
+                                   indent=2) + '\n', encoding='utf-8')
+    except OSError:
+        pass
+    return moved
 
 
 def settings_path(install):
@@ -662,14 +672,14 @@ def from_settings_bat(path):
                      'update': '' if values.get('UPDATE', 'none') == 'none' else values['UPDATE'],
                      'role': values.get('ROLE', 'guest') if values.get('ROLE') in ('host', 'guest') else 'guest',
                      'host_ip': values.get('HOSTIP', ''), 'account': values.get('NPID', ''),
-                     'password': values.get('PASS', ''), 'p2p_port': values.get('P2PPORT', 'auto') or 'auto',
-                     'harder': values.get('HARDER', 'off') or 'off'})
+                     'password': values.get('PASS', ''), 'p2p_port': values.get('P2PPORT', 'auto') or 'auto'})
     return settings
 
 
 def load_settings(install):
     """coop.json, else the old settings.bat beside BLauncher.exe, else the defaults; with the player's
     id of this PC, saved the first time it is made."""
+    move_old_rules(install)
     settings = read_settings(install)
     own = with_own_player_id(dict(settings), this_machine())
     if own != settings:
@@ -1458,28 +1468,16 @@ def game_environment(env, settings, install, root):
                 'BB_COMMUNITY_SERVER', 'SHADPS4_BLOODBORNE_HOST_RULES',
                 'SHADPS4_BLOODBORNE_NO_PHANTOM_GLOW'):
         env.pop(key, None)
-    # Kaniel 2026-11-05: on the public server the team's rules and enemy strength are its leader's, set
-    # on the game's team screen (the server's default until then): none of this launcher's. On a local
-    # server this launcher's always go ('off' too): the team its player leads starts with them.
-    local = rule_steps(settings) != []
-    if local:
-        env['SHADPS4_BLOODBORNE_HOST_RULES'] = host_rules_value(settings)
+    # Kaniel 2026-11-11: no team rules or enemy strength from here on any server: the team's are its
+    # leader's, set on the game's team screen and kept by the game (TEAM_RULES_FILE); a setting left in the
+    # environment is taken out above.
     # Each player's own look (#467), on any server.
     if settings.get('hide_glow') == '1':
         env['SHADPS4_BLOODBORNE_NO_PHANTOM_GLOW'] = '1'
     port = str(settings.get('p2p_port', 'auto'))
     if port not in ('auto', '', '51610', '51611'):
         env['SHADPS4_P2P_PORT'] = port
-    harder = str(settings.get('harder', 'off'))
-    if local and harder != 'off' and valid_harder(harder):
-        env['SHADPS4_BLOODBORNE_HARDER_ENEMIES'] = harder
     return discord_environment(env, settings)
-
-
-def rule_steps(settings):
-    """The co-op page's steps with the team rules (2 Enemies, 3 Travel): a local server's only. On the
-    public server the team's leader sets them on the game's team screen (Kaniel 2026-11-05)."""
-    return [] if settings.get('server_type') == 'global' else [2, 3]
 
 
 REPORTS_SENT = 'reports-sent.json'

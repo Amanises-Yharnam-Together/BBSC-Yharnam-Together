@@ -240,6 +240,7 @@
  "Camera down": "镜头向下",
  "Camera left": "镜头向左",
  "Camera right": "镜头向右",
+ "Walk (hold with the move keys)": "步行（与移动键一起按住）",
  "Vitality": "活力",
  "Endurance": "耐久",
  "Strength": "力量",
@@ -502,7 +503,7 @@
  "Reset lamps": "重置灯",
  "Reset lamps? Press again": "要重置吗？再按一次",
  "Every lamp of this world goes out for every hunter; the rest stays.": "此世界的所有灯都会为每位猎人熄灭，其他内容保留。",
- "The Yharnamites": "亚楠居民",
+ "The Yharnamites": "亚南居民",
  "The Hunters": "猎人们",
  "The Great Ones": "上位者们",
  "Not in this duel": "不参加此次决斗",
@@ -556,5 +557,11 @@
  "The co-op server at %s did not accept your login or password": "合作服务器 %s 未接受你的账号或密码",
  "Check them in the launcher's co-op settings, then start the game again.": "请在启动器的合作设置中检查，然后重新启动游戏。",
  "Could not sign in to the co-op server at %s": "无法登录合作服务器 %s",
- "Start the game again. If it stays, update the game and the server to the same release.": "请重新启动游戏。如果问题仍然存在，请将游戏和服务器更新到相同版本。"
+ "Start the game again. If it stays, update the game and the server to the same release.": "请重新启动游戏。如果问题仍然存在，请将游戏和服务器更新到相同版本。",
+ "Custom": "自定义",
+ "Enemy HP": "敌人HP",
+ "Enemy damage": "敌人伤害",
+ "Enemy poise": "敌人韧性",
+ "Friendly fire": "友军伤害",
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "为了更艰难的狩猎：队友的攻击随时都会互相造成伤害。被队友击杀与其他死亡相同。"
 }

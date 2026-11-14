@@ -341,6 +341,20 @@ std::vector<u32> HeldWeaponIds() {
     return held;
 }
 
+std::vector<u32> HeldItemIds() {
+    std::vector<u32> held;
+    const u64 data = PlayerGameData();
+    if (data < 0x10000) {
+        return held;
+    }
+    for (const u64 entry : InventoryEntries(data)) {
+        if (ReadValue<s32>(entry, 8) > 0) {
+            held.push_back(ReadValue<u32>(entry, 4));
+        }
+    }
+    return held;
+}
+
 // The gesture list's slot addresses, none without a list.
 std::vector<u64> GestureSlotAddresses() {
     std::vector<u64> slots;

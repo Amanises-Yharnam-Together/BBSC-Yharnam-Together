@@ -337,7 +337,9 @@ static void report_guest_heap(void) {
  * key.<input>=<SDL key names> and pad.<input>=<SDL gamepad button names>, comma-separated,
  * replace an input's binding (empty: unbound). Inputs: the buttons (cross ... right, touchpad =
  * a left-side click, touchpad_right), and on the keyboard the sticks: move_* (left), look_*
- * (right). Gamepad names as SDL's: a b x y back start leftstick rightstick leftshoulder
+ * (right), and walk: held with them, the movement keys push the stick only WALK_PUSH of the way, so the
+ * character walks instead of running (Left Alt in Dark Souls III; no default key, players asked for one on
+ * Discord 2026-11-09). Gamepad names as SDL's: a b x y back start leftstick rightstick leftshoulder
  * rightshoulder dpup dpdown dpleft dpright touchpad misc1 paddle1-4, plus lefttrigger and
  * righttrigger. The keyboard works next to a gamepad (the Steam Deck always has one): its buttons
  * add to the gamepad's, a held move/look key moves the stick all the way.
@@ -356,12 +358,12 @@ enum {
     IN_CROSS, IN_CIRCLE, IN_SQUARE, IN_TRIANGLE, IN_L1, IN_R1, IN_L2, IN_R2, IN_L3, IN_R3,
     IN_OPTIONS, IN_TOUCHPAD, IN_TOUCHPAD_RIGHT, IN_UP, IN_DOWN, IN_LEFT, IN_RIGHT,
     IN_MOVE_UP, IN_MOVE_DOWN, IN_MOVE_LEFT, IN_MOVE_RIGHT, IN_LOOK_UP, IN_LOOK_DOWN, IN_LOOK_LEFT,
-    IN_LOOK_RIGHT, IN_COUNT
+    IN_LOOK_RIGHT, IN_WALK, IN_COUNT
 };
 static const char *const input_names[IN_COUNT]={
     "cross","circle","square","triangle","l1","r1","l2","r2","l3","r3","options","touchpad",
     "touchpad_right","up","down","left","right","move_up","move_down","move_left","move_right",
-    "look_up","look_down","look_left","look_right",
+    "look_up","look_down","look_left","look_right","walk",
 };
 static const uint32_t input_buttons[IN_COUNT]={
     BTN_CROSS,BTN_CIRCLE,BTN_SQUARE,BTN_TRIANGLE,BTN_L1,BTN_R1,BTN_L2,BTN_R2,BTN_L3,BTN_R3,
@@ -382,8 +384,8 @@ static const MouseSettings mouse_defaults={1,0,0,1.0f};
 static MouseSettings kbm={1,0,0,1.0f};
 
 /* The Dark Souls III layout of the reference (its docs/KEYBOARD_MOUSE.md, "Default keys"); the launcher's CONTROLS
- * table (launcher/bbport_controls.py) is the same, and a test keeps them equal. The runtime has no walk input, so
- * Left Alt (walk in Dark Souls III) is not bound. */
+ * table (launcher/bbport_controls.py) is the same, and a test keeps them equal. Walk has no key: Left Alt (walk in
+ * Dark Souls III) is Alt+Tab's and the Alt+ combinations' key, so a player picks one. */
 static void bind_defaults(void) {
 #define K(input,key) {input,KIND_KEY,0,SDL_SCANCODE_##key}
 #define M(input,mods,button) {input,KIND_MOUSE,mods,SDL_BUTTON_##button}
@@ -640,9 +642,12 @@ static uint8_t stick_byte(float v) {
 #define KEY_TURN_STEP_DEG 30.0
 #define KEY_HALF_TURN_DEG 170.0
 #define KEY_RELEASE_HOLD_US 60000u
+/* The larger axis while walk is held: the game runs only from about 90% of the stick (70% with the "Run with less
+ * stick tilt" patch), and walks at half. */
+#define WALK_PUSH 0.5
 typedef struct { double angle; uint64_t at; int active; } KeyStick; /* radians (y down), the last read with keys */
 static KeyStick key_stick;
-static void key_left_stick(PadData *d, int left, int right, int up, int down, uint64_t now) {
+static void key_left_stick(PadData *d, int left, int right, int up, int down, int walk, uint64_t now) {
     const double pi=3.14159265358979323846;
     KeyStick *s=&key_stick;
     const int dx=(right!=0)-(left!=0), dy=(down!=0)-(up!=0);
@@ -669,7 +674,7 @@ static void key_left_stick(PadData *d, int left, int right, int up, int down, ui
         d->left_y=key_axis(d->left_y,up,down);
         return;
     }
-    const double c=cos(s->angle), sn=sin(s->angle), k=1.0/fmax(fabs(c),fabs(sn));
+    const double c=cos(s->angle), sn=sin(s->angle), k=(walk ? WALK_PUSH : 1.0)/fmax(fabs(c),fabs(sn));
     d->left_x=stick_byte((float)(c*k));
     d->left_y=stick_byte((float)(sn*k));
 }
@@ -683,7 +688,7 @@ static void apply_keyboard(PadData *d, const bool *k) {
     if (held[IN_TOUCHPAD_RIGHT]) touch_click(d,1);
     if (held[IN_L2]) d->l2=255;
     if (held[IN_R2]) d->r2=255;
-    key_left_stick(d,held[IN_MOVE_LEFT],held[IN_MOVE_RIGHT],held[IN_MOVE_UP],held[IN_MOVE_DOWN],now);
+    key_left_stick(d,held[IN_MOVE_LEFT],held[IN_MOVE_RIGHT],held[IN_MOVE_UP],held[IN_MOVE_DOWN],held[IN_WALK],now);
     d->right_x=key_axis(d->right_x,held[IN_LOOK_LEFT],held[IN_LOOK_RIGHT]);
     d->right_y=key_axis(d->right_y,held[IN_LOOK_UP],held[IN_LOOK_DOWN]);
 }

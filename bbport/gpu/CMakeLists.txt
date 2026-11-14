@@ -317,7 +317,7 @@ endif()
 target_link_libraries(bbnet PUBLIC Zydis::Zydis)
 target_link_libraries(bbgpu PUBLIC bbnet)
 # In-game settings menu: Dear ImGui (third_party/imgui, MIT) with its Vulkan backend, and an
-# embedded Cyrillic font (third_party/fonts).
+# embedded Cyrillic and Thai fonts (third_party/fonts).
 target_sources(bbgpu PRIVATE third_party/imgui/imgui.cpp third_party/imgui/imgui_draw.cpp
     third_party/imgui/imgui_tables.cpp third_party/imgui/imgui_widgets.cpp
     third_party/imgui/backends/imgui_impl_vulkan.cpp)
@@ -333,10 +333,11 @@ set_source_files_properties(third_party/imgui/imgui.cpp third_party/imgui/imgui_
 target_compile_definitions(bbgpu PRIVATE IMGUI_IMPL_VULKAN_NO_PROTOTYPES
     BB_FONT_PATH="${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/DejaVuSans.ttf"
     BB_SERIF_FONT_PATH="${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/DejaVuSerif.ttf"
+    BB_THAI_FONT_PATH="${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/NotoSansThai-Overlay.ttf"
     BB_PARTY_ICONS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/art/party_icons.bin"
     BB_COOP_ART_PATH="${CMAKE_CURRENT_SOURCE_DIR}/art/coop_art.bin")
 set_source_files_properties(shim/bbport_overlay.cpp PROPERTIES
-    OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/DejaVuSans.ttf;${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/DejaVuSerif.ttf;${CMAKE_CURRENT_SOURCE_DIR}/art/party_icons.bin;${CMAKE_CURRENT_SOURCE_DIR}/art/coop_art.bin")
+    OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/DejaVuSans.ttf;${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/DejaVuSerif.ttf;${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/NotoSansThai-Overlay.ttf;${CMAKE_CURRENT_SOURCE_DIR}/art/party_icons.bin;${CMAKE_CURRENT_SOURCE_DIR}/art/coop_art.bin")
 target_include_directories(bbgpu PRIVATE shim layer games cp shadps4 ${SHADER_INCLUDE} third_party/gcn/include third_party/half/include
     ${BB_EMULATOR_SRC})
 target_compile_definitions(bbgpu PRIVATE BOOST_ASIO_STANDALONE NDEBUG)
@@ -665,6 +666,11 @@ target_include_directories(srt-null-root-test PRIVATE shim)
 add_executable(null-tables-test EXCLUDE_FROM_ALL ../tests/test_null_tables.cpp)
 target_compile_options(null-tables-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(null-tables-test PRIVATE shim)
+
+# The screen tint check's verdict, schedule and line (shim/bbport_screen_tint.h).
+add_executable(screen-tint-test EXCLUDE_FROM_ALL ../tests/test_screen_tint.cpp)
+target_compile_options(screen-tint-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(screen-tint-test PRIVATE shim)
 
 # The push constant block the shaders read (header only: bbgpu's include directories, no link).
 add_executable(push-data-test EXCLUDE_FROM_ALL ../tests/test_push_data.cpp)

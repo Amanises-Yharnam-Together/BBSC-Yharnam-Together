@@ -224,6 +224,8 @@ TEAM_WORLD_FLAG = 12410999
 BLOOD_MOON = 9802  # the time of day the maps' events pick (9800 evening, 9801 night)
 # The Blood Gem Workshop Tool's chest (its item lot's flag; neither rig character has opened it).
 WORKSHOP_TOOL_CHEST = 52411005
+# The Insight messenger's Bone Ash Mask sold (ShopLineupParam row 200060's stock flag, 01.09).
+BONE_ASH_MASK_SOLD = 70009380
 LEVEL_SYNC = 9200  # the SpEffect that scales a guest down to the host's level
 # The "Impurity" rune (the League oath, GemeffectParam 2127001) puts 6142 on the player; common
 # event 9035 adds 180040 (max HP x1.02) to a white phantom wearing it, KeepImpurityBonus to
@@ -241,6 +243,9 @@ SESSION_HOLDS = [r"sceNpMatching2LeaveRoom: called"]
 # Kaniel 2026-11-05: the team screen's rules text (ScreenRulesText): no Rot, travel or boss tempo,
 # Fixed enemies of x2 HP, x1.25 damage, x2 poise.
 TEAM_RULES_FIXED = "0,0,0,0,0,2,1.25,2"
+# The scale rule alone (Raziel's team, Discord 2026-11-12: bloodborne_team_rules.txt 1,0,0,1,...).
+TEAM_RULES_SCALE = "0,0,0,1,0,0,0,0"
+TEAM_RULES_ROT_SCALE = "1,0,0,1,0,0,0,0"
 # The party boards' member ids of the rig's accounts (their names in hex).
 RIG_HOST_ID = "rig_host".encode().hex()
 RIG_GUEST_ID = "rig_guest".encode().hex()
@@ -260,6 +265,17 @@ PLAYS_AS_GUEST = r"Co-op team lobby: the save plays in team \w+ as its guest"
 # open sky (WIPE_SPOT; rig 2026-10-18: 12 m did nothing, 18 m about 60% of max HP, 20 m and more
 # a death outright, not a hit); under a roof the player lands on it (the old spots, a roof 9 m up).
 PARTY_DEATH = {"SHADPS4_BLOODBORNE_PARTY_DEATH": "1"}
+# A guest's real death in a party session ends with it up again and no world reload: as the
+# join's white phantom ("party guest died; revived"), or, once any trip made it a live player
+# (the join makes one right away, see trip-after-join), as the
+# host does ("live player died in a party session (state N); revived without a world reload").
+GUEST_REVIVED = (r"(?:party guest died; revived|live player died in a party session "
+                 r"\(state \d+\); revived without a world reload)")
+# A joined guest's trip in place (TripAfterJoin) starts under the team's loading screen, never
+# after it opened (rig 2026-11-11: joined on another map than its host, the screen opened after 1 s
+# and the trip's load came 9-14 s later, a second loading screen in the middle of play).
+SECOND_LOAD_SCREEN = (r"the team's load view is gone[\s\S]*"
+                      r"trip after the join: reloading in place")
 # After a real death each player has its own bloodstain where it fell (GameDataMan's record on
 # this map) and no enemy takes it (no echo theft): the bloodstain state lines say so.
 BLOODSTAIN_DROPPED = (r"bloodstain state map=0x18010000 has_mark=1 record_valid=\d+ "
@@ -306,10 +322,13 @@ def only_kill(handle: str, *beside: str) -> list[str]:
             rf"(?: (?:{ours}) \(dead [^)]*\))+\s*$)"]
 
 
-def attack(target: str) -> list[str]:
+def attack(target: str, seconds: int = 40) -> list[str]:
     """A real kill of an ordinary enemy (the kill reward and the death run as in play; the
-    game's own kill leaves one standing in a party)."""
-    return [f"attack {target} 40"]
+    game's own kill leaves one standing in a party), in at most `seconds`. The step puts it at
+    1 HP first, which holds only in the game that runs the enemy: another game's kill takes
+    all of its HP (full rig 2026-11-10: a guest's 8 hits in 40 s left three hunters' enemy at 31
+    of 968)."""
+    return [f"attack {target} {seconds}"]
 
 
 
@@ -625,11 +644,16 @@ SCENARIOS = {
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 300,
     },
-    # The switch on the host's side only: its table loses the glow's effect, the guest's keeps it,
-    # and the guest stays a phantom with SpEffect 9006 either way.
+    # The switch on the host's side only: its table loses the glow's effect, the guest's keeps it.
+    # Which SpEffect carries the glow (full rig 2026-11-11, 1.5.0 test 4): the join's phantom has
+    # 9006 on its own character; after any trip it is a live player with the host's 9001 instead
+    # (rig logs with the join's reload off: "6300 40 9001" after a lamp trip), and since the join's
+    # reload in place (TripAfterJoin) that is so seconds after the join. The host's copy of the
+    # guest keeps 9006 through it, so the option still has its glow to take away there.
     "phantom-glow-off": {
         "about": "the no-glow option on the host only: its log says the effect went, the guest's "
-                 "does not, and the guest's SpEffect 9006 stays",
+                 "does not; the host's copy of the guest keeps SpEffect 9006, the guest's own "
+                 "character has the live player's 9001 after its join's reload",
         "roles": {
             "host": [START, "godmode", "wait-session 2 300", "wait 20", "watch-effects player 4",
                      "wait 6", "wait 10"],
@@ -637,9 +661,13 @@ SCENARIOS = {
                       "wait 6", "wait 10"],
         },
         "role_settings": {"host": {"SHADPS4_BLOODBORNE_NO_PHANTOM_GLOW": "1"}},
-        "expect": {"host": [r"phantom glow off \(SpEffectVfx 272 effect 211 -> -1\)"],
-                   "guest": [r"effects of 0xffffffff hp \d+: .*9006"]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS + ["phantom glow off"]},
+        "expect": {"host": [r"phantom glow off \(SpEffectVfx 272 effect 211 -> -1\)",
+                            r"effects of 0x(?!ffffffff)[0-9a-f]+ hp \d+: .*9006"],
+                   "guest": [r"trip after the join: reloading in place",
+                             r"effects of 0xffffffff hp \d+: .*9001"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + ["phantom glow off",
+                                             r"effects of 0xffffffff hp \d+: .*9006"]},
         "timeout": 300,
     },
     # Kaniel 2026-10-14: with the host far away on the same map, the enemies beside a guest stood
@@ -1017,8 +1045,41 @@ SCENARIOS = {
         },
         "expect": {"host": [r"body 0x[0-9a-f]+ is up but kept its death mark; cleared"],
                    "guest": [r"party death: giving up ends down \d+; dies \(reset=false",
-                             r"party guest died; revived"]},
+                             GUEST_REVIVED]},
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+        "timeout": 300,
+    },
+    # Kaniel 2026-11-11 (on by default; SHADPS4_BLOODBORNE_TRIP_AFTER_JOIN=0 turns it off): a
+    # guest that joined makes one trip right away, a reload in place, so it is a live player (type
+    # 0, +0x78) as after any trip, not the join's white phantom (1). Both then see each other and
+    # each one's hit reaches the other's game.
+    "trip-after-join": {
+        "about": "the guest that joined reloads in place once, is a "
+                 "live player after it (no phantom), both see each other and hit one enemy",
+        "roles": {
+            "host": [START, "godmode", "wait-session 2 300", "sync taj-tripped",
+                     "wait-members 2 120", "wait 10", "expect-session 2",
+                     "expect-others-near 1 30", "expect-others-shown 1",
+                     f"hit {ENEMY} 30", "sync taj-hit-1", "sync taj-hit-2", "wait 8", "census 40"],
+            "guest": [START, "godmode", "wait-session 2 300", "peek self 78", "wait 25",
+                      "wait 20", "wait-members 2 120", "peek self 78", "sync taj-tripped",
+                      "wait 10", "expect-session 2", "expect-others-near 1 30",
+                      "expect-others-shown 1", "sync taj-hit-1", f"hit {ENEMY} 30",
+                      "sync taj-hit-2", "wait 8", "census 40"],
+        },
+        "syncs": {name: {"chapter": "trip-after-join", "roles": ["host", "guest"]}
+                  for name in ("taj-tripped", "taj-hit-1", "taj-hit-2")},
+        "expect": {"host": [HOST_JOINS],
+                   "guest": [GUEST_JOINS,
+                             r"trip after the join: reloading in place on map 0x18010000",
+                             r"trip after the join: reloading in place[\s\S]*"
+                             r"Bloodborne party trip: arrived map=0x18010000",
+                             r"autoplay peek: 0x[0-9a-f]+ \+0x78 = 0x0\b"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start",
+                                             SECOND_LOAD_SCREEN]},
+        "same_hp": ENEMY,
+        "hp_sums_hits": ENEMY,
         "timeout": 300,
     },
     # Phase 5: the team lobby. The party is no setting: on the title the host creates a team and
@@ -1038,6 +1099,129 @@ SCENARIOS = {
             "guest": [r"Co-op team lobby: the save plays in team \w+ as its guest"],
         },
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+        "timeout": 300,
+    },
+    # Discord 2026-11-12 (Raziel, 1.5.0): a team from the lobby with the scale rule, both start
+    # in Central Yharnam; after the guest's trip after the join its vitals said map 0 for minutes,
+    # so the host never showed it and the enemies never went for it. After that trip the guest
+    # stands on its map again, and each one shows the other.
+    "team-join-seen": {
+        "about": "a team from the lobby (scale rule) starts in Central Yharnam; after the guest's "
+                 "trip after the join its vitals name the map again and both see each other",
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_SCALE}", "team-start", START, "godmode",
+                     "wait-session 2 300", "sync tjs-tripped", "wait-members 2 60", "wait 10",
+                     "expect-session 2", "expect-others-near 1 30", "expect-others-shown 1",
+                     "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_SCALE}", "team-ready", START,
+                      "godmode", "wait-session 2 300", "wait 25", "wait 20", "wait-members 2 60",
+                      "sync tjs-tripped", "wait 10", "expect-session 2",
+                      "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+        },
+        "syncs": {"tjs-tripped": {"chapter": "team-join-seen", "roles": ["host", "guest"]}},
+        "expect": {"host": [HOST_JOINS, r"Co-op host rules: the team's rules are scale"],
+                   "guest": [GUEST_JOINS,
+                             r"trip after the join: reloading in place on map 0x18010000",
+                             r"trip after the join: reloading in place[\s\S]*"
+                             r"Bloodborne party vitals: posting up \(map 0x18010000\)"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
+        "timeout": 300,
+    },
+    # The same, with both standing away from the lamp when the guest's trip after the join goes
+    # (the rig's characters start on the lamp, so that trip's spot was always the lamp's): 17 m
+    # off, and by Iosefka's door (Raziel's guest was put in her clinic by a load).
+    **{f"team-join-seen-{where}": {
+        "about": f"team-join-seen with both {about} when the guest's trip after the join goes",
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_SCALE}", "team-start", START, "godmode",
+                     f"teleport {host_at}", "wait-session 2 300", "sync tjs-tripped",
+                     "wait-members 2 60", "wait 10", "expect-session 2",
+                     "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+            # The join is in place: the guest walks there before it joins (rig 2026-11-13: a
+            # teleport after the session came too late, the trip had gone from the lamp).
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_SCALE}", "team-ready", START,
+                      "godmode", f"teleport {guest_at}", "wait-session 2 300", "wait 25",
+                      "wait 20",
+                      "wait-members 2 60", "sync tjs-tripped", "wait 10", "expect-session 2",
+                      "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+        },
+        "syncs": {"tjs-tripped": {"chapter": f"team-join-seen-{where}",
+                                  "roles": ["host", "guest"]}},
+        "expect": {"host": [HOST_JOINS],
+                   "guest": [GUEST_JOINS,
+                             # Not from the lamp's spot (-199.74, -50.76, 179.42).
+                             r"trip after the join: reloading in place on map 0x18010000 "
+                             r"\((?!-199\.7)",
+                             r"trip after the join: reloading in place[\s\S]*"
+                             r"Bloodborne party vitals: posting up \(map 0x18010000\)"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
+        "timeout": 300,
+        "settings": settings,
+    } for where, about, host_at, guest_at, settings in (
+        ("away", "17 m from the lamp", GUEST_PAIR_SPOT, GUEST_ALONE_SPOT, {}),
+        ("clinic", "by Iosefka's door", COMPASS_HOST + " 0.0", COMPASS_GUEST + " 0.0", {}),
+        # Radmin VPN: the games' packets to each other lose some on the way.
+        ("lossy", "17 m from the lamp, 5% of the games' packets lost", GUEST_PAIR_SPOT,
+         GUEST_ALONE_SPOT, {"SHADPS4_P2P_LOSS_PERCENT": "5"}))},
+    # Raziel's own team rules (Rot and the scale rule, bloodborne_team_rules.txt 1,0,0,1,...).
+    "team-join-seen-rot": {
+        "about": "team-join-seen-away with the Rot rule on too, as Raziel's team had it",
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_ROT_SCALE}", "team-start", START, "godmode",
+                     f"teleport {GUEST_PAIR_SPOT}", "wait-session 2 300", "sync tjs-tripped",
+                     "wait-members 2 60", "wait 10", "expect-session 2",
+                     "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_ROT_SCALE}", "team-ready",
+                      START, "godmode", f"teleport {GUEST_ALONE_SPOT}", "wait-session 2 300",
+                      "wait 25", "wait 20", "wait-members 2 60", "sync tjs-tripped", "wait 10",
+                      "expect-session 2",
+                      "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+        },
+        "syncs": {"tjs-tripped": {"chapter": "team-join-seen-rot", "roles": ["host", "guest"]}},
+        "expect": {"host": [HOST_JOINS, r"Co-op host rules: the team's rules are rot,scale"],
+                   "guest": [GUEST_JOINS,
+                             r"trip after the join: reloading in place[\s\S]*"
+                             r"Bloodborne party vitals: posting up \(map 0x18010000\)"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
+        "timeout": 300,
+    },
+    # Raziel's guest (Discord 2026-11-12) as the rig can make it: after its trip after the join
+    # its place reads a load (SHADPS4_BLOODBORNE_TEST_STUCK_LOAD; the game is left alone) while it
+    # stands and plays. Its place must still end its load (PlaceTracker::StandingInLoadMs), its vitals name
+    # the map, and the host show it; on 1.5.0 its vitals said map 0 and the host never showed it.
+    "team-join-stuck-load": {
+        "about": "after the guest's trip after the join its place reads a load for 150 s: it is "
+                 "still on its map for the party, the host shows it and both are near",
+        "role_settings": {"guest": {"SHADPS4_BLOODBORNE_TEST_STUCK_LOAD": "150"}},
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_SCALE}", "team-start", START, "godmode",
+                     f"teleport {GUEST_PAIR_SPOT}", "wait-session 2 300", "sync tsl-held",
+                     "wait 25", "wait-members 2 30", "expect-session 2",
+                     "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_SCALE}", "team-ready", START,
+                      "godmode", f"teleport {GUEST_ALONE_SPOT}", "wait-session 2 300",
+                      "wait 25", "wait 20", "sync tsl-held", "wait 25",
+                      "wait-members 2 30", "expect-session 2", "expect-others-near 1 30",
+                      "expect-others-shown 1", "snapshot"],
+        },
+        "syncs": {"tsl-held": {"chapter": "team-join-stuck-load", "roles": ["host", "guest"]}},
+        "expect": {"host": [HOST_JOINS],
+                   "guest": [GUEST_JOINS,
+                             r"test: the loading flag held up 150 s",
+                             r"Co-op place: still loading 20 s with a character in the world, "
+                             r"held by the loading flag",
+                             r"test: the loading flag held up[\s\S]*"
+                             r"Co-op place: Loading -> Playing map 0x18010000[\s\S]*"
+                             r"Bloodborne party vitals: posting up \(map 0x18010000\)"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
         "timeout": 300,
     },
     # Kaniel 2026-10-17: a cutscene both see (Vicar Amelia's entrance, m24_00 12401802: the host
@@ -1111,6 +1295,27 @@ SCENARIOS = {
                        f"expect-flag {WORKSHOP_TOOL_CHEST} 0", "wait 25", "done"],
                       [START, "godmode", "wait-session 2 420", "wait 10",
                        f"expect-flag {WORKSHOP_TOOL_CHEST} 0", "done"]],
+        },
+        "expect": {"guest": [r"team's world is in this save: \d+ blocks"]},
+        "allow": CRASH_CLEANUP,
+        "timeout": 900,
+    },
+    # Fran on Discord (2026-11-10, a guest): attire the host bought was sold out in the guest's
+    # shop too, and stayed so after a restart. A shop row's stock flag (ShopLineupParam eventFlag,
+    # 70009380 the Insight messenger's Bone Ash Mask) is each player's own purchase: here the host
+    # sets it, the guest's game starts again and takes the team's world as it loads, and its row
+    # is still for sale.
+    "team-world-shop-stock": {
+        "about": "attire the host bought (its shop row's stock flag) stays for sale for a guest "
+                 "whose save takes the team's world as it loads",
+        "roles": {
+            "host": [START, "godmode", "wait-session 2 300", f"set-flag {BONE_ASH_MASK_SOLD} 1",
+                     "wait 15", "wait-solo 200", "wait-session 2 420", "wait 30",
+                     f"expect-flag {BONE_ASH_MASK_SOLD} 1", "done"],
+            "guest": [[START, "godmode", "wait-session 2 300",
+                       f"expect-flag {BONE_ASH_MASK_SOLD} 0", "wait 25", "done"],
+                      [START, "godmode", "wait-session 2 420", "wait 10",
+                       f"expect-flag {BONE_ASH_MASK_SOLD} 0", "done"]],
         },
         "expect": {"guest": [r"team's world is in this save: \d+ blocks"]},
         "allow": CRASH_CLEANUP,
@@ -2072,7 +2277,39 @@ SCENARIOS = {
         "expect": {role: [r"Co-op host rules: the team's rules are off; enemies fixed 2,1.25,2",
                           r"Bloodborne harder enemies: \d+ NpcParam rows, x2\.00 HP, x1\.25 damage, "
                           r"x2\.00 poise"]
+                         + ([rf"Co-op host rules: kept {TEAM_RULES_FIXED} for the next start"]
+                            if role == "host" else [])
                    for role in ("host", "guest")},
+        "forbid": {role: [*SESSION_HOLDS, r"harder enemies: \d+ NpcParam rows, x3\.00 HP"]
+                   for role in ("host", "guest")},
+        "timeout": 300,
+    },
+    # Kaniel 2026-11-11: the launcher has no party settings: the rules a leader set on the team
+    # screen are kept by its game (bloodborne_team_rules.txt in its user folder), and the team it
+    # makes after a restart starts with them, with no press on the team screen.
+    "team-rules-kept": {
+        "about": "the rules a leader set on the team screen in an earlier run (kept in its user "
+                 "folder) are its new team's from the start, in both games",
+        # The joining, invaders and death mode it kept too: open to all, spectate.
+        "role_settings": {"host": {"rig.team_rules": TEAM_RULES_FIXED, "rig.team_choices": "2,0,1"}},
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                     "wait-session 2 300", "wait 10", "sync rules-seen", "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_FIXED}", "team-ready", START,
+                      "wait-session 2 300", "wait 10", "sync rules-seen", "snapshot"],
+        },
+        "syncs": {"rules-seen": {"chapter": "team-rules-kept", "roles": ["host", "guest"]}},
+        "expect": {
+            "host": [rf"Co-op host rules: this player's own are {TEAM_RULES_FIXED}",
+                     r"Co-op team lobby: the new team takes this leader's kept settings 2,0,1",
+                     r"Co-op host rules: the team's rules are off; enemies fixed 2,1.25,2",
+                     r"Bloodborne harder enemies: \d+ NpcParam rows, x2\.00 HP, x1\.25 damage, "
+                     r"x2\.00 poise"],
+            "guest": [r"Co-op host rules: this player's own are not set",
+                      r"Co-op host rules: the team's rules are off; enemies fixed 2,1.25,2",
+                      r"Bloodborne harder enemies: \d+ NpcParam rows, x2\.00 HP, x1\.25 damage, "
+                      r"x2\.00 poise"],
+        },
         "forbid": {role: [*SESSION_HOLDS, r"harder enemies: \d+ NpcParam rows, x3\.00 HP"]
                    for role in ("host", "guest")},
         "timeout": 300,
@@ -2200,12 +2437,17 @@ SCENARIOS = {
         "about": "a party of three: the first guest picks up an item and attacks an enemy while "
                  "the second guest stands still; the second guest's own character stays put",
         "roles": {
-            "host": [START, "godmode", "wait-session 3 480", "wait 70", "expect-session 3"],
+            "host": [START, "godmode", "wait-session 3 480", "sync acted", "wait 10",
+                     "expect-session 3"],
+            # 90 s: the guest does not run the enemy, so its kill is of all three hunters' HP.
             "guest": [START, "godmode", "wait-session 3 480", "wait 15", "pickup 60", "wait 5",
-                      *attack(ENEMY), "wait 10", "expect-session 3"],
+                      *attack(ENEMY, 90), "sync acted", "wait 10", "expect-session 3"],
+            # Its last census once the first guest's kill is done, however long that took.
             "guest2": [START, "godmode", "wait-session 3 480", "wait 10", "census 5", "wait 20",
-                       "census 5", "wait 25", "census 5", "expect-session 3"],
+                       "census 5", "sync acted", "wait 5", "census 5", "expect-session 3"],
         },
+        "syncs": {"acted": {"chapter": "guest-acts-for-two",
+                            "roles": ["host", "guest", "guest2"]}},
         "stays": {"guest2": 3.0},
         "timeout": 900,
     },
@@ -3756,23 +3998,29 @@ SCENARIOS["boss-hp-staggered-wipe"] = {
              "respawn: the hurt boss-sized enemy is back at full HP in all three games",
     "settings": PARTY_DEATH,
     "roles": {
+        # Host and guest2 hold godmode until the guest is dead (rig 2026-11-11: at 1 HP while
+        # they waited, an enemy killed both first and the wipe ended the guest's down before
+        # its give-up).
         "host": [START, "godmode", "wait-session 3 480", f"approach {BIG_BY_THE_LAMP} 4 0",
                  "wait 3", f"hurt {BIG_BY_THE_LAMP} 900", "wait 5", "census 40", "sync sw-hurt",
-                 "godmode off", f"teleport {WIPE3_SPOT['host']}", "wait 2", "hurt self 1",
-                 "sync sw-guest-dead", "rise 18", "wait-vital dead 60", "wait-vital up 150",
-                 "wait-members 3 300", "wait 20", "census 80",
+                 f"teleport {WIPE3_SPOT['host']}", "wait 2", "sync sw-guest-dead",
+                 "godmode off", *LETHAL_FALL, "wait-vital dead 60", "wait-vital up 150",
+                 "wait-members 3 300", "wait 20", *BIG_CHECKED_AGAIN,
                  "sync sw-checked", "expect-session 3"],
         "guest": [START, "godmode", "wait-session 3 480", "sync sw-hurt", "wait 3", "census 60",
                   "godmode off", f"teleport {WIPE3_SPOT['guest']}", "wait 2", *GIVE_UP,
                   "sync sw-guest-dead", "wait-vital up 60", "wait-members 3 300", "wait 20",
-                  "census 80", "sync sw-checked",
+                  *BIG_CHECKED_AGAIN, "sync sw-checked",
                   "expect-session 3"],
         "guest2": [START, "godmode", "wait-session 3 480", "sync sw-hurt", "wait 3", "census 60",
-                   "godmode off", f"teleport {WIPE3_SPOT['guest2']}", "wait 2", "hurt self 1",
-                   "sync sw-guest-dead", "rise 18", "wait-vital dead 60", "wait-vital up 150",
-                   "wait-members 3 300", "wait 20", "census 80",
+                   f"teleport {WIPE3_SPOT['guest2']}", "wait 2", "sync sw-guest-dead",
+                   "godmode off", *LETHAL_FALL, "wait-vital dead 60", "wait-vital up 150",
+                   "wait-members 3 300", "wait 20", *BIG_CHECKED_AGAIN,
                    "sync sw-checked", "expect-session 3"],
     },
+    # Each wakes at the lamp, about 147 m from the enemy (full rig 2026-11-10: "not whole
+    # 900/3833", "no census", the census from before the wipe): counted beside it, as in
+    # boss-hp-after-wipe. Whole by each game's own census.
     "hp_state": [{"handle": BIG_BY_THE_LAMP, "is": "whole",
                   "roles": ["host", "guest", "guest2"]}],
     "expect": {"guest": [r"giving up ends down \d+; dies \(reset=false",
@@ -4457,31 +4705,125 @@ SCENARIOS["duel"] = {
 }
 
 
+# Kaniel 2026-11-11, the friendly fire rule ("you hit your teammates always ... just for harder
+# play"), a team rule its leader sets on the team screen, off by default. Off: the host's strikes
+# pass through the guest (its HP stays). On: they land (its HP drops), and a lethal one is a
+# death as any other: the guest goes down (party death, no duel), and the host strikes it up
+# again. Off again: the guest's body takes its own team back.
+# ScreenRulesText: Auto enemies of the standard strength (a team's default), and the rule's ninth.
+FRIENDLY_FIRE_ON = "0,0,0,1,0,0,0,0,1"
+FRIENDLY_FIRE_OFF = "0,0,0,1,0,0,0,0"
+FRIENDLY_FIRE_HP = 300  # the guest's HP put under any hunter's max: a hit shows as less
+FRIENDLY_FIRE_HP_AFTER = 200  # and under what a revive gives (half the max), for the end's strikes
+FRIENDLY_FIRE_SYNCS = ("ff-together", "ff-passed", "ff-on", "ff-struck", "ff-low", "ff-down",
+                       "ff-up", "ff-off", "ff-set", "ff-after")
+SCENARIOS["friendly-fire"] = {
+    "about": "the friendly fire team rule: off, a teammate's strikes pass through; on (set on the "
+             "team screen), they land, a lethal one downs the teammate as any death and strikes "
+             "revive it; off again, the bodies are friendly",
+    "roles": {
+        # A script that sets the team's rules makes its team itself (run_scenario.with_team).
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 5", "sync ff-together",
+                 "strike-player 8", "sync ff-passed", f"team-rules {FRIENDLY_FIRE_ON}",
+                 "sync ff-on", "strike-player 30", "sync ff-struck", "sync ff-low",
+                 "strike-player 40 down", "sync ff-down", "approach-downed", "wait 2",
+                 *REVIVE_HITS, "wait-member-vital up 30", "sync ff-up",
+                 f"team-rules {FRIENDLY_FIRE_OFF}", "sync ff-off", "sync ff-set",
+                 "strike-player 8", "sync ff-after", "wait 3", "snapshot", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "wait-session 2 300", "wait 5",
+                  f"hurt self {FRIENDLY_FIRE_HP}",
+                  "sync ff-together", "sync ff-passed",
+                  f"expect-hp self == {FRIENDLY_FIRE_HP}",
+                  f"team-wait-rules {FRIENDLY_FIRE_ON}", "sync ff-on",
+                  f"wait-hp self < {FRIENDLY_FIRE_HP} 30", "sync ff-struck", "hurt self 1",
+                  "sync ff-low", "wait-vital down 40", "sync ff-down", "wait-vital up 180",
+                  "sync ff-up", f"team-wait-rules {FRIENDLY_FIRE_OFF}", "sync ff-off",
+                  # Off again: the host's strikes pass through as at the start.
+                  f"hurt self {FRIENDLY_FIRE_HP_AFTER}", "sync ff-set", "sync ff-after",
+                  f"expect-hp self == {FRIENDLY_FIRE_HP_AFTER}", "wait 3", "snapshot",
+                  "expect-session 2"],
+    },
+    "settings": {"SHADPS4_BLOODBORNE_PARTY_DEATH": "1"},
+    "syncs": {name: {"chapter": "friendly-fire", "roles": ["host", "guest"]}
+              for name in FRIENDLY_FIRE_SYNCS},
+    "expect": {
+        "host": [r"Co-op host rules: the team's rules are scale,friendlyfire",
+                 r"Bloodborne party death: friendly fire on \(1 teammates' bodies here\)",
+                 r"Bloodborne party death: body 0x[0-9a-f]+ takes team 21",
+                 r"Bloodborne party death: friendly fire off",
+                 r"Bloodborne party death: body 0x[0-9a-f]+ takes team (?!21\b)\d+"],
+        "guest": [r"Co-op host rules: the team's rules are scale,friendlyfire",
+                  r"Bloodborne party death: friendly fire on \(1 teammates' bodies here\)",
+                  r"Bloodborne party death: down \d"],
+    },
+    "forbid": {role: [*SESSION_HOLDS, r"Co-op duel: duel \d+ fights", r"Bloodborne party wipe"]
+               for role in ("host", "guest")},
+    "timeout": 300,
+}
+
+
+# Kaniel 2026-11-11, the friendly fire rule: what the enemies make of a teammate's body on the
+# invaders' team. Both hunters stand 7 m from ENEMY (close enough for it to notice a player), the
+# rule off, then on, then off again; each game's "Bloodborne enemy targets" lines say whom the
+# enemy holds as a target in each part (a probe: read from the logs, nothing is judged).
+FRIENDLY_FIRE_ENEMY_SYNCS = ("ffe-together", "ffe-base", "ffe-on", "ffe-fought", "ffe-off")
+SCENARIOS["friendly-fire-enemy"] = {
+    "about": "the friendly fire team rule beside an enemy: whom it targets with the rule off, on "
+             "and off again (a probe for the logs' enemy targets lines)",
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "godmode", "wait-session 2 300", "wait 5", "sync ffe-together",
+                 f"teleport {GUEST_PAIR_SPOT}", "wait 20", "census 15", "sync ffe-base",
+                 f"team-rules {FRIENDLY_FIRE_ON}", "sync ffe-on", "wait 25", "census 15",
+                 "sync ffe-fought", f"team-rules {FRIENDLY_FIRE_OFF}", "sync ffe-off", "wait 12",
+                 "census 15", "snapshot", "expect-session 2"],
+        "guest": ["team-accept", "team-ready", START, "godmode", "wait-session 2 300", "wait 5",
+                  "sync ffe-together", f"teleport {GUEST_ALONE_SPOT}", "wait 20", "census 15",
+                  "sync ffe-base", f"team-wait-rules {FRIENDLY_FIRE_ON}", "sync ffe-on",
+                  "wait 25", "census 15", "sync ffe-fought",
+                  f"team-wait-rules {FRIENDLY_FIRE_OFF}", "sync ffe-off", "wait 12", "census 15",
+                  "snapshot", "expect-session 2"],
+    },
+    "settings": {"SHADPS4_BLOODBORNE_PARTY_DEATH": "1"},
+    "syncs": {name: {"chapter": "friendly-fire-enemy", "roles": ["host", "guest"]}
+              for name in FRIENDLY_FIRE_ENEMY_SYNCS},
+    "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
+    "timeout": 300,
+}
+
+
 # Amanises 2026-10-29, teams' duels (Kaniel 2026-11-01: the game's own banners, the winning team in
 # a notice): two against one. The host's picks: it and the guest The Hunters (2), guest2 The
 # Yharnamites (1). The host strikes guest2 at 1 HP; the guest stands off, out of reach. The whole
 # team wins, every duelist hears which team, nobody has a party death.
+# The two who fight stay where they woke, at the lamp (as in "duel"; full rig 2026-11-10: on spots
+# 8 m from ENEMY it came over and downed guest2 after the duel, 1 run of 3 green). The guest, whom
+# nobody strikes, is the one who stands off, 13 m away and by ENEMY: in godmode. guest2's HP is
+# back once the duel is over (the down came 1.4 s after its give-back: if this check fails, the
+# give-back did not hold, and that is the game's).
 DUEL_GUEST2_ID = "rig_guest2".encode().hex()
 DUEL_TEAM_NAMES = ("duel-together", "duel-fighting", "duel-low", "duel-over")
 SCENARIOS["duel-teams"] = {
     "about": "a teams' duel: two against one from the Teams page, the last team standing wins "
              "together, the notice names it, no party death",
     "roles": {
-        "host": [START, "godmode", "wait-session 3 300", "wait 5", "teleport -212.0 -54.5 174.0",
-                 "sync duel-together",
+        "host": [START, "godmode", "wait-session 3 300", "wait 5", "sync duel-together",
                  f"duel-propose-teams {RIG_HOST_ID}=2 {RIG_GUEST_ID}=2 {DUEL_GUEST2_ID}=1",
                  "wait-duel countdown 40", "wait-duel fighting 10", "sync duel-fighting",
                  "sync duel-low", "duel-strike 60", "wait-duel none 20", "sync duel-over",
                  "wait 3", "snapshot", "expect-session 3"],
-        "guest": [START, "wait-session 3 300", "wait 5", f"teleport {GUEST_PAIR_SPOT}",
+        "guest": [START, "godmode", "wait-session 3 300", "wait 5",
+                  f"teleport {GUEST_PAIR_SPOT}",
                   "sync duel-together", "duel-answer yes 40", "wait-duel countdown 10",
                   "wait-duel fighting 10", "sync duel-fighting", "sync duel-low",
                   "wait-duel none 80", "sync duel-over", "wait 3", "snapshot",
                   "expect-session 3"],
-        "guest2": [START, "wait-session 3 300", "wait 5", "teleport -209.0 -54.5 174.0",
+        "guest2": [START, "wait-session 3 300", "wait 5",
                    "sync duel-together", "duel-answer yes 40", "wait-duel countdown 10",
                    "wait-duel fighting 10", "sync duel-fighting", "hurt self 1", "sync duel-low",
-                   "wait-duel none 80", "sync duel-over", "wait 3", "snapshot",
+                   "wait-duel none 80", "sync duel-over", f"expect-hp self >= {DUEL_HP_FLOOR}",
+                   "wait 3", "snapshot", f"expect-hp self >= {DUEL_HP_FLOOR}",
                    "expect-session 3"],
     },
     "syncs": {name: {"chapter": "duel-teams", "roles": ["host", "guest", "guest2"]}
@@ -5132,6 +5474,11 @@ _TEMPO_LEVELS = {
     "aggressive": ("Aggressive", "0\\.50", "50", "1\\.30", "156"),
     "relentless": ("Relentless", "0\\.25", "25", "1\\.60", "192"),
 }
+# Discord audit 2026-11-13 T5 (Backand: Rom cast nonstop at Aggressive): a cut breather keeps
+# the level's gap in seconds (0.50 / 0.25), never the old 0.05; a breather shorter than the floor
+# is only scaled (0.10 or more: Paarl's and Rom's are 1 s and up).
+_CUT_TOO_SHORT = (r"Bloodborne boss tempo: boss \S+ \(think \d+\) goal 20\d\d \w+ life "
+                  r"[\d.]+ -> 0\.0\d ")
 for _word, _level in _TEMPO_LEVELS.items():
     if _level is None:
         _expect = [_BOSS_FOUND,
@@ -5146,8 +5493,11 @@ for _word, _level in _TEMPO_LEVELS.items():
                    rf"Bloodborne boss tempo: \d+ boss NpcParam rows turn x{_turn} \(Father "
                    rf"Gascoigne {_gascoigne} degrees a second\)",
                    _BOSS_FOUND,
-                   _BOSS_GOAL.format(boss=PAARL, life=r"\d+\.\d\d -> 0\.05", level=_name)]
-        _forbid = []
+                   # Any of his breathers: at a level he makes only 1-8 of them in 90 s (on
+                   # main 0bb87c1b too, rig 2026-11-13), so a cut one is a coin flip; the cut
+                   # floor and the streak are the unit tests' and the Rom probes'.
+                   _BOSS_GOAL.format(boss=PAARL, life=r"\d+\.\d\d -> \d+\.\d\d", level=_name)]
+        _forbid = [_CUT_TOO_SHORT]
     SCENARIOS[f"boss-tempo-{_word}"] = {
         "about": f"the boss tempo rule at {_word}: Paarl fights the host alone for 90 s; his "
                  "breathers and turn speed are logged",
@@ -5180,16 +5530,15 @@ SCENARIOS["boss-tempo-party"] = {
     "expect": {
         "host": [r"Co-op host rules: the team's rules are [^\n]*relentless",
                  r"Bloodborne boss tempo: \d+ boss NpcParam rows turn x1\.60",
-                 _BOSS_GOAL.format(boss=PAARL, life=r"\d+\.\d\d -> 0\.05",
+                 _BOSS_GOAL.format(boss=PAARL, life=r"\d+\.\d\d -> 0\.25",
                                    level="Relentless")],
         "guest": [r"Co-op host rules: the team's rules are [^\n]*relentless",
                   r"Bloodborne boss tempo: Relentless: breathers x0\.25",
                   r"Bloodborne boss tempo: \d+ boss NpcParam rows turn x1\.60"],
     },
-    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "forbid": {"host": SESSION_HOLDS + [_CUT_TOO_SHORT], "guest": SESSION_HOLDS},
     "timeout": 600,
 }
-
 
 # Kaniel's play test 2026-11-03: a guest who had just joined could not level up at the Doll again
 # until it left the Dream (6700, her level-up flag, stayed on after her talk), and the host's level
@@ -5558,7 +5907,6 @@ def _ludwig_retry(chapter: str, during_change: bool) -> dict:
 # 3200200-3200229 (317 HP) by her; at 3/4 HP 13204807 moves her and sets 13204811, at 1/2 HP
 # 13204812; 13204808/09 call more spiders at 1/2 and 1/4. Her lamp (3202950) is on her map.
 ROM = "0x1003004c"
-ROM_FULL_HP = 6352
 ROM_FIGHT_OFF = [f"expect-flag {flag} 0" for flag in (ROM_DEFEATED, 13204811, 13204812)]
 ROM_START = [START, f"ensure-map {BYRGENWERTH} {BYRGENWERTH_LAMP}", "godmode",
              f"expect-flag {ROM_DEFEATED} 0", "wait-session 2 240", "wait 5"]
@@ -5574,20 +5922,26 @@ SCENARIOS["rom-retry"] = {
     "settings": PARTY_DEATH,
     "game_kill": True,
     "roles": {
+        # Her swings put a host beside her down, godmode or not (full rig 2026-11-10, twice: the
+        # guest's death was then the party's wipe, no spectate): one hit, then 20 m off (still in
+        # her fight, 45 m) before her later phases, and again once she moved for them. The guest
+        # checks the host stands before it dies.
         "host": [*ROM_START, *ROM_DIVE_IN, "sync rr-in", "census 150",
-                 f"approach {ROM} 5 0", f"hit {ROM} 30", "wait 5", f"hurt {ROM} 2800",
-                 "wait-flag 13204812 1 60", "wait 15", ROM_FLAGS, "census 150", "sync rr-hurt",
+                 f"approach {ROM} 5 0", f"hit {ROM} 30", f"approach {ROM} 20 0", "wait 3",
+                 f"hurt {ROM} 2800", "wait-flag 13204812 1 60", f"approach {ROM} 20 0", "wait 5",
+                 ROM_FLAGS, "census 150", "sync rr-hurt",
                  "wait-member-vital spectate 60", "godmode off", "kill self",
-                 "wait-vital dead 30", *ROM_BACK, "sync rr-woke", *ROM_DIVE_IN, "census 150",
-                 ROM_FLAGS, f"expect-hp {ROM} == {ROM_FULL_HP}", *ROM_FIGHT_OFF[1:],
-                 "sync rr-done", "expect-session 2"],
+                 "wait-vital dead 30", *ROM_BACK, "sync rr-woke", *ROM_DIVE_IN, ROM_FLAGS,
+                 *ROM_FIGHT_OFF[1:], "census 150", "sync rr-done", "expect-session 2"],
         "guest": [*ROM_START, "sync rr-in", "wait 5", *ROM_DIVE_IN, "sync rr-hurt",
-                  f"approach {ROM} 6 3.14", "wait 2", "godmode off", "kill self",
-                  "wait-vital spectate 20", "wait-vital dead 90", *ROM_BACK, "sync rr-woke",
-                  "wait 5", *ROM_DIVE_IN, "census 150", ROM_FLAGS,
-                  f"expect-hp {ROM} == {ROM_FULL_HP}", *ROM_FIGHT_OFF[1:], "sync rr-done",
-                  "expect-session 2"],
+                  f"approach {ROM} 6 3.14", "wait 2", "wait-member-vital up 5", "godmode off",
+                  "kill self", "wait-vital spectate 20", "wait-vital dead 90", *ROM_BACK,
+                  "sync rr-woke", "wait 5", *ROM_DIVE_IN, ROM_FLAGS, *ROM_FIGHT_OFF[1:],
+                  "census 150", "sync rr-done", "expect-session 2"],
     },
+    # Whole again by each game's own last census (the enemy strength rule moves her max with the
+    # hunters on the map).
+    "hp_state": [{"handle": ROM, "is": "whole", "roles": ["host", "guest"]}],
     "syncs": {sync: {"chapter": "rom-retry", "roles": ["host", "guest"]}
               for sync in ("rr-in", "rr-hurt", "rr-woke", "rr-done")},
     "expect": {"host": [r"party death: died for real on map 0x20000000 \(reset=true\)"],
@@ -5674,6 +6028,36 @@ SCENARIOS["rom-retry-guest-alone"] = {
     "forbid": {role: SESSION_HOLDS for role in ("host", "guest")},
     "timeout": 600,
 }
+
+# Discord audit 2026-11-13 T5 (Backand, 1.4.0, Aggressive): Rom cast spell after spell with no
+# pause, unfightable for a duo. The host dives into her lake alone (godmode) and stands by her for
+# 90 s; each of her breathers is logged. At Aggressive a cut one keeps 0.50 s (never the old
+# 0.05) and two cuts never come in a row; vanilla logs her own gaps to compare.
+def _boss_tempo_rom_steps() -> list[str]:
+    return [START, f"ensure-map {BYRGENWERTH} {BYRGENWERTH_LAMP}", "godmode",
+            f"expect-flag {ROM_DEFEATED} 0", "wait 5", f"teleport {ROM_DIVE}", "wait 25",
+            # Rom makes no AI goals at all (her fight's flags on) until she is struck once.
+            f"approach {ROM} 5 0", f"hit {ROM} 30", f"approach {ROM} 8 0",
+            "log tempo: rom fight on", "wait 30", f"approach {ROM} 8 0", "wait 30",
+            f"approach {ROM} 8 0", "wait 30", "log tempo: rom fight checked",
+            ROM_FLAGS, "census 150", "snapshot"]
+
+
+for _word, _name in (("vanilla", "Vanilla"), ("aggressive", "Aggressive")):
+    SCENARIOS[f"boss-tempo-rom-{_word}"] = {
+        "about": f"the boss tempo rule at {_word} in Rom's fight (Discord: she cast nonstop at "
+                 "Aggressive): the host strikes her once, then stays by her for 90 s, her "
+                 "breathers logged",
+        "settings": {"SHADPS4_BLOODBORNE_HOST_RULES": _word if _word != "vanilla" else "off"},
+        "roles": {"host": _boss_tempo_rom_steps()},
+        "expect": {"host": [rf"Bloodborne boss tempo: \d+ boss\(es\) on map 0x[0-9a-f]+: "
+                            rf"[^\n]*{ROM}",
+                            _BOSS_GOAL.format(boss=ROM, life=r"\d+\.\d\d -> \d+\.\d\d",
+                                              level=_name)]},
+        "forbid": {"host": SESSION_HOLDS + [_CUT_TOO_SHORT]},
+        "timeout": 420,
+    }
+
 
 SCENARIOS["ludwig-retry"] = _ludwig_retry("ludwig-retry", during_change=False)
 SCENARIOS["ludwig-retry-mid-change"] = _ludwig_retry("ludwig-retry-mid-change",
@@ -6100,6 +6484,8 @@ PROBE_NAMES = (
     "setup", "boot",
     # textures after trips: the game's null table pointers per far trip, and pictures of it
     "far-trips-soak", "far-trips-look",
+    # Kaniel 2026-11-11: the enemies' targets with the friendly fire rule
+    "friendly-fire-enemy",
     # packet trace for tools/re/packet_summary.py
     "fps-pace",
     # 2026-10-10/11 investigations; mine/prey use whatever saves the games have now
@@ -6112,6 +6498,7 @@ PROBE_NAMES = (
     "guest-follower-player-build",
     # boss tempo tuning logs
     "boss-tempo-vanilla", "boss-tempo-aggressive", "boss-tempo-relentless",
+    "boss-tempo-rom-vanilla", "boss-tempo-rom-aggressive",
     # altar record captures (RE)
     "altar-record-capture", "chalice-remove-record",
     # known failure kept for the uncapped-FPS summon bug
@@ -6130,3 +6517,41 @@ PROBE_NAMES = (
     "handed-out-max-watch",
 )
 PROBES = {name: SCENARIOS.pop(name) for name in PROBE_NAMES}
+
+
+# Purple/red screen after lamp travel (Discord 2026-11-11/12; diagnostic #588): one drawn game
+# travels between the Dream, Research Hall, Old Yharnam and Central Yharnam a few times, with a
+# picture after each arrival; "Screen tint:" in its log is the finding.
+TINT_STOPS = [(HUNTERS_DREAM, "dream"), (3502951, "research-a"), (3502952, "research-b"),
+              (2422952, "old-yharnam"), (2422950, "good-chalice"), (CENTRAL_YHARNAM_LAMP, "central")]
+SCENARIOS["tint-travel"] = {
+    "about": "lamp travels (Dream, Research Hall, Old Yharnam, Central Yharnam) with a shot after "
+             "each arrival: no \"Screen tint:\" line",
+    "roles": {"host": [START, "godmode",
+                       *[step for loop in range(3) for point, name in TINT_STOPS
+                         for step in (f"travel {point} 240", "wait 12", f"shot {name}-{loop}",
+                                      "wait 3")],
+                       "done"]},
+    "settings": {"ini.output_res": "1920x1080", "ini.window_mode": "windowed", "ini.upscaler": "dlss",
+                 "ini.preset": "1", "ini.frame_generation": "0", "BB_DUMP_DIR": "C:/bb/tint-evidence/dumps",
+                 "BB_DUMP_TRIGGER": "C:/bb/tint-evidence/dump_trigger", "BB_DUMP_FRAMES": "2",
+                 "BB_FINAL_DUMP_TRIGGER": "C:/bb/tint-evidence/final_trigger",
+                 "BB_PRESENT_DUMP_TRIGGER": "C:/bb/tint-evidence/present_trigger"},
+    "forbid": {"host": ["Screen tint:"]},
+    "timeout": 2400,
+}
+SCENARIOS["tint-travel-guest"] = {
+    "about": "a guest in the host's session travels between the same lamps (the host headless): no "
+             "\"Screen tint:\" line",
+    "roles": {"host": [START, "godmode", "wait-session 2 300", "wait 480", "done"],
+              "guest": [START, "godmode", "wait-session 2 300", "wait 10",
+                        *[step for loop in range(2) for point, name in TINT_STOPS
+                          for step in (f"travel {point} 240", "wait 12", f"shot {name}-{loop}",
+                                       "wait 3")],
+                        "done"]},
+    "settings": {**SCENARIOS["tint-travel"]["settings"], "rig.headless_roles": "host"},
+    "forbid": {"host": ["Screen tint:"], "guest": ["Screen tint:"]},
+    "timeout": 2400,
+}
+# Drawn probes, not in a tier: run by name (run without --headless; the pictures need a GPU).
+PROBES.update({name: SCENARIOS.pop(name) for name in ("tint-travel", "tint-travel-guest")})

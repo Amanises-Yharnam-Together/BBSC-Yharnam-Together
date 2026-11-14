@@ -26,7 +26,7 @@ export const site = {
   shortName: "Yharnam Together",
   tagline: "Play all of Bloodborne with your friends, in one world.",
   description:
-    "Free, open-source seamless co-op for Bloodborne on PC. Up to four players share one world on a native port of the PS4 game, connected through a small server one of them runs.",
+    "Free, open-source seamless co-op for Bloodborne on PC. Up to five players share one world on a native port of the PS4 game, connected through a small server one of them runs.",
   keywords: [
     "Yharnam Together",
     "Bloodborne",
