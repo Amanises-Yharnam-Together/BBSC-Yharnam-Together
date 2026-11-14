@@ -1310,8 +1310,34 @@ struct State {
     std::vector<bool> enabled;       ///< per row drawn this frame
     const char* hint = nullptr;      ///< the focused row's description
     const char* next_hint = nullptr; ///< collected while drawing this frame
+    /// The mouse moves the focus only once it has really moved since the last key or pad press:
+    /// leaving relative mode (opening the menu) or a pointer resting over a row that a toggle
+    /// moved under it sent motion (XWayland), and a pad's left/right then stepped that row
+    /// (frame generation on: the Upscaler row went from DLSS to TAA).
+    bool mouse_focus = true;
+    bool anchor_set = false;
+    ImVec2 anchor{};
 };
 State state;
+
+/// Whether hovering may take the focus now (see State::mouse_focus).
+bool MouseMayFocus() {
+    if (state.mouse_focus) {
+        return true;
+    }
+    const ImVec2 at = ImGui::GetIO().MousePos;
+    if (!ImGui::IsMousePosValid(&at)) {
+        return false;
+    }
+    if (!state.anchor_set) {
+        state.anchor = at;
+        state.anchor_set = true;
+        return false;
+    }
+    const float dx = at.x - state.anchor.x, dy = at.y - state.anchor.y;
+    state.mouse_focus = dx * dx + dy * dy > 24.0f * 24.0f;
+    return state.mouse_focus;
+}
 
 /// One setting row. Returns -1 / +1 when the value is to step back / forward (keys, Cross, a
 /// click on either side of the value), 0 otherwise. A slider row also takes a drag: `drag`
@@ -1328,9 +1354,10 @@ int Row(const char* id, const char* label, const char* value, const char* hint, 
     const bool hovered = ImGui::IsItemHovered();
     const bool active = ImGui::IsItemActive();
     ImGui::EndDisabled();
-    if (enabled && hovered && (ImGui::GetIO().MouseDelta.x != 0.0f || ImGui::GetIO().MouseDelta.y != 0.0f ||
-                               pressed)) {
+    if (enabled && hovered && (pressed || ((ImGui::GetIO().MouseDelta.x != 0.0f ||
+                                            ImGui::GetIO().MouseDelta.y != 0.0f) && MouseMayFocus()))) {
         state.focus = index;
+        state.mouse_focus = true;
     }
     const bool focused = enabled && index == state.focus;
     if (focused && state.scroll) {
@@ -2498,6 +2525,12 @@ void Menu() {
                                                                                                           : 0;
     state.activate = ImGui::IsKeyPressed(ImGuiKey_Enter, false) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false) ||
                      ImGui::IsKeyPressed(ImGuiKey_Space, false) || ImGui::IsKeyPressed(ImGuiKey_GamepadFaceDown, false);
+    if (state.move || state.activate || prev_tab || next_tab ||
+        pressed_any({ImGuiKey_LeftArrow, ImGuiKey_RightArrow, ImGuiKey_GamepadDpadLeft,
+                     ImGuiKey_GamepadDpadRight, ImGuiKey_GamepadLStickLeft, ImGuiKey_GamepadLStickRight})) {
+        state.mouse_focus = false; // keys and the pad lead until the mouse really moves
+        state.anchor_set = false;
+    }
     state.rows = 0;
     state.enabled.clear();
 

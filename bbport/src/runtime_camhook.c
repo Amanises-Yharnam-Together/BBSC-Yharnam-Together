@@ -132,14 +132,6 @@ static unsigned char *near_page(uintptr_t site) {
     }
     return NULL;
 }
-/* The camera's automatic turning while the character moves ("Disable Camera Auto Rotation via
- * Movement", Imedved and Kyo, patches/Bloodborne.xml): the four stores `vmovss [r13+offset],xmm`
- * (camera object offsets +0x144 twice, +0x130 and +0x294) that the walking camera turns itself with, nopped;
- * only +0x144 is the yaw this file turns. A mouse camera turns only by the mouse (or the stick). */
-static const struct { uint32_t at; unsigned char original[9]; } auto_rotation[]={
-    {0x143c6e8,{0xc4,0xc1,0x7a,0x11,0x85,0x44,0x01,0x00,0x00}}, {0x143c984,{0xc4,0xc1,0x7a,0x11,0x8d,0x30,0x01,0x00,0x00}},
-    {0x143dde6,{0xc4,0xc1,0x7a,0x11,0x85,0x94,0x02,0x00,0x00}}, {0x143c870,{0xc4,0xc1,0x7a,0x11,0xad,0x44,0x01,0x00,0x00}},
-};
 static int write_code(unsigned char *at, const void *bytes, size_t size) {
     DWORD old;
     if (!VirtualProtect(at,size,PAGE_EXECUTE_READWRITE,&old)) return 0;
@@ -148,6 +140,63 @@ static int write_code(unsigned char *at, const void *bytes, size_t size) {
     FlushInstructionCache(GetCurrentProcess(),at,size);
     return 1;
 }
+#else
+#include <errno.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#ifndef MAP_FIXED_NOREPLACE
+#define MAP_FIXED_NOREPLACE 0x100000
+#endif
+/* Two pages (the stub's, then its data) within a rel32 jump of the hook site, writable until the stub is in.
+ * MAP_FIXED_NOREPLACE never takes an address in use; a kernel older than 4.17 reads it as a hint only. */
+static unsigned char *near_page(uintptr_t site) {
+    for (int64_t step=1;step<0x7000;++step) for (int dir=-1;dir<=1;dir+=2) {
+        const uintptr_t at=((site&~(uintptr_t)0xffff)+(uintptr_t)(dir*step*0x10000));
+        void *p=mmap((void *)at,2*STUB_DATA,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED_NOREPLACE,-1,0);
+        if (p==MAP_FAILED) continue;
+        if (p==(void *)at) return p;
+        munmap(p,2*STUB_DATA);
+    }
+    return NULL;
+}
+/* A page's protection, from /proc/self/maps: write_code gives it back as it was (the game's code may be
+ * writable still when the hook goes in, for the patches written after it). */
+static int page_protection(uintptr_t address) {
+    int prot=PROT_READ|PROT_EXEC;
+    FILE *maps=fopen("/proc/self/maps","r");
+    if (!maps) return prot;
+    char line[512];
+    while (fgets(line,sizeof(line),maps)) {
+        unsigned long lo,hi;
+        char perms[5];
+        if (sscanf(line,"%lx-%lx %4s",&lo,&hi,perms)!=3 || address<lo || address>=hi) continue;
+        prot=(perms[0]=='r' ? PROT_READ : 0)|(perms[1]=='w' ? PROT_WRITE : 0)|(perms[2]=='x' ? PROT_EXEC : 0);
+        break;
+    }
+    fclose(maps);
+    return prot;
+}
+static int write_code(unsigned char *at, const void *bytes, size_t size) {
+    const uintptr_t page_size=(uintptr_t)sysconf(_SC_PAGESIZE);
+    const uintptr_t first=(uintptr_t)at&~(page_size-1), last=((uintptr_t)at+size-1)&~(page_size-1);
+    const int first_prot=page_protection(first), last_prot=page_protection(last);
+    if (mprotect((void *)first,last-first+page_size,PROT_READ|PROT_WRITE|PROT_EXEC)) return 0;
+    memcpy(at,bytes,size);
+    mprotect((void *)first,page_size,first_prot);
+    if (last!=first) mprotect((void *)last,page_size,last_prot);
+    __builtin___clear_cache((char *)at,(char *)at+size);
+    return 1;
+}
+#endif
+
+/* The camera's automatic turning while the character moves ("Disable Camera Auto Rotation via
+ * Movement", Imedved and Kyo, patches/Bloodborne.xml): the four stores `vmovss [r13+offset],xmm`
+ * (camera object offsets +0x144 twice, +0x130 and +0x294) that the walking camera turns itself with, nopped;
+ * only +0x144 is the yaw this file turns. A mouse camera turns only by the mouse (or the stick). */
+static const struct { uint32_t at; unsigned char original[9]; } auto_rotation[]={
+    {0x143c6e8,{0xc4,0xc1,0x7a,0x11,0x85,0x44,0x01,0x00,0x00}}, {0x143c984,{0xc4,0xc1,0x7a,0x11,0x8d,0x30,0x01,0x00,0x00}},
+    {0x143dde6,{0xc4,0xc1,0x7a,0x11,0x85,0x94,0x02,0x00,0x00}}, {0x143c870,{0xc4,0xc1,0x7a,0x11,0xad,0x44,0x01,0x00,0x00}},
+};
 static void disable_auto_rotation(void) {
     static const unsigned char nops[9]={0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90};
     int done=0;
@@ -159,6 +208,7 @@ static void disable_auto_rotation(void) {
     }
     printf("Runtime: camera auto-rotation off (%d of %zu sites)\n",done,sizeof(auto_rotation)/sizeof(*auto_rotation));
 }
+#ifdef _WIN32
 int runtime_camhook_install(int no_auto_rotation, const char **why) {
     static char reason[96];
     *why="";
@@ -205,10 +255,51 @@ int runtime_camhook_install(int no_auto_rotation, const char **why) {
     return 1;
 }
 #else
+/* As on Windows: the stub on its page near the game code (read and run only), the turn on the page after it
+ * (read and written), and a jmp at the hook site. */
 int runtime_camhook_install(int no_auto_rotation, const char **why) {
-    (void)no_auto_rotation;
-    *why="the camera hook is Windows only";
-    return 0;
+    static char reason[96];
+    *why="";
+    if (delta) return 1;
+    if (!runtime_image_start || HOOK_SITE+sizeof(original)>runtime_image_size) {
+        *why="no game image to hook";
+        return 0;
+    }
+    unsigned char *site=(unsigned char *)runtime_image_start+HOOK_SITE;
+    if (memcmp(site,original,sizeof(original))) {
+        *why="unknown game version (the camera code differs from 1.09)";
+        return 0;
+    }
+    unsigned char *page=near_page((uintptr_t)site);
+    if (!page) { *why="no memory near the game code"; return 0; }
+    memcpy(page,stub,sizeof(stub));
+    const int32_t slot=STUB_DATA-STUB_DELTA_END;
+    memcpy(page+STUB_DELTA_DISP,&slot,4);
+    const uint64_t back=(uintptr_t)site+6;
+    const uint64_t frame=(uintptr_t)camhook_frame;
+    memcpy(page+STUB_FRAME,&frame,8);
+    memcpy(page+STUB_BACK,&back,8);
+    const int64_t rel=(int64_t)((uintptr_t)page-((uintptr_t)site+5));
+    if (rel<INT32_MIN || rel>INT32_MAX) { munmap(page,2*STUB_DATA); *why="no memory near the game code"; return 0; }
+    const int32_t rel32=(int32_t)rel;
+    if (mprotect(page,STUB_DATA,PROT_READ|PROT_EXEC)) { /* the data page stays read/write */
+        munmap(page,2*STUB_DATA);
+        *why="the camera stub cannot be made executable";
+        return 0;
+    }
+    __builtin___clear_cache((char *)page,(char *)page+STUB_DATA);
+    unsigned char jump[6]={0xe9,0,0,0,0,0x90};
+    memcpy(jump+1,&rel32,4);
+    if (!write_code(site,jump,6)) {
+        snprintf(reason,sizeof(reason),"the game code cannot be written (%s)",strerror(errno));
+        munmap(page,2*STUB_DATA);
+        *why=reason;
+        return 0;
+    }
+    delta=(volatile uint64_t *)(page+STUB_DATA);
+    printf("Runtime: PC mouse camera hooked into the game's camera (image+0x%x)\n",HOOK_SITE);
+    if (no_auto_rotation) disable_auto_rotation();
+    return 1;
 }
 #endif
 

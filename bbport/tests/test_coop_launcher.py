@@ -7,7 +7,7 @@ import sys
 import tempfile
 import time
 import unittest
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'launcher'))
@@ -805,10 +805,75 @@ class PlayTests(unittest.TestCase):
         # Phase 11: shadnet --watchdog keeps the co-op server running (it starts it again after a
         # crash or a hang); stopping stops the watchdog first, so it starts nothing again.
         install = Path('C:/Co-op')
-        self.assertEqual(coop.server_command(install), [str(install / 'server' / 'shadnet.exe'), '--watchdog'])
+        with mock.patch.object(coop.sys, 'platform', 'win32'), mock.patch.object(coop, 'SERVER_EXE', 'shadnet.exe'):
+            self.assertEqual(coop.server_command(install), [str(install / 'server' / 'shadnet.exe'), '--watchdog'])
         found = [(11, 'shadnet.exe', 'shadnet.exe --beat'), (12, 'python.exe', 'bb_dummy_server.py'),
                  (10, 'shadnet.exe', 'shadnet.exe --watchdog')]
         self.assertEqual([pid for pid, _name, _command in coop.stop_order(found)], [10, 11, 12])
+
+    def test_linux_runs_the_server_built_beside_the_port(self):
+        # Linux from source: the install is bbport/ and shadnet stays in server/build beside it, whose
+        # ../VERSION.txt is not the install's, so Start server gives shadnet the release's version.
+        with tempfile.TemporaryDirectory() as folder, \
+                mock.patch.object(coop.sys, 'platform', 'linux'), mock.patch.object(coop, 'SERVER_EXE', 'shadnet'), \
+                mock.patch.object(coop, 'DETACH_SESSION', True):  # set at import: Linux's value on any OS
+            root = Path(folder)
+            install = root / 'bbport'
+            built = root / 'server' / 'build'
+            built.mkdir(parents=True)
+            (root / 'backend').mkdir()
+            install.mkdir()
+            (install / 'VERSION.txt').write_text('BBSC: Yharnam Together v1.4.0 (Linux)\n', encoding='utf-8')
+            self.assertEqual(coop.server_folder(install), install / 'server', 'no shadnet built: the release layout')
+            (built / 'shadnet').write_bytes(b'')
+            self.assertEqual(coop.server_command(install), [str(built / 'shadnet'), '--watchdog'])
+            self.assertEqual(coop.backend_folder(install), root / 'backend')
+            with mock.patch.object(coop, 'servers_running', return_value=False), \
+                    mock.patch.object(coop, 'port_open', return_value=True), \
+                    mock.patch.dict(coop.os.environ, {}, clear=False), \
+                    mock.patch.object(coop.subprocess, 'Popen') as popen:
+                coop.os.environ.pop('BB_RELEASE_VERSION', None)
+                coop.start_servers(install, '100.66.59.61', wait_s=0)
+            self.assertEqual(popen.call_args.kwargs['env']['BB_RELEASE_VERSION'], '1.4.0')
+            self.assertEqual(popen.call_args.kwargs['cwd'], built)
+            self.assertTrue(popen.call_args.kwargs['start_new_session'], 'closing the launcher leaves it running')
+            # A server of the install's own (a packaged release) reads ../VERSION.txt itself.
+            (install / 'server').mkdir()
+            (install / 'server' / 'shadnet').write_bytes(b'')
+            self.assertEqual(coop.server_folder(install), install / 'server')
+            # Its processes (process_rows from /proc): shadnet from this server folder, the backend
+            # there, a launcher waiting to stop them; another shadnet and this launcher are not ours.
+            server = str((install / 'server').resolve())
+            backend = str((root / 'backend').resolve())
+            launcher = coop.linux_launcher(install)
+            rows = [(10, 'shadnet', server + '/shadnet', server + '/shadnet --watchdog'),
+                    (11, 'shadnet', server + '/shadnet', server + '/shadnet --beat'),
+                    (12, 'python3.14', '/usr/bin/python3.14', f'python3 {backend}/bb_dummy_server.py --port 20443'),
+                    (13, 'shadnet', '/opt/other/shadnet', '/opt/other/shadnet'),
+                    (14, 'python3.14', '/usr/bin/python3.14', f'python3 {launcher} {coop.STOP_WHEN_UNUSED}'),
+                    (coop.os.getpid(), 'shadnet', server + '/shadnet', '')]
+            found = coop.our_linux_processes(install, rows)
+            self.assertEqual([pid for pid, _name, _command in coop.stop_order(found)], [10, 11, 12, 14])
+
+    def test_linux_who_still_uses_the_install(self):
+        # The server goes with the launcher, or with the game when that outlives it: on Linux the
+        # launcher and run.py are Python's command lines, the game is bb-probe in the install.
+        install = '/home/hunter/yharnam-together/bbport'
+        launcher = install + '/launcher/bbport_launcher_win.py'
+        python = '/usr/bin/python3.14'
+        rows = [(1, 'python3.14', python, f'python3 {launcher}'),  # a launcher window
+                (2, 'python3.14', python, f'{python} {install}/run.py'),  # the game's launch
+                (3, 'bb-probe', install + '/out/bb-probe', install + '/out/bb-probe boot-linked.bin'),  # the game
+                (4, 'python3.14', python, f'{python} {install}/run.py --after 2'),  # the in-game restart
+                (5, 'python3.14', python, f'python3 {launcher} {coop.STOP_WHEN_UNUSED}'),  # a watcher
+                (6, 'python3.14', python, f'python3 {launcher} --script {install}/scripts/mods.py'),
+                (7, 'python3.14', python, f'python3 {launcher}'),  # this process
+                (8, 'bb-probe', '/games/other/out/bb-probe', '/games/other/out/bb-probe'),  # another install
+                (9, 'bb-probe', install + '-2/out/bb-probe', install + '-2/out/bb-probe')]
+        with mock.patch.object(coop.sys, 'platform', 'linux'), \
+                mock.patch.object(coop, 'Path', PurePosixPath):  # Linux paths on any OS
+            self.assertEqual(coop.install_users(rows, install, own_pid=7), [1, 2, 3, 4])
+            self.assertEqual(coop.install_users(rows[4:], install, own_pid=7), [])
 
     def test_the_server_log_reaches_shadnet_txt(self):
         # Players' "Failed to acquire Bloodborne server information" (2026-10-22): user\\log\\shadnet.txt
@@ -1409,7 +1474,15 @@ class ConsoleTextTests(unittest.TestCase):
         install = Path('C:/Games/Yharnam Together')
         raw = ('Программа: ' + str(install / 'bin' / 'bb-probe.exe') + '\r\nШ\r\n').encode('cp866')
         done = mock.Mock(returncode=0, stdout=raw)
-        with mock.patch.object(coop.subprocess, 'run', return_value=done):
-            self.assertTrue(coop.firewall_ready(install, False))
-        with mock.patch.object(coop.subprocess, 'run', return_value=mock.Mock(returncode=0, stdout=b'\x98\xff')):
-            self.assertFalse(coop.firewall_ready(install, False))
+        with mock.patch.object(coop.sys, 'platform', 'win32'):  # netsh's answer, read on any OS
+            with mock.patch.object(coop.subprocess, 'run', return_value=done):
+                self.assertTrue(coop.firewall_ready(install, False))
+            with mock.patch.object(coop.subprocess, 'run', return_value=mock.Mock(returncode=0, stdout=b'\x98\xff')):
+                self.assertFalse(coop.firewall_ready(install, False))
+
+    def test_no_windows_firewall_elsewhere(self):
+        # Linux and the rest have no Windows Firewall to ask (their own, ufw or firewalld, the player
+        # opens by hand): PLAY and Start server go on without netsh.
+        with mock.patch.object(coop.sys, 'platform', 'linux'), mock.patch.object(coop.subprocess, 'run') as run:
+            self.assertTrue(coop.firewall_ready(Path('/games/yharnam'), True))
+        run.assert_not_called()

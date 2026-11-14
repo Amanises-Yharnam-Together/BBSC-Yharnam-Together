@@ -39,6 +39,12 @@ def row(pid, name, path, arguments=''):
 
 
 class ServerGoesWithTheLauncherTests(unittest.TestCase):
+    def setUp(self):
+        # Windows' processes (BLauncher.exe, bb-probe.exe); Linux's: test_coop_launcher.
+        windows = mock.patch.object(coop.sys, 'platform', 'win32')
+        windows.start()
+        self.addCleanup(windows.stop)
+
     def test_who_still_uses_the_install(self):
         rows = [row(1, 'BLauncher.exe', LAUNCHER_EXE),  # a launcher window
                 row(2, 'BLauncher.exe', LAUNCHER_EXE, '--run'),  # run.py: the game's launch

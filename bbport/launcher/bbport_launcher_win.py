@@ -24,6 +24,7 @@ import random
 import re
 import runpy
 import shutil
+import signal
 import struct
 import subprocess
 import sys
@@ -36,6 +37,7 @@ import webbrowser
 import zipfile
 
 FROZEN = getattr(sys, 'frozen', False)
+EXE = '.exe' if sys.platform == 'win32' else ''  # the port's own programs; Linux: no suffix
 PORT_DIR = Path(sys.executable).resolve().parent if FROZEN else Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PORT_DIR / 'scripts'))
 sys.path.insert(0, str(PORT_DIR / 'tools'))  # fetch_fsr4vk.py in a source tree; the frozen launcher bundles it
@@ -785,13 +787,13 @@ def parse_upscaler_support(output):
 
 def gpu_tool():
     """(bb-gpu-capabilities.exe, the environment to run it with): the packaged copy, else out/."""
-    exe = PORT_DIR / 'bin' / 'bb-gpu-capabilities.exe'
+    exe = PORT_DIR / 'bin' / f'bb-gpu-capabilities{EXE}'
     if not exe.is_file():
-        exe = PORT_DIR / 'out' / 'bb-gpu-capabilities.exe'
+        exe = PORT_DIR / 'out' / f'bb-gpu-capabilities{EXE}'
     env = dict(os.environ)
     env['BB_FSR4VK_DIR'] = str(fsr4vk_dir())  # where the check looks for the experimental FSR 4.1.1 files
     env.pop('BB_FSR4VK', None)  # the check asks what the PC can run; the launcher's own switch decides the rest
-    if not (exe.parent / 'SDL3.dll').is_file():
+    if sys.platform == 'win32' and not (exe.parent / 'SDL3.dll').is_file():
         clang64 = Path(os.environ.get('MSYS2_ROOT', r'C:\msys64')) / 'clang64' / 'bin'
         env['PATH'] = f'{clang64}{os.pathsep}{env.get("PATH", "")}'
     return exe, env
@@ -910,6 +912,8 @@ UPSCALER_REASONS_RU = {
         'нужно расширение Vulkan, которое пока не поддерживает ни один известный драйвер Windows',
     'not an NVIDIA RTX GPU': 'не видеокарта NVIDIA RTX',
     'bbport_dlss.dll and nvngx_dlss.dll are not installed': 'bbport_dlss.dll и nvngx_dlss.dll не установлены',
+    'libbbport_dlss.so and libnvidia-ngx-dlss.so are not installed':
+        'libbbport_dlss.so и libnvidia-ngx-dlss.so не установлены',
     'this GPU or driver does not support DLSS (GeForce RTX needed)':
         'эта видеокарта или драйвер не поддерживает DLSS (нужна GeForce RTX)',
     'libxess.dll is not installed': 'libxess.dll не установлена',
@@ -919,11 +923,38 @@ UPSCALER_REASONS_RU = {
 
 
 DLSS_FILES = ('bbport_dlss.dll', 'nvngx_dlss.dll', 'nvngx_dlssg.dll')  # bin\, next to bb-probe.exe
+# Linux: the bridge and NVIDIA's libraries (versioned names) beside bb-probe, as build.sh copies them.
+DLSS_FILES_LINUX = ('libbbport_dlss.so', 'libnvidia-ngx-dlss.so.*', 'libnvidia-ngx-dlssg.so.*')
+
+
+def platform_text(text):
+    """A text naming Windows, naming Linux off Windows ('native port · Windows'); every translation keeps
+    the word, Arabic in its own script."""
+    if sys.platform == 'win32':
+        return text
+    return text.replace('Windows', 'Linux').replace('ويندوز', 'لينكس')
+
+
+def dlss_files_hint_linux(port_dir=None):
+    """dlss_files_hint on Linux: the folder of bb-probe (bin/ packaged, else out/ as build.sh leaves it)."""
+    root = Path(port_dir or PORT_DIR)
+    folder = root / 'bin' if (root / 'bin' / 'bb-probe').is_file() else root / 'out'
+    missing = [name for name in DLSS_FILES_LINUX if not any(folder.glob(name))]
+    if not missing:
+        return _('DLSS uses {} in {} (✓ found). On other GPUs FSR 3.1 is used.',
+                 'DLSS использует {} в {} (✓ найдены). На других видеокартах используется FSR 3.1.').format(
+            ', '.join(DLSS_FILES_LINUX), folder)
+    return _('DLSS needs {} in {}: {} missing (build.sh copies them when DLSS_SDK_ROOT is set). Until then FSR 3.1 '
+             'is used.',
+             'Для DLSS нужны {} в {}: нет {} (build.sh копирует их, если задан DLSS_SDK_ROOT). Пока используется '
+             'FSR 3.1.').format(', '.join(DLSS_FILES_LINUX), folder, ', '.join(missing))
 
 
 def dlss_files_hint(port_dir=None):
     """The note under 'Frame generation provider': the exact folder the DLSS files belong in, and whether they
     are there. It used to say 'next to the game', and players looked in their Bloodborne game folder (v1.2.1)."""
+    if sys.platform != 'win32':
+        return dlss_files_hint_linux(port_dir)
     bin_dir = Path(port_dir or PORT_DIR) / 'bin'
     missing = [name for name in DLSS_FILES if not (bin_dir / name).is_file()]
     if not missing:
@@ -3425,7 +3456,8 @@ class Launcher:
             self.side.set_texts(COOP_SHORT_NAME + '  ·  ' + (
                 f'v{release}' if release else _('development build', 'сборка разработчика')), '')
         else:
-            self.side.set_texts(_('native port · Windows', 'нативный порт · Windows') + f'  ·  v{VERSION}', '')
+            self.side.set_texts(platform_text(_('native port · Windows', 'нативный порт · Windows')) +
+                                f'  ·  v{VERSION}', '')
         if self.motion.enabled:
             self.side.set_reveal(0.0)
         self.update_box = None
@@ -3502,7 +3534,7 @@ class Launcher:
         self.status = tk.Label(line, text='', bg=BG, fg=MUTED, font=self.fonts['small'], anchor='w', justify='left')
         self.status.pack(side='left')
         self.footer = footer
-        grip = tk.Canvas(footer, width=px(14), height=px(14), bg=BG, highlightthickness=0, bd=0, cursor='size_nw_se')
+        grip = tk.Canvas(footer, width=px(14), height=px(14), bg=BG, highlightthickness=0, bd=0, cursor='size_nw_se' if sys.platform == 'win32' else 'bottom_right_corner')
         for i in range(3):
             for j in range(i + 1):
                 x, y = px(12) - (i - j) * px(4), px(12) - j * px(4)
@@ -3587,8 +3619,8 @@ class Launcher:
 
     def frame_extra(self):
         """Height of the title bar and the borders around the window's client area."""
-        user32 = ctypes.windll.user32
         try:
+            user32 = ctypes.windll.user32  # AttributeError off Windows: the fallback below
             if self.root.winfo_ismapped():
                 from ctypes import wintypes
                 rect = wintypes.RECT()
@@ -3915,7 +3947,7 @@ class Launcher:
         """bb-probe --prepare-map in the background, its lines moving the bar; then the 3D map is on
         (Prerendered) unless the player chose Live."""
         dvdroot, user = self.map_folders()
-        probe = PORT_DIR / 'bin' / 'bb-probe.exe'
+        probe = PORT_DIR / 'bin' / f'bb-probe{EXE}'
         if dvdroot is None or not probe.is_file():
             return
         self.preparing_map = True
@@ -7355,8 +7387,11 @@ def start_game(command, env, log_path):
             log.flush()
         except (OSError, ValueError):
             pass
+        # Linux: a session of its own, which every process of the game stays in (GameJob), the in-game
+        # restart's run.py too.
         return subprocess.Popen(command, cwd=PORT_DIR, env=env, stdin=subprocess.DEVNULL, stdout=log,
-                                stderr=subprocess.STDOUT, creationflags=NO_WINDOW)
+                                stderr=subprocess.STDOUT, creationflags=NO_WINDOW,
+                                start_new_session=sys.platform != 'win32')
 
 
 def follow_log(path, finished, emit, interval=0.05, retries=5):
@@ -7436,23 +7471,55 @@ class JobAccounting(ctypes.Structure):
                 ('ActiveProcesses', ctypes.c_uint32), ('TotalTerminatedProcesses', ctypes.c_uint32)]
 
 
+def session_processes(session, proc='/proc'):
+    """The live processes (not zombies) of a Linux session, by its id: [pid]."""
+    found = []
+    try:
+        entries = os.listdir(proc)
+    except OSError:
+        return found
+    for entry in entries:
+        if not entry.isdigit():
+            continue
+        try:
+            with open(os.path.join(proc, entry, 'stat'), 'rb') as file:
+                stat = file.read()
+        except OSError:
+            continue  # gone
+        fields = stat[stat.rfind(b')') + 2:].split()  # after "pid (name) ": state, ppid, pgrp, session
+        if len(fields) > 3 and fields[0] not in (b'Z', b'X') and fields[3] == str(session).encode():
+            found.append(int(entry))
+    return found
+
+
 class GameJob:
     """A Windows job holding run.py and everything it starts: bb-probe.exe and the launches made
-    by the in-game restart (no longer descendants of the first process)."""
+    by the in-game restart (no longer descendants of the first process). On Linux the game's own
+    session (start_game) holds them the same way."""
 
     def __init__(self, process):
+        self.handle, self.assigned = None, False
+        self.say = None  # called with a line for the log when game_over has to do without the job
+        self.fallback_said, self.ended_at = False, None
+        self.session = None
+        if not hasattr(ctypes, 'windll'):
+            try:
+                if os.getsid(process.pid) == process.pid:  # start_game made it a session leader
+                    self.session = process.pid
+            except (OSError, AttributeError):
+                pass  # already gone, or no sessions here: game_over goes by the process itself
+            return
         kernel32 = ctypes.windll.kernel32
         kernel32.CreateJobObjectW.restype = ctypes.c_void_p
         self.handle = kernel32.CreateJobObjectW(None, None)
-        self.assigned = False
-        self.say = None  # called with a line for the log when game_over has to do without the job
-        self.fallback_said, self.ended_at = False, None
         if self.handle:
             self.assigned = bool(kernel32.AssignProcessToJobObject(
                 ctypes.c_void_p(self.handle), ctypes.c_void_p(int(process._handle))))
 
     def running(self):
         """Whether a process of the job is alive; None when the job could not be used."""
+        if self.session is not None:
+            return bool(session_processes(self.session))
         if not (self.handle and self.assigned):
             return None
         info = JobAccounting()
@@ -7462,6 +7529,12 @@ class GameJob:
         return info.ActiveProcesses > 0
 
     def terminate(self):
+        if self.session is not None:
+            for pid in session_processes(self.session):
+                try:
+                    os.kill(pid, signal.SIGKILL)  # as TerminateJobObject: at once, every one
+                except OSError:
+                    pass
         if self.handle:
             ctypes.windll.kernel32.TerminateJobObject(ctypes.c_void_p(self.handle), 1)
 

@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'launcher'))
 
-if sys.platform == 'win32':
+if sys.platform in ('win32', 'linux'):
     import bbport_launcher_win as launcher
 
 
@@ -38,6 +38,38 @@ class DlssFilesHintTests(unittest.TestCase):
         for name in launcher.DLSS_FILES:
             (root / name).write_bytes(b'')
         self.assertIn('missing', launcher.dlss_files_hint(root))
+
+
+@unittest.skipUnless(sys.platform == 'linux', 'the launcher on Linux')
+class DlssFilesHintLinuxTests(unittest.TestCase):
+    # Linux: the .so bridge and NVIDIA's versioned libraries beside bb-probe (out/ as build.sh leaves them,
+    # bin/ when packaged), never the Windows .dll names.
+    def install(self, folder, files):
+        root = Path(tempfile.mkdtemp())
+        (root / folder).mkdir()
+        for name in files:
+            (root / folder / name).write_bytes(b'')
+        return root
+
+    def test_found_in_out(self):
+        root = self.install('out', ['libbbport_dlss.so', 'libnvidia-ngx-dlss.so.310.9.16',
+                                    'libnvidia-ngx-dlssg.so.310.9.16'])
+        hint = launcher.dlss_files_hint(root)
+        self.assertIn(str(root / 'out'), hint)
+        self.assertIn('found', hint)
+        self.assertNotIn('.dll', hint)
+
+    def test_frame_generation_library_missing(self):
+        root = self.install('out', ['libbbport_dlss.so', 'libnvidia-ngx-dlss.so.310.9.16'])
+        self.assertIn('libnvidia-ngx-dlssg.so.* missing', launcher.dlss_files_hint(root))
+
+    def test_packaged_bin_folder(self):
+        root = self.install('bin', ['bb-probe', 'libbbport_dlss.so', 'libnvidia-ngx-dlss.so.1',
+                                    'libnvidia-ngx-dlssg.so.1'])
+        self.assertIn(str(root / 'bin'), launcher.dlss_files_hint(root))
+
+    def test_the_side_label_names_linux(self):
+        self.assertEqual(launcher.platform_text('native port · Windows'), 'native port · Linux')
 
 
 if __name__ == '__main__':

@@ -6,6 +6,9 @@
  * --upscalers: one "UPSCALER <name> supported|unsupported: <reason>" line per upscaler (below).
  * --device: "vendorID<tab>name" of the GPU the game takes (run.sh: memory model and driver
  * workarounds by vendor and chip). */
+#if !defined(_WIN32) && !defined(_DEFAULT_SOURCE)
+#define _DEFAULT_SOURCE /* readlink, opendir (Linux DLSS check) */
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -473,6 +476,44 @@ static void verdict_dlss(const Dlls *dlls, const VkPhysicalDeviceProperties *pro
 }
 #endif
 
+#ifndef _WIN32
+#include <dirent.h>
+#include <unistd.h>
+/* Whether a file whose name starts with PREFIX is beside this tool (bb-probe's folder: vk_dlss.cpp
+ * loads the DLSS libraries from there). */
+static int beside_tool(const char *prefix) {
+    char path[4096];
+    const ssize_t n = readlink("/proc/self/exe", path, sizeof path - 1);
+    if (n <= 0) return 0;
+    path[n] = 0;
+    char *slash = strrchr(path, '/');
+    if (!slash) return 0;
+    *slash = 0;
+    DIR *dir = opendir(path);
+    if (!dir) return 0;
+    int found = 0;
+    for (struct dirent *e; !found && (e = readdir(dir));)
+        found = !strncmp(e->d_name, prefix, strlen(prefix));
+    closedir(dir);
+    return found;
+}
+
+/* Linux: libbbport_dlss.so (gpu/dlss_bridge, build.sh with DLSS_SDK_ROOT) and NVIDIA's
+ * libnvidia-ngx-dlss.so.<version> beside the tool, on an NVIDIA GPU. NGX itself answers when the game
+ * starts (the game falls back to FSR 3.1 and says why in its log). */
+static void verdict_dlss_linux(const VkPhysicalDeviceProperties *props, UpscalerVerdict *v) {
+    if (props->vendorID != 0x10de) {
+        fail(v, "not an NVIDIA RTX GPU");
+        return;
+    }
+    if (!beside_tool("libbbport_dlss.so") || !beside_tool("libnvidia-ngx-dlss.so.")) {
+        fail(v, "libbbport_dlss.so and libnvidia-ngx-dlss.so are not installed");
+        return;
+    }
+    pass(v);
+}
+#endif
+
 static int upscalers_mode(void) {
     const char *extensions[MAX_INSTANCE_EXTENSIONS];
     uint32_t extension_count = 0;
@@ -579,7 +620,7 @@ static int upscalers_mode(void) {
 #else
     (void)instance_ok;
     (void)mutable_type;
-    fail(&dlss, "DLSS is built for Windows only");
+    verdict_dlss_linux(&props, &dlss);
     fail(&xess, "XeSS is built for Windows only");
 #endif
     const struct { const char *name; const UpscalerVerdict *verdict; } rows[] = {

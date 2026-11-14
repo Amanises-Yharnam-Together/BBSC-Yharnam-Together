@@ -20,8 +20,11 @@
 #include <sys/mman.h>
 #endif
 
-extern "C" std::uint64_t runtime_disabled_optimizations = 0;
-extern "C" std::uint64_t runtime_experiment_bits = 0;
+// The runtime's switches, defined here (a block: GCC warns about `extern "C" T x = 0;`).
+extern "C" {
+std::uint64_t runtime_disabled_optimizations = 0;
+std::uint64_t runtime_experiment_bits = 0;
+}
 
 namespace {
 using u8 = std::uint8_t;
