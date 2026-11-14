@@ -2246,8 +2246,13 @@ SCENARIOS = {
                  "says its sign-in to the game server failed",
         "settings": {"rig.no_game_server_roles": "guest"},
         "roles": {
-            "host": [START, "wait 10", "done"],
-            "guest": ["title-wait 45", "done"],
+            # No team (every other scenario's prelude): the guest's team screen never comes up
+            # without its game server. The host plays alone; the guest presses on at the title
+            # (the presses that ask the game server, once the title is up, as SIGN_IN_TITLE's),
+            # and team-leave keeps the prelude out.
+            "host": ["team-alone", START, "wait 10", "done"],
+            "guest": ["team-leave", "title-wait 20", "title-press cross", "title-wait 5",
+                      "title-press cross", "title-wait 30", "done"],
         },
         "expect": {
             "guest": [r"Co-op: the game server sign-in is failed \(failed /bb-eu/ss.info\)"],
