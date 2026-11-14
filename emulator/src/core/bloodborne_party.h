@@ -1545,6 +1545,13 @@ public:
     // warp without a load screen), committed at once.
     static constexpr float TeleportMeters = 50.0f;
     static constexpr s64 TeleportWindowMs = 1'000;
+    // Discord 2026-11-12 (Raziel, 1.5.0): a guest's game kept its loading flag up for minutes
+    // after its trip after the join, its character standing and playing in the world (its stage
+    // transition's gate at eboot 0x01940FD5 never opened). A Loading with a character standing
+    // at a position for this long is a load that ended: it plays on the map it reads, else on
+    // the last one. A healthy reload in place holds that state about 3.5 s, a lamp trip out of a
+    // session up to 14 s (rig 2026-11-13, joins restart-keeps: gate +0x1547 and +0x1548 set).
+    static constexpr s64 StandingInLoadMs = 30'000;
 
     std::optional<PlaceChange> Update(const PlaceReading& reading);
     const Place& Current() const {
@@ -1564,6 +1571,22 @@ private:
     bool arrival_due = false; // a new player character: the world loaded between two ticks
     bool trip_seen = false;
     bool death_seen = false;
+    std::optional<s64> standing_since;  // a character stood at a position since, in this stretch
+    bool loading_flag_outlived = false; // Playing although the loading flag stays up
+};
+// Discord 2026-11-12 (Raziel, 1.5.0): a guest's vitals said map 0 for six minutes after its trip
+// after the join while it played on, so its host never showed it, and production logs could not
+// say which reading held its place in Loading. Tick says it once, when a stretch of Loading has
+// had a character in the world for StuckMs: what holds it ("the loading flag", "the map read
+// 0x..."), for a warning production logs keep.
+class StuckLoadWatch {
+public:
+    static constexpr s64 StuckMs = 20'000; // before PlaceTracker::StandingInLoadMs ends it
+    std::optional<std::string> Tick(PlaceState state, const PlaceReading& reading);
+
+private:
+    std::optional<s64> stands; // since when a character stood in the world in this Loading
+    bool said = false;
 };
 std::string_view PlaceStateName(PlaceState state);
 std::string_view PlaceCauseName(PlaceCause cause);
