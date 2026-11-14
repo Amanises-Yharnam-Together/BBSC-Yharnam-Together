@@ -29,8 +29,10 @@ class TableTests(unittest.TestCase):
         self.assertEqual(problems(), [])
 
     def test_the_game_languages(self):
-        codes = [code for code, _, _ in LANGUAGES]
+        # The game's 18 past English and Russian, and Thai, which no PS4 id picks.
+        codes = [code for code, _, ids in LANGUAGES if ids]
         self.assertEqual(len(codes), 18)
+        self.assertEqual([code for code, _, ids in LANGUAGES if not ids], ['th'])
         ids = [i for _, _, language_ids in LANGUAGES for i in language_ids]
         self.assertEqual(sorted(ids + [1, 8]), sorted(set(ids + [1, 8])), 'one language per PS4 id')
         self.assertNotIn(18, ids, 'English (UK) is English')
@@ -125,7 +127,8 @@ class GameFontTests(unittest.TestCase):
         game_rows = set()
         for name in ('bbport_game_menu.cpp', 'bbport_trade_menu.cpp'):
             game_rows.update(e for e, _ in pairs_in((menu_texts.SHIM / name).read_text(encoding='utf-8')))
-        self.assertEqual(set(self.FOLDERS), {code for code, _, _ in LANGUAGES})
+        # The game draws its rows in its own language: only the languages a PS4 id picks.
+        self.assertEqual(set(self.FOLDERS), {code for code, _, ids in LANGUAGES if ids})
         for code, folder in self.FOLDERS.items():
             codes = font_codes((game_folder() / 'menu' / folder / 'font.gfx').read_bytes())
             table = menu_texts.load_language(code)

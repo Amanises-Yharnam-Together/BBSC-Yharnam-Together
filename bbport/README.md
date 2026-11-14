@@ -519,6 +519,7 @@ The Linux port and almost all of the work behind it are by [deadinside28](https:
 | [LibAtrac9](https://github.com/Thealexbarney/LibAtrac9) | MIT |
 | [Dear ImGui](https://github.com/ocornut/imgui) | MIT |
 | DejaVu fonts | |
+| [Noto Sans Thai](https://github.com/notofonts/thai) | SIL OFL 1.1. The overlay's Thai text, its marks placed by `scripts/thai_font.py` |
 | [dxil-spirv](https://github.com/HansKristian-Work/dxil-spirv) | MIT. Used to build the FSR 4.1.1 assets |
 
 Game patches are by Kyo, Lance McDonald, auser1337, illusion, emoose and other community members (`patches/Bloodborne.xml`). AMD's FSR 4 DLLs and model data are not distributed here.

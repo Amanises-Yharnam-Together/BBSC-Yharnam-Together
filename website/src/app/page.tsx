@@ -30,9 +30,9 @@ const changes: { term: string; icon: IconName; text: string }[] = [
     text: "Everyone goes where they like. Nobody is pulled along or sent home.",
   },
   {
-    term: "Up to four",
+    term: "Up to five",
     icon: "tricorn",
-    text: "Four hunters in a team, made in the game's own menus.",
+    text: "Five hunters in a team, made in the game's own menus.",
   },
 ];
 
