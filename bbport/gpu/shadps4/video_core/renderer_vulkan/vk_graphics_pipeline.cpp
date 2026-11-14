@@ -464,15 +464,18 @@ void GraphicsPipeline::GetVertexInputs(
         const auto& attrib = fetch_shader.attributes[semantic];
         const auto step_rate = attrib.GetStepRate();
         const auto buffer = given ? sharps[semantic] : attrib.GetSharp(vs_info);
+        // bbport: a V# without records is a float4 from no buffer, never VK_FORMAT_UNDEFINED
+        // (see fetch_shader.h: an NVIDIA driver lost the device on such an attribute).
+        const auto input = Shader::Gcn::GetVertexInputFormat(buffer);
         attributes.push_back(Attribute{
             .location = semantic,
             .binding = semantic,
-            .format = LiverpoolToVK::VertexInputFormat(buffer.GetDataFmt(), buffer.GetNumberFmt()),
+            .format = LiverpoolToVK::VertexInputFormat(input.data_format, input.num_format),
             .offset = 0,
         });
         bindings.push_back(Binding{
             .binding = semantic,
-            .stride = buffer.GetStride(),
+            .stride = input.stride,
             .inputRate = step_rate == InstanceIdType::None ? vk::VertexInputRate::eVertex
                                                            : vk::VertexInputRate::eInstance,
         });
