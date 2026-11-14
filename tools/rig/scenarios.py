@@ -4103,6 +4103,74 @@ SCENARIOS["team-world-kept-alone"] = {
 }
 
 
+# Players 2026-11-12 (Prohorov's friend, 1.4.0): a guest that joined a friend's world had no Old
+# Yharnam or Hemwick: the Dream's headstones to the lamps only its own save had lit said "no place
+# to awaken". Its game joined from the title, so it never saw its own lamps lit before its first
+# team load took the team's world (KeepGuestLampsLit kept the team's only). Here the guest alone
+# lights a lamp the host's world does not have (FORBIDDEN_WOODS_LAMP_LIT, headstone 12105031); in
+# the host's world it stays lit for the guest, never for the host (not the team's progress), and
+# alone again the guest still has it.
+GUEST_OWN_LAMP_HEADSTONE = 12105031
+SCENARIOS["guest-own-lamps"] = {
+    "about": "a guest's own lamp (lit alone, not in the host's world) stays lit for it in the "
+             "host's world, its Dream headstone usable, and never reaches the host",
+    "roles": {
+        # The guest's join is a game started again (as a player's is): it never saw its own lamps
+        # lit before its team load.
+        "host": [["team-alone", START, "sync gol-alone", "done"],
+                 ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                  "wait-session 2 300", "sync gol-in", "wait 20",
+                  f"expect-flag {FORBIDDEN_WOODS_LAMP_LIT} 0", "sync gol-checked", "done"]],
+        # The alone progress reaches the save by a lamp trip; a stage ends in the world (the
+        # title never runs "done": rig 2026-11-14).
+        "guest": [["team-alone", START, f"light-lamp {FORBIDDEN_WOODS_LAMP_LIT}", "wait 5",
+                   f"travel {CENTRAL_YHARNAM_LAMP}", "wait 15",
+                   f"expect-flag {FORBIDDEN_WOODS_LAMP_LIT} 1", "sync gol-alone", "done"],
+                  ["team-accept", "team-ready", START, "wait-session 2 300", "sync gol-in",
+                   f"wait-flag {FORBIDDEN_WOODS_LAMP_LIT} 1 20",
+                   f"expect-flag {GUEST_OWN_LAMP_HEADSTONE} 1", "sync gol-checked",
+                   "quit-title", "title-wait 10", "team-leave", "team-alone", START, "wait 15",
+                   f"expect-flag {FORBIDDEN_WOODS_LAMP_LIT} 1", "done"]],
+    },
+    "syncs": {name: {"chapter": "guest-own-lamps", "roles": ["host", "guest"]}
+              for name in ("gol-alone", "gol-in", "gol-checked")},
+    "expect": {"guest": [r"Co-op team world: slot \d+'s own world kept aside",
+                         r"lamps lit again for this guest \(its own and the team's\):[^\n]* "
+                         + str(FORBIDDEN_WOODS_LAMP_LIT)]},
+    "allow": CRASH_CLEANUP,
+    "timeout": 900,
+}
+
+# Players 2026-11-12 (Prohorov's friend, 1.4.0): a save that last played a friend's world holds
+# that world's flags, its own kept aside until it plays alone. A new world made from it then
+# started from the friend's progress and its own was retired. Here the guest's save alone sets
+# TEAM_WORLD_FLAG (the host's world has it off), plays the host's world (off there), and then
+# makes a new world of its own: the flag is on again.
+SCENARIOS["guest-new-world-own-progress"] = {
+    "about": "a save that visited a friend's world makes a new world of its own: its own "
+             "progress, not the friend's",
+    "roles": {
+        "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
+                 "wait-session 2 300", "sync gnw-in", "wait 30", "done"],
+        # The alone flag reaches the save by a lamp trip before the quit (rig 2026-11-14).
+        "guest": ["team-alone", START, f"set-flag {TEAM_WORLD_FLAG} 1", "wait 5",
+                  f"travel {CENTRAL_YHARNAM_LAMP}", "wait 15", f"expect-flag {TEAM_WORLD_FLAG} 1",
+                  "quit-title", "title-wait 10",
+                  "team-accept", "team-ready", START, "wait-session 2 300",
+                  f"expect-flag {TEAM_WORLD_FLAG} 0", "sync gnw-in", "wait 15",
+                  "quit-title", "title-wait 10", "team-leave",
+                  "team-create", "team-start", START, "wait 15",
+                  f"expect-flag {TEAM_WORLD_FLAG} 1", "done"],
+    },
+    "syncs": {name: {"chapter": "guest-new-world-own-progress", "roles": ["host", "guest"]}
+              for name in ("gnw-in",)},
+    "expect": {"guest": [r"Co-op team world: slot \d+'s own world kept aside",
+                         r"Co-op team world: slot \d+ makes a new world: its own world is back"]},
+    "forbid": {"guest": [r"could not move slot \d+'s old own world aside"]},
+    "allow": CRASH_CLEANUP,
+    "timeout": 900,
+}
+
 # #289 (Kaniel 2026-10-20: summoned enemies, the chalice bell woman's skeletons and the Witch of
 # Hemwick's Mad Ones): a kill is taken back when a map generator brings the same enemy back. The
 # Witch's Abode lamp stands in her arena; the rig's saves have her alive once her flag is off.

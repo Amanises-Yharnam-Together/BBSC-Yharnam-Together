@@ -1048,6 +1048,11 @@ void ApplyTeamWorldOnLoad(bool trip = false);
 // A team guest's copy of the team's world: its flags on (none for the team's host, or with no
 // world yet).
 std::vector<s32> TeamWorldFlagsOnForGuest();
+// Players 2026-11-12 (Prohorov's friend, 1.4.0): a team guest's own world kept aside while it
+// plays another's (its save slot's personal_world file): its flags on, sorted (none without one,
+// or outside a team). Its own lamps stay lit for it in the session (KeepGuestLampsLit): the
+// Dream's headstones to Old Yharnam or Hemwick it had opened said "no place to awaken".
+std::vector<s32> OwnWorldAsideFlagsOn();
 // The blocks the team's world covers, for a team guest (none otherwise).
 std::vector<u32> TeamWorldBlocksForGuest();
 // Whether the save loaded now plays in a team (its Start's party, until it loads alone from the
