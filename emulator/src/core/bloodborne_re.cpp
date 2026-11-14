@@ -3,6 +3,7 @@
 
 #include "core/bloodborne_compass.h"
 #include "core/bloodborne_crash_dump.h"
+#include "core/bloodborne_game_server.h"
 #include "core/bloodborne_memory_window.h"
 #include "core/bloodborne_party.h"
 #include "core/bloodborne_re.h"
@@ -1395,6 +1396,15 @@ void SetBuildIdentity(std::string_view revision, u64 event_files, u64 eboot, u64
 void NoteSaveFileOpened(std::string_view guest_path) {
     if (const auto slot = CharacterSlotOfSavePath(guest_path)) {
         NoteSaveOpenedForName();
+        // Discord audit A1: a game whose save opens with no game server sign-in plays offline,
+        // and its teammates never see it (the team screen says so: GameServerNotice).
+        if (auto& sign_in = TheGameServerSignIn();
+            sign_in.SaveOpened() && sign_in.State() != GameServerSignIn::SignedIn) {
+            LOG_WARNING(Debug,
+                        "Co-op: this game's save opened with no game server sign-in ({}, {} "
+                        "failed requests): it plays offline and its teammates will not see it",
+                        GameServerSignInName(sign_in.State()), sign_in.Failures());
+        }
         MakeEnemiesHarder();
         if (character_slot.exchange(*slot) != *slot) {
             LOG_INFO(Debug, "Bloodborne party: character save slot {}", *slot);

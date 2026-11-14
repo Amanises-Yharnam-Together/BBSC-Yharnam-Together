@@ -23,6 +23,7 @@
 #include "common/elf_info.h"
 #include "common/logging/log.h"
 #include "common/path_util.h"
+#include "core/bloodborne_game_server.h"
 #include "core/bloodborne_party.h"
 #include "core/bloodborne_re.h"
 #include "core/bloodborne_region_url.h"
@@ -1825,6 +1826,9 @@ int PS4_SYSV_ABI sceHttpSendRequest(int reqId, const void* postData, u64 size) {
     LOG_INFO(Lib_Http, "called reqId={}, postData={}, size={}", reqId, fmt::ptr(postData), size);
     std::shared_ptr<HttpRequest> req_ptr;
     SendRequestPlan plan;
+    // Discord audit A1: what the game does with its own server (the team screen says when it is
+    // not signed in), the URL before the host override.
+    std::string game_server_url;
     {
         std::lock_guard<std::mutex> lock(g_state.m_mutex);
         if (!g_state.inited) {
@@ -1849,6 +1853,9 @@ int PS4_SYSV_ABI sceHttpSendRequest(int reqId, const void* postData, u64 size) {
         req.state = HttpRequestState::Sending;
         req_ptr = it->second;
         LogSendRequestSettings(req, reqId, size);
+        if (Core::Bloodborne::IsGameServerRequest(req.url)) {
+            game_server_url = req.url;
+        }
 
         plan.method = req.method;
         plan.method_str = req.method_str;
@@ -1900,7 +1907,10 @@ int PS4_SYSV_ABI sceHttpSendRequest(int reqId, const void* postData, u64 size) {
              online ? "ONLINE" : "OFFLINE", HttpMethodName(plan.method), plan.scheme, plan.host,
              plan.port, plan.path);
 
-    std::thread([req_ptr, reqId, plan = std::move(plan), online]() {
+    if (!game_server_url.empty()) {
+        Core::Bloodborne::TheGameServerSignIn().Asked();
+    }
+    std::thread([req_ptr, reqId, plan = std::move(plan), online, game_server_url]() {
         HttpResponse local_res;
         s32 worker_errno = 0;
         u32 success_event_bits = 0; // 0 = no event (offline path uses failure bits)
@@ -1932,6 +1942,18 @@ int PS4_SYSV_ABI sceHttpSendRequest(int reqId, const void* postData, u64 size) {
         }
 
         CaptureBloodborneSummon(plan, local_res, worker_errno);
+        if (!game_server_url.empty()) {
+            const bool answered =
+                worker_errno == 0 && local_res.status_code >= 200 && local_res.status_code < 300;
+            auto& sign_in = Core::Bloodborne::TheGameServerSignIn();
+            const auto before = sign_in.State();
+            sign_in.Answered(game_server_url, answered);
+            if (sign_in.State() != before) {
+                LOG_INFO(Lib_Http, "Co-op: the game server sign-in is {} ({} {})",
+                         Core::Bloodborne::GameServerSignInName(sign_in.State()),
+                         answered ? "answered" : "failed", plan.path);
+            }
+        }
 
         std::lock_guard<std::mutex> lock(g_state.m_mutex);
         if (g_state.shutting_down.load() || req_ptr->deleted ||

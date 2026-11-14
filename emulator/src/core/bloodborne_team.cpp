@@ -34,7 +34,11 @@ std::string LinkRefusalNotice(std::string_view refusal) {
     return notice;
 }
 
-std::string TeamScreenNotice(std::string_view lobby_notice, std::string_view link_warning) {
+std::string TeamScreenNotice(std::string_view lobby_notice, std::string_view link_warning,
+                             std::string_view game_server_notice) {
+    if (!game_server_notice.empty()) {
+        return std::string{game_server_notice};
+    }
     if (!lobby_notice.empty()) {
         return std::string{lobby_notice};
     }

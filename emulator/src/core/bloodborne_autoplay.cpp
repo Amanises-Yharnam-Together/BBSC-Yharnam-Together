@@ -2898,6 +2898,15 @@ void TickAutoplayTitle() {
         LOG_INFO(Debug, "Bloodborne autoplay: in the world on map {:#x}", GetCurrentPackedMap());
         return;
     }
+    // A script that ends at the title (title-* steps, then done: a game that never gets past it,
+    // as one whose game server does not answer, Discord audit A1) is done there.
+    if (autoplay_run.next < autoplay_run.script.size() &&
+        autoplay_run.script[autoplay_run.next].verb == "done") {
+        autoplay_run.phase = AutoplayRun::Phase::Done;
+        autoplay_buttons.store(0);
+        LOG_INFO(Debug, "Bloodborne autoplay: done (ok) at the title");
+        return;
+    }
     // The script's first steps may be the lobby's (team-*): they run here, before the title's
     // Cross (twice a second: they wait on the server's answers).
     if (autoplay_run.next < autoplay_run.script.size() &&
