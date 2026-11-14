@@ -63,29 +63,57 @@ def content_root(folder, depth=0):
     return None
 
 
+# Why an entry of the Mods folder is not a mod: the launcher shows these after "Not loaded" and translates
+# each (bbport_launcher_win.py MOD_PROBLEMS, a test keeps the two equal).
+EMPTY = 'empty'
+STILL_ARCHIVE = 'still an archive: extract it here'
+SEVERAL_FOLDERS = ('several folders: put each mod in its own folder in Mods (each with dvdroot_ps4, '
+                   'or folders like chr, parts, map)')
+NO_GAME_FILES = 'no game files: expected dvdroot_ps4, or folders like chr, parts, map'
+LOOSE_ARCHIVE = 'an archive: extract it into a folder of its own in Mods'
+LOOSE_FILE = ('a game file outside a mod folder: put it in a folder of its own, under the game folder it '
+              'belongs in (chr, parts, map …)')
+PROBLEMS = (EMPTY, STILL_ARCHIVE, SEVERAL_FOLDERS, NO_GAME_FILES, LOOSE_ARCHIVE, LOOSE_FILE)
+
+
 def problem(folder):
     """Why `folder` is not a mod (content_root is None), for the launcher's list."""
     folder = Path(folder)
     files = [e for e in folder.rglob('*') if e.is_file()][:2000]
     if not files:
-        return 'empty'
+        return EMPTY
     if any(e.suffix.casefold() in ARCHIVE_SUFFIXES for e in files):
-        return 'still an archive: extract it here'
+        return STILL_ARCHIVE
     folders = [e for e in folder.iterdir() if e.is_dir() and not e.name.startswith('.')]
     if len(folders) > 1:
-        return ('several folders: put each mod in its own folder in Mods (each with dvdroot_ps4, '
-                'or folders like chr, parts, map)')
-    return 'no game files: expected dvdroot_ps4, or folders like chr, parts, map'
+        return SEVERAL_FOLDERS
+    return NO_GAME_FILES
+
+
+def loose_problem(path):
+    """Why a file directly in the Mods folder is no mod, or None for the notes and pictures that may lie there."""
+    suffix = Path(path).suffix.casefold()
+    if suffix in ARCHIVE_SUFFIXES:
+        return LOOSE_ARCHIVE
+    return None if suffix in EXTRA_SUFFIXES else LOOSE_FILE
 
 
 def unrecognized(root):
-    """(name, problem) of the folders of `root` that are not mods."""
+    """(name, problem) of the entries of `root` that are not mods: folders without game files, and downloads
+    dropped in as they came (an archive, a game file without its folder; Discord 2026-11-12)."""
     root = Path(root)
     if not root.is_dir():
         return []
-    return sorted(((p.name, problem(p)) for p in root.iterdir()
-                   if p.is_dir() and not p.name.startswith('.') and not content_root(p)),
-                  key=lambda item: (item[0].casefold(), item[0]))
+    found = []
+    for p in root.iterdir():
+        if p.name.startswith('.'):
+            continue
+        if p.is_dir():
+            if not content_root(p):
+                found.append((p.name, problem(p)))
+        elif p.is_file() and loose_problem(p):
+            found.append((p.name, loose_problem(p)))
+    return sorted(found, key=lambda item: (item[0].casefold(), item[0]))
 
 
 def discover(root):
