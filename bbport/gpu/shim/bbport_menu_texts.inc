@@ -9163,7 +9163,7 @@ BB_MENU_TEXT("Walk (hold with the move keys)",
              "Chód (przytrzymaj z klawiszami ruchu)",
              "Andar (segure junto com as teclas de movimento)",
              "Yürü (hareket tuşlarıyla birlikte basılı tut)",
-             nullptr})
+             "Walk (hold with the move keys)"})
 BB_MENU_TEXT("Vitality",
             {"体力",
              "Vitalité",
