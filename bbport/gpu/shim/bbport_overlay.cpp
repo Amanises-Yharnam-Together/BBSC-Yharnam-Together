@@ -2133,12 +2133,13 @@ const char* InputLabel(int input) {
         "Cross", "Circle", "Square", "Triangle", "L1", "R1", "L2", "R2", "L3", "R3", "Options",
         "Touchpad, left half (gestures)", "Touchpad, right half (key items)", "D-pad up", "D-pad down",
         "D-pad left", "D-pad right", "Move forward", "Move back", "Move left", "Move right", "Camera up",
-        "Camera down", "Camera left", "Camera right"};
+        "Camera down", "Camera left", "Camera right", "Walk (hold with the move keys)"};
     static const char* const ru[] = {
         "Крест", "Круг", "Квадрат", "Треугольник", "L1", "R1", "L2", "R2", "L3", "R3", "Options",
         "Тачпад, левая половина (жесты)", "Тачпад, правая половина (личные вещи)", "Крестовина вверх",
         "Крестовина вниз", "Крестовина влево", "Крестовина вправо", "Движение вперёд", "Движение назад",
-        "Движение влево", "Движение вправо", "Камера вверх", "Камера вниз", "Камера влево", "Камера вправо"};
+        "Движение влево", "Движение вправо", "Камера вверх", "Камера вниз", "Камера влево", "Камера вправо",
+        "Шаг (удерживать с клавишами движения)"};
     static_assert(std::size(en) == std::size(ru));
     if (runtime_pad_input_count() != int(std::size(en))) { // another runtime: its own names
         const char* name = runtime_pad_input_name(input);

@@ -304,6 +304,25 @@ TWEAKS = [
     ('tweak_ragdoll', ('Dark Souls-style ragdoll physics (corpses fly further)',
                        'Физика тел как в Dark Souls (тела отлетают дальше)'), False),
 ]
+# Why an entry of the Mods folder is not a mod (scripts/mods.py PROBLEMS, a test keeps the two equal), as the
+# Mods page shows it after "Not loaded".
+MOD_PROBLEMS = [
+    ('empty', ('empty', 'пусто')),
+    ('still an archive: extract it here', ('still an archive: extract it here', 'ещё в архиве: распакуйте его здесь')),
+    ('several folders: put each mod in its own folder in Mods (each with dvdroot_ps4, or folders like chr, parts, map)',
+     ('several folders: put each mod in its own folder in Mods (each with dvdroot_ps4, or folders like chr, parts, map)',
+      'несколько папок: положите каждый мод в свою папку в папке модов (в каждой dvdroot_ps4 или папки вроде chr, '
+      'parts, map)')),
+    ('no game files: expected dvdroot_ps4, or folders like chr, parts, map',
+     ('no game files: expected dvdroot_ps4, or folders like chr, parts, map',
+      'нет файлов игры: нужна папка dvdroot_ps4 или папки вроде chr, parts, map')),
+    ('an archive: extract it into a folder of its own in Mods',
+     ('an archive: extract it into a folder of its own in Mods', 'архив: распакуйте его в отдельную папку в папке модов')),
+    ('a game file outside a mod folder: put it in a folder of its own, under the game folder it belongs in (chr, parts, map …)',
+     ('a game file outside a mod folder: put it in a folder of its own, under the game folder it belongs in (chr, parts, map …)',
+      'файл игры вне папки мода: положите его в отдельную папку, внутрь папки игры, к которой он относится '
+      '(chr, parts, map …)')),
+]
 INI_FLAGS = {'sharpen', 'object_motion', 'frame_generation', 'frame_gen_fit_display', 'show_fps', 'hdr',
              'fast_shader_math',
              'mouse_camera', 'mouse_invert_y',
@@ -3232,9 +3251,16 @@ class Launcher:
 
     def light(self, card, value):
         card.glow = value
-        card.configure(highlightbackground=mix(LINE, ACCENT, value * 0.75))
-        for corner in getattr(card, 'corners', ()):
-            corner.itemconfigure('arm', fill=mix(GOLD_DIM, GOLD, value * 0.8))
+        try:
+            card.configure(highlightbackground=mix(LINE, ACCENT, value * 0.75))
+            for corner in getattr(card, 'corners', ()):
+                corner.itemconfigure('arm', fill=mix(GOLD_DIM, GOLD, value * 0.8))
+        except self.tk.TclError:
+            # The card's page was rebuilt under the pointer: forget it. Every pointer move logged
+            # this traceback again (a player's launcher-errors.txt grew to 15.8 MB).
+            self.cards.discard(card)
+            if self.hot_card is card:
+                self.hot_card = None
 
     def next_row(self, parent):
         return parent.grid_size()[1]
@@ -5508,6 +5534,15 @@ class Launcher:
                      'Игра перестаёт сама поворачивать камеру при ходьбе. Оставьте выключенным, чтобы камера '
                      'геймпада работала как раньше.'))
 
+        # AzoreKun on Discord asked for this switch; it was only in Gameplay tweaks (same setting, shown twice).
+        f = self.card(page, _('Camera', 'Камера'))
+        self.check(f, 'tweak_no_camera_rotation', 'ini',
+                   _('No camera auto-rotation while moving', 'Без автоповорота камеры при движении'),
+                   _('For the keyboard and a gamepad alike: a game patch (version 1.09) that stops the camera turning '
+                     'by itself as you move. The same switch is in Gameplay tweaks.',
+                     'И для клавиатуры, и для геймпада: патч игры (версия 1.09), после которого камера не '
+                     'поворачивается сама, пока вы двигаетесь. Тот же переключатель есть в «Игровом процессе».'))
+
         f = self.card(page, _('Button assignments', 'Назначение кнопок'))
         self.controls_hint = _('Press Change, then a key, a mouse button or the wheel. Add gives the input a second '
                                'one. Applied when the game starts.',
@@ -5784,7 +5819,14 @@ class Launcher:
                     _('Choose the saves folder', 'Выберите папку сохранений'),
                     _('Empty: {} (shader caches are kept there too).',
                       'Пусто: {} (там же кэш шейдеров).').format(short_path(DATA_DIR / 'user')), on_change=self.refresh_status)
-        self.row(f, _('Game language', 'Язык игры'), self.choice(f, 'language', 'app', LANGUAGES))
+        # Players asked for a Brazilian Portuguese voice option (Discord 2026-11-12): the voice follows the language.
+        self.row(f, _('Game language', 'Язык игры'), self.choice(f, 'language', 'app', LANGUAGES),
+                 _('The voices follow the game language: French, Italian, German, Spanish, Latin American Spanish and '
+                   'Brazilian Portuguese have their own voice-over, the other languages use the English voices. There '
+                   'is no separate voice setting.',
+                   'Озвучка следует за языком игры: у французского, итальянского, немецкого, испанского, '
+                   'латиноамериканского испанского и бразильского португальского есть своя озвучка, остальные языки '
+                   'звучат по-английски. Отдельной настройки озвучки нет.'))
         self.row(f, _('Player name', 'Имя игрока'), self.ttk.Entry(f, textvariable=self.var('player_name', 'app'), width=30),
                  _('Where the game shows the PSN name; empty: the default.', 'Где игра показывает имя PSN; пусто — по умолчанию.'))
         f = self.card(page, _('Effects', 'Эффекты'))
@@ -6262,6 +6304,7 @@ class Launcher:
         if not available:
             self.label(self.mods_frame, _('No mods in {} yet.', 'В {} пока нет модов.').format(short_path(root)), 'small', MUTED).pack(
                 anchor='w')
+        problems = dict(MOD_PROBLEMS)
         for index, name in enumerate(self.mod_order):
             line = tk.Frame(self.mods_frame, bg=CARD)
             line.pack(fill='x', pady=px(3))
@@ -6275,9 +6318,21 @@ class Launcher:
                                           'Ниже в списке — загружается позже и перекрывает.'), 'small', MUTED).pack(
                 anchor='w', pady=(px(6), 0))
         # Folders that are not mods are named, with why, instead of left out silently.
-        for name, problem in unrecognized(root):
-            self.label(self.mods_frame, _('Not loaded: {}: {}', 'Не загружен: {}: {}').format(name, problem),
+        # Caller on Discord (1.5.0) dropped Nexus mods in and saw only "Not loaded": how to install comes with it.
+        not_mods = unrecognized(root)
+        for name, problem in not_mods:
+            why = _(*problems[problem]) if problem in problems else problem
+            self.label(self.mods_frame, _('Not loaded: {}: {}', 'Не загружен: {}: {}').format(name, why),
                        'small', MUTED, wraplength=px(620), justify='left').pack(anchor='w', pady=(px(4), 0))
+        if not_mods or not available:
+            self.label(self.mods_frame, _(
+                'To install a mod: extract its download, then move the folder that holds dvdroot_ps4 (or game folders '
+                'such as chr, parts, map) into the Mods folder (Open shows it), one folder per mod, and press Refresh. '
+                'The mod then appears here with a switch.',
+                'Как установить мод: распакуйте скачанный архив и перенесите папку, в которой лежит dvdroot_ps4 (или '
+                'папки игры вроде chr, parts, map), в папку модов (её показывает «Открыть»), по папке на мод, затем '
+                'нажмите «Обновить». Мод появится здесь с переключателем.'),
+                'small', MUTED, wraplength=px(620), justify='left').pack(anchor='w', pady=(px(8), 0))
         chosen = load_json(DATA_DIR / 'patches.json', {})
         found = external_patches(Path(self.var('patches_dir', 'app').get() or DATA_DIR / 'patches'), PATCH_VERSION)
         old = {n: v.get() for n, v in self.patch_vars.items()}

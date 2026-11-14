@@ -5,6 +5,7 @@ image places eboot vaddr 0 at image offset 0. Only literal writes are supported
 (bytes, bytes16/32/64, float32/64, utf8, utf16); pattern ("mask") patches are rejected.
 """
 import argparse
+import functools
 import hashlib
 import json
 import os
@@ -121,6 +122,12 @@ SKIP_NETWORK_CHOICE='Skip Online/Offline Choice'
 GX_COMMAND_HEAP='Larger GX Per-Frame Command Heap'
 
 
+# Two game crashes fixed in the eboot (Jin-Gu, Supermedo 1.9.8.5): the per-frame render command
+# list (216 entries) written through NULL when full, and an event/NPC talk routine calling a method
+# on a talk target its lookup did not find. On by default; BB_GAME_CRASH_FIXES=0 leaves them.
+GAME_CRASH_FIXES=('More Render Commands','NPC Talk Crash Fix')
+
+
 # Brazilian Portuguese and Latin American Spanish (PS4 system languages 17 and 20, the launcher's
 # BB_LANGUAGE): the game picks its text and voice by sell region (GetSellRegion 0x1fb9190: 0 Japan,
 # 1 North America, 2 Europe, 3 Asia, 4 UK). Europe turns 17 into Portugal Portuguese and 20 into
@@ -140,6 +147,10 @@ def language_region(env=os.environ):
 
 def gx_command_heap(env=os.environ):
     return env.get('BB_GX_COMMAND_HEAP','1')!='0'
+
+
+def game_crash_fixes(env=os.environ):
+    return env.get('BB_GAME_CRASH_FIXES','1')!='0'
 
 
 def skip_network_choice(env=os.environ):
@@ -168,12 +179,36 @@ def game_is_patched(version, env=os.environ, app_version=APP_VERSION):
 
 
 def game_app_version(game):
-    """APP_VER of the game folder's param.sfo ("01.09"), or None when it cannot be read."""
+    """APP_VER of the game folder's param.sfo ("01.09"), or None when it cannot be read.
+    Game of the Year discs ship the 1.09 code with APP_VER 01.00: a game whose eboot.bin has the
+    1.09 bytes of a patch group (eboot_is_109) is 01.09 whatever its param.sfo says, and as for
+    APP_VER 01.09 only those groups are patched (Supermedo a872ed3, 1.9.8.5)."""
     try:
         from prepare import sfo
-        return sfo((Path(game) / 'sce_sys/param.sfo').read_bytes()).get('APP_VER')
+        version=sfo((Path(game) / 'sce_sys/param.sfo').read_bytes()).get('APP_VER')
     except (OSError, ValueError, ImportError):
         return None
+    if version!=APP_VERSION:
+        eboot=Path(game).resolve()/'eboot.bin'
+        try:
+            stat=eboot.stat()
+        except OSError:
+            return version
+        # Keyed on size and time too: the launcher stays open while eboot.bin is replaced.
+        if eboot_is_109(str(eboot),stat.st_size,stat.st_mtime_ns):
+            return APP_VERSION
+    return version
+
+
+@functools.lru_cache(maxsize=None)
+def eboot_is_109(path,_size=None,_mtime=None):
+    """Whether the eboot.bin at `path` (SELF or ELF) holds the 1.09 bytes of any patch group."""
+    try:
+        from prepare import parse_self
+        elf=bytes(parse_self(Path(path).read_bytes())[0])
+        return bool(matching_groups_of(lambda start,end: eboot_bytes(elf,start,end),APP_VERSION))
+    except (OSError, ValueError, KeyError, IndexError, TypeError, struct.error, ET.ParseError, ImportError):
+        return False
 
 
 DEBUG_MENU='Restore Debug Menu (READ NOTES)'
@@ -452,7 +487,7 @@ PATCH_GROUPS={
     'fps':sorted({n for names in FPS_PRESETS.values() for n in names}|SHARES_FPS_CODE),
     'resolution':sorted({RESOLUTION_TEMPLATE,HEAP_PATCH}),
     'effects':sorted(({n for pair in EFFECTS.values() for n in pair if n}|set(MODEL_LOD.values()))-SHARES_FPS_CODE),
-    'fixes':sorted({INTEL_TONEMAP,SKIP_NETWORK_CHOICE,GX_COMMAND_HEAP}),
+    'fixes':sorted({INTEL_TONEMAP,SKIP_NETWORK_CHOICE,GX_COMMAND_HEAP,*GAME_CRASH_FIXES}),
 }
 GROUP_OF={name:group for group,names in PATCH_GROUPS.items() for name in names}
 GROUP_TEXT={'fps':'frame rate','resolution':'resolution','effects':'effect options','fixes':'game fixes'}
@@ -460,7 +495,7 @@ PATCH_FINGERPRINTS={'01.09':{
     'fps':'d38e60663e70814b91d955578eb96c778378fb4a2f67ce5d41bf4e94a1bb99e2',
     'resolution':'e9a46a62677b9892744ffcbeae8639aa166c597ca22b8999d63e42a32145285f',
     'effects':'d18f58dbf11ba2b02662c51f9e4090c69c89dd302aae8701b0ce10aa34ea3d3b',
-    'fixes':'ebba53663144d9fbf8ed0c7ee4e16c71b68c2af830125190e78bb43c2bbe77aa',
+    'fixes':'85f55fd7e8541a9ffe77dcac8b465e07b256feb917d4c035702a59afebb09b72',
 }}
 
 
@@ -832,6 +867,8 @@ def main():
             names.append(SKIP_NETWORK_CHOICE)
         if gx_command_heap() and GX_COMMAND_HEAP not in names:
             names.append(GX_COMMAND_HEAP)
+        if game_crash_fixes():
+            names+=[name for name in GAME_CRASH_FIXES if name not in names]
     names=validate_patch_requirements(names,a.game_dir)
     segments=eboot_segments((a.out/'eboot.elf').read_bytes())
     named=compile_named(a.xml,names,a.app_version,segments)

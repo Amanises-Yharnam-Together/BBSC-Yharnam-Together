@@ -344,15 +344,16 @@ void EmitContext::DefineInputs() {
         ASSERT(fetch_shader.attributes.size() <= IR::NumParams);
         for (u32 semantic = 0; semantic < fetch_shader.attributes.size(); ++semantic) {
             const auto& attrib = fetch_shader.attributes[semantic];
-            const auto sharp = attrib.GetSharp(info);
-            const Id type{GetAttributeType(*this, sharp.GetNumberFmt())[4]};
+            // bbport: a V# without records is a float4 that reads zero (see fetch_shader.h).
+            const auto num_format = Gcn::GetVertexInputFormat(attrib.GetSharp(info)).num_format;
+            const Id type{GetAttributeType(*this, num_format)[4]};
             Id id{DefineInput(type, semantic)};
             if (attrib.GetStepRate() != Gcn::VertexAttribute::InstanceIdType::None) {
                 Name(id, fmt::format("vs_instance_attr{}", semantic));
             } else {
                 Name(id, fmt::format("vs_in_attr{}", semantic));
             }
-            input_params[semantic] = GetAttributeInfo(sharp.GetNumberFmt(), id, 4, false);
+            input_params[semantic] = GetAttributeInfo(num_format, id, 4, false);
         }
         break;
     }

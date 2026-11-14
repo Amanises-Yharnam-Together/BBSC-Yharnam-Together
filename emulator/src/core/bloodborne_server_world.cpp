@@ -1902,7 +1902,10 @@ void PS4_SYSV_ABI NoteRemoStep(u64 step, const GuestRegisterSnapshot*) {
 void UpdateTeamLoad() {
     const s64 now_ms = SteadyMilliseconds();
     const u64 global = GetGlobalState();
-    const bool loading = global < 0x10000 || TryRead<u8>(global, 0x08).value_or(1) != 0;
+    // A joined guest's trip in place still to come counts as its load (TripAfterJoin::Due): the
+    // one screen covers the join and that trip.
+    const bool loading =
+        global < 0x10000 || TryRead<u8>(global, 0x08).value_or(1) != 0 || TripAfterJoinDue();
     const u64 manager = GetMatchingState();
     const s32 matching = manager >= 0x10000 && HasMemoryAccess(manager, 0x128, MemoryProt::CpuRead)
                              ? ReadValue<s32>(manager, 0x124)

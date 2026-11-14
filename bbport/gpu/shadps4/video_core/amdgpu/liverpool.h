@@ -321,6 +321,7 @@ private:
             ce_count = 0;
             de_count = 0;
             ce_compare_count = 0;
+            ce_waits_for_de = false;
         }
 
         [[nodiscard]] u32 Diff() const {
@@ -331,6 +332,8 @@ private:
         u32 ce_compare_count{};
         u32 ce_count{};
         u32 de_count{};
+        /// bbport: the constant engine is in WaitOnDeCounterDiff (ProcessGraphics ends it).
+        bool ce_waits_for_de{};
         static std::array<u8, 48_KB> constants_heap;
     } cblock{};
 

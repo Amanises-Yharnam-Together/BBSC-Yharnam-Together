@@ -355,6 +355,12 @@ size_t SessionMembers();
 // In the session and in its world (see SessionArrival): a summoned guest only once it arrived.
 // Party death counts and posts this member as in the party only then.
 bool InSessionWorld();
+// Whether a joined guest's trip in place is still to come (TripAfterJoin::Due, the last tick's).
+bool TripAfterJoinDue();
+// Rig only (SHADPS4_BLOODBORNE_TEST_STUCK_LOAD=<seconds>): for that long after the trip after the
+// join arrived, the place's reading says loading, as Raziel's guest's did for six minutes while it
+// played on (Discord 2026-11-12); the game itself is left alone.
+bool StuckLoadTestHolds();
 void ShowGuestBloodstain();
 void KeepGuestBloodstainMark();
 

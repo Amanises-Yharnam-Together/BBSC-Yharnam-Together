@@ -224,6 +224,8 @@ TEAM_WORLD_FLAG = 12410999
 BLOOD_MOON = 9802  # the time of day the maps' events pick (9800 evening, 9801 night)
 # The Blood Gem Workshop Tool's chest (its item lot's flag; neither rig character has opened it).
 WORKSHOP_TOOL_CHEST = 52411005
+# The Insight messenger's Bone Ash Mask sold (ShopLineupParam row 200060's stock flag, 01.09).
+BONE_ASH_MASK_SOLD = 70009380
 LEVEL_SYNC = 9200  # the SpEffect that scales a guest down to the host's level
 # The "Impurity" rune (the League oath, GemeffectParam 2127001) puts 6142 on the player; common
 # event 9035 adds 180040 (max HP x1.02) to a white phantom wearing it, KeepImpurityBonus to
@@ -241,6 +243,9 @@ SESSION_HOLDS = [r"sceNpMatching2LeaveRoom: called"]
 # Kaniel 2026-11-05: the team screen's rules text (ScreenRulesText): no Rot, travel or boss tempo,
 # Fixed enemies of x2 HP, x1.25 damage, x2 poise.
 TEAM_RULES_FIXED = "0,0,0,0,0,2,1.25,2"
+# The scale rule alone (Raziel's team, Discord 2026-11-12: bloodborne_team_rules.txt 1,0,0,1,...).
+TEAM_RULES_SCALE = "0,0,0,1,0,0,0,0"
+TEAM_RULES_ROT_SCALE = "1,0,0,1,0,0,0,0"
 # The party boards' member ids of the rig's accounts (their names in hex).
 RIG_HOST_ID = "rig_host".encode().hex()
 RIG_GUEST_ID = "rig_guest".encode().hex()
@@ -266,6 +271,11 @@ PARTY_DEATH = {"SHADPS4_BLOODBORNE_PARTY_DEATH": "1"}
 # host does ("live player died in a party session (state N); revived without a world reload").
 GUEST_REVIVED = (r"(?:party guest died; revived|live player died in a party session "
                  r"\(state \d+\); revived without a world reload)")
+# A joined guest's trip in place (TripAfterJoin) starts under the team's loading screen, never
+# after it opened (rig 2026-11-11: joined on another map than its host, the screen opened after 1 s
+# and the trip's load came 9-14 s later, a second loading screen in the middle of play).
+SECOND_LOAD_SCREEN = (r"the team's load view is gone[\s\S]*"
+                      r"trip after the join: reloading in place")
 # After a real death each player has its own bloodstain where it fell (GameDataMan's record on
 # this map) and no enemy takes it (no echo theft): the bloodstain state lines say so.
 BLOODSTAIN_DROPPED = (r"bloodstain state map=0x18010000 has_mark=1 record_valid=\d+ "
@@ -634,11 +644,16 @@ SCENARIOS = {
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
         "timeout": 300,
     },
-    # The switch on the host's side only: its table loses the glow's effect, the guest's keeps it,
-    # and the guest stays a phantom with SpEffect 9006 either way.
+    # The switch on the host's side only: its table loses the glow's effect, the guest's keeps it.
+    # Which SpEffect carries the glow (full rig 2026-11-11, 1.5.0 test 4): the join's phantom has
+    # 9006 on its own character; after any trip it is a live player with the host's 9001 instead
+    # (rig logs with the join's reload off: "6300 40 9001" after a lamp trip), and since the join's
+    # reload in place (TripAfterJoin) that is so seconds after the join. The host's copy of the
+    # guest keeps 9006 through it, so the option still has its glow to take away there.
     "phantom-glow-off": {
         "about": "the no-glow option on the host only: its log says the effect went, the guest's "
-                 "does not, and the guest's SpEffect 9006 stays",
+                 "does not; the host's copy of the guest keeps SpEffect 9006, the guest's own "
+                 "character has the live player's 9001 after its join's reload",
         "roles": {
             "host": [START, "godmode", "wait-session 2 300", "wait 20", "watch-effects player 4",
                      "wait 6", "wait 10"],
@@ -646,9 +661,13 @@ SCENARIOS = {
                       "wait 6", "wait 10"],
         },
         "role_settings": {"host": {"SHADPS4_BLOODBORNE_NO_PHANTOM_GLOW": "1"}},
-        "expect": {"host": [r"phantom glow off \(SpEffectVfx 272 effect 211 -> -1\)"],
-                   "guest": [r"effects of 0xffffffff hp \d+: .*9006"]},
-        "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS + ["phantom glow off"]},
+        "expect": {"host": [r"phantom glow off \(SpEffectVfx 272 effect 211 -> -1\)",
+                            r"effects of 0x(?!ffffffff)[0-9a-f]+ hp \d+: .*9006"],
+                   "guest": [r"trip after the join: reloading in place",
+                             r"effects of 0xffffffff hp \d+: .*9001"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + ["phantom glow off",
+                                             r"effects of 0xffffffff hp \d+: .*9006"]},
         "timeout": 300,
     },
     # Kaniel 2026-10-14: with the host far away on the same map, the enemies beside a guest stood
@@ -1057,7 +1076,8 @@ SCENARIOS = {
                              r"Bloodborne party trip: arrived map=0x18010000",
                              r"autoplay peek: 0x[0-9a-f]+ \+0x78 = 0x0\b"]},
         "forbid": {"host": SESSION_HOLDS,
-                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start",
+                                             SECOND_LOAD_SCREEN]},
         "same_hp": ENEMY,
         "hp_sums_hits": ENEMY,
         "timeout": 300,
@@ -1079,6 +1099,129 @@ SCENARIOS = {
             "guest": [r"Co-op team lobby: the save plays in team \w+ as its guest"],
         },
         "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+        "timeout": 300,
+    },
+    # Discord 2026-11-12 (Raziel, 1.5.0): a team from the lobby with the scale rule, both start
+    # in Central Yharnam; after the guest's trip after the join its vitals said map 0 for minutes,
+    # so the host never showed it and the enemies never went for it. After that trip the guest
+    # stands on its map again, and each one shows the other.
+    "team-join-seen": {
+        "about": "a team from the lobby (scale rule) starts in Central Yharnam; after the guest's "
+                 "trip after the join its vitals name the map again and both see each other",
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_SCALE}", "team-start", START, "godmode",
+                     "wait-session 2 300", "sync tjs-tripped", "wait-members 2 60", "wait 10",
+                     "expect-session 2", "expect-others-near 1 30", "expect-others-shown 1",
+                     "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_SCALE}", "team-ready", START,
+                      "godmode", "wait-session 2 300", "wait 25", "wait 20", "wait-members 2 60",
+                      "sync tjs-tripped", "wait 10", "expect-session 2",
+                      "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+        },
+        "syncs": {"tjs-tripped": {"chapter": "team-join-seen", "roles": ["host", "guest"]}},
+        "expect": {"host": [HOST_JOINS, r"Co-op host rules: the team's rules are scale"],
+                   "guest": [GUEST_JOINS,
+                             r"trip after the join: reloading in place on map 0x18010000",
+                             r"trip after the join: reloading in place[\s\S]*"
+                             r"Bloodborne party vitals: posting up \(map 0x18010000\)"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
+        "timeout": 300,
+    },
+    # The same, with both standing away from the lamp when the guest's trip after the join goes
+    # (the rig's characters start on the lamp, so that trip's spot was always the lamp's): 17 m
+    # off, and by Iosefka's door (Raziel's guest was put in her clinic by a load).
+    **{f"team-join-seen-{where}": {
+        "about": f"team-join-seen with both {about} when the guest's trip after the join goes",
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_SCALE}", "team-start", START, "godmode",
+                     f"teleport {host_at}", "wait-session 2 300", "sync tjs-tripped",
+                     "wait-members 2 60", "wait 10", "expect-session 2",
+                     "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+            # The join is in place: the guest walks there before it joins (rig 2026-11-13: a
+            # teleport after the session came too late, the trip had gone from the lamp).
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_SCALE}", "team-ready", START,
+                      "godmode", f"teleport {guest_at}", "wait-session 2 300", "wait 25",
+                      "wait 20",
+                      "wait-members 2 60", "sync tjs-tripped", "wait 10", "expect-session 2",
+                      "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+        },
+        "syncs": {"tjs-tripped": {"chapter": f"team-join-seen-{where}",
+                                  "roles": ["host", "guest"]}},
+        "expect": {"host": [HOST_JOINS],
+                   "guest": [GUEST_JOINS,
+                             # Not from the lamp's spot (-199.74, -50.76, 179.42).
+                             r"trip after the join: reloading in place on map 0x18010000 "
+                             r"\((?!-199\.7)",
+                             r"trip after the join: reloading in place[\s\S]*"
+                             r"Bloodborne party vitals: posting up \(map 0x18010000\)"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
+        "timeout": 300,
+        "settings": settings,
+    } for where, about, host_at, guest_at, settings in (
+        ("away", "17 m from the lamp", GUEST_PAIR_SPOT, GUEST_ALONE_SPOT, {}),
+        ("clinic", "by Iosefka's door", COMPASS_HOST + " 0.0", COMPASS_GUEST + " 0.0", {}),
+        # Radmin VPN: the games' packets to each other lose some on the way.
+        ("lossy", "17 m from the lamp, 5% of the games' packets lost", GUEST_PAIR_SPOT,
+         GUEST_ALONE_SPOT, {"SHADPS4_P2P_LOSS_PERCENT": "5"}))},
+    # Raziel's own team rules (Rot and the scale rule, bloodborne_team_rules.txt 1,0,0,1,...).
+    "team-join-seen-rot": {
+        "about": "team-join-seen-away with the Rot rule on too, as Raziel's team had it",
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_ROT_SCALE}", "team-start", START, "godmode",
+                     f"teleport {GUEST_PAIR_SPOT}", "wait-session 2 300", "sync tjs-tripped",
+                     "wait-members 2 60", "wait 10", "expect-session 2",
+                     "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_ROT_SCALE}", "team-ready",
+                      START, "godmode", f"teleport {GUEST_ALONE_SPOT}", "wait-session 2 300",
+                      "wait 25", "wait 20", "wait-members 2 60", "sync tjs-tripped", "wait 10",
+                      "expect-session 2",
+                      "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+        },
+        "syncs": {"tjs-tripped": {"chapter": "team-join-seen-rot", "roles": ["host", "guest"]}},
+        "expect": {"host": [HOST_JOINS, r"Co-op host rules: the team's rules are rot,scale"],
+                   "guest": [GUEST_JOINS,
+                             r"trip after the join: reloading in place[\s\S]*"
+                             r"Bloodborne party vitals: posting up \(map 0x18010000\)"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
+        "timeout": 300,
+    },
+    # Raziel's guest (Discord 2026-11-12) as the rig can make it: after its trip after the join
+    # its place reads a load (SHADPS4_BLOODBORNE_TEST_STUCK_LOAD; the game is left alone) while it
+    # stands and plays. Its place must still end its load (PlaceTracker::StandingInLoadMs), its vitals name
+    # the map, and the host show it; on 1.5.0 its vitals said map 0 and the host never showed it.
+    "team-join-stuck-load": {
+        "about": "after the guest's trip after the join its place reads a load for 150 s: it is "
+                 "still on its map for the party, the host shows it and both are near",
+        "role_settings": {"guest": {"SHADPS4_BLOODBORNE_TEST_STUCK_LOAD": "150"}},
+        "roles": {
+            "host": ["team-create", "team-invite rig_guest", "team-wait 2",
+                     f"team-rules {TEAM_RULES_SCALE}", "team-start", START, "godmode",
+                     f"teleport {GUEST_PAIR_SPOT}", "wait-session 2 300", "sync tsl-held",
+                     "wait 25", "wait-members 2 30", "expect-session 2",
+                     "expect-others-near 1 30", "expect-others-shown 1", "snapshot"],
+            "guest": ["team-accept", f"team-wait-rules {TEAM_RULES_SCALE}", "team-ready", START,
+                      "godmode", f"teleport {GUEST_ALONE_SPOT}", "wait-session 2 300",
+                      "wait 25", "wait 20", "sync tsl-held", "wait 25",
+                      "wait-members 2 30", "expect-session 2", "expect-others-near 1 30",
+                      "expect-others-shown 1", "snapshot"],
+        },
+        "syncs": {"tsl-held": {"chapter": "team-join-stuck-load", "roles": ["host", "guest"]}},
+        "expect": {"host": [HOST_JOINS],
+                   "guest": [GUEST_JOINS,
+                             r"test: the loading flag held up 150 s",
+                             r"Co-op place: still loading 20 s with a character in the world, "
+                             r"held by the loading flag",
+                             r"test: the loading flag held up[\s\S]*"
+                             r"Co-op place: Loading -> Playing map 0x18010000[\s\S]*"
+                             r"Bloodborne party vitals: posting up \(map 0x18010000\)"]},
+        "forbid": {"host": SESSION_HOLDS,
+                   "guest": SESSION_HOLDS + [r"trip after the join did not start"]},
         "timeout": 300,
     },
     # Kaniel 2026-10-17: a cutscene both see (Vicar Amelia's entrance, m24_00 12401802: the host
@@ -1152,6 +1295,27 @@ SCENARIOS = {
                        f"expect-flag {WORKSHOP_TOOL_CHEST} 0", "wait 25", "done"],
                       [START, "godmode", "wait-session 2 420", "wait 10",
                        f"expect-flag {WORKSHOP_TOOL_CHEST} 0", "done"]],
+        },
+        "expect": {"guest": [r"team's world is in this save: \d+ blocks"]},
+        "allow": CRASH_CLEANUP,
+        "timeout": 900,
+    },
+    # Fran on Discord (2026-11-10, a guest): attire the host bought was sold out in the guest's
+    # shop too, and stayed so after a restart. A shop row's stock flag (ShopLineupParam eventFlag,
+    # 70009380 the Insight messenger's Bone Ash Mask) is each player's own purchase: here the host
+    # sets it, the guest's game starts again and takes the team's world as it loads, and its row
+    # is still for sale.
+    "team-world-shop-stock": {
+        "about": "attire the host bought (its shop row's stock flag) stays for sale for a guest "
+                 "whose save takes the team's world as it loads",
+        "roles": {
+            "host": [START, "godmode", "wait-session 2 300", f"set-flag {BONE_ASH_MASK_SOLD} 1",
+                     "wait 15", "wait-solo 200", "wait-session 2 420", "wait 30",
+                     f"expect-flag {BONE_ASH_MASK_SOLD} 1", "done"],
+            "guest": [[START, "godmode", "wait-session 2 300",
+                       f"expect-flag {BONE_ASH_MASK_SOLD} 0", "wait 25", "done"],
+                      [START, "godmode", "wait-session 2 420", "wait 10",
+                       f"expect-flag {BONE_ASH_MASK_SOLD} 0", "done"]],
         },
         "expect": {"guest": [r"team's world is in this save: \d+ blocks"]},
         "allow": CRASH_CLEANUP,
@@ -5310,6 +5474,11 @@ _TEMPO_LEVELS = {
     "aggressive": ("Aggressive", "0\\.50", "50", "1\\.30", "156"),
     "relentless": ("Relentless", "0\\.25", "25", "1\\.60", "192"),
 }
+# Discord audit 2026-11-13 T5 (Backand: Rom cast nonstop at Aggressive): a cut breather keeps
+# the level's gap in seconds (0.50 / 0.25), never the old 0.05; a breather shorter than the floor
+# is only scaled (0.10 or more: Paarl's and Rom's are 1 s and up).
+_CUT_TOO_SHORT = (r"Bloodborne boss tempo: boss \S+ \(think \d+\) goal 20\d\d \w+ life "
+                  r"[\d.]+ -> 0\.0\d ")
 for _word, _level in _TEMPO_LEVELS.items():
     if _level is None:
         _expect = [_BOSS_FOUND,
@@ -5324,8 +5493,11 @@ for _word, _level in _TEMPO_LEVELS.items():
                    rf"Bloodborne boss tempo: \d+ boss NpcParam rows turn x{_turn} \(Father "
                    rf"Gascoigne {_gascoigne} degrees a second\)",
                    _BOSS_FOUND,
-                   _BOSS_GOAL.format(boss=PAARL, life=r"\d+\.\d\d -> 0\.05", level=_name)]
-        _forbid = []
+                   # Any of his breathers: at a level he makes only 1-8 of them in 90 s (on
+                   # main 0bb87c1b too, rig 2026-11-13), so a cut one is a coin flip; the cut
+                   # floor and the streak are the unit tests' and the Rom probes'.
+                   _BOSS_GOAL.format(boss=PAARL, life=r"\d+\.\d\d -> \d+\.\d\d", level=_name)]
+        _forbid = [_CUT_TOO_SHORT]
     SCENARIOS[f"boss-tempo-{_word}"] = {
         "about": f"the boss tempo rule at {_word}: Paarl fights the host alone for 90 s; his "
                  "breathers and turn speed are logged",
@@ -5358,16 +5530,15 @@ SCENARIOS["boss-tempo-party"] = {
     "expect": {
         "host": [r"Co-op host rules: the team's rules are [^\n]*relentless",
                  r"Bloodborne boss tempo: \d+ boss NpcParam rows turn x1\.60",
-                 _BOSS_GOAL.format(boss=PAARL, life=r"\d+\.\d\d -> 0\.05",
+                 _BOSS_GOAL.format(boss=PAARL, life=r"\d+\.\d\d -> 0\.25",
                                    level="Relentless")],
         "guest": [r"Co-op host rules: the team's rules are [^\n]*relentless",
                   r"Bloodborne boss tempo: Relentless: breathers x0\.25",
                   r"Bloodborne boss tempo: \d+ boss NpcParam rows turn x1\.60"],
     },
-    "forbid": {"host": SESSION_HOLDS, "guest": SESSION_HOLDS},
+    "forbid": {"host": SESSION_HOLDS + [_CUT_TOO_SHORT], "guest": SESSION_HOLDS},
     "timeout": 600,
 }
-
 
 # Kaniel's play test 2026-11-03: a guest who had just joined could not level up at the Doll again
 # until it left the Dream (6700, her level-up flag, stayed on after her talk), and the host's level
@@ -5858,6 +6029,36 @@ SCENARIOS["rom-retry-guest-alone"] = {
     "timeout": 600,
 }
 
+# Discord audit 2026-11-13 T5 (Backand, 1.4.0, Aggressive): Rom cast spell after spell with no
+# pause, unfightable for a duo. The host dives into her lake alone (godmode) and stands by her for
+# 90 s; each of her breathers is logged. At Aggressive a cut one keeps 0.50 s (never the old
+# 0.05) and two cuts never come in a row; vanilla logs her own gaps to compare.
+def _boss_tempo_rom_steps() -> list[str]:
+    return [START, f"ensure-map {BYRGENWERTH} {BYRGENWERTH_LAMP}", "godmode",
+            f"expect-flag {ROM_DEFEATED} 0", "wait 5", f"teleport {ROM_DIVE}", "wait 25",
+            # Rom makes no AI goals at all (her fight's flags on) until she is struck once.
+            f"approach {ROM} 5 0", f"hit {ROM} 30", f"approach {ROM} 8 0",
+            "log tempo: rom fight on", "wait 30", f"approach {ROM} 8 0", "wait 30",
+            f"approach {ROM} 8 0", "wait 30", "log tempo: rom fight checked",
+            ROM_FLAGS, "census 150", "snapshot"]
+
+
+for _word, _name in (("vanilla", "Vanilla"), ("aggressive", "Aggressive")):
+    SCENARIOS[f"boss-tempo-rom-{_word}"] = {
+        "about": f"the boss tempo rule at {_word} in Rom's fight (Discord: she cast nonstop at "
+                 "Aggressive): the host strikes her once, then stays by her for 90 s, her "
+                 "breathers logged",
+        "settings": {"SHADPS4_BLOODBORNE_HOST_RULES": _word if _word != "vanilla" else "off"},
+        "roles": {"host": _boss_tempo_rom_steps()},
+        "expect": {"host": [rf"Bloodborne boss tempo: \d+ boss\(es\) on map 0x[0-9a-f]+: "
+                            rf"[^\n]*{ROM}",
+                            _BOSS_GOAL.format(boss=ROM, life=r"\d+\.\d\d -> \d+\.\d\d",
+                                              level=_name)]},
+        "forbid": {"host": SESSION_HOLDS + [_CUT_TOO_SHORT]},
+        "timeout": 420,
+    }
+
+
 SCENARIOS["ludwig-retry"] = _ludwig_retry("ludwig-retry", during_change=False)
 SCENARIOS["ludwig-retry-mid-change"] = _ludwig_retry("ludwig-retry-mid-change",
                                                      during_change=True)
@@ -6297,6 +6498,7 @@ PROBE_NAMES = (
     "guest-follower-player-build",
     # boss tempo tuning logs
     "boss-tempo-vanilla", "boss-tempo-aggressive", "boss-tempo-relentless",
+    "boss-tempo-rom-vanilla", "boss-tempo-rom-aggressive",
     # altar record captures (RE)
     "altar-record-capture", "chalice-remove-record",
     # known failure kept for the uncapped-FPS summon bug
@@ -6315,3 +6517,41 @@ PROBE_NAMES = (
     "handed-out-max-watch",
 )
 PROBES = {name: SCENARIOS.pop(name) for name in PROBE_NAMES}
+
+
+# Purple/red screen after lamp travel (Discord 2026-11-11/12; diagnostic #588): one drawn game
+# travels between the Dream, Research Hall, Old Yharnam and Central Yharnam a few times, with a
+# picture after each arrival; "Screen tint:" in its log is the finding.
+TINT_STOPS = [(HUNTERS_DREAM, "dream"), (3502951, "research-a"), (3502952, "research-b"),
+              (2422952, "old-yharnam"), (2422950, "good-chalice"), (CENTRAL_YHARNAM_LAMP, "central")]
+SCENARIOS["tint-travel"] = {
+    "about": "lamp travels (Dream, Research Hall, Old Yharnam, Central Yharnam) with a shot after "
+             "each arrival: no \"Screen tint:\" line",
+    "roles": {"host": [START, "godmode",
+                       *[step for loop in range(3) for point, name in TINT_STOPS
+                         for step in (f"travel {point} 240", "wait 12", f"shot {name}-{loop}",
+                                      "wait 3")],
+                       "done"]},
+    "settings": {"ini.output_res": "1920x1080", "ini.window_mode": "windowed", "ini.upscaler": "dlss",
+                 "ini.preset": "1", "ini.frame_generation": "0", "BB_DUMP_DIR": "C:/bb/tint-evidence/dumps",
+                 "BB_DUMP_TRIGGER": "C:/bb/tint-evidence/dump_trigger", "BB_DUMP_FRAMES": "2",
+                 "BB_FINAL_DUMP_TRIGGER": "C:/bb/tint-evidence/final_trigger",
+                 "BB_PRESENT_DUMP_TRIGGER": "C:/bb/tint-evidence/present_trigger"},
+    "forbid": {"host": ["Screen tint:"]},
+    "timeout": 2400,
+}
+SCENARIOS["tint-travel-guest"] = {
+    "about": "a guest in the host's session travels between the same lamps (the host headless): no "
+             "\"Screen tint:\" line",
+    "roles": {"host": [START, "godmode", "wait-session 2 300", "wait 480", "done"],
+              "guest": [START, "godmode", "wait-session 2 300", "wait 10",
+                        *[step for loop in range(2) for point, name in TINT_STOPS
+                          for step in (f"travel {point} 240", "wait 12", f"shot {name}-{loop}",
+                                       "wait 3")],
+                        "done"]},
+    "settings": {**SCENARIOS["tint-travel"]["settings"], "rig.headless_roles": "host"},
+    "forbid": {"host": ["Screen tint:"], "guest": ["Screen tint:"]},
+    "timeout": 2400,
+}
+# Drawn probes, not in a tier: run by name (run without --headless; the pictures need a GPU).
+PROBES.update({name: SCENARIOS.pop(name) for name in ("tint-travel", "tint-travel-guest")})

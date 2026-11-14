@@ -277,11 +277,29 @@ constexpr s32 GoalCommonTurn = 2001;
 constexpr s32 GoalCommonLeaveTarget = 2016;
 constexpr s32 GoalCommonSidewayMove = 2017;
 bool IsBossTempoGoal(s32 goal);
-// A cut goal's life: one frame or two, so the next act comes right away.
+// The shortest a cut goal's life ever is: one frame or two.
 constexpr float CutGoalLife = 0.05f;
-// The life a boss's `goal` gets for the scripts' `life` (0 or less: no limit, kept), with `roll`
-// (0-99) against the tuning's odds; never longer than the game's.
-float BossGoalLife(s32 goal, float life, const BossTempoTuning& tuning, u32 roll);
+// Discord audit 2026-11-13 T5 (Backand: Rom cast nonstop at Aggressive): a cut breather still
+// keeps a short pause, the level's `gap` in seconds (0.5 s Aggressive, 0.25 s Relentless), so a
+// caster's spells never chain with nothing between them.
+float BossPauseFloor(const BossTempoTuning& tuning);
+// One boss's breathers in a row: Life is the life a boss's `goal` gets for the scripts' `life`
+// (0 or less: no limit, kept), with `roll` (0-99) against the tuning's odds; never longer than
+// the game's. A cut one keeps BossPauseFloor (never more than a kept one), and the next Wait,
+// LeaveTarget or SidewayMove after a cut is never cut (a Turn is never cut and keeps the streak),
+// so at most every other pause of a boss goes.
+class BossBreathers {
+public:
+    BossBreathers() = default;
+    explicit BossBreathers(bool after_cut) : after_cut_{after_cut} {}
+    float Life(s32 goal, float life, const BossTempoTuning& tuning, u32 roll);
+    bool AfterCut() const {
+        return after_cut_;
+    }
+
+private:
+    bool after_cut_ = false;
+};
 
 // AddSubGoal (0x0124CC60): goal (rdi), its new sub-goal's id (esi), life time (xmm0), up to
 // seven float parameters and more on the stack; every Lua overload and the native goals call it.

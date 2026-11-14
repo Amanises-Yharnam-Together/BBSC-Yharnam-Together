@@ -1217,6 +1217,14 @@ std::optional<bool> OwnedWeaponFlagFix(bool party_configured, bool flag_on, bool
     return holds;
 }
 
+std::optional<bool> ShopStockFlagFix(bool party_configured, bool flag_on, bool holds,
+                                     bool recheck) {
+    if (!party_configured || !recheck || !flag_on || holds) {
+        return std::nullopt;
+    }
+    return false;
+}
+
 bool RechecksOwnedWeaponFlagAlways(s32 flag) {
     return flag >= 5500 && flag <= 5521;
 }
@@ -1881,13 +1889,41 @@ std::optional<PlaceChange> PlaceTracker::Update(const PlaceReading& reading) {
     if (reading.player != 0 && reading.dead) {
         death_seen = true;
     }
-    if (reading.loading || reading.player == 0) {
+    // A character standing at a position (StandingInLoadMs): since when, in this stretch.
+    const bool standing = reading.player != 0 && reading.at.has_value();
+    if (!standing) {
+        standing_since.reset();
+        loading_flag_outlived = false;
+    } else if (!standing_since) {
+        standing_since = reading.now_ms;
+    }
+    if (!reading.loading) {
+        loading_flag_outlived = false;
+    }
+    const bool stood_long = standing_since && reading.now_ms - *standing_since >= StandingInLoadMs;
+    if (reading.loading && standing && place.state == PlaceState::Loading && stood_long &&
+        (known_map || place.map != 0)) {
+        // The loading flag outlived the load: play on, and keep playing while it stays up.
+        loading_flag_outlived = true;
+        player = reading.player;
+        last_at = reading.at;
+        pending.reset();
+        jumped_ms.reset();
+        arrival_due = false;
+        const PlaceCause cause = LoadCause();
+        trip_seen = false;
+        death_seen = false;
+        return Move(PlaceState::Playing, known_map ? reading.map : place.map, true, cause,
+                    reading.now_ms);
+    }
+    if ((reading.loading && !loading_flag_outlived) || reading.player == 0) {
         pending.reset();
         last_at.reset();
         jumped_ms.reset();
         if (place.state == PlaceState::Loading) {
             return std::nullopt;
         }
+        standing_since = standing ? std::optional{reading.now_ms} : std::nullopt;
         return Move(PlaceState::Loading, place.map, false, LoadCause(), reading.now_ms);
     }
     // Another character object: the world was rebuilt between two ticks (a reload the ticks did
@@ -1905,6 +1941,16 @@ std::optional<PlaceChange> PlaceTracker::Update(const PlaceReading& reading) {
         last_at = reading.at;
     }
     if (!known_map) {
+        // A load whose map never reads again while its character stands: the last map.
+        if (place.state == PlaceState::Loading && stood_long && place.map != 0) {
+            const PlaceCause cause = LoadCause();
+            arrival_due = false;
+            trip_seen = false;
+            death_seen = false;
+            pending.reset();
+            jumped_ms.reset();
+            return Move(PlaceState::Playing, place.map, true, cause, reading.now_ms);
+        }
         return std::nullopt; // a failed read keeps the place, and a pending crossing
     }
     if (place.state == PlaceState::Unknown || place.state == PlaceState::Loading || arrival_due) {
@@ -1964,6 +2010,35 @@ std::optional<PlaceChange> PlaceTracker::Move(PlaceState state, u32 map, bool ar
 // A death and its reload come before a trip: a party wipe's respawn travels to the lamp.
 PlaceCause PlaceTracker::LoadCause() const {
     return death_seen ? PlaceCause::DeathReload : trip_seen ? PlaceCause::Lamp : PlaceCause::Load;
+}
+
+std::optional<std::string> StuckLoadWatch::Tick(PlaceState state, const PlaceReading& reading) {
+    if (state != PlaceState::Loading) {
+        stands.reset();
+        said = false;
+        return std::nullopt;
+    }
+    // A load proper has no character (or a moment of one): only a character standing in the
+    // world, with a position, counts.
+    if (reading.player == 0 || !reading.at) {
+        stands.reset();
+        return std::nullopt;
+    }
+    if (!stands) {
+        stands = reading.now_ms;
+    }
+    if (said || reading.now_ms - *stands < StuckMs) {
+        return std::nullopt;
+    }
+    said = true;
+    const bool known_map = reading.map != 0 && reading.map != 0xFFFFFFFFu;
+    std::string why = reading.loading ? "the loading flag" : "";
+    if (!known_map) {
+        why += fmt::format("{}the map read {:#x}", why.empty() ? "" : " and ", reading.map);
+    }
+    return fmt::format("{} (map read {:#x}, trip {}, at ({:.1f}, {:.1f}, {:.1f}))",
+                       why.empty() ? "nothing this tick" : why, reading.map, reading.trip,
+                       (*reading.at)[0], (*reading.at)[1], (*reading.at)[2]);
 }
 
 std::string_view PlaceStateName(PlaceState state) {
@@ -3090,10 +3165,14 @@ bool TripsAfterJoin(const char* setting) {
 
 bool TripAfterJoin::Tick(const Input& in) {
     if (!in.in_session) {
+        joined_ms.reset();
         arrived_ms.reset();
         calm_since.reset();
         went = false;
         return false;
+    }
+    if (!joined_ms) {
+        joined_ms = in.now_ms;
     }
     if (!arrived_ms) {
         if (!in.arrived) {
@@ -3101,7 +3180,7 @@ bool TripAfterJoin::Tick(const Input& in) {
         }
         arrived_ms = in.now_ms;
     }
-    if (in.busy) {
+    if (in.busy || in.never_here) {
         calm_since.reset();
         return false;
     }
@@ -3114,6 +3193,12 @@ bool TripAfterJoin::Tick(const Input& in) {
     }
     went = true;
     return true;
+}
+
+bool TripAfterJoin::Due(const Input& in) const {
+    // Joined, it is a phantom only once it arrived in the session's world (the join's reload).
+    return in.switched_on && in.guest && in.in_session && (in.phantom || !arrived_ms) &&
+           !in.never_here && !went && joined_ms && in.now_ms - *joined_ms <= HoldMs;
 }
 
 u8 RebuiltTaskFlags(u8 constructed, const SavedJoinTask* saved, bool waiting) {

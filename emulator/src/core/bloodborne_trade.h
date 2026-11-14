@@ -45,6 +45,9 @@ std::vector<HeldGoods> HeldKeyGoods();
 std::vector<HeldGoods> HeldItemGoods();
 // The weapon ids (with their upgrade level) in the player's inventory, not the storage.
 std::vector<u32> HeldWeaponIds();
+// Every item id (category bits included: armor 0x10000000, goods 0x40000000) the player holds at
+// least one of, in the inventory and key items, not the storage.
+std::vector<u32> HeldItemIds();
 // The player's gestures (PlayerGameData +0x5B8, see DecodeGestureSlot), learned or not; none when
 // there is no data. LearnGesture does what talk command 66 does: the gesture's slot learned
 // (false when the list has no slot for it).

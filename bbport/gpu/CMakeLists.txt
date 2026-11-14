@@ -666,6 +666,11 @@ add_executable(null-tables-test EXCLUDE_FROM_ALL ../tests/test_null_tables.cpp)
 target_compile_options(null-tables-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(null-tables-test PRIVATE shim)
 
+# The screen tint check's verdict, schedule and line (shim/bbport_screen_tint.h).
+add_executable(screen-tint-test EXCLUDE_FROM_ALL ../tests/test_screen_tint.cpp)
+target_compile_options(screen-tint-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(screen-tint-test PRIVATE shim)
+
 # The push constant block the shaders read (header only: bbgpu's include directories, no link).
 add_executable(push-data-test EXCLUDE_FROM_ALL ../tests/test_push_data.cpp)
 target_compile_options(push-data-test PRIVATE -UNDEBUG)

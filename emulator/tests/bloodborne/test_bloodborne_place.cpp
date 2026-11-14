@@ -95,6 +95,60 @@ TEST(BloodbornePlace, ALoadWithoutAMapReadStaysLoading) {
     EXPECT_EQ(arrived->to.state, PlaceState::Playing);
 }
 
+// Discord 2026-11-12 (Raziel, 1.5.0): after its trip after the join a guest's game kept the
+// loading flag up for six minutes while its character stood and played in the world. Its place
+// stayed Loading, its vitals said map 0 and its host never showed it. A loading flag (or an
+// unreadable map) with a character standing for StandingInLoadMs is a load that ended.
+TEST(BloodbornePlace, ALoadingFlagThatStaysUpUnderAStandingCharacterEndsTheLoad) {
+    PlaceTracker tracker = ArrivedOn(CentralYharnam);
+    PlaceReading stuck = Standing(1'000, CentralYharnam, {-210.0f, -54.5f, 181.0f});
+    stuck.loading = true;
+    ASSERT_TRUE(tracker.Update(stuck)); // into Loading, as the trip's stage transition begins
+    EXPECT_EQ(tracker.Current().state, PlaceState::Loading);
+    stuck.now_ms = 1'000 + PlaceTracker::StandingInLoadMs - 1;
+    EXPECT_FALSE(tracker.Update(stuck)) << "a healthy reload in place holds it ~3.5 s";
+    stuck.now_ms = 1'000 + PlaceTracker::StandingInLoadMs;
+    const auto ended = tracker.Update(stuck);
+    ASSERT_TRUE(ended);
+    EXPECT_EQ(ended->to, (Place{PlaceState::Playing, CentralYharnam, 2, stuck.now_ms}));
+    EXPECT_EQ(ended->cause, PlaceCause::Load);
+    stuck.now_ms += 1'000;
+    EXPECT_FALSE(tracker.Update(stuck)) << "it stays Playing while the flag stays up";
+    EXPECT_EQ(tracker.Current().state, PlaceState::Playing);
+}
+
+TEST(BloodbornePlace, AnUnreadableMapUnderAStandingCharacterEndsTheLoadOnTheLastMap) {
+    PlaceTracker tracker = ArrivedOn(CentralYharnam);
+    tracker.Update(Loading(1'000));
+    EXPECT_FALSE(tracker.Update(Standing(2'000, 0xFFFFFFFFu, {1.0f, 2.0f, 3.0f})));
+    const auto ended =
+        tracker.Update(Standing(2'000 + PlaceTracker::StandingInLoadMs, 0, {1.0f, 2.0f, 3.0f}));
+    ASSERT_TRUE(ended);
+    EXPECT_EQ(ended->to.state, PlaceState::Playing);
+    EXPECT_EQ(ended->to.map, CentralYharnam);
+}
+
+TEST(BloodbornePlace, ALoadWithoutACharacterOrPositionNeverEndsByItself) {
+    PlaceTracker tracker = ArrivedOn(CentralYharnam);
+    tracker.Update(Loading(1'000));
+    EXPECT_FALSE(tracker.Update(Loading(1'000 + PlaceTracker::StandingInLoadMs * 4)));
+    PlaceReading no_position = Standing(2'000, CentralYharnam);
+    no_position.at.reset();
+    no_position.loading = true;
+    tracker.Update(no_position);
+    no_position.now_ms += PlaceTracker::StandingInLoadMs * 2;
+    EXPECT_FALSE(tracker.Update(no_position));
+    EXPECT_EQ(tracker.Current().state, PlaceState::Loading);
+    // A stretch broken by a moment without a character starts again.
+    PlaceReading stuck = Standing(10'000, CentralYharnam, {0.0f, 0.0f, 0.0f});
+    stuck.loading = true;
+    tracker.Update(stuck);
+    tracker.Update(Loading(10'000 + PlaceTracker::StandingInLoadMs - 100));
+    stuck.now_ms = 10'000 + PlaceTracker::StandingInLoadMs;
+    EXPECT_FALSE(tracker.Update(stuck));
+    EXPECT_EQ(tracker.Current().state, PlaceState::Loading);
+}
+
 TEST(BloodbornePlace, NoPlayerCharacterIsALoad) {
     PlaceTracker tracker = ArrivedOn(CentralYharnam);
     const auto change = tracker.Update(Standing(1'000, CentralYharnam, {}, 0));
@@ -395,4 +449,47 @@ TEST(BloodborneLifecycle, AMissedReadOrOurOwnLeaveIsNoDeparture) {
     EXPECT_EQ(own.Tick(false, true, 0, 200), 0u) << "we left: that is our own Leave";
     EXPECT_EQ(own.Tick(false, true, 0, 100 + MemberDepartures::SettleMs), 0u);
     EXPECT_EQ(own.Tick(true, true, 1, 9'000), 0u) << "a new session";
+}
+
+// Discord 2026-11-12 (Raziel): a guest in Loading for minutes while it played on.
+TEST(BloodborneStuckLoadWatch, SaysOnceWhatHoldsALongLoadingWithACharacterStanding) {
+    StuckLoadWatch watch;
+    PlaceReading reading = Standing(0, CentralYharnam);
+    reading.loading = true;
+    EXPECT_FALSE(watch.Tick(PlaceState::Loading, reading));
+    reading.now_ms = StuckLoadWatch::StuckMs - 1;
+    EXPECT_FALSE(watch.Tick(PlaceState::Loading, reading));
+    reading.now_ms = StuckLoadWatch::StuckMs;
+    const auto why = watch.Tick(PlaceState::Loading, reading);
+    ASSERT_TRUE(why);
+    EXPECT_NE(why->find("the loading flag"), std::string::npos) << *why;
+    reading.now_ms += 60'000;
+    EXPECT_FALSE(watch.Tick(PlaceState::Loading, reading)); // once a stretch
+}
+
+TEST(BloodborneStuckLoadWatch, NamesAnUnreadableMap) {
+    StuckLoadWatch watch;
+    PlaceReading reading = Standing(0, 0xFFFFFFFFu);
+    watch.Tick(PlaceState::Loading, reading);
+    reading.now_ms = StuckLoadWatch::StuckMs;
+    const auto why = watch.Tick(PlaceState::Loading, reading);
+    ASSERT_TRUE(why);
+    EXPECT_NE(why->find("the map read 0xffffffff"), std::string::npos) << *why;
+    EXPECT_EQ(why->find("the loading flag"), std::string::npos) << *why;
+}
+
+TEST(BloodborneStuckLoadWatch, ALoadProperOrPlayingIsNoStuckLoad) {
+    StuckLoadWatch watch;
+    // No character through a long load: nothing.
+    EXPECT_FALSE(watch.Tick(PlaceState::Loading, Loading(0)));
+    EXPECT_FALSE(watch.Tick(PlaceState::Loading, Loading(StuckLoadWatch::StuckMs * 2)));
+    // Playing never counts, and it starts the next stretch afresh.
+    PlaceReading reading = Standing(0, CentralYharnam);
+    EXPECT_FALSE(watch.Tick(PlaceState::Playing, reading));
+    reading.now_ms = StuckLoadWatch::StuckMs * 3;
+    EXPECT_FALSE(watch.Tick(PlaceState::Loading, reading));
+    reading.now_ms += StuckLoadWatch::StuckMs - 1;
+    EXPECT_FALSE(watch.Tick(PlaceState::Loading, reading));
+    reading.now_ms += 1;
+    EXPECT_TRUE(watch.Tick(PlaceState::Loading, reading));
 }

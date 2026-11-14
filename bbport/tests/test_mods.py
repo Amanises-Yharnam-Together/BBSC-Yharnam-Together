@@ -173,6 +173,30 @@ class ModTests(unittest.TestCase):
         self.assertIn('several folders', found['Two'])
         self.assertEqual(found['Empty'], 'empty')
 
+    def test_loose_downloads_in_the_mods_folder_say_why(self):
+        # Caller on Discord (1.5.0): Nexus mods dropped into Mods were "not loaded" with no hint how to install.
+        # A download left as an archive or a game file without its folder is named too; notes are not.
+        self.moddir.mkdir()
+        (self.moddir / 'Some Mod-123-1-0.zip').write_bytes(b'PK')
+        (self.moddir / 'c2310.chrbnd.dcx').write_bytes(b'DCX')
+        (self.moddir / 'readme.txt').write_text('notes')
+        (self.moddir / 'Good/chr').mkdir(parents=True)
+        (self.moddir / 'Good/chr/a.dcx').write_bytes(b'x')
+        found = dict(mods.unrecognized(self.moddir))
+        self.assertEqual([name for name, _why in mods.unrecognized(self.moddir)], ['c2310.chrbnd.dcx', 'Some Mod-123-1-0.zip'])
+        self.assertEqual(found['Some Mod-123-1-0.zip'], mods.LOOSE_ARCHIVE)
+        self.assertEqual(found['c2310.chrbnd.dcx'], mods.LOOSE_FILE)
+        self.assertEqual(mods.discover(self.moddir), ['Good'])
+
+    def test_every_reason_is_one_the_launcher_translates(self):
+        launcher = (ROOT / 'launcher' / 'bbport_launcher_win.py').read_text(encoding='utf-8')
+        import ast
+        tree = ast.parse(launcher)
+        table = next(node.value for node in tree.body if isinstance(node, ast.Assign)
+                     and getattr(node.targets[0], 'id', '') == 'MOD_PROBLEMS')
+        english = {pair.elts[0].value for pair in table.elts}
+        self.assertEqual(english, set(mods.PROBLEMS))
+
     def test_invalid_profile_fails(self):
         self.mod('A')
         config = self.root / 'mods.json'
