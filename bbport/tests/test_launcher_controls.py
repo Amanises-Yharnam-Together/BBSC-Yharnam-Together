@@ -70,7 +70,7 @@ class TableTests(unittest.TestCase):
         # runtime_pad.c refuses pad.<input> from move_up on
         keyboard_only = [row[0] for row in controls.CONTROLS if row[3] is None]
         self.assertEqual(keyboard_only, ['move_up', 'move_down', 'move_left', 'move_right',
-                                         'look_up', 'look_down', 'look_left', 'look_right'])
+                                         'look_up', 'look_down', 'look_left', 'look_right', 'walk'])
         self.assertFalse(controls.has_pad('look_up'))
         self.assertTrue(controls.has_pad('touchpad_right'))
 
@@ -134,7 +134,7 @@ class BindingTextTests(unittest.TestCase):
         self.assertIsNone(updates['key.circle'])
         self.assertNotIn('upscaler', updates)
         self.assertNotIn('pad.move_up', updates)  # the runtime refuses it
-        self.assertEqual(len(updates), 25 + 17)
+        self.assertEqual(len(updates), 26 + 17)
 
 
 class KeyNameTests(unittest.TestCase):
@@ -273,6 +273,11 @@ class Ds3LayoutTests(unittest.TestCase):
                          {'options': 'Escape', 'touchpad': 'Tab, G', 'touchpad_right': 'Backspace'})
         self.assertEqual([layout[k] for k in ('move_up', 'move_down', 'move_left', 'move_right')], list('WSAD'))
         self.assertEqual([layout[k] for k in ('look_up', 'look_down', 'look_left', 'look_right')], list('IKJL'))
+        # Walk has no key (players on Discord asked for one, 2026-11-09): Left Alt is Alt+Tab's.
+        self.assertEqual(layout['walk'], '')
+        self.assertEqual(controls.current_binding({}, 'key', 'walk'), [])
+        self.assertEqual(controls.current_binding({'key.walk': 'Left Alt'}, 'key', 'walk'), ['Left Alt'])
+        self.assertFalse(controls.has_pad('walk'))
 
     def test_the_layout_is_the_default_not_a_second_copy(self):
         for name, _label, keys, _pad in controls.CONTROLS:

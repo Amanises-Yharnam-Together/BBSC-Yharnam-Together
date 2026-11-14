@@ -1323,6 +1323,8 @@ void Presenter::PresentFrame(Frame* frame, bool is_reusing_frame, bool is_game_f
     const auto cmdbuf = scheduler.CommandBuffer();
     DumpFinalFrameIfDue(instance, scheduler, cmdbuf, frame->image, frame->width, frame->height,
                         swapchain.GetSurfaceFormat().format);
+    CheckScreenTintIfDue(instance, scheduler, cmdbuf, frame->image, frame->width, frame->height,
+                         swapchain.GetSurfaceFormat().format, hdr);
 
     if (EmulatorSettings.IsVkHostMarkersEnabled()) {
         cmdbuf.beginDebugUtilsLabelEXT(vk::DebugUtilsLabelEXT{

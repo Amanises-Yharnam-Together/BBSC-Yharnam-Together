@@ -44,6 +44,7 @@ CONTROLS = [
     ("look_down", "Камера вниз", "K", None),
     ("look_left", "Камера влево", "J", None),
     ("look_right", "Камера вправо", "L", None),
+    ("walk", "Шаг (удерживать с клавишами движения)", "", None),
 ]
 
 # The English text of each label: the key of the Windows launcher's translations.
@@ -54,6 +55,7 @@ LABELS = {
     "up": "D-pad up", "down": "D-pad down", "left": "D-pad left", "right": "D-pad right",
     "move_up": "Move forward", "move_down": "Move back", "move_left": "Move left", "move_right": "Move right",
     "look_up": "Camera up", "look_down": "Camera down", "look_left": "Camera left", "look_right": "Camera right",
+    "walk": "Walk (hold with the move keys)",
 }
 
 MAX_BIND = 4  # keys (or buttons) one input takes; the runtime ignores the rest
@@ -244,9 +246,10 @@ MOUSE_DEFAULTS = {"mouse_camera": "1", "mouse_sensitivity": "1.00", "mouse_inver
 MOUSE_SENSITIVITY_RANGE = (0.01, 20.0)  # what the runtime accepts; the launcher's slider covers 0.1 to 5
 
 # The Dark Souls III keyboard and mouse layout (the reference's docs/KEYBOARD_MOUSE.md, "Default keys") is the
-# default keyboard and mouse binding of CONTROLS, and src/runtime_pad.c's bind_defaults is the same table. The
-# runtime has no walk input, so Left Alt (walk in Dark Souls III) is not bound. The Controls page's Dark Souls III
-# button puts these bindings back.
+# default keyboard and mouse binding of CONTROLS, and src/runtime_pad.c's bind_defaults is the same table. Walk (held
+# with the movement keys: half the stick, so the character walks) has no key: Left Alt, walk in Dark Souls III, is
+# Alt+Tab's key and the Alt+ combinations' modifier, so players choose one. The Controls page's Dark Souls III button
+# puts these bindings back.
 DS3_KEYS = {name: keys for name, _label, keys, _pad in CONTROLS}
 
 

@@ -30,7 +30,7 @@ from scenarios import (AWAY_FROM_LAMP, BLOODSTAIN_DROPPED, BLOODSTAIN_STOLEN,  #
                        CATHEDRAL_WARD, CATHEDRAL_WARD_LAMP, CENTRAL_YHARNAM, CENTRAL_YHARNAM_LAMP,
                        CLERIC_BEAST, CLERIC_BEAST_DEFEATED, CLINIC, CRASH_CLEANUP, DOG, ENEMY,
                        FORBIDDEN_WOODS_LAMP_LIT, GASCOIGNE, GASCOIGNE_DEFEATED, GIVE_UP,
-                       GUEST_REVIVED,
+                       GUEST_REVIVED, SECOND_LOAD_SCREEN,
                        HUNTERS_DREAM, LETHAL_FALL, LEVEL_SYNC, OTHER_MAP_FLAG, PARTY_DEATH,
                        REVIVE_HITS, SESSION_HOLDS, HOST_JOINS, GUEST_JOINS, START,
                        STORY_HIDDEN, THIS_MAP_FLAG, WARD_ENEMY, WARD_ENEMY_2, WARD_NPC,
@@ -210,13 +210,20 @@ def wipe(roles, name: str = "wipe", guests_point: int | None = None,
                       "wait-vital dead 30", "wait-vital up 150"]}
     if hurt_first:
         # Godmode until the guests are down: the hurt enemy comes for the host.
-        steps["host"] = [f"hit {ENEMY} 30", "wait 3", f"sync {name}-hurt", "wait 5",
-                         "census 40", f"sync {name}-guests-down", "godmode off", *steps["host"][2:]]
+        # Back on its spot after the hit (rig 2026-11-11, 1.5.0 test 4: the enemy stood by the
+        # drop south of the lamp, the last attack stance was past the edge and the host fell
+        # through its census, "0 characters within 40 m of (-199.8, -351.5, 161.6)").
+        steps["host"] = [f"hit {ENEMY} 30", *spread["host"], "wait 1", f"sync {name}-hurt",
+                         "wait 5", "census 40", f"sync {name}-guests-down", "godmode off",
+                         *steps["host"][2:]]
     for guest in roles[1:]:
         # `guests_point`: the guests rest elsewhere first (a return point that stood 10 s,
         # ReturnPointSettleMs), so the wipe shows where they wake: where the host does.
+        # Godmode off only after it (rig 2026-11-11, 1.5.0 test 4: an enemy by the guest downed
+        # it at once, before the point had stood; its death took the point for a special one,
+        # "respawn at the own special point", and it woke 113 m from the host).
         own_point = [f"return-point {guests_point}", "wait 12"] if guests_point else []
-        steps[guest] = ["godmode off", *own_point, *spread[guest], *LETHAL_FALL,
+        steps[guest] = [*own_point, "godmode off", *spread[guest], *LETHAL_FALL,
                         "wait-vital down 30", f"sync {name}-guests-down", "wait-vital dead 90",
                         "wait-vital up 150"]
         if hurt_first:
@@ -824,20 +831,33 @@ SUITES = {
                                "godmode"]},
                     expect={"guest": [r"party death: down \d+ on map"]},
                     forbid={role: SESSION_HOLDS + [KNEEL] for role in PARTY2}),
-            chapter("down-by-enemy", "the guest with 1 HP next to an enemy, locked on to it, goes "
-                                     "down: the lock-on is let go (PR #69), the enemy leaves it "
-                                     "alone, and the host revives it",
+            chapter("down-by-enemy", "with the host far away, the guest with 1 HP next to an "
+                                     "enemy it hit, locked on to it, goes down: the lock-on is "
+                                     "let go (PR #69) and the enemy leaves it alone",
                     # Its end is a give-up, not a revive: a revive takes 50-70 s of swings (rig
                     # 2026-10-15), revives have chapters of their own.
-                    {"host": ["wait-member-vital down 150", "wait-member-vital up 150"],
-                     "guest": ["godmode off", "hurt self 1", f"approach {ENEMY}", "press r3 200",
+                    # The host away at the lamp first and the guest's own hit (as
+                    # owner-crash-fight): the enemy had fought the godmode host since down-revive
+                    # and stayed on it, and since the join's reload the guest is up at its lamp
+                    # after down-no-kneel's give-up, not beside the two (rig 2026-11-11, 1.5.0
+                    # test 4, three runs: it stood 3 m from the enemy for 90 s and never went
+                    # down; before, a swing at the host on the same spot caught it within 1 s).
+                    # The lamp, not Iosefka's clinic (rig 2026-11-12: the host fell through the
+                    # floor up there, a void death even in godmode, and with the guest down that
+                    # was the party's wipe).
+                    {"host": [f"teleport {AT_THE_LAMP}", "sync dbe-apart",
+                              "wait-member-vital down 150", "wait-member-vital up 150",
+                              f"teleport {WIPE_SPOT['host']}", "wait 3"],
+                     "guest": ["sync dbe-apart", f"hit {ENEMY} 30", "godmode off", "hurt self 1",
+                               f"approach {ENEMY}", "press r3 200",
                                "wait-vital down 90", "wait 20", "expect-hp self == 1",
                                "press circle 3600", "wait-vital dead 15", "wait-vital up 90",
                                "godmode"]},
-                    # Phase 8: the map's owner runs the enemy, so its game forgets the target.
-                    expect={"host": [r"party death: enemies forgot \d+ target\(s\) on downed "
-                                     r"players \(self down=false, others down=1"],
-                            "guest": [r"party death: giving up ends down"]},
+                    # #124: the nearest player's game runs the enemy, the guest's here, so its
+                    # game forgets the target (the far host's copy of the enemy may hold none).
+                    expect={"guest": [r"party death: enemies forgot \d+ target\(s\) on downed "
+                                      r"players \(self down=true",
+                                      r"party death: giving up ends down"]},
                     # known_bug dropped: not seen in the rig run of 2026-11-02.
                     forbid={"host": SESSION_HOLDS,
                             "guest": SESSION_HOLDS + [r"party death: killed while down"]}),
@@ -1229,6 +1249,10 @@ SUITES = {
                                f"expect-map {CATHEDRAL_WARD}", "sync jat-joined"],
                      "host": ["sync jat-joined", "expect-session 2",
                               f"expect-map {CENTRAL_YHARNAM}"]},
+                    # On another map than its host: its trip in place under the join's screen.
+                    expect={"guest": [r"trip after the join: reloading in place on map "
+                                      rf"{CATHEDRAL_WARD}"]},
+                    forbid={"guest": [SECOND_LOAD_SCREEN]},
                     allow=CRASH_CLEANUP),
             chapter("hp-across-blocks", "the guest joined in the Ward, the host in Central "
                                         "Yharnam: the host's hit reaches the guest's copy once it "

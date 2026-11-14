@@ -23,9 +23,11 @@ namespace Serialization {
 /* You should increment versions below once corresponding serialization scheme is changed. */
 // bbport: past both histories (port 11/7/6, upstream 0.20.1 port 10/8/6): caches of either are
 // rebuilt.
-static constexpr u32 ShaderBinaryVersion = 17u; // 16: upstream 10-24, 17: the UI edge stretch in vertex shaders
+static constexpr u32 ShaderBinaryVersion =
+    18u; // 16: upstream 10-24, 17: the UI edge stretch in vertex shaders, 18: null vertex inputs
 static constexpr u32 ShaderMetaVersion = 8u;
-static constexpr u32 PipelineKeyVersion = 7u;
+static constexpr u32 PipelineKeyVersion =
+    8u; // 7: port 11/7/6 and upstream 0.20.1 10/8/6, 8: vertex modules paired by binding start
 } // namespace Serialization
 
 namespace Vulkan {

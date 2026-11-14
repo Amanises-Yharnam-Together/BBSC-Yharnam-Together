@@ -72,6 +72,9 @@ std::vector<s32> FlagSample() {
     for (const s32 flag : ShopLineFlags()) {
         AddAround(sample, flag);
     }
+    for (const ShopStockFlag& stock : ShopStockFlags) {
+        AddAround(sample, stock.flag);
+    }
     AddAround(sample, MinSampled, 0);
     AddAround(sample, MaxFlag, 0);
     AddEvery(sample, -1000, MaxFlag, 9973);
@@ -434,7 +437,9 @@ TEST(BloodborneFlagRules, HeldItemFlagsAreEachPlayersOwn) {
             HeldItemFlags, [&](const HeldItemFlag& item) { return item.flag == flag; });
         const bool owned = std::ranges::any_of(
             OwnedWeaponFlags, [&](const OwnedWeaponFlag& item) { return item.flag == flag; });
-        EXPECT_EQ(RuleFor(flag).owner == FlagOwner::PerPlayer, held || owned) << flag;
+        const bool stock = std::ranges::any_of(
+            ShopStockFlags, [&](const ShopStockFlag& item) { return item.flag == flag; });
+        EXPECT_EQ(RuleFor(flag).owner == FlagOwner::PerPlayer, held || owned || stock) << flag;
     }
 }
 
@@ -474,6 +479,63 @@ TEST(BloodborneFlagRules, OwnedWeaponFlagsAreEachPlayersOwn) {
     for (const s32 flag : {5300, 5499, 5522, 5901, 6603, 6679, 6698}) {
         EXPECT_EQ(RuleFor(flag).owner, FlagOwner::Host) << flag;
     }
+}
+
+// Fran on Discord (2026-11-10, a guest): the armor the host bought vanished from the guest's shop,
+// and stayed so after a restart. ShopLineupParam (01.09) sells a row once (sellQuantity 1) until
+// its stock flag (eventFlag) is on: 70009000 + 10 * row for the Bath and Insight messengers'
+// attire, the Sinister root chalices and the Hunter Chief Emblem, 6610 and 6650 for the Insight
+// messenger's bells. As host world flags, the host's purchase came over to the guest and the team's
+// world carried it into the guest's save. Each player's own purchase, kept for its own world.
+TEST(BloodborneFlagRules, ShopStockIsEachPlayersOwn) {
+    EXPECT_EQ(ShopStockFlags.size(), 52u);
+    for (const ShopStockFlag& stock : ShopStockFlags) {
+        EXPECT_EQ(RuleFor(stock.flag).owner, FlagOwner::PerPlayer) << stock.flag;
+        EXPECT_TRUE(KeepsLocalFlag(true, stock.flag)) << stock.flag;
+        EXPECT_FALSE(KeepsLocalFlag(false, stock.flag)) << stock.flag << ": no party";
+        EXPECT_TRUE(CarriesToGuestWorld(stock.flag)) << stock.flag;
+        EXPECT_FALSE(IsWorldFlag(stock.flag)) << stock.flag << ": not in a team's world";
+        EXPECT_FALSE(TakesHostMapFlag(stock.flag)) << stock.flag;
+        EXPECT_FALSE(SharedWithParty(stock.flag)) << stock.flag;
+        const u32 category = stock.item & 0xF0000000;
+        EXPECT_TRUE(category == ShopArmor || category == ShopGoods) << stock.flag;
+    }
+    // Every tenth flag of 70009000-70009490, and nothing between or around them.
+    for (s32 flag = 70009000; flag <= 70009490; flag += 10) {
+        EXPECT_TRUE(std::ranges::any_of(ShopStockFlags, [&](const ShopStockFlag& s) {
+            return s.flag == flag;
+        })) << flag;
+    }
+    // (6649 below 6650 is a hunter badge's held flag, PerPlayer of its own.)
+    for (const s32 flag : {70008990, 70009001, 70009005, 70009009, 70009489, 70009491, 70009500,
+                           6609, 6611, 6651, 6660}) {
+        EXPECT_EQ(RuleFor(flag).owner, FlagOwner::Host) << flag;
+    }
+    const auto item_of = [](s32 flag) -> u32 {
+        for (const ShopStockFlag& stock : ShopStockFlags) {
+            if (stock.flag == flag) {
+                return stock.item;
+            }
+        }
+        return 0;
+    };
+    // The Bone Ash Mask (Insight row 200060), the Yharnam Hunter Cap (Bath row 100004), the Small
+    // Resonant Bell (200000), Maria's trousers (200093).
+    EXPECT_EQ(item_of(70009380), ShopArmor | 40000);
+    EXPECT_EQ(item_of(70009000), ShopArmor | 60000);
+    EXPECT_EQ(item_of(6610), ShopGoods | 205);
+    EXPECT_EQ(item_of(70009490), ShopArmor | 373000);
+}
+
+// A save that took the host's purchases from a team world: once per save slot a stock flag goes
+// off while the player holds none of what the row sells (it can buy it then); never set by us.
+TEST(BloodborneFlagRules, ShopStockGoesOffOnceWithoutTheItem) {
+    EXPECT_EQ(ShopStockFlagFix(true, true, false, true), std::optional<bool>{false});
+    EXPECT_EQ(ShopStockFlagFix(true, true, true, true), std::nullopt) << "bought it itself";
+    EXPECT_EQ(ShopStockFlagFix(true, true, false, false), std::nullopt) << "after the recheck";
+    EXPECT_EQ(ShopStockFlagFix(true, false, true, true), std::nullopt) << "never set";
+    EXPECT_EQ(ShopStockFlagFix(true, false, false, true), std::nullopt);
+    EXPECT_EQ(ShopStockFlagFix(false, true, false, true), std::nullopt) << "no party";
 }
 
 // The common events check the weapon at any upgrade level: base id + 100 * level, up to +10.
