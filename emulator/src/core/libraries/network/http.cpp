@@ -1853,7 +1853,7 @@ int PS4_SYSV_ABI sceHttpSendRequest(int reqId, const void* postData, u64 size) {
         req.state = HttpRequestState::Sending;
         req_ptr = it->second;
         LogSendRequestSettings(req, reqId, size);
-        if (Core::Bloodborne::IsGameServerUrl(req.url)) {
+        if (Core::Bloodborne::IsGameServerRequest(req.url)) {
             game_server_url = req.url;
         }
 

@@ -49,6 +49,13 @@ constexpr bool IsGameServerUrl(std::string_view url) {
     return url.find(GameServerHost) != std::string_view::npos;
 }
 
+// Whether a request belongs to the game's sign-in: its own server's, or the sign-in itself
+// (/basic_utils/login), which goes to the address ss.info hands back (the team's server, any
+// host and port), not to ss4.scej-network.jp:20443.
+constexpr bool IsGameServerRequest(std::string_view url) {
+    return IsGameServerUrl(url) || url.find(GameServerLoginPath) != std::string_view::npos;
+}
+
 class GameServerSignInLog {
 public:
     // A request the game sent to its server.

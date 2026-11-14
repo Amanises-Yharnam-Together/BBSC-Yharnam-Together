@@ -1279,6 +1279,23 @@ TEST(GameServerSignIn, KnowsTheGameServersUrls) {
 
 // The team screen says it plainly once the save is open (the title, where the sign-in happens,
 // is behind): Ozi's guest loaded with no sign-in at all; one whose server never answered failed.
+// PC rig 2026-11-14 (#559 red): the sign-in goes to the address ss.info hands back, so a
+// tracker that only follows ss4.scej-network.jp:20443 never saw it and warned every healthy game.
+TEST(GameServerSignIn, TheSignInCountsOnTheAddressSsInfoHandsBack) {
+    EXPECT_TRUE(IsGameServerRequest("https://ss4.scej-network.jp:20443/bb-eu/ss.info"));
+    EXPECT_TRUE(IsGameServerRequest("http://192.168.0.147:20443/basic_utils/login"));
+    EXPECT_TRUE(IsGameServerRequest("https://seamlesshunt.com:20443/basic_utils/login"));
+    EXPECT_FALSE(IsGameServerRequest("http://42.189.91.13:31315/v1/users/p3d45846901dff8/feed"));
+    GameServerSignInLog log;
+    log.Asked();
+    log.Answered("https://ss4.scej-network.jp:20443/bb-eu/ss.info", true);
+    log.Asked();
+    log.Answered("http://192.168.0.147:20443/basic_utils/login", true);
+    EXPECT_EQ(log.State(), GameServerSignIn::SignedIn);
+    log.SaveOpened();
+    EXPECT_EQ(log.Notice(), "");
+}
+
 TEST(GameServerSignIn, TheTeamScreenSaysWhenTheGameIsNotSignedIn) {
     EXPECT_EQ(GameServerNotice(GameServerSignIn::SignedIn, true), "");
     EXPECT_EQ(GameServerNotice(GameServerSignIn::NotTried, false), ""); // the title, not yet
