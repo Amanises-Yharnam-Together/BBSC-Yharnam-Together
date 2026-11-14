@@ -6517,3 +6517,41 @@ PROBE_NAMES = (
     "handed-out-max-watch",
 )
 PROBES = {name: SCENARIOS.pop(name) for name in PROBE_NAMES}
+
+
+# Purple/red screen after lamp travel (Discord 2026-11-11/12; diagnostic #588): one drawn game
+# travels between the Dream, Research Hall, Old Yharnam and Central Yharnam a few times, with a
+# picture after each arrival; "Screen tint:" in its log is the finding.
+TINT_STOPS = [(HUNTERS_DREAM, "dream"), (3502951, "research-a"), (3502952, "research-b"),
+              (2422952, "old-yharnam"), (2422950, "good-chalice"), (CENTRAL_YHARNAM_LAMP, "central")]
+SCENARIOS["tint-travel"] = {
+    "about": "lamp travels (Dream, Research Hall, Old Yharnam, Central Yharnam) with a shot after "
+             "each arrival: no \"Screen tint:\" line",
+    "roles": {"host": [START, "godmode",
+                       *[step for loop in range(3) for point, name in TINT_STOPS
+                         for step in (f"travel {point} 240", "wait 12", f"shot {name}-{loop}",
+                                      "wait 3")],
+                       "done"]},
+    "settings": {"ini.output_res": "1920x1080", "ini.window_mode": "windowed", "ini.upscaler": "dlss",
+                 "ini.preset": "1", "ini.frame_generation": "0", "BB_DUMP_DIR": "C:/bb/tint-evidence/dumps",
+                 "BB_DUMP_TRIGGER": "C:/bb/tint-evidence/dump_trigger", "BB_DUMP_FRAMES": "2",
+                 "BB_FINAL_DUMP_TRIGGER": "C:/bb/tint-evidence/final_trigger",
+                 "BB_PRESENT_DUMP_TRIGGER": "C:/bb/tint-evidence/present_trigger"},
+    "forbid": {"host": ["Screen tint:"]},
+    "timeout": 2400,
+}
+SCENARIOS["tint-travel-guest"] = {
+    "about": "a guest in the host's session travels between the same lamps (the host headless): no "
+             "\"Screen tint:\" line",
+    "roles": {"host": [START, "godmode", "wait-session 2 300", "wait 480", "done"],
+              "guest": [START, "godmode", "wait-session 2 300", "wait 10",
+                        *[step for loop in range(2) for point, name in TINT_STOPS
+                          for step in (f"travel {point} 240", "wait 12", f"shot {name}-{loop}",
+                                       "wait 3")],
+                        "done"]},
+    "settings": {**SCENARIOS["tint-travel"]["settings"], "rig.headless_roles": "host"},
+    "forbid": {"host": ["Screen tint:"], "guest": ["Screen tint:"]},
+    "timeout": 2400,
+}
+# Drawn probes, not in a tier: run by name (run without --headless; the pictures need a GPU).
+PROBES.update({name: SCENARIOS.pop(name) for name in ("tint-travel", "tint-travel-guest")})
