@@ -7,7 +7,7 @@ import sys
 import tempfile
 import time
 import unittest
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'launcher'))
@@ -815,7 +815,8 @@ class PlayTests(unittest.TestCase):
         # Linux from source: the install is bbport/ and shadnet stays in server/build beside it, whose
         # ../VERSION.txt is not the install's, so Start server gives shadnet the release's version.
         with tempfile.TemporaryDirectory() as folder, \
-                mock.patch.object(coop.sys, 'platform', 'linux'), mock.patch.object(coop, 'SERVER_EXE', 'shadnet'):
+                mock.patch.object(coop.sys, 'platform', 'linux'), mock.patch.object(coop, 'SERVER_EXE', 'shadnet'), \
+                mock.patch.object(coop, 'DETACH_SESSION', True):  # set at import: Linux's value on any OS
             root = Path(folder)
             install = root / 'bbport'
             built = root / 'server' / 'build'
@@ -869,7 +870,8 @@ class PlayTests(unittest.TestCase):
                 (7, 'python3.14', python, f'python3 {launcher}'),  # this process
                 (8, 'bb-probe', '/games/other/out/bb-probe', '/games/other/out/bb-probe'),  # another install
                 (9, 'bb-probe', install + '-2/out/bb-probe', install + '-2/out/bb-probe')]
-        with mock.patch.object(coop.sys, 'platform', 'linux'):
+        with mock.patch.object(coop.sys, 'platform', 'linux'), \
+                mock.patch.object(coop, 'Path', PurePosixPath):  # Linux paths on any OS
             self.assertEqual(coop.install_users(rows, install, own_pid=7), [1, 2, 3, 4])
             self.assertEqual(coop.install_users(rows[4:], install, own_pid=7), [])
 
