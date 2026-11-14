@@ -3972,8 +3972,11 @@ SCENARIOS["guest-own-lamps"] = {
                  ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
                   "wait-session 2 300", "sync gol-in", "wait 20",
                   f"expect-flag {FORBIDDEN_WOODS_LAMP_LIT} 0", "sync gol-checked", "done"]],
-        "guest": [["team-alone", START, f"light-lamp {FORBIDDEN_WOODS_LAMP_LIT}", "wait 15",
-                   "sync gol-alone", "quit-title", "title-wait 10", "done"],
+        # The alone progress reaches the save by a lamp trip; a stage ends in the world (the
+        # title never runs "done": rig 2026-11-14).
+        "guest": [["team-alone", START, f"light-lamp {FORBIDDEN_WOODS_LAMP_LIT}", "wait 5",
+                   f"travel {CENTRAL_YHARNAM_LAMP}", "wait 15",
+                   f"expect-flag {FORBIDDEN_WOODS_LAMP_LIT} 1", "sync gol-alone", "done"],
                   ["team-accept", "team-ready", START, "wait-session 2 300", "sync gol-in",
                    f"wait-flag {FORBIDDEN_WOODS_LAMP_LIT} 1 20",
                    f"expect-flag {GUEST_OWN_LAMP_HEADSTONE} 1", "sync gol-checked",
@@ -4000,7 +4003,9 @@ SCENARIOS["guest-new-world-own-progress"] = {
     "roles": {
         "host": ["team-create", "team-invite rig_guest", "team-wait 2", "team-start", START,
                  "wait-session 2 300", "sync gnw-in", "wait 30", "done"],
-        "guest": ["team-alone", START, f"set-flag {TEAM_WORLD_FLAG} 1", "wait 15",
+        # The alone flag reaches the save by a lamp trip before the quit (rig 2026-11-14).
+        "guest": ["team-alone", START, f"set-flag {TEAM_WORLD_FLAG} 1", "wait 5",
+                  f"travel {CENTRAL_YHARNAM_LAMP}", "wait 15", f"expect-flag {TEAM_WORLD_FLAG} 1",
                   "quit-title", "title-wait 10",
                   "team-accept", "team-ready", START, "wait-session 2 300",
                   f"expect-flag {TEAM_WORLD_FLAG} 0", "sync gnw-in", "wait 15",

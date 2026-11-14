@@ -2875,6 +2875,42 @@ bool PutOwnWorldBack(int slot, std::string_view why) {
     return true;
 }
 
+// This save's own world aside (its slot's file), in the blocks of `store` the file has not yet: a
+// block the file has already (a save that held a team's before) keeps what the file says.
+// team_mutex held.
+void KeepOwnWorldAside(int slot, const WorldStore& store) {
+    if (store.blocks.empty()) {
+        return;
+    }
+    // A world kept aside from here on has a list beside it (an empty one for a save that made
+    // no world): only a save from before the lists has the one without the other.
+    std::error_code error;
+    if (!std::filesystem::exists(PersonalWorldFile(slot), error) &&
+        !std::filesystem::exists(HomeWorldFile(slot), error)) {
+        WriteWholeFile(HomeWorldFile(slot), FormatHomeWorlds({}));
+    }
+    WorldFlags own = ParseWorldFlags(ReadWholeFile(PersonalWorldFile(slot))).value_or(WorldFlags{});
+    std::vector<FlagBlockBits> new_blocks;
+    for (const FlagBlockBits& block : store.blocks) {
+        if (!std::binary_search(own.blocks.begin(), own.blocks.end(), block.id)) {
+            new_blocks.push_back(block);
+        }
+    }
+    if (new_blocks.empty()) {
+        return;
+    }
+    const WorldFlags added = CaptureWorldFlags(store.store.flags_per_block, new_blocks);
+    own.blocks.insert(own.blocks.end(), added.blocks.begin(), added.blocks.end());
+    own.on.insert(own.on.end(), added.on.begin(), added.on.end());
+    std::sort(own.blocks.begin(), own.blocks.end());
+    std::sort(own.on.begin(), own.on.end());
+    WriteWholeFile(PersonalWorldFile(slot), FormatWorldFlags(own));
+    LOG_INFO(Debug,
+             "Co-op team world: slot {}'s own world kept aside ({} more blocks, {} flags on "
+             "in all)",
+             slot, added.blocks.size(), own.on.size());
+}
+
 } // namespace
 
 // This save's clear count (GameDataMan +0x68, as the GetClearCount event function reads it).
@@ -3023,6 +3059,14 @@ void ApplyTeamWorldOnLoad(bool trip) {
             LOG_INFO(Debug, "Co-op team world: the team has no world yet: {}",
                      team_host ? "this save's makes it" : "the host's save makes it");
         }
+        // Players 2026-11-12 (Prohorov's friend joined his NEW world, 1.4.0; rig 2026-11-14,
+        // guest-new-world-saved): a guest of a world not made yet kept nothing aside at this load,
+        // its first; its game then played the host's world as a phantom and saved it, so its
+        // later trip kept the host's world aside as its own. Alone again, or in a new world of
+        // its own, its own progress was gone. Its own world goes aside here, before the join.
+        if (!team_host) {
+            KeepOwnWorldAside(slot, *store);
+        }
         // The host whose save makes it has the team's world already: its later loads never take
         // the server's copy back over it, a report up to 10 s old (rig 2026-10-20, boss-refight:
         // the host's next load put back Father Gascoigne's kill it had cleared after its report).
@@ -3124,34 +3168,8 @@ void ApplyTeamWorldOnLoad(bool trip) {
     // world: its own world is that one.
     // Before the team's lamps go in below (Lisara 2026-11-12: her own world must be as it was,
     // without the lamps of the world she visited).
-    if (*team_take == TeamWorldTake::Aside && !store->blocks.empty()) {
-        // A world kept aside from here on has a list beside it (an empty one for a save that made
-        // no world): only a save from before the lists has the one without the other.
-        std::error_code error;
-        if (!std::filesystem::exists(PersonalWorldFile(slot), error) &&
-            !std::filesystem::exists(HomeWorldFile(slot), error)) {
-            WriteWholeFile(HomeWorldFile(slot), FormatHomeWorlds({}));
-        }
-        WorldFlags own =
-            ParseWorldFlags(ReadWholeFile(PersonalWorldFile(slot))).value_or(WorldFlags{});
-        std::vector<FlagBlockBits> new_blocks;
-        for (const FlagBlockBits& block : store->blocks) {
-            if (!std::binary_search(own.blocks.begin(), own.blocks.end(), block.id)) {
-                new_blocks.push_back(block);
-            }
-        }
-        if (!new_blocks.empty()) {
-            const WorldFlags added = CaptureWorldFlags(store->store.flags_per_block, new_blocks);
-            own.blocks.insert(own.blocks.end(), added.blocks.begin(), added.blocks.end());
-            own.on.insert(own.on.end(), added.on.begin(), added.on.end());
-            std::sort(own.blocks.begin(), own.blocks.end());
-            std::sort(own.on.begin(), own.on.end());
-            WriteWholeFile(PersonalWorldFile(slot), FormatWorldFlags(own));
-            LOG_INFO(Debug,
-                     "Co-op team world: slot {}'s own world kept aside ({} more blocks, {} "
-                     "flags on in all)",
-                     slot, added.blocks.size(), own.on.size());
-        }
+    if (*team_take == TeamWorldTake::Aside) {
+        KeepOwnWorldAside(slot, *store);
     }
     if (!team_host) {
         // Every load of a guest (its join's reload and its trips give it its own saved world
