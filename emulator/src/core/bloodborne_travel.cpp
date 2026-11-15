@@ -1761,6 +1761,15 @@ void KeepGuestLampsLit() {
         }
         return;
     }
+    // Its own lamps from its own world kept aside too (Prohorov's friend 2026-11-12, 1.4.0): a
+    // game that joins from the title never saw them lit before its first team load took the
+    // team's world, so `kept` had only the team's and the Dream's headstones to Old Yharnam or
+    // Hemwick it had opened said "no place to awaken".
+    const std::vector<s32> own = OwnWorldAsideFlagsOn();
+    for (const s32 lamp :
+         LitHeadstoneLamps([&](s32 flag) { return std::ranges::binary_search(own, flag); })) {
+        kept.insert(lamp);
+    }
     const std::vector<s32> team = TeamWorldFlagsOnForGuest();
     const std::vector<s32> relight = LampsToRelight(kept, team, EventFlagOn);
     if (!relight.empty()) {

@@ -1131,6 +1131,22 @@ bool AutoplaySetFlag(const AutoplayStep& step) {
     return true;
 }
 
+// light-lamp <active flag>: a lamp lit as its rest lights it, its flag on and the lamp on this
+// character's lamp list (a lamp off the list goes out at the next load): a lamp of one player only.
+bool AutoplayLightLamp(const AutoplayStep& step) {
+    const s32 flag = static_cast<s32>(step.Number(0, 0));
+    const auto lamp = LampOfActiveFlag(flag);
+    if (!lamp) {
+        step.failure = "not a lamp's active flag";
+        return false;
+    }
+    using SetFlag = void PS4_SYSV_ABI (*)(u64, s32, bool);
+    reinterpret_cast<SetFlag>(image_base + PartyGhostSetEventFlagOffset)(0, flag, true);
+    const std::array lamps{*lamp};
+    ListLamps(lamps);
+    return true;
+}
+
 // return-point <point>: the lamp a death respawns this player at (GlobalState +0x1528, what a
 // lamp rest stores): members with other lamps without the trips there (a wipe's respawn, Kaniel
 // 2026-10-13: everyone wakes where the host does).
@@ -2619,6 +2635,7 @@ constexpr auto AutoplayVerbs = std::to_array<std::pair<std::string_view, Autopla
     {"press", AutoplayPressOrStick},
     {"stick", AutoplayPressOrStick},
     {"set-flag", AutoplaySetFlag},
+    {"light-lamp", AutoplayLightLamp},
     {"return-point", AutoplayReturnPoint},
     {"expect-flag", AutoplayExpectOrWaitFlag},
     {"talk-gesture", AutoplayTalkGesture},

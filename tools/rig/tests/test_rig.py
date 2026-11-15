@@ -40,6 +40,7 @@ VERBS = {
     "object",  # 2026-10-20: a map object's enable switch (the Abode lamp)
     "sync", "chapter", "keep-going", "glide",  # the suites' (suites.py)
     "return-point",
+    "light-lamp",  # 2026-11-13: a lamp of one player only (guest-own-lamps)
     "team-create", "team-invite", "team-accept", "team-wait", "team-leave",  # the lobby's
     "team-back",  # Kaniel 2026-10-25: a game started again back into its team (its invite back)
     "quit-title",  # the System menu's Exit Game: back to the title in the same game
