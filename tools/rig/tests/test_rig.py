@@ -219,6 +219,19 @@ class ScenarioTest(unittest.TestCase):
         self.assertTrue(any("self down=true" in line for line in chapter["expect"]["guest"]))
         self.assertNotIn("host", chapter["expect"])
 
+    def test_the_hosts_pickup_after_a_leave_is_on_central_yharnam(self):
+        # Rig 2026-11-14 (1.5.1 RC): leave's nearest item was now and then 0x5c3, whose spot is in
+        # the next map's block; the host stood on map 0x1b000000 through owner-crash-fight, where
+        # the enemy is not ("no such character 0x1001400b"). It picks up from 0x273's own spot.
+        chapters = suites.SUITES["crashes"]["chapters"]
+        names = [c["name"] for c in chapters]
+        leave = chapters[names.index("leave")]
+        self.assertEqual(names[names.index("leave") + 1], "owner-crash-fight")
+        host = leave["steps"]["host"]
+        at = host.index("pickup 70")
+        self.assertEqual(host[at - 2:at], [f"teleport {suites.LEAVE_ITEM_SPOT}", "wait 2"])
+        self.assertFalse(any(step.startswith(("travel", "ensure-map")) for step in host))
+
     def test_a_wipes_guest_holds_godmode_until_its_own_point_stands(self):
         # The same run's wipe: the enemy stood by the guest and downed it the moment godmode went
         # off, before its return point had stood 10 s: the death took the point for a special one
