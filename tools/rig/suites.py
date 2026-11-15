@@ -57,6 +57,8 @@ HOSTS_MESSENGERS = (r"characters switched like the host has them on map 0x150000
 # owner-crash-fight: the enemy stood 1.1 m from the guest at GUEST_ALONE_SPOT, too close to walk
 # the 1.5 m "moves" needs (rig 2026-11-02); the guest steps 4 m back so it has to come for it.
 OCF_STEP_BACK = "-214.0 -54.5 181.0"
+# crashes/leave: the spot of map item 0x273, on Central Yharnam's block (the host's pickup).
+LEAVE_ITEM_SPOT = "-182.3 -50.5 132.9"
 GUEST_LEADS = (r"Co-op team play: this guest leads the team now: it hosts|Co-op team join: the "
                r"session host moved to this game")
 OLD_HOST_IS_GUEST = r"Co-op team lobby: the save plays in team \w+ as its guest"
@@ -1160,8 +1162,15 @@ SUITES = {
                      # The item by the lamp went in an earlier chapter (rig 2026-10-13: "no
                      # usable map item near" within 20 m), and the next ones within 45 m lie
                      # on other floors (rig 2026-10-25): the nearest on the lamp's floor, 58 m.
-                     "host": ["sync leave-ready", "wait-solo 120", "wait 10", "pickup 70",
-                              "wait 3", "snapshot"]},
+                     # From the item's own spot (rig 2026-11-14, 1.5.1 RC): from where the host
+                     # stood the nearest was now and then 0x5c3, whose spot is in the next map's
+                     # block; the host stood on map 0x1b000000 for owner-crash-fight, where its
+                     # enemy is not ("no such character 0x1001400b"). A lamp trip back made the
+                     # party's re-create wait for a member's name; this is the item the passing
+                     # runs took (0x273).
+                     "host": ["sync leave-ready", "wait-solo 120", "wait 10",
+                              f"teleport {LEAVE_ITEM_SPOT}", "wait 2", "pickup 70", "wait 3",
+                              "snapshot"]},
                     # Since phase 6 the host notes the member gone and reopens its session.
                     expect={"host": [r"(?:lost a member; staying where it is|member left, session "
                                      r"epoch)"]},
