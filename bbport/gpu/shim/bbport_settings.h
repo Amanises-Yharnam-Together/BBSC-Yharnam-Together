@@ -239,6 +239,11 @@ struct Values {
     /// gets fewer generated frames); off: the multiplier as chosen (frame_gen_fit_display,
     /// BB_FRAME_GEN_FIT_DISPLAY). With V-Sync (FIFO) the frames are always fitted.
     std::atomic<bool> frame_gen_fit_display{true};
+    /// DLSS Frame Generation's performance mode: NVIDIA's lighter candidate blending (preset C in
+    /// NVIDIA's App): more game FPS, a little less in the generated frames. On by default; off:
+    /// the full model (frame_gen_dlss_lite, BB_FRAME_GEN_DLSS_LITE; BB_DLSSG_LITE overrides it in
+    /// the bridge). Read when Frame Generation starts.
+    std::atomic<bool> frame_gen_dlss_lite{true};
     /// Set by the renderer: the multiplier DLSS Frame Generation reaches on this GPU (1 without
     /// it), why a provider stopped (or null), why no generated frames reach the display now
     /// (BbFrameGenPace::Idle, 0 while they do) and the display's refresh rate.

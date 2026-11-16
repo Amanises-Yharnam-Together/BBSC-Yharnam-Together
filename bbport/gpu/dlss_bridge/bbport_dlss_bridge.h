@@ -115,6 +115,10 @@ typedef struct BbDlssApi {
 } BbDlssApi;
 
 typedef const BbDlssApi* (*BbDlssGetApiFn)(void);
+// Optional export, outside the ABI's table (a bridge without it still loads): Frame Generation's
+// performance mode for the next FrameGenCreate, NVIDIA's lighter candidate blending ("FG Lite",
+// preset C in NVIDIA's App): 1 on, 0 off, -1 the library's choice.
+typedef void (*BbDlssFrameGenLiteFn)(int32_t mode);
 
 #ifdef __cplusplus
 }

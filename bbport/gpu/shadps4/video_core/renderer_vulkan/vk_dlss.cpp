@@ -10,6 +10,7 @@
 #include <optional>
 #include <string_view>
 
+#include "bbport_settings.h"
 #include "video_core/renderer_vulkan/dlss_modes.h"
 #include "video_core/renderer_vulkan/vk_dlss.h"
 
@@ -156,6 +157,7 @@ bool CollectExtensions(const VkExtensionProperties* required, u32 count,
 struct Dlss::Impl {
     Module module{};
     const BbDlssApi* api{};
+    BbDlssFrameGenLiteFn frame_gen_lite{}; // a bridge from before it: none
     std::vector<std::string> instance_extensions, device_extensions;
     std::optional<FeatureDesc> feature;
     std::optional<FrameGenDesc> frame_gen;
@@ -197,6 +199,9 @@ Dlss::Dlss() : impl{std::make_unique<Impl>()} {
         impl->module ? reinterpret_cast<BbDlssGetApiFn>(FindSymbol(impl->module, "BbDlssGetApi"))
                      : nullptr;
     impl->api = get_api ? get_api() : nullptr;
+    impl->frame_gen_lite = impl->module ? reinterpret_cast<BbDlssFrameGenLiteFn>(
+                                              FindSymbol(impl->module, "BbDlssFrameGenLite"))
+                                        : nullptr;
     // ABI 1 bridges (DLSS only) still work; Frame Generation needs ABI 2.
     if (!impl->api || impl->api->abi < 1 || impl->api->abi > BBPORT_DLSS_BRIDGE_ABI) {
         impl->Disable("the DLSS bridge library is missing or from another version");
@@ -362,6 +367,11 @@ bool Dlss::CreateFrameGen(vk::CommandBuffer command, const FrameGenDesc& desc) {
     impl->frame_gen.reset();
     const BbDlssgFeature feature{desc.width, desc.height, static_cast<VkFormat>(desc.format),
                                  desc.render_width, desc.render_height};
+    // bbport: the performance mode (bbport.ini frame_gen_dlss_lite, on by default).
+    if (impl->frame_gen_lite) {
+        impl->frame_gen_lite(
+            BbSettings::Get().frame_gen_dlss_lite.load(std::memory_order_relaxed) ? 1 : 0);
+    }
     if (!impl->api->FrameGenCreate(command, &feature)) {
         return false;
     }

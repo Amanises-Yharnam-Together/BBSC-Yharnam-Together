@@ -510,6 +510,31 @@ int main() {
     }
     std::puts("PASS: low latency setting");
 
+    // DLSS Frame Generation's performance mode: on by default, off kept, an env override.
+    {
+        char eighth[512];
+        std::snprintf(eighth, sizeof(eighth), "%s/bbport-settings-test-XXXXXX",
+                      temp && temp[0] ? temp : "/tmp");
+        const int fd8 = mkstemp(eighth);
+        assert(fd8 >= 0);
+        close(fd8);
+        setenv("BB_CONFIG", eighth, 1);
+        BbSettings::Load();
+        assert(s.frame_gen_dlss_lite && "on by default");
+        s.frame_gen_dlss_lite = false;
+        BbSettings::Save();
+        assert(Read(eighth).find("frame_gen_dlss_lite=0\n") != std::string::npos);
+        BbSettings::Load();
+        assert(!s.frame_gen_dlss_lite && "off kept");
+        setenv("BB_FRAME_GEN_DLSS_LITE", "1", 1);
+        BbSettings::Load();
+        assert(s.frame_gen_dlss_lite);
+        unsetenv("BB_FRAME_GEN_DLSS_LITE");
+        s.frame_gen_dlss_lite = true;
+        unlink(eighth);
+    }
+    std::puts("PASS: DLSS frame generation performance mode setting");
+
     // The menus speak the game's language (the launcher's BB_LANGUAGE, the PS4 system language
     // the game reads), every one the game has, until one is chosen in the Insert menu
     // (overlay_language in bbport.ini; "auto" is the game's).

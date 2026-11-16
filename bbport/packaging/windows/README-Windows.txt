@@ -152,6 +152,13 @@ Frame generation (optional)
   more artifacts and the lag is more noticeable.
 - It is off, with a line in the log, when the upscaler is Off, with HDR output, and when the
   scene is rendered larger than the window.
+- DLSS Frame Generation runs in its performance mode by default (frame_gen_dlss_lite=1,
+  BB_FRAME_GEN_DLSS_LITE): NVIDIA's lighter candidate blending, what NVIDIA's App offers as
+  Frame Generation preset C. More FPS for the game, a little less detail in the generated
+  frames (on an RTX 5060 at 1440p, 2x: the game at 82 FPS instead of 77). Graphics -> "DLSS
+  frame generation: performance mode (preset C)" off: the full model. It needs a DLSS bridge
+  of this release (an older bbport_dlss.dll runs the library's default); BB_DLSSG_LITE=1/0
+  overrides the setting.
 - "Fit to display refresh" (frame_gen_fit_display, on by default): no more frames than the
   display shows between two of the game's, decided once a second. While the game runs faster
   than half of the refresh rate there is no room for a second image per frame: generation pauses

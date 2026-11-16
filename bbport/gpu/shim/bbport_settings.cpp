@@ -88,6 +88,8 @@ void Set(Values& v, const std::string& key, const std::string& value) {
         v.frame_gen_multiplier = std::clamp(i, 2, 4);
     } else if (key == "frame_gen_fit_display") {
         v.frame_gen_fit_display = i != 0;
+    } else if (key == "frame_gen_dlss_lite") {
+        v.frame_gen_dlss_lite = i != 0;
     } else if (key == "low_latency") {
         v.low_latency = BbLatencyFrames::ParseSetting(value.c_str());
     } else if (key == "reactive_scale") {
@@ -363,6 +365,7 @@ void Load() {
         {"BB_FRAME_GEN", "frame_generation"},       {"BB_FRAME_GEN_PROVIDER", "frame_gen_provider"},
         {"BB_FRAME_GEN_MULTIPLIER", "frame_gen_multiplier"},
         {"BB_FRAME_GEN_FIT_DISPLAY", "frame_gen_fit_display"},
+        {"BB_FRAME_GEN_DLSS_LITE", "frame_gen_dlss_lite"},
         {"BB_LOW_LATENCY", "low_latency"},
         {"BB_MAP_3D", "map_3d"},                    {"BB_MAP_FOG", "map_fog"}, // the rig's map scenarios
     };
@@ -687,6 +690,7 @@ void Save() {
     put("frame_gen_provider", v.frame_gen_provider == FrameGenDlss ? "dlss" : "fsr3");
     put("frame_gen_multiplier", std::to_string(std::clamp(v.frame_gen_multiplier.load(), 2, 4)));
     put("frame_gen_fit_display", flag(v.frame_gen_fit_display));
+    put("frame_gen_dlss_lite", flag(v.frame_gen_dlss_lite));
     put("low_latency", BbLatencyFrames::SettingNames[std::clamp(v.low_latency.load(), 0,
                                                                BbLatencyFrames::SettingCount - 1)]);
     put("reactive_scale", fixed(v.reactive_scale, 2));

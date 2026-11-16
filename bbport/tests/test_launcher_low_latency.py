@@ -34,6 +34,12 @@ class LowLatencySettings(unittest.TestCase):
         game = [word.strip().strip('"') for word in names.split(',')]
         self.assertEqual([value for value, _texts in launcher_value('LOW_LATENCY')], game)
 
+    def test_dlss_frame_generation_performance_mode_is_on_in_both(self):
+        self.assertIn('key == "frame_gen_dlss_lite"', SETTINGS)
+        self.assertIn('std::atomic<bool> frame_gen_dlss_lite{true};', SETTINGS_H)
+        self.assertIn("'frame_gen_dlss_lite': '1'", LAUNCHER)
+        self.assertRegex(LAUNCHER, r"INI_FLAGS = \{[^}]*'frame_gen_dlss_lite'")
+
     def test_the_default_is_auto_in_both(self):
         self.assertIn('std::atomic<int> low_latency{BbLatencyFrames::SettingAuto};', SETTINGS_H)
         self.assertIn('return SettingAuto;', FRAMES_H)  # an unknown word
