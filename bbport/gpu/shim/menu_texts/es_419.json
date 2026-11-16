@@ -563,5 +563,14 @@
  "Enemy damage": "Daño de los enemigos",
  "Enemy poise": "Equilibrio de los enemigos",
  "Friendly fire": "Fuego amigo",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Para una cacería más difícil: los ataques de los compañeros se dañan entre sí en todo momento. El golpe mortal de un compañero cuenta como cualquier otra muerte."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Para una cacería más difícil: los ataques de los compañeros se dañan entre sí en todo momento. El golpe mortal de un compañero cuenta como cualquier otra muerte.",
+ "Low latency": "Baja latencia",
+ "Low latency (NVIDIA Reflex)": "Baja latencia (NVIDIA Reflex)",
+ "Low latency (AMD Anti-Lag 2)": "Baja latencia (AMD Anti-Lag 2)",
+ "Auto (with frame generation)": "Automático (con generación de cuadros)",
+ "On + Boost": "Sí + Boost",
+ "The game starts each frame just in time for the graphics card instead of early, so what you press shows sooner. Auto: on with frame generation, which holds every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, using a little more power.": "El juego empieza cada cuadro justo a tiempo para la tarjeta de video en lugar de antes, y lo que presionas se ve antes en pantalla. Automático: activado con la generación de cuadros, que retiene cada cuadro. Boost (solo NVIDIA): mantiene altas las frecuencias de la tarjeta de video, con algo más de consumo.",
+ "Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.": "El controlador de esta tarjeta de video no lo ofrece. NVIDIA Reflex necesita una GeForce con VK_NV_low_latency2, AMD Anti-Lag 2 una Radeon con VK_AMD_anti_lag.",
+ "Game frame to display: %.1f ms (on)": "Del cuadro del juego a la pantalla: %.1f ms (sí)",
+ "Game frame to display: %.1f ms (off)": "Del cuadro del juego a la pantalla: %.1f ms (no)"
 }

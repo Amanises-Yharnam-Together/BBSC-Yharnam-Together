@@ -36,6 +36,7 @@ extern "C" void runtime_thread_cpu_report(void);
 #include "video_core/amdgpu/liverpool.h"
 #include "video_core/renderer_vulkan/vk_breadcrumbs.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
+#include "video_core/renderer_vulkan/vk_low_latency.h"
 #include "video_core/renderer_vulkan/vk_presenter.h"
 #include "video_core/renderer_vulkan/vk_scheduler.h"
 
@@ -841,6 +842,8 @@ bool VideoOutDriver::SubmitFlip(VideoOutPort* port, s32 index, s64 flip_arg,
     }
 
     if (!is_eop) {
+        // bbport: a flip of the game's frame from its thread (low latency, vk_low_latency.h).
+        Vulkan::LowLatency::GameFrameSubmitted();
         // Non EOP flips can arrive from any thread so ask GPU thread to perform them
         liverpool->SendCommand([=, this]() { SubmitFlipInternal(port, index, flip_arg, is_eop); });
     } else {
@@ -851,6 +854,8 @@ bool VideoOutDriver::SubmitFlip(VideoOutPort* port, s32 index, s64 flip_arg,
 }
 
 void VideoOutDriver::SubmitFlipInternal(VideoOutPort* port, s32 index, s64 flip_arg, bool is_eop) {
+    // bbport: the game frame of this flip (flips come in order; vk_low_latency.h).
+    const u64 latency_frame = Vulkan::LowLatency::FlipTaken();
     Vulkan::Frame* frame;
     if (index == -1) {
         frame = presenter->PrepareBlankFrame(false);
@@ -860,6 +865,10 @@ void VideoOutDriver::SubmitFlipInternal(VideoOutPort* port, s32 index, s64 flip_
         const auto& group = port->groups[buffer.group_index];
         frame = presenter->PrepareFrame(group, buffer.address_left);
     }
+    if (frame) {
+        frame->latency_frame = latency_frame;
+    }
+    Vulkan::LowLatency::FlipSubmitted(latency_frame);
 
     {
         std::scoped_lock lock{mutex};

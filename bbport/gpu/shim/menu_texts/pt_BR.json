@@ -563,5 +563,14 @@
  "Enemy damage": "Dano dos inimigos",
  "Enemy poise": "Equilíbrio dos inimigos",
  "Friendly fire": "Fogo amigo",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Para uma caçada mais difícil: os ataques dos companheiros ferem uns aos outros o tempo todo. O golpe fatal de um companheiro conta como qualquer outra morte."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Para uma caçada mais difícil: os ataques dos companheiros ferem uns aos outros o tempo todo. O golpe fatal de um companheiro conta como qualquer outra morte.",
+ "Low latency": "Baixa latência",
+ "Low latency (NVIDIA Reflex)": "Baixa latência (NVIDIA Reflex)",
+ "Low latency (AMD Anti-Lag 2)": "Baixa latência (AMD Anti-Lag 2)",
+ "Auto (with frame generation)": "Automático (com geração de quadros)",
+ "On + Boost": "Ligado + Boost",
+ "The game starts each frame just in time for the graphics card instead of early, so what you press shows sooner. Auto: on with frame generation, which holds every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, using a little more power.": "O jogo começa cada quadro na hora certa para a placa de vídeo, em vez de adiantado, e o que você aperta aparece antes na tela. Automático: ligado com a geração de quadros, que segura cada quadro. Boost (só NVIDIA): mantém as frequências da placa de vídeo altas, gastando um pouco mais de energia.",
+ "Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.": "O driver desta placa de vídeo não oferece isso. O NVIDIA Reflex precisa de uma GeForce com VK_NV_low_latency2, o AMD Anti-Lag 2 de uma Radeon com VK_AMD_anti_lag.",
+ "Game frame to display: %.1f ms (on)": "Do quadro do jogo à tela: %.1f ms (ligado)",
+ "Game frame to display: %.1f ms (off)": "Do quadro do jogo à tela: %.1f ms (desligado)"
 }

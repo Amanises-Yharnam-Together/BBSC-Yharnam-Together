@@ -563,5 +563,14 @@
  "Enemy damage": "Vihollisten vahinko",
  "Enemy poise": "Vihollisten tasapaino",
  "Friendly fire": "Oma tuli",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Vaikeampaa metsästystä varten: tiimiläisten hyökkäykset vahingoittavat toisiaan koko ajan. Tiimiläisen tappava isku lasketaan kuten mikä tahansa muu kuolema."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Vaikeampaa metsästystä varten: tiimiläisten hyökkäykset vahingoittavat toisiaan koko ajan. Tiimiläisen tappava isku lasketaan kuten mikä tahansa muu kuolema.",
+ "Low latency": "Pieni viive",
+ "Low latency (NVIDIA Reflex)": "Pieni viive (NVIDIA Reflex)",
+ "Low latency (AMD Anti-Lag 2)": "Pieni viive (AMD Anti-Lag 2)",
+ "Auto (with frame generation)": "Automaattinen (ruutujen generoinnin kanssa)",
+ "On + Boost": "Päällä + Boost",
+ "The game starts each frame just in time for the graphics card instead of early, so what you press shows sooner. Auto: on with frame generation, which holds every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, using a little more power.": "Peli aloittaa jokaisen ruudun juuri ajoissa näytönohjaimelle eikä etuajassa, joten painalluksesi näkyvät aiemmin. Automaattinen: päällä ruutujen generoinnin kanssa, joka pidättää jokaista ruutua. Boost (vain NVIDIA): pitää näytönohjaimen kellotaajuudet korkeina hieman suuremmalla virrankulutuksella.",
+ "Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.": "Tämän näytönohjaimen ajuri ei tarjoa tätä. NVIDIA Reflex vaatii GeForcen, jossa on VK_NV_low_latency2, AMD Anti-Lag 2 Radeonin, jossa on VK_AMD_anti_lag.",
+ "Game frame to display: %.1f ms (on)": "Pelin ruudusta näytölle: %.1f ms (päällä)",
+ "Game frame to display: %.1f ms (off)": "Pelin ruudusta näytölle: %.1f ms (pois)"
 }

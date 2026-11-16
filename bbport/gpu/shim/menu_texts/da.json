@@ -563,5 +563,14 @@
  "Enemy damage": "Fjendernes skade",
  "Enemy poise": "Fjendernes balance",
  "Friendly fire": "Egenbeskydning",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Til en hårdere jagt: holdkammeraters angreb skader hinanden hele tiden. En holdkammerats dræbende slag tæller som enhver anden død."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Til en hårdere jagt: holdkammeraters angreb skader hinanden hele tiden. En holdkammerats dræbende slag tæller som enhver anden død.",
+ "Low latency": "Lav latens",
+ "Low latency (NVIDIA Reflex)": "Lav latens (NVIDIA Reflex)",
+ "Low latency (AMD Anti-Lag 2)": "Lav latens (AMD Anti-Lag 2)",
+ "Auto (with frame generation)": "Auto (med billedgenerering)",
+ "On + Boost": "Til + Boost",
+ "The game starts each frame just in time for the graphics card instead of early, so what you press shows sooner. Auto: on with frame generation, which holds every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, using a little more power.": "Spillet begynder hvert billede lige i tide til grafikkortet i stedet for for tidligt, så det, du trykker, vises tidligere. Auto: til med billedgenerering, som holder hvert billede tilbage. Boost (kun NVIDIA): holder grafikkortets clockfrekvenser oppe, med lidt højere strømforbrug.",
+ "Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.": "Tilbydes ikke af driveren til dette grafikkort. NVIDIA Reflex kræver et GeForce med VK_NV_low_latency2, AMD Anti-Lag 2 et Radeon med VK_AMD_anti_lag.",
+ "Game frame to display: %.1f ms (on)": "Fra spillets billede til skærmen: %.1f ms (til)",
+ "Game frame to display: %.1f ms (off)": "Fra spillets billede til skærmen: %.1f ms (fra)"
 }

@@ -563,5 +563,14 @@
  "Enemy damage": "Schade van vijanden",
  "Enemy poise": "Evenwicht van vijanden",
  "Friendly fire": "Eigen vuur",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Voor een zwaardere jacht: aanvallen van teamgenoten verwonden elkaar altijd. De dodelijke klap van een teamgenoot telt als elke andere dood."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Voor een zwaardere jacht: aanvallen van teamgenoten verwonden elkaar altijd. De dodelijke klap van een teamgenoot telt als elke andere dood.",
+ "Low latency": "Lage latentie",
+ "Low latency (NVIDIA Reflex)": "Lage latentie (NVIDIA Reflex)",
+ "Low latency (AMD Anti-Lag 2)": "Lage latentie (AMD Anti-Lag 2)",
+ "Auto (with frame generation)": "Auto (met framegeneratie)",
+ "On + Boost": "Aan + Boost",
+ "The game starts each frame just in time for the graphics card instead of early, so what you press shows sooner. Auto: on with frame generation, which holds every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, using a little more power.": "Het spel begint elk beeld precies op tijd voor de videokaart in plaats van te vroeg, zodat wat je indrukt eerder te zien is. Auto: aan met framegeneratie, die elk beeld vasthoudt. Boost (alleen NVIDIA): houdt de kloksnelheden van de videokaart hoog, voor iets meer stroomverbruik.",
+ "Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.": "Niet aangeboden door het stuurprogramma van deze videokaart. NVIDIA Reflex vereist een GeForce met VK_NV_low_latency2, AMD Anti-Lag 2 een Radeon met VK_AMD_anti_lag.",
+ "Game frame to display: %.1f ms (on)": "Van spelbeeld tot scherm: %.1f ms (aan)",
+ "Game frame to display: %.1f ms (off)": "Van spelbeeld tot scherm: %.1f ms (uit)"
 }

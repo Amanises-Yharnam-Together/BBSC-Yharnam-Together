@@ -17,6 +17,7 @@
 #include "video_core/renderer_vulkan/vk_breadcrumbs.h"
 #include "video_core/renderer_vulkan/vk_dlss.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
+#include "video_core/renderer_vulkan/vk_low_latency.h"
 #include "video_core/renderer_vulkan/vk_platform.h"
 #include "video_core/renderer_vulkan/vk_fsr4vk.h"
 #include "video_core/renderer_vulkan/vk_xess.h"
@@ -585,6 +586,20 @@ bool Instance::CreateDevice() {
         scratch_alignment = as_props.get<vk::PhysicalDeviceAccelerationStructurePropertiesKHR>()
                                 .minAccelerationStructureScratchOffsetAlignment;
     }
+    // bbport: low latency (vk_low_latency.h): NVIDIA Reflex or AMD Anti-Lag 2, when offered.
+    const LowLatency::DeviceSupport low_latency =
+        LowLatency::Probe(physical_device, available_extensions);
+#ifdef VK_NV_low_latency2
+    if (low_latency.reflex) {
+        low_latency_reflex = add_extension(VK_KHR_PRESENT_ID_EXTENSION_NAME) &&
+                             add_extension(VK_NV_LOW_LATENCY_2_EXTENSION_NAME);
+    }
+#endif
+#ifdef VK_AMD_anti_lag
+    if (low_latency.anti_lag) {
+        anti_lag = add_extension(VK_AMD_ANTI_LAG_EXTENSION_NAME);
+    }
+#endif
     // bbport: DLSS (optional bridge DLL) needs its own device extensions on NVIDIA GPUs.
     std::vector<const char*> dlss_extensions;
     const std::size_t dlss_first = enabled_extensions.size();
@@ -883,6 +898,40 @@ bool Instance::CreateDevice() {
         auto& create_info = device_chain.get<vk::DeviceCreateInfo>();
         create_info.pNext = xess->PatchDeviceFeatures(*instance, physical_device, create_info.pNext);
     }
+    // bbport: low latency's features, unless DLSS or XeSS chained the same structure already.
+#ifdef VK_NV_low_latency2
+    VkPhysicalDevicePresentIdFeaturesKHR present_id_features{};
+    present_id_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR;
+    present_id_features.presentId = VK_TRUE;
+#endif
+#ifdef VK_AMD_anti_lag
+    VkPhysicalDeviceAntiLagFeaturesAMD anti_lag_features{};
+    anti_lag_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ANTI_LAG_FEATURES_AMD;
+    anti_lag_features.antiLag = VK_TRUE;
+#endif
+    {
+        auto& create_info = device_chain.get<vk::DeviceCreateInfo>();
+        [[maybe_unused]] const auto chain_feature = [&](void* feature) {
+            auto* added = static_cast<VkBaseOutStructure*>(feature);
+            for (auto* s = static_cast<const VkBaseInStructure*>(create_info.pNext); s; s = s->pNext) {
+                if (s->sType == added->sType) {
+                    return;
+                }
+            }
+            added->pNext = static_cast<VkBaseOutStructure*>(const_cast<void*>(create_info.pNext));
+            create_info.pNext = added;
+        };
+#ifdef VK_NV_low_latency2
+        if (low_latency_reflex) {
+            chain_feature(&present_id_features);
+        }
+#endif
+#ifdef VK_AMD_anti_lag
+        if (anti_lag) {
+            chain_feature(&anti_lag_features);
+        }
+#endif
+    }
     auto created = physical_device.createDeviceUnique(device_chain.get());
     if (created.result != vk::Result::eSuccess && dlss_end > dlss_first) {
         // bbport: the driver lists NGX's extensions, but the device does not start with them
@@ -933,6 +982,18 @@ bool Instance::CreateDevice() {
     require(host_memory_import,
             reinterpret_cast<const void*>(dispatch.vkGetMemoryHostPointerPropertiesEXT),
             VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME);
+#ifdef VK_NV_low_latency2
+    require(low_latency_reflex,
+            dispatch.vkSetLatencySleepModeNV && dispatch.vkSetLatencyMarkerNV &&
+                    dispatch.vkGetLatencyTimingsNV
+                ? reinterpret_cast<const void*>(dispatch.vkLatencySleepNV)
+                : nullptr,
+            VK_NV_LOW_LATENCY_2_EXTENSION_NAME);
+#endif
+#ifdef VK_AMD_anti_lag
+    require(anti_lag, reinterpret_cast<const void*>(dispatch.vkAntiLagUpdateAMD),
+            VK_AMD_ANTI_LAG_EXTENSION_NAME);
+#endif
     if (Dlss* dlss = Dlss::Get()) {
         dlss->Initialize(*instance, physical_device, *device);
     }

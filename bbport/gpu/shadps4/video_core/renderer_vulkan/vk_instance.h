@@ -181,6 +181,16 @@ public:
         return buffer_marker;
     }
 
+    /// bbport: NVIDIA Reflex: VK_NV_low_latency2 with VK_KHR_present_id (vk_low_latency.h).
+    bool IsLowLatencyReflexSupported() const {
+        return low_latency_reflex;
+    }
+
+    /// bbport: AMD Anti-Lag 2: VK_AMD_anti_lag (vk_low_latency.h).
+    bool IsAntiLagSupported() const {
+        return anti_lag;
+    }
+
     /// Returns true if VK_EXT_attachment_feedback_loop_layout is supported
     bool IsAttachmentFeedbackLoopLayoutSupported() const {
         return attachment_feedback_loop;
@@ -663,6 +673,8 @@ private:
     bool ray_query{};               // bbport: ray queries + acceleration structures enabled
     u64 scratch_alignment = 256;    // bbport: their build scratch's offset alignment
     bool fsr4vk{};                  // bbport: the device features of the fsr4vk provider are enabled
+    bool low_latency_reflex{};      // bbport: VK_NV_low_latency2 + VK_KHR_present_id (presentId)
+    bool anti_lag{};                // bbport: VK_AMD_anti_lag (antiLag)
     bool cooperative_matrix{};      // bbport: VK_KHR_cooperative_matrix (FSR 4.1.1 FP8 variant)
     bool shader_float8{};           // bbport: VK_EXT_shader_float8 with FP8 matrices (RDNA4)
     bool supports_memory_budget{};

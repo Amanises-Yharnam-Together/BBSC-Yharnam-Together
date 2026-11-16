@@ -31,6 +31,7 @@
 #include "bbport_flip_marker.h"
 #include "video_core/amdgpu/pm4_cmds.h"
 #include "video_core/renderer_vulkan/vk_presenter.h"
+#include "video_core/renderer_vulkan/vk_low_latency.h"
 #include "video_core/renderer_vulkan/vk_rasterizer.h"
 
 extern Frontend::WindowSDL* g_window;
@@ -2687,24 +2688,29 @@ s32 PS4_SYSV_ABI sceGnmSubmitDone() {
     BbStats::submit_done_calls.fetch_add(1, std::memory_order_relaxed);
     BbTimeline::Note(BbTimeline::GuestSubmitDone, u64(frames_submitted) + 1);
     LOG_DEBUG(Lib_GnmDriver, "called");
-    std::scoped_lock lk{m_submit_lock};
-    if (SubmitLockOnDecode()) {
-        // A frame without submissions waits here, as the lock made sceGnmSubmitDone wait.
-        WaitPreviousFrame();
-        submits_this_frame = 0;
-        WatchOverlapLeak();
-        ++frames_submitted;
-        liverpool->SubmitDone(u64(frames_submitted));
-    } else {
-        WaitGpuIdle();
-        if (!liverpool->IsGpuIdle()) {
-            submission_lock = true;
+    {
+        std::scoped_lock lk{m_submit_lock};
+        if (SubmitLockOnDecode()) {
+            // A frame without submissions waits here, as the lock made sceGnmSubmitDone wait.
+            WaitPreviousFrame();
+            submits_this_frame = 0;
+            WatchOverlapLeak();
+            ++frames_submitted;
+            liverpool->SubmitDone(u64(frames_submitted));
+        } else {
+            WaitGpuIdle();
+            if (!liverpool->IsGpuIdle()) {
+                submission_lock = true;
+            }
+            ++frames_submitted;
+            liverpool->SubmitDone();
         }
-        ++frames_submitted;
-        liverpool->SubmitDone();
+        send_init_packet = true;
+        DebugState.IncGnmFrameNum();
     }
-    send_init_packet = true;
-    DebugState.IncGnmFrameNum();
+    // bbport: the game starts its next frame: low latency's wait (NVIDIA Reflex's sleep, AMD
+    // Anti-Lag 2), outside the submission lock (vk_low_latency.h).
+    Vulkan::LowLatency::BeginGameFrame();
     return ORBIS_OK;
 }
 

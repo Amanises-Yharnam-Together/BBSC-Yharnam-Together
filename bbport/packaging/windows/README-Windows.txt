@@ -185,6 +185,25 @@ Frame generation (optional)
   "Frame generation: N generated/s, M presented/s, base B FPS, X skipped" every 5 seconds.
 - ReShade and other overlays see every shown image, so twice as many presents as game frames.
 
+Low latency: NVIDIA Reflex / AMD Anti-Lag 2
+- Graphics -> "Low latency (NVIDIA Reflex / AMD Anti-Lag 2)" (also in the in-game menu, or
+  low_latency=off|auto|on|boost in bbport.ini, or BB_LOW_LATENCY for one run). The game starts
+  each frame just in time for the GPU instead of early and then waiting with its input already
+  read, so what you press reaches the screen sooner. The port uses whichever the GPU's driver
+  offers: NVIDIA Reflex (VK_NV_low_latency2, GeForce) or AMD Anti-Lag 2 (VK_AMD_anti_lag,
+  Radeon); the menu names it, or says the driver offers neither. The same on Windows and Linux.
+- Auto (default): on while frame generation is on, which holds every game frame back to make
+  the ones between (NVIDIA ships its own frame generation with Reflex on for that reason). On:
+  always. Boost (Reflex only): also keeps the GPU's clocks up, for a little more power.
+  Changes apply at once.
+- With Reflex the driver reports how long each game frame took from its start to the display:
+  the in-game menu shows it under the row ("Game frame to display: 23.4 ms (on)"), measured
+  with the setting on or off, so you can compare; the log gets "Low latency: NVIDIA Reflex on,
+  game frames N ms from their start to the display" every 10 seconds.
+- With an FPS limit the driver paces the game to it (Reflex's minimum interval, Anti-Lag 2's
+  maximum FPS) instead of frames waiting in the flip queue.
+- BB_LOW_LATENCY_DEVICE=0 leaves both extensions off (a driver that misbehaves with them).
+
 ReShade (optional)
 - Graphics -> "ReShade" (or "ReShade look" on the Play page) switches it on for the next game
   start: two presets, Natural (sharpening, deband, a little contrast and colour) and Vivid (more

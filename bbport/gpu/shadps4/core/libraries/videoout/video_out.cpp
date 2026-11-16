@@ -12,6 +12,7 @@
 #include "core/libraries/videoout/videoout_error.h"
 #include "core/platform.h"
 #include "video_core/renderer_vulkan/vk_presenter.h"
+#include "video_core/renderer_vulkan/vk_low_latency.h"
 
 #include <atomic>
 #include <chrono>
@@ -376,6 +377,8 @@ s32 sceVideoOutSubmitEopFlip(s32 handle, u32 buf_id, u32 mode, s64 flip_arg, voi
             ASSERT_MSG(result, "EOP flip submission failed");
         });
 
+    // bbport: the game's frame handed over with its flip (low latency, vk_low_latency.h).
+    Vulkan::LowLatency::GameFrameSubmitted();
     return ORBIS_OK;
 }
 

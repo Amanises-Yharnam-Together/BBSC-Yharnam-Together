@@ -563,5 +563,14 @@
  "Camera further away": "กล้องไกลขึ้น",
  "No automatic camera rotation": "ไม่หมุนกล้องอัตโนมัติ",
  "Run with less stick tilt": "วิ่งโดยเอียงสติกน้อยลง",
- "Dark Souls-style body physics": "ฟิสิกส์ร่างกายแบบ Dark Souls"
+ "Dark Souls-style body physics": "ฟิสิกส์ร่างกายแบบ Dark Souls",
+ "Low latency": "ความหน่วงต่ำ",
+ "Low latency (NVIDIA Reflex)": "ความหน่วงต่ำ (NVIDIA Reflex)",
+ "Low latency (AMD Anti-Lag 2)": "ความหน่วงต่ำ (AMD Anti-Lag 2)",
+ "Auto (with frame generation)": "อัตโนมัติ (พร้อม Frame generation)",
+ "On + Boost": "เปิด + Boost",
+ "The game starts each frame just in time for the graphics card instead of early, so what you press shows sooner. Auto: on with frame generation, which holds every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, using a little more power.": "เกมจะเริ่มแต่ละเฟรมให้ทันเวลาพอดีกับการ์ดจอ แทนที่จะเริ่มก่อนล่วงหน้า สิ่งที่คุณกดจึงแสดงบนจอเร็วขึ้น อัตโนมัติ: เปิดพร้อม Frame generation ซึ่งหน่วงทุกเฟรมไว้ Boost (เฉพาะ NVIDIA): รักษาความเร็วสัญญาณนาฬิกาของการ์ดจอให้สูงไว้ ใช้พลังงานเพิ่มขึ้นเล็กน้อย",
+ "Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.": "ไดรเวอร์ของการ์ดจอนี้ไม่รองรับ NVIDIA Reflex ต้องใช้ GeForce ที่มี VK_NV_low_latency2 ส่วน AMD Anti-Lag 2 ต้องใช้ Radeon ที่มี VK_AMD_anti_lag",
+ "Game frame to display: %.1f ms (on)": "จากเฟรมเกมถึงหน้าจอ: %.1f ms (เปิด)",
+ "Game frame to display: %.1f ms (off)": "จากเฟรมเกมถึงหน้าจอ: %.1f ms (ปิด)"
 }

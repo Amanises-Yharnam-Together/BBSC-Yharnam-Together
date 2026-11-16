@@ -473,6 +473,43 @@ int main() {
     unlink(sixth);
     std::puts("PASS: frame generation provider, multiplier, fit to display, hidden by the launcher");
 
+    // Low latency (vk_low_latency.h): NVIDIA Reflex or AMD Anti-Lag 2; auto (on with frame
+    // generation) unless the ini or BB_LOW_LATENCY says otherwise; saved as its word.
+    {
+        char seventh[512];
+        std::snprintf(seventh, sizeof(seventh), "%s/bbport-settings-test-XXXXXX",
+                      temp && temp[0] ? temp : "/tmp");
+        const int fd7 = mkstemp(seventh);
+        assert(fd7 >= 0);
+        close(fd7);
+        setenv("BB_CONFIG", seventh, 1);
+        BbSettings::Load();
+        assert(s.low_latency == BbLatencyFrames::SettingAuto && "the default");
+        {
+            std::FILE* file = std::fopen(seventh, "w");
+            std::fputs("low_latency=boost\n", file);
+            std::fclose(file);
+        }
+        BbSettings::Load();
+        assert(s.low_latency == BbLatencyFrames::SettingBoost);
+        s.low_latency = BbLatencyFrames::SettingOff;
+        BbSettings::Save();
+        assert(Read(seventh).find("low_latency=off\n") != std::string::npos);
+        setenv("BB_LOW_LATENCY", "on", 1);
+        BbSettings::Load();
+        assert(s.low_latency == BbLatencyFrames::SettingOn);
+        unsetenv("BB_LOW_LATENCY");
+        {
+            std::FILE* file = std::fopen(seventh, "w");
+            std::fputs("low_latency=sometimes\n", file);
+            std::fclose(file);
+        }
+        BbSettings::Load();
+        assert(s.low_latency == BbLatencyFrames::SettingAuto && "an unknown word is auto");
+        unlink(seventh);
+    }
+    std::puts("PASS: low latency setting");
+
     // The menus speak the game's language (the launcher's BB_LANGUAGE, the PS4 system language
     // the game reads), every one the game has, until one is chosen in the Insert menu
     // (overlay_language in bbport.ini; "auto" is the game's).

@@ -25,6 +25,7 @@
 #include "common/thread.h"
 #include "imgui/renderer/texture_manager.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
+#include "video_core/renderer_vulkan/vk_low_latency.h"
 #include "video_core/renderer_vulkan/vk_scheduler.h"
 #include "bbport_threads.h"
 
@@ -918,8 +919,43 @@ void Scheduler::AllocateWorkerCommandBuffers() {
 #endif
 }
 
+namespace {
+
+/// bbport: VkLatencySubmissionPresentIdNV ahead of `next` when the submission has a presentation
+/// ID (NVIDIA Reflex, vk_low_latency.h); else `next` alone.
+class LatencyTag {
+public:
+    LatencyTag(u64 present_id, const void* next_) : next{next_} {
+#ifdef VK_NV_low_latency2
+        tag.sType = VK_STRUCTURE_TYPE_LATENCY_SUBMISSION_PRESENT_ID_NV;
+        tag.pNext = next;
+        tag.presentID = present_id;
+#else
+        (void)present_id;
+#endif
+    }
+    const void* Next() const {
+#ifdef VK_NV_low_latency2
+        return tag.presentID ? static_cast<const void*>(&tag) : next;
+#else
+        return next;
+#endif
+    }
+
+private:
+    const void* next;
+#ifdef VK_NV_low_latency2
+    VkLatencySubmissionPresentIdNV tag{};
+#endif
+};
+
+} // namespace
+
 void Scheduler::SubmitExecution(SubmitInfo& info) {
     ProducerScope producer{*this, "SubmitExecution"};
+    if (latency_tagging && info.latency_present_id == 0) {
+        info.latency_present_id = LowLatency::SubmissionPresentId();
+    }
     if (async_submit) {
         SubmitAsync(info);
         return;
@@ -981,8 +1017,9 @@ void Scheduler::SubmitExecution(SubmitInfo& info) {
         .pSignalSemaphoreValues = info.signal_ticks.data(),
     };
 
+    const LatencyTag latency_tag{info.latency_present_id, &timeline_si};
     const vk::SubmitInfo submit_info = {
-        .pNext = &timeline_si,
+        .pNext = latency_tag.Next(),
         .waitSemaphoreCount = info.num_wait_semas,
         .pWaitSemaphores = info.wait_semas.data(),
         .pWaitDstStageMask = wait_stage_masks.data(),
@@ -1014,6 +1051,9 @@ void Scheduler::SubmitExecution(SubmitInfo& info) {
 }
 
 void Scheduler::SubmitAsync(SubmitInfo& info) {
+    if (latency_tagging && info.latency_present_id == 0) {
+        info.latency_present_id = LowLatency::SubmissionPresentId();
+    }
     const u64 signal_value = work_semaphore.NextTick();
     if (on_submit) {
         on_submit(info);
@@ -1065,8 +1105,9 @@ void Scheduler::SubmitAsync(SubmitInfo& info) {
             .signalSemaphoreValueCount = info.num_signal_semas,
             .pSignalSemaphoreValues = info.signal_ticks.data(),
         };
+        const LatencyTag latency_tag{info.latency_present_id, &timeline_si};
         const vk::SubmitInfo submit_info = {
-            .pNext = &timeline_si,
+            .pNext = latency_tag.Next(),
             .waitSemaphoreCount = info.num_wait_semas,
             .pWaitSemaphores = info.wait_semas.data(),
             .pWaitDstStageMask = wait_stage_masks.data(),

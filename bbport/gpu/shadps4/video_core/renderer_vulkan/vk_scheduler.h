@@ -79,6 +79,9 @@ struct SubmitInfo {
     /// bbport: queue operations that go out right before the submission, in queue order (sparse
     /// binds): with BB_ASYNC_SUBMIT the submission itself goes out later, on a recording thread.
     std::vector<std::function<void()>> before_submit;
+    /// bbport: NVIDIA Reflex: the presentation ID of the game frame this work belongs to
+    /// (VkLatencySubmissionPresentIdNV, vk_low_latency.h), 0 none.
+    u64 latency_present_id = 0;
 
     void AddWait(vk::Semaphore semaphore, u64 tick = 1) {
         wait_semas[num_wait_semas] = semaphore;
@@ -748,6 +751,12 @@ public:
         this->on_submit = std::move(on_submit);
     }
 
+    /// bbport: this scheduler's submissions carry the presentation ID of the game frame the GPU
+    /// command thread records (the game's own work; vk_low_latency.h).
+    void SetLatencyTagging(bool on) {
+        latency_tagging = on;
+    }
+
     /// Returns the current render state.
     const RenderState& GetRenderState() const {
         return render_state;
@@ -1138,6 +1147,7 @@ private:
     CommandPool command_pool;
     DynamicState dynamic_state;
     SubmitFunc on_submit{};
+    bool latency_tagging{false};
     vk::CommandBuffer current_cmdbuf;
     std::condition_variable_any event_cv;
     struct PendingOp {
