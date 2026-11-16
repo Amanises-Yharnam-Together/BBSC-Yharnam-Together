@@ -563,5 +563,14 @@
  "Enemy damage": "적의 대미지",
  "Enemy poise": "적의 강인도",
  "Friendly fire": "아군 공격",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "더 어려운 사냥을 위해: 팀원의 공격이 항상 서로에게 피해를 줍니다. 팀원의 마지막 일격은 다른 죽음과 똑같이 처리됩니다."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "더 어려운 사냥을 위해: 팀원의 공격이 항상 서로에게 피해를 줍니다. 팀원의 마지막 일격은 다른 죽음과 똑같이 처리됩니다.",
+ "Low latency": "낮은 지연",
+ "Low latency (NVIDIA Reflex)": "낮은 지연 (NVIDIA Reflex)",
+ "Low latency (AMD Anti-Lag 2)": "낮은 지연 (AMD Anti-Lag 2)",
+ "Auto (with frame generation)": "자동 (프레임 생성과 함께)",
+ "On + Boost": "ON + Boost",
+ "The game starts each frame just in time for the graphics card instead of early, so what you press shows sooner. Auto: on with frame generation, which holds every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, using a little more power.": "게임이 각 프레임을 미리 시작하지 않고 그래픽 카드에 딱 맞춰 시작하므로, 누른 입력이 화면에 더 빨리 나타납니다. 자동: 모든 프레임을 붙잡아 두는 프레임 생성과 함께 켜집니다. Boost (NVIDIA 전용): 그래픽 카드 클럭을 높게 유지하며 전력을 조금 더 씁니다.",
+ "Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.": "이 그래픽 카드의 드라이버가 지원하지 않습니다. NVIDIA Reflex는 VK_NV_low_latency2를 지원하는 GeForce, AMD Anti-Lag 2는 VK_AMD_anti_lag를 지원하는 Radeon이 필요합니다.",
+ "Game frame to display: %.1f ms (on)": "게임 프레임에서 화면까지: %.1f ms (ON)",
+ "Game frame to display: %.1f ms (off)": "게임 프레임에서 화면까지: %.1f ms (OFF)"
 }

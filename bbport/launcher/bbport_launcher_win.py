@@ -325,7 +325,8 @@ MOD_PROBLEMS = [
       'файл игры вне папки мода: положите его в отдельную папку, внутрь папки игры, к которой он относится '
       '(chr, parts, map …)')),
 ]
-INI_FLAGS = {'sharpen', 'object_motion', 'frame_generation', 'frame_gen_fit_display', 'show_fps', 'hdr',
+INI_FLAGS = {'sharpen', 'object_motion', 'frame_generation', 'frame_gen_fit_display', 'frame_gen_dlss_lite',
+             'show_fps', 'hdr',
              'fast_shader_math',
              'mouse_camera', 'mouse_invert_y',
              'mouse_no_auto_rotation', *(k for k, _t, _o in EFFECTS + EXTRAS + CHEATS + TWEAKS)}
@@ -333,6 +334,7 @@ INI_FLOATS = {'sharpness', 'mouse_sensitivity'}  # written with two decimals
 INI_DEFAULTS = {'upscaler': 'fsr4', 'preset': '1', 'sharpen': '1', 'sharpness': '0.50',
                 'object_motion': '1', 'frame_generation': '0', 'show_fps': '1',
                 'frame_gen_provider': 'fsr3', 'frame_gen_multiplier': '2', 'frame_gen_fit_display': '1',
+                'frame_gen_dlss_lite': '1', 'low_latency': 'auto',
                 'output_res': '1920x1080', 'aspect_ratio': 'auto', 'model_lod': '0', 'map_3d': '0',
                 'live_resolution': 'auto', 'window_mode': 'windowed', 'hdr': '0', 'fast_shader_math': '0',
                 'button_icons': bbport_controls.ICON_DEFAULT, **bbport_controls.MOUSE_DEFAULTS,
@@ -514,6 +516,11 @@ FPS_MODES = [('uncap', ('Unlocked (frame-time patch)', 'Без ограниче�
 FRAME_GEN_PROVIDERS = [('fsr3', ('FSR 3.1 (any GPU, 2×)', 'FSR 3.1 (любая видеокарта, 2×)')),
                        ('dlss', ('DLSS (GeForce RTX 40: 2×, RTX 50: up to 4×)',
                                  'DLSS (GeForce RTX 40: 2×, RTX 50: до 4×)'))]
+# Low latency (bbport.ini low_latency: BbLatencyFrames::Setting, vk_low_latency.h): NVIDIA Reflex or AMD
+# Anti-Lag 2, whichever the graphics card's driver offers.
+LOW_LATENCY = [('off', ('Off', 'Выкл.')), ('auto', ('Auto (with frame generation)', 'Авто (с генерацией кадров)')),
+               ('on', ('On', 'Вкл.')),
+               ('boost', ('On + Boost (NVIDIA Reflex only)', 'Вкл. + Boost (только NVIDIA Reflex)'))]
 FRAME_GEN_MULTIPLIERS = [('2', ('2×',)), ('3', ('3× (DLSS, GeForce RTX 50)',)), ('4', ('4× (DLSS, GeForce RTX 50)',))]
 WINDOW_MODES = [('windowed', ('Windowed', 'В окне')),
                 ('borderless', ('Borderless window (full screen)', 'Окно без рамки (на весь экран)')),
@@ -5373,6 +5380,23 @@ class Launcher:
                      'and the GPU does less). Off: the multiplier as chosen. With V-Sync always fitted.',
                      'Вкл.: не больше кадров, чем показывает экран (при снятом ограничении FPS генерируется '
                      'меньше, видеокарта меньше нагружена). Выкл.: множитель как выбран. С V-Sync — всегда.'))
+        self.check(f, 'frame_gen_dlss_lite', 'ini',
+                   _('DLSS frame generation: performance mode (preset C)',
+                     'Генерация кадров DLSS: режим производительности (пресет C)'),
+                   _("NVIDIA's lighter frame generation, as preset C in NVIDIA's App: more FPS for the game, a "
+                     'little less detail in the generated frames. Off: the full model. Takes effect when frame '
+                     'generation starts.',
+                     'Облегчённая генерация кадров NVIDIA, как пресет C в приложении NVIDIA: больше FPS игры, '
+                     'чуть меньше деталей в сгенерированных кадрах. Выкл.: полная модель. Применяется при '
+                     'включении генерации кадров.'))
+        self.row(f, _('Low latency (NVIDIA Reflex / AMD Anti-Lag 2)', 'Низкая задержка (NVIDIA Reflex / AMD Anti-Lag 2)'),
+                 self.choice(f, 'low_latency', 'ini', LOW_LATENCY),
+                 _("The game starts each frame just in time for the graphics card instead of early, so what you press "
+                   "shows sooner. Auto: on with frame generation, which holds every frame back. Uses whichever the "
+                   "graphics card's driver offers; also in the game's Graphics menu.",
+                   'Игра начинает каждый кадр точно ко времени для видеокарты, а не заранее, и нажатия появляются '
+                   'на экране раньше. Авто: включено с генерацией кадров, которая задерживает каждый кадр. '
+                   'Работает то, что предлагает драйвер видеокарты; есть и в меню «Графика» в игре.'))
         self.build_reshade(page)
         f = self.card(page, _('FSR 4 assets', 'Ассеты FSR 4'))
         self.fsr4_label = self.label(f, '', wraplength=px(640), justify='left')

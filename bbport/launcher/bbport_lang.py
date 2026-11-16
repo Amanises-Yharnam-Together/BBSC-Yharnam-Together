@@ -3801,6 +3801,7 @@ from bbport_lang_more import MORE, MORE_KEYS  # noqa: E402 (texts added later, R
 from bbport_lang_auth import AUTH, AUTH_KEYS  # noqa: E402 (the Global server's accounts, Russian included)
 from bbport_lang_launcher import LAUNCHER, LAUNCHER_KEYS  # noqa: E402 (English-only until 1.3.2)
 from bbport_lang_linux import LINUX, LINUX_KEYS  # noqa: E402 (shown only on Linux)
+from bbport_lang_latency import LATENCY, LATENCY_KEYS  # noqa: E402 (low latency: Reflex / Anti-Lag 2)
 
 _tables = {}
 
@@ -3823,9 +3824,14 @@ def table(language):
         linux = LINUX.get(language)
         if linux and len(linux) != len(LINUX_KEYS):
             raise ValueError(f'launcher translation {language}: {len(linux)} texts for {len(LINUX_KEYS)} Linux keys')
+        latency = LATENCY.get(language)
+        if latency and len(latency) != len(LATENCY_KEYS):
+            raise ValueError(f'launcher translation {language}: {len(latency)} texts for {len(LATENCY_KEYS)} '
+                             'low latency keys')
         _tables[language] = {**(dict(zip(KEYS, texts)) if texts else {}),
                              **(dict(zip(MORE_KEYS, more)) if more else {}),
                              **(dict(zip(AUTH_KEYS, auth)) if auth else {}),
                              **(dict(zip(LAUNCHER_KEYS, rest)) if rest else {}),
-                             **(dict(zip(LINUX_KEYS, linux)) if linux else {})}
+                             **(dict(zip(LINUX_KEYS, linux)) if linux else {}),
+                             **(dict(zip(LATENCY_KEYS, latency)) if latency else {})}
     return _tables[language]

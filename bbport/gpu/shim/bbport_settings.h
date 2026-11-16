@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "bbport_latency_frames.h"
 #include <atomic>
 #include <cstdint>
 #include <optional>
@@ -44,6 +45,8 @@ inline bool IsFsr4(int upscaler) {
 /// Frame generation's provider (bbport.ini frame_gen_provider): FSR 3.1 on any GPU, DLSS Frame
 /// Generation on a GeForce RTX 40 (2x) or RTX 50 (up to 4x). BbFrameGenPace::Provider values.
 enum FrameGenProvider : int { FrameGenFsr3 = 1, FrameGenDlss = 2 };
+/// Low latency's kind (vk_low_latency.h): the one the GPU's driver offers.
+enum LowLatencyKind : int { LowLatencyNone = 0, LowLatencyReflex = 1, LowLatencyAntiLag = 2 };
 enum Preset : int { NativeAA = 0, Quality, Balanced, Performance, UltraPerformance, PresetCount };
 enum DebugView : int { DebugNone = 0, DebugReactive = 1, DebugMotion = 2, DebugViewCount };
 /// The menus' languages: every one the game has (bbport_menu_texts.inc, written by
@@ -236,6 +239,11 @@ struct Values {
     /// gets fewer generated frames); off: the multiplier as chosen (frame_gen_fit_display,
     /// BB_FRAME_GEN_FIT_DISPLAY). With V-Sync (FIFO) the frames are always fitted.
     std::atomic<bool> frame_gen_fit_display{true};
+    /// DLSS Frame Generation's performance mode: NVIDIA's lighter candidate blending (preset C in
+    /// NVIDIA's App): more game FPS, a little less in the generated frames. On by default; off:
+    /// the full model (frame_gen_dlss_lite, BB_FRAME_GEN_DLSS_LITE; BB_DLSSG_LITE overrides it in
+    /// the bridge). Read when Frame Generation starts.
+    std::atomic<bool> frame_gen_dlss_lite{true};
     /// Set by the renderer: the multiplier DLSS Frame Generation reaches on this GPU (1 without
     /// it), why a provider stopped (or null), why no generated frames reach the display now
     /// (BbFrameGenPace::Idle, 0 while they do) and the display's refresh rate.
@@ -243,6 +251,16 @@ struct Values {
     std::atomic<const char*> frame_gen_problem{nullptr};
     std::atomic<int> frame_gen_idle{1};
     std::atomic<int> frame_gen_display_hz{0};
+    /// Low latency (vk_low_latency.h): NVIDIA Reflex or AMD Anti-Lag 2, whichever the driver
+    /// offers. BbLatencyFrames::Setting: off, auto (on with frame generation), on, boost (Reflex
+    /// keeps the GPU's clocks up). bbport.ini low_latency, BB_LOW_LATENCY. Live.
+    std::atomic<int> low_latency{BbLatencyFrames::SettingAuto};
+    /// Set by the renderer: the kind the driver offers (LowLatencyKind), what runs now
+    /// (BbLatencyFrames::Active) and, with Reflex, the game frames' latency the driver measured
+    /// (from the start of a frame to the display, ms; 0 before the first second).
+    std::atomic<int> low_latency_kind{LowLatencyNone};
+    std::atomic<int> low_latency_running{0};
+    std::atomic<float> low_latency_ms{0.0f};
     /// Frame cap of the unlocked frame rate, 0 none (bbport.ini fps_limit, the game menu; else
     /// the launcher's BB_FPS_LIMIT). Live.
     std::atomic<int> fps_limit{0};

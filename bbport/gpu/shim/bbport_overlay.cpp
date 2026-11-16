@@ -1906,6 +1906,48 @@ void DisplayTab() {
            });
 }
 
+/// Low latency (vk_low_latency.h): NVIDIA Reflex or AMD Anti-Lag 2, as the GPU's driver offers,
+/// and with Reflex the game frames' latency its driver measured.
+void LowLatencyRow() {
+    auto& s = BbSettings::Get();
+    const int kind = s.low_latency_kind.load();
+    const bool reflex = kind == BbSettings::LowLatencyReflex;
+    const char* names[] = {T("Off", "Выкл"), T("Auto (with frame generation)", "Авто (с генерацией кадров)"),
+                           T("On", "Вкл"), T("On + Boost", "Вкл + Boost")};
+    const char* label = reflex ? T("Low latency (NVIDIA Reflex)", "Низкая задержка (NVIDIA Reflex)")
+                        : kind == BbSettings::LowLatencyAntiLag
+                            ? T("Low latency (AMD Anti-Lag 2)", "Низкая задержка (AMD Anti-Lag 2)")
+                            : T("Low latency", "Низкая задержка");
+    Choice("low_latency", label,
+           std::clamp(s.low_latency.load(), 0, int(BbLatencyFrames::SettingCount) - 1),
+           BbLatencyFrames::SettingCount, [&](int i) { return names[i]; },
+           [&](int i) { return i != BbLatencyFrames::SettingBoost || reflex; },
+           kind == BbSettings::LowLatencyNone
+               ? T("Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with "
+                   "VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.",
+                   "Драйвер этой видеокарты этого не предлагает. Для NVIDIA Reflex нужна GeForce с "
+                   "VK_NV_low_latency2, для AMD Anti-Lag 2 — Radeon с VK_AMD_anti_lag.")
+               : T("The game starts each frame just in time for the graphics card instead of early, "
+                   "so what you press shows sooner. Auto: on with frame generation, which holds "
+                   "every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, "
+                   "using a little more power.",
+                   "Игра начинает каждый кадр точно ко времени для видеокарты, а не заранее, и "
+                   "нажатия появляются на экране раньше. Авто: включено с генерацией кадров, которая "
+                   "задерживает каждый кадр. Boost (только NVIDIA): держит частоты видеокарты "
+                   "высокими, немного больше расход энергии."),
+           kind != BbSettings::LowLatencyNone, [&](int i) { Store(s.low_latency, i, true); });
+    const float ms = s.low_latency_ms.load();
+    if (reflex && ms > 0.0f) {
+        static char line[160];
+        std::snprintf(line, sizeof(line),
+                      s.low_latency_running.load() != BbLatencyFrames::ActiveOff
+                          ? T("Game frame to display: %.1f ms (on)", "От кадра игры до экрана: %.1f мс (вкл)")
+                          : T("Game frame to display: %.1f ms (off)", "От кадра игры до экрана: %.1f мс (выкл)"),
+                      double(ms));
+        Note(line, Dim());
+    }
+}
+
 void DlssModelRow() {
     auto& s = BbSettings::Get();
     Choice("dlss_model", T("DLSS model", "Модель DLSS"), BbSettings::DlssModelIndex(s.dlss_model),
@@ -2013,6 +2055,7 @@ void UpscalerTab() {
                upscaler_on);
         FrameGenRows(upscaler_on && s.frame_generation);
     }
+    LowLatencyRow();
     if (BbSettings::IsFsr4(s.upscaler)) {
         Toggle("fsr4_exposure", T("FSR 4: auto exposure", "FSR 4: автоэкспозиция"), s.fsr4_auto_exposure,
                T("The FSR 4 network normalises colour by exposure and uses it to decide when to "

@@ -10,6 +10,7 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <string>
@@ -49,6 +50,7 @@ struct State {
     BbDlssgFeature fg_desc{};
     bool fg_device_supported{};
     int32_t fg_max_count{};
+    int32_t fg_lite{-1}; // BbDlssFrameGenLite: -1 the library's choice, 0 off, 1 on
     // Extensions of both features, without duplicates.
     std::vector<VkExtensionProperties> instance_extensions, device_extensions;
     VkDevice device{};
@@ -337,6 +339,21 @@ int32_t FrameGenCreate(VkCommandBuffer command, const BbDlssgFeature* desc) {
     NVSDK_NGX_Parameter_SetUI(state.fg_parameters, NVSDK_NGX_DLSSG_Parameter_InternalHeight,
                               desc->render_height);
     NVSDK_NGX_Parameter_SetUI(state.fg_parameters, NVSDK_NGX_DLSSG_Parameter_DynamicResolution, 0);
+    // bbport: the performance mode (BbDlssFrameGenLite, the game's frame_gen_dlss_lite): the
+    // lighter candidate blending of NVIDIA's Frame Generation library ("FG Lite",
+    // DLSSG.LiteCandidateBlendingEnabled in 310.9), which NVIDIA's App on Windows offers as Frame
+    // Generation preset C (faster, a little less quality; on an RTX 5060 at 1440p 2x the game
+    // went from 77 to 82 FPS). BB_DLSSG_LITE=1/0 overrides it. Kept on the parameters the
+    // evaluations use too.
+    int32_t lite = state.fg_lite;
+    if (const char* env = std::getenv("BB_DLSSG_LITE"); env && env[0]) {
+        lite = env[0] != '0';
+    }
+    if (lite >= 0) {
+        NVSDK_NGX_Parameter_SetI(state.fg_parameters, "DLSSG.LiteCandidateBlendingEnabled", lite);
+        Log(0, "Frame Generation: performance mode (lite candidate blending) %s",
+            lite ? "on" : "off");
+    }
     NVSDK_NGX_DLSSG_Create_Params settings{};
     settings.Width = desc->width;
     settings.Height = desc->height;
@@ -473,4 +490,9 @@ const BbDlssApi api{BBPORT_DLSS_BRIDGE_ABI, Configure,        InstanceExtensions
 
 extern "C" BBPORT_DLSS_EXPORT const BbDlssApi* BbDlssGetApi() {
     return &api;
+}
+
+// The performance mode of the next FrameGenCreate (bbport_dlss_bridge.h, BbDlssFrameGenLiteFn).
+extern "C" BBPORT_DLSS_EXPORT void BbDlssFrameGenLite(int32_t mode) {
+    state.fg_lite = mode < 0 ? -1 : mode != 0;
 }

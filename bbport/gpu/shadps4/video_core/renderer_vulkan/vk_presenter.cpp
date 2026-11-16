@@ -18,6 +18,7 @@
 #include "bbport_timeline.h"
 #include "video_core/renderer_vulkan/vk_temporal_upscaler.h"
 #include "video_core/renderer_vulkan/vk_presenter.h"
+#include "video_core/renderer_vulkan/vk_low_latency.h"
 #include "video_core/renderer_vulkan/vk_rasterizer.h"
 #include "video_core/texture_cache/image.h"
 
@@ -166,9 +167,13 @@ Presenter::Presenter(Frontend::WindowSDL& window_, AmdGpu::Liverpool* liverpool_
     rasterizer->GetUpscaler().SetFrameGeneration(&frame_generation);
     scene_hdr.SetSlots(u32(present_frames.capacity()));
     rasterizer->GetUpscaler().SetSceneHdr(&scene_hdr);
+    // bbport: low latency (vk_low_latency.h): the game's GPU work tagged with its frame.
+    LowLatency::Attach(instance);
+    draw_scheduler.SetLatencyTagging(true);
 }
 
 Presenter::~Presenter() {
+    LowLatency::Detach();
 
     draw_scheduler.Finish();
     present_scheduler.Finish();
@@ -1089,7 +1094,8 @@ void Presenter::PresentGenerated(Frame* frame,
                 SleepUntil(start + step * shown);
             }
         }
-        PresentFrame(generated[shown], true, false);
+        PresentFrame(generated[shown], true, false,
+                     LowLatency::PresentId(frame->latency_frame, shown, false));
         sent[shown] = steady_clock::now();
     }
     if (count) {
@@ -1257,7 +1263,13 @@ void Presenter::RecordHdrOutput(vk::CommandBuffer cmdbuf, Frame* frame, vk::Exte
     barrier(to_present);
 }
 
-void Presenter::PresentFrame(Frame* frame, bool is_reusing_frame, bool is_game_frame) {
+void Presenter::PresentFrame(Frame* frame, bool is_reusing_frame, bool is_game_frame,
+                             u64 present_id) {
+    // bbport: low latency (vk_low_latency.h): a game frame's own image carries its frame.
+    const u64 latency_frame = !is_reusing_frame && is_game_frame ? frame->latency_frame : 0;
+    if (latency_frame) {
+        present_id = LowLatency::PresentId(latency_frame, 0, true);
+    }
     // Free the frame for reuse
     const auto free_frame = [&] {
         if (!is_reusing_frame) {
@@ -1456,15 +1468,18 @@ void Presenter::PresentFrame(Frame* frame, bool is_reusing_frame, bool is_game_f
     info.AddWait(frame->ready_semaphore, frame->ready_tick);
     info.AddSignal(swapchain.GetPresentReadySemaphore());
     info.AddSignal(frame->present_done);
+    info.latency_present_id = present_id;
     scheduler.Flush(info);
 
     // Present to swapchain.
+    LowLatency::BeforePresent(latency_frame);
     {
         std::scoped_lock submit_lock{Scheduler::submit_mutex};
-        if (!swapchain.Present() && window.GetWidth() != 0 && window.GetHeight() != 0) {
+        if (!swapchain.Present(present_id) && window.GetWidth() != 0 && window.GetHeight() != 0) {
             swapchain.Recreate(window.GetWidth(), window.GetHeight());
         }
     }
+    LowLatency::AfterPresent(latency_frame);
 
     free_frame();
     if (!is_reusing_frame && is_game_frame) {

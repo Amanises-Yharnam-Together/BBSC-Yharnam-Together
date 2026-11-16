@@ -13,6 +13,7 @@
 #include "imgui/renderer/imgui_core.h"
 #include "sdl_window.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
+#include "video_core/renderer_vulkan/vk_low_latency.h"
 #include "video_core/renderer_vulkan/vk_swapchain.h"
 
 namespace Vulkan {
@@ -69,6 +70,13 @@ void Swapchain::Create(u32 width_, u32 height_) {
     const vk::SwapchainKHR old_swapchain = swapchain;
     swapchain = nullptr;
     Destroy();
+    // bbport: NVIDIA Reflex's calls from the game's thread name the swapchain; the retired one is
+    // the driver's to change during the creation (oldSwapchain is externally synchronized):
+    // none of them meanwhile (a crash in the driver's vkCreateSwapchainKHR on a frame generation
+    // switch, Tutuzaooo 2026-11-16).
+    if (old_swapchain) {
+        LowLatency::SwapchainGone(old_swapchain);
+    }
 
     const std::array queue_family_indices = {
         instance.GetGraphicsQueueFamilyIndex(),
@@ -81,6 +89,8 @@ void Swapchain::Create(u32 width_, u32 height_) {
         exclusive ? vk::SharingMode::eExclusive : vk::SharingMode::eConcurrent;
     const auto format = needs_hdr ? SURFACE_FORMAT_HDR : surface_format;
     const vk::SwapchainCreateInfoKHR swapchain_info = {
+        // bbport: NVIDIA Reflex works on a swapchain made for it (vk_low_latency.h).
+        .pNext = LowLatency::SwapchainCreateNext(instance),
         .surface = surface,
         .minImageCount = image_count,
         .imageFormat = format.format,
@@ -103,6 +113,7 @@ void Swapchain::Create(u32 width_, u32 height_) {
     ASSERT_MSG(swapchain_result == vk::Result::eSuccess, "Failed to create swapchain: {}",
                vk::to_string(swapchain_result));
     swapchain = chain;
+    LowLatency::SwapchainMade(instance, swapchain);
     if (old_swapchain) {
         instance.GetDevice().destroySwapchainKHR(old_swapchain);
     }
@@ -159,8 +170,20 @@ bool Swapchain::AcquireNextImage() {
     return !needs_recreation;
 }
 
-bool Swapchain::Present() {
+bool Swapchain::Present(u64 present_id) {
+    // bbport: the presentation's ID for NVIDIA Reflex's markers (vk_low_latency.h); strictly
+    // increasing on a swapchain, else presented without one.
+    const vk::PresentIdKHR present_ids = {
+        .swapchainCount = 1,
+        .pPresentIds = &present_id,
+    };
+    const bool with_id = present_id != 0 && present_id > last_present_id &&
+                         instance.IsLowLatencyReflexSupported();
+    if (with_id) {
+        last_present_id = present_id;
+    }
     const vk::PresentInfoKHR present_info = {
+        .pNext = with_id ? &present_ids : nullptr,
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = &present_ready[image_index],
         .swapchainCount = 1,
@@ -307,6 +330,7 @@ void Swapchain::Destroy() {
     images_view.clear();
 
     if (swapchain) {
+        LowLatency::SwapchainGone(swapchain);
         device.destroySwapchainKHR(swapchain);
     }
 

@@ -563,5 +563,14 @@
  "Enemy damage": "Obrażenia wrogów",
  "Enemy poise": "Równowaga wrogów",
  "Friendly fire": "Ogień sojuszniczy",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Dla trudniejszych łowów: ataki towarzyszy zawsze ranią się nawzajem. Śmiertelny cios towarzysza liczy się jak każda inna śmierć."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Dla trudniejszych łowów: ataki towarzyszy zawsze ranią się nawzajem. Śmiertelny cios towarzysza liczy się jak każda inna śmierć.",
+ "Low latency": "Niskie opóźnienie",
+ "Low latency (NVIDIA Reflex)": "Niskie opóźnienie (NVIDIA Reflex)",
+ "Low latency (AMD Anti-Lag 2)": "Niskie opóźnienie (AMD Anti-Lag 2)",
+ "Auto (with frame generation)": "Auto (z generowaniem klatek)",
+ "On + Boost": "Wł. + Boost",
+ "The game starts each frame just in time for the graphics card instead of early, so what you press shows sooner. Auto: on with frame generation, which holds every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, using a little more power.": "Gra zaczyna każdą klatkę dokładnie na czas dla karty graficznej zamiast z wyprzedzeniem, więc to, co naciskasz, widać szybciej. Auto: włączone z generowaniem klatek, które wstrzymuje każdą klatkę. Boost (tylko NVIDIA): utrzymuje wysokie taktowanie karty graficznej kosztem nieco większego poboru mocy.",
+ "Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.": "Sterownik tej karty graficznej tego nie oferuje. NVIDIA Reflex wymaga GeForce z VK_NV_low_latency2, AMD Anti-Lag 2 wymaga Radeona z VK_AMD_anti_lag.",
+ "Game frame to display: %.1f ms (on)": "Od klatki gry do ekranu: %.1f ms (wł.)",
+ "Game frame to display: %.1f ms (off)": "Od klatki gry do ekranu: %.1f ms (wył.)"
 }

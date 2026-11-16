@@ -563,5 +563,14 @@
  "Enemy damage": "Düşman hasarı",
  "Enemy poise": "Düşman dengesi",
  "Friendly fire": "Dost ateşi",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Daha zorlu bir av için: takım arkadaşlarının saldırıları her zaman birbirine hasar verir. Bir takım arkadaşının öldürücü darbesi diğer ölümler gibi sayılır."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Daha zorlu bir av için: takım arkadaşlarının saldırıları her zaman birbirine hasar verir. Bir takım arkadaşının öldürücü darbesi diğer ölümler gibi sayılır.",
+ "Low latency": "Düşük gecikme",
+ "Low latency (NVIDIA Reflex)": "Düşük gecikme (NVIDIA Reflex)",
+ "Low latency (AMD Anti-Lag 2)": "Düşük gecikme (AMD Anti-Lag 2)",
+ "Auto (with frame generation)": "Otomatik (kare oluşturma ile)",
+ "On + Boost": "Açık + Boost",
+ "The game starts each frame just in time for the graphics card instead of early, so what you press shows sooner. Auto: on with frame generation, which holds every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, using a little more power.": "Oyun her kareye erken değil, ekran kartı için tam zamanında başlar; bastığınız şey ekranda daha erken görünür. Otomatik: her kareyi bekleten kare oluşturma ile açık. Boost (yalnızca NVIDIA): ekran kartının saat hızlarını yüksek tutar, biraz daha fazla güç harcar.",
+ "Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.": "Bu ekran kartının sürücüsü bunu sunmuyor. NVIDIA Reflex için VK_NV_low_latency2 destekli bir GeForce, AMD Anti-Lag 2 için VK_AMD_anti_lag destekli bir Radeon gerekir.",
+ "Game frame to display: %.1f ms (on)": "Oyun karesinden ekrana: %.1f ms (açık)",
+ "Game frame to display: %.1f ms (off)": "Oyun karesinden ekrana: %.1f ms (kapalı)"
 }

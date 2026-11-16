@@ -563,5 +563,14 @@
  "Enemy damage": "Dégâts des ennemis",
  "Enemy poise": "Équilibre des ennemis",
  "Friendly fire": "Tir allié",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Pour une chasse plus dure : les attaques des coéquipiers se blessent mutuellement à tout moment. Le coup fatal d'un coéquipier compte comme n'importe quelle autre mort."
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "Pour une chasse plus dure : les attaques des coéquipiers se blessent mutuellement à tout moment. Le coup fatal d'un coéquipier compte comme n'importe quelle autre mort.",
+ "Low latency": "Faible latence",
+ "Low latency (NVIDIA Reflex)": "Faible latence (NVIDIA Reflex)",
+ "Low latency (AMD Anti-Lag 2)": "Faible latence (AMD Anti-Lag 2)",
+ "Auto (with frame generation)": "Auto (avec la génération d'images)",
+ "On + Boost": "Activé + Boost",
+ "The game starts each frame just in time for the graphics card instead of early, so what you press shows sooner. Auto: on with frame generation, which holds every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, using a little more power.": "Le jeu commence chaque image juste à temps pour la carte graphique au lieu d'en avance : ce que vous appuyez s'affiche plus tôt. Auto : activé avec la génération d'images, qui retient chaque image. Boost (NVIDIA uniquement) : garde les fréquences de la carte graphique élevées, pour un peu plus de consommation.",
+ "Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.": "Non proposé par le pilote de cette carte graphique. NVIDIA Reflex demande une GeForce avec VK_NV_low_latency2, AMD Anti-Lag 2 une Radeon avec VK_AMD_anti_lag.",
+ "Game frame to display: %.1f ms (on)": "De l'image du jeu à l'écran : %.1f ms (activé)",
+ "Game frame to display: %.1f ms (off)": "De l'image du jeu à l'écran : %.1f ms (désactivé)"
 }

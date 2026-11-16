@@ -563,5 +563,14 @@
  "Enemy damage": "敌人伤害",
  "Enemy poise": "敌人韧性",
  "Friendly fire": "友军伤害",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "为了更艰难的狩猎：队友的攻击随时都会互相造成伤害。被队友击杀与其他死亡相同。"
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "为了更艰难的狩猎：队友的攻击随时都会互相造成伤害。被队友击杀与其他死亡相同。",
+ "Low latency": "低延迟",
+ "Low latency (NVIDIA Reflex)": "低延迟 (NVIDIA Reflex)",
+ "Low latency (AMD Anti-Lag 2)": "低延迟 (AMD Anti-Lag 2)",
+ "Auto (with frame generation)": "自动 (随画面生成开启)",
+ "On + Boost": "开启 + Boost",
+ "The game starts each frame just in time for the graphics card instead of early, so what you press shows sooner. Auto: on with frame generation, which holds every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, using a little more power.": "游戏不再提前开始每一帧，而是恰好赶上显卡的时机，按键会更早显示在画面上。自动：与会延后每一帧的画面生成一同开启。Boost (仅 NVIDIA)：保持显卡高频率，耗电略多。",
+ "Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.": "此显卡的驱动程序不提供该功能。NVIDIA Reflex 需要支持 VK_NV_low_latency2 的 GeForce，AMD Anti-Lag 2 需要支持 VK_AMD_anti_lag 的 Radeon。",
+ "Game frame to display: %.1f ms (on)": "从游戏帧到画面：%.1f ms (开启)",
+ "Game frame to display: %.1f ms (off)": "从游戏帧到画面：%.1f ms (关闭)"
 }

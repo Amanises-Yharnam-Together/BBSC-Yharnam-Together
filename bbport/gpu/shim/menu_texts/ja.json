@@ -563,5 +563,14 @@
  "Enemy damage": "敵のダメージ",
  "Enemy poise": "敵の強靭度",
  "Friendly fire": "フレンドリーファイア",
- "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "より厳しい狩りのために：仲間の攻撃が常に互いにダメージを与えます。仲間によるとどめは通常の死と同じ扱いです。"
+ "For a harder hunt: teammates' attacks hurt each other at all times. A teammate's killing blow counts as any other death.": "より厳しい狩りのために：仲間の攻撃が常に互いにダメージを与えます。仲間によるとどめは通常の死と同じ扱いです。",
+ "Low latency": "低遅延",
+ "Low latency (NVIDIA Reflex)": "低遅延 (NVIDIA Reflex)",
+ "Low latency (AMD Anti-Lag 2)": "低遅延 (AMD Anti-Lag 2)",
+ "Auto (with frame generation)": "自動 (フレーム生成と同時)",
+ "On + Boost": "ON + Boost",
+ "The game starts each frame just in time for the graphics card instead of early, so what you press shows sooner. Auto: on with frame generation, which holds every frame back. Boost (NVIDIA only): keeps the graphics card's clocks up, using a little more power.": "ゲームが各フレームを早めではなく、グラフィックカードにちょうど間に合うタイミングで始めるため、操作が画面に早く反映されます。自動: 各フレームを遅らせるフレーム生成と同時にON。Boost (NVIDIAのみ): グラフィックカードのクロックを高く保ちます。消費電力が少し増えます。",
+ "Not offered by this graphics card's driver. NVIDIA Reflex needs a GeForce with VK_NV_low_latency2, AMD Anti-Lag 2 a Radeon with VK_AMD_anti_lag.": "このグラフィックカードのドライバーは対応していません。NVIDIA Reflex には VK_NV_low_latency2 対応の GeForce、AMD Anti-Lag 2 には VK_AMD_anti_lag 対応の Radeon が必要です。",
+ "Game frame to display: %.1f ms (on)": "ゲームのフレームから画面まで: %.1f ms (ON)",
+ "Game frame to display: %.1f ms (off)": "ゲームのフレームから画面まで: %.1f ms (OFF)"
 }

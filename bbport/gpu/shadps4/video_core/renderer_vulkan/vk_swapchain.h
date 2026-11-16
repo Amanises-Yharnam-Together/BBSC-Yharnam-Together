@@ -32,7 +32,8 @@ public:
     bool AcquireNextImage();
 
     /// Presents the current image and move to the next one
-    bool Present();
+    /// `present_id`: the presentation's ID for NVIDIA Reflex (vk_low_latency.h), 0 none.
+    bool Present(u64 present_id = 0);
 
     vk::SurfaceKHR GetSurface() const {
         return surface;
@@ -155,6 +156,7 @@ private:
     u32 image_count = 0;
     u32 image_index = 0;
     u32 frame_index = 0;
+    u64 last_present_id = 0; // bbport: the last presentation's ID (they must increase)
     bool needs_recreation = true;
     bool zero_extent = false; ///< bbport: the surface was 0x0 (minimised) at the last Create
     bool fg_images = false;    // bbport: made with the frame generation image

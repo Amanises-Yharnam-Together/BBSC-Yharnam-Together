@@ -697,6 +697,10 @@ add_executable(frame-gen-pace-test EXCLUDE_FROM_ALL ../tests/test_frame_gen_pace
 target_compile_options(frame-gen-pace-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(frame-gen-pace-test PRIVATE shim)
 
+add_executable(latency-frames-test EXCLUDE_FROM_ALL ../tests/test_latency_frames.cpp)
+target_compile_options(latency-frames-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
+target_include_directories(latency-frames-test PRIVATE shim)
+
 add_executable(hdr-highlight-test EXCLUDE_FROM_ALL ../tests/test_hdr_highlight.cpp)
 target_compile_options(hdr-highlight-test PRIVATE -UNDEBUG -Wall -Wextra -Werror)
 target_include_directories(hdr-highlight-test PRIVATE shadps4/video_core/host_shaders)

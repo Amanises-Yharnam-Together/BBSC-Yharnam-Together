@@ -51,6 +51,9 @@ struct Frame {
     /// bbport: HDR output: the SceneHdr gain image of this frame (an interpolated frame: of the
     /// frame after it), -1 for none.
     int gain_slot{-1};
+    /// bbport: the game frame this image shows (low latency's bookkeeping, vk_low_latency.h),
+    /// set when its flip is prepared; 0 none.
+    u64 latency_frame{0};
 };
 
 enum SchedulerType {
@@ -122,7 +125,9 @@ private:
     void DestroyFrameImage(Frame& frame);
 
     /// One image of the swapchain: the frame blitted, the overlay drawn over it, presented.
-    void PresentFrame(Frame* frame, bool is_reusing_frame, bool is_game_frame);
+    /// `present_id`: a generated image's presentation ID (vk_low_latency.h); a game frame's own
+    /// image takes its frame's.
+    void PresentFrame(Frame* frame, bool is_reusing_frame, bool is_game_frame, u64 present_id = 0);
     /// bbport: HDR output on or off as the setting and the display allow (swapchain recreated).
     void UpdateHdrOutput();
     /// bbport: the overlay and HDR encode of a frame composed into hdr_pass.Game().
