@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
+#include <utility>
 #include <limits>
 #include <boost/container/small_vector.hpp>
 #include <xxhash.h>
@@ -1492,15 +1493,36 @@ void TextureCache::GarbageCollectImages() {
         // already leaves out what others hold, so it is used on every Windows GPU.
 #ifdef _WIN32
         constexpr bool live_budget = true;
+        constexpr bool linux_discrete = false;
 #else
-        constexpr bool live_budget = false;
+        // bbport: on Linux the driver's live budget too. NVIDIA's and Mesa's VK_EXT_memory_budget
+        // leave out what the desktop and other programs hold, as WDDM's does (an 8 GB RTX 5060
+        // with a desktop open: 6.6 GB). The marks from the startup heap put pressure at 40 % of
+        // it and critical at 80 % (2.3 and 4.7 GB): the collector evicted textures all session,
+        // uploaded again as the camera turned back, with 2 GB of the card still free
+        // (Tutuzaooo 2026-11-16). Without WDDM's paging an overfull card fails allocations
+        // instead of spilling, so on a discrete GPU the marks stay a little lower than on
+        // Windows: 80 % and 90 %. BB_GC_LIVE_BUDGET=0: the startup marks, as before.
+        static const bool live_budget = [] {
+            const char* env = std::getenv("BB_GC_LIVE_BUDGET");
+            return !(env && env[0] == '0');
+        }();
+        const bool linux_discrete = live_budget && !instance.IsIntegrated() && !forced_budget;
 #endif
         if (live_budget || instance.IsIntegrated() || forced_budget) {
             const u64 budget = forced_budget ? forced_budget : instance.GetDeviceMemoryBudgetNow();
             if (budget != 0) {
                 trigger_gc_memory = budget / 10 * 7;
-                pressure_gc_memory = budget / 100 * 85;
-                critical_gc_memory = budget / 100 * 95;
+                pressure_gc_memory = budget / 100 * (linux_discrete ? 80 : 85);
+                critical_gc_memory = budget / 100 * (linux_discrete ? 90 : 95);
+                static bool told = false;
+                if (!std::exchange(told, true)) {
+                    std::printf("Texture cache: marks from the driver's live budget (%llu MiB now): "
+                                "pressure %llu MiB, critical %llu MiB\n",
+                                (unsigned long long)(budget >> 20),
+                                (unsigned long long)(pressure_gc_memory >> 20),
+                                (unsigned long long)(critical_gc_memory >> 20));
+                }
             }
         }
     }
