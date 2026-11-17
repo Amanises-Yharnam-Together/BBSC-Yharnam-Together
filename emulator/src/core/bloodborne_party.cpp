@@ -1558,6 +1558,7 @@ namespace {
 
 constexpr s32 LightRequestBase = 70000000;
 constexpr s32 LightRequestLow = 200;
+constexpr s32 LampTripLow = 100; // 7MMM01LL: a lamp's "travel to the Hunter's Dream"
 constexpr s32 LampMapFirst = 211;
 constexpr s32 LampMapLast = 399;
 constexpr s32 LampsPerMap = 20;
@@ -1603,6 +1604,22 @@ std::vector<s32> LightRequestsToClear(u32 packed_map, const std::function<bool(s
     for (s32 lamp = 0; lamp < LampsPerMap; ++lamp) {
         const s32 request = LightRequestBase + map * 10000 + LightRequestLow + lamp;
         if (on(request) && !on(LampOfLightRequest(request)->active_flag)) {
+            clear.push_back(request);
+        }
+    }
+    return clear;
+}
+
+std::vector<s32> LampTripsToClear(u32 packed_map, const std::function<bool(s32)>& on) {
+    const s32 map = static_cast<s32>((packed_map >> 24) & 0xFF) * 10 +
+                    static_cast<s32>((packed_map >> 16) & 0xFF);
+    std::vector<s32> clear;
+    if (map < LampMapFirst || map > LampMapLast) {
+        return clear;
+    }
+    for (s32 lamp = 0; lamp < LampsPerMap; ++lamp) {
+        const s32 request = LightRequestBase + map * 10000 + LampTripLow + lamp;
+        if (on(request)) {
             clear.push_back(request);
         }
     }

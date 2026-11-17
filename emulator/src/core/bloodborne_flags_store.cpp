@@ -919,6 +919,31 @@ void ClearLightRequestsThatLitNothing() {
     }
 }
 
+// See LampTripsToClear: a lamp's travel request left on in the save, off as its map loads (else
+// the map sends the player back to the Hunter's Dream). BB_CLEAR_STALE_LAMP_TRIPS=0: left on.
+void ClearStaleLampTrips() {
+    static const bool wanted = [] {
+        const char* const setting = std::getenv("BB_CLEAR_STALE_LAMP_TRIPS");
+        return !setting || std::string_view{setting} != "0";
+    }();
+    if (!wanted || !party_controller) {
+        return;
+    }
+    using SetFlag = void PS4_SYSV_ABI (*)(u64, s32, bool);
+    const u32 map = GetCurrentPackedMap();
+    std::string cleared;
+    for (const s32 flag : LampTripsToClear(map, EventFlagOn)) {
+        reinterpret_cast<SetFlag>(image_base + PartyGhostSetEventFlagOffset)(0, flag, false);
+        cleared += fmt::format(" {}", flag);
+    }
+    if (!cleared.empty()) {
+        LOG_WARNING(Debug,
+                    "Bloodborne party: lamp travel requests still on as map {:#x} loaded "
+                    "(they would send the player back to the Hunter's Dream); cleared:{}",
+                    map, cleared);
+    }
+}
+
 // See ClearsDollLevelUpFlag: the Doll's level-up flag, stuck on from a team's world or an old
 // save, off as a map loads (after the team's world went in).
 void ClearStuckDollLevelUpFlag() {
@@ -938,6 +963,7 @@ void SetGuestPickupsBeforeMapItems() {
     RepairRitualAltars();
     ClearLightRequestsThatLitNothing();
     ClearStuckDollLevelUpFlag();
+    ClearStaleLampTrips();
     static std::chrono::steady_clock::time_point last{};
     static OncePerTrip trip_load;
     const auto now = std::chrono::steady_clock::now();
