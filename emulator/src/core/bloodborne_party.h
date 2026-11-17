@@ -1147,6 +1147,12 @@ bool RefusesLampLight(s32 flag, std::optional<bool> lamp_character_off);
 // (its active flag off): the request lit nothing, or it came from another player's world. Cleared
 // as the map loads, so its event 7100 lights the lamp again.
 std::vector<s32> LightRequestsToClear(u32 packed_map, const std::function<bool(s32)>& on);
+// Tutuzaooo 2026-11-17 (Linux): a lamp's "travel to the Hunter's Dream" request (7MMM01LL, see
+// IsLampTravelFlag) still on as its map loads is stale: a request made there warps at once and the
+// event clears it before any load. One left in the save (a trip co-op made in place of the game's
+// event) made common event 7200 warp the player back to the Dream a few seconds after every trip
+// to that map. The requests on (`on`) of `packed_map`'s lamps, cleared as the map loads.
+std::vector<s32> LampTripsToClear(u32 packed_map, const std::function<bool(s32)>& on);
 // Kaniel's playtest 2026-10-25: right after the team connected nobody could level up at the
 // Doll. Her talk (m21_00 t210304) sets 6700 as her level-up menu opens and plays only her words
 // while it is on; the team's world held the host's 6700 on and put it in every save. No talk is
