@@ -10,3 +10,8 @@ patches here to its working tree when they are not applied yet:
 - `0003-...`: `aspectMask` in `FfxFsr4VkExternalImageState` (0 = color). The layout barriers
   of a registered external image named the color aspect, which is invalid for the
   D32_SFLOAT_S8_UINT depth image.
+- `0006-...`: the FFX Vulkan backend's `findMemoryTypeIndex` never picks a protected memory
+  type unless asked for. RADV lists device-local protected types after the plain ones on the
+  Ryzen Z1 Extreme (ROG Ally, Legion Go); the loop keeps the last match, so FSR 3.1's resources
+  went to protected memory the device never enabled: full-screen colour noise. From bbport 0.7
+  (deadinside28/bloodborne_pc #85, PR #293 by iannitram).
