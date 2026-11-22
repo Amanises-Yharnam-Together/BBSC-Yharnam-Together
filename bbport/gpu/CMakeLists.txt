@@ -61,10 +61,19 @@ if (NOT magic_enum_FOUND)
                                                     third_party/magic_enum/include/magic_enum)
 endif()
 find_package(tsl-robin-map REQUIRED)
+# The emulator's submodules (../../emulator/externals): the fallback for libraries a distribution
+# does not package (Arch has no zydis package, and VMA only in some repositories).
+set(BB_EMULATOR_EXTERNALS ${CMAKE_CURRENT_SOURCE_DIR}/../../emulator/externals)
 find_package(VulkanMemoryAllocator CONFIG QUIET)
 if (NOT VulkanMemoryAllocator_FOUND)
-    # MSYS2 ships the header (include/vma/vk_mem_alloc.h) without a CMake package.
-    find_path(VMA_INCLUDE_DIR vk_mem_alloc.h PATH_SUFFIXES vma REQUIRED)
+    # MSYS2 ships the header (include/vma/vk_mem_alloc.h) without a CMake package; elsewhere the
+    # emulator's vma submodule has it.
+    find_path(VMA_INCLUDE_DIR vk_mem_alloc.h PATH_SUFFIXES vma
+              HINTS ${BB_EMULATOR_EXTERNALS}/vma/include)
+    if (NOT VMA_INCLUDE_DIR)
+        message(FATAL_ERROR "vk_mem_alloc.h not found: install VulkanMemoryAllocator, or run "
+                            "git submodule update --init --depth 1 emulator/externals/vma")
+    endif()
     add_library(VulkanMemoryAllocator INTERFACE)
     add_library(GPUOpen::VulkanMemoryAllocator ALIAS VulkanMemoryAllocator)
     target_include_directories(VulkanMemoryAllocator INTERFACE ${VMA_INCLUDE_DIR})
@@ -86,7 +95,26 @@ if (NOT miniz_FOUND)
     unset(CMAKE_POLICY_VERSION_MINIMUM)
     add_library(miniz::miniz ALIAS miniz)
 endif()
-find_package(Zydis REQUIRED)
+find_package(Zydis QUIET)
+if (NOT Zydis_FOUND)
+    # Not packaged everywhere (Arch): built from the emulator's zydis submodule, static and
+    # position-independent (it goes into the shared bbgpu).
+    if (NOT EXISTS ${BB_EMULATOR_EXTERNALS}/zydis/CMakeLists.txt OR
+        NOT EXISTS ${BB_EMULATOR_EXTERNALS}/zydis/dependencies/zycore/CMakeLists.txt)
+        message(FATAL_ERROR "Zydis not found: install it, or run git submodule update --init "
+                            "--recursive --depth 1 emulator/externals/zydis")
+    endif()
+    set(ZYDIS_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    set(ZYDIS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(ZYDIS_BUILD_DOXYGEN OFF CACHE BOOL "" FORCE)
+    set(ZYDIS_BUILD_SHARED_LIB OFF CACHE BOOL "" FORCE)
+    set(bb_pic ${CMAKE_POSITION_INDEPENDENT_CODE})
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+    add_subdirectory(${BB_EMULATOR_EXTERNALS}/zydis ${CMAKE_CURRENT_BINARY_DIR}/zydis EXCLUDE_FROM_ALL)
+    unset(CMAKE_POLICY_VERSION_MINIMUM)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ${bb_pic})
+endif()
 find_program(GLSLANG_COMPILER NAMES glslang glslangValidator REQUIRED)
 
 set(SIRIT_USE_SYSTEM_SPIRV_HEADERS OFF CACHE BOOL "" FORCE)

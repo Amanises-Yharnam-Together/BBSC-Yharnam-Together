@@ -192,7 +192,8 @@ port and shadPS4 players cannot be in one party.
 
 ## Build from source
 
-Windows only for now. Prerequisites:
+On Linux, see [docs/LINUX.md](docs/LINUX.md): the port, the server and playing co-op from a
+source build. The rest of this section is Windows. Prerequisites:
 
 - the port: [MSYS2](https://www.msys2.org) with the CLANG64 packages listed in
   [bbport/packaging/windows/README.md](bbport/packaging/windows/README.md), and a python.org
