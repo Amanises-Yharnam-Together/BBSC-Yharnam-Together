@@ -1648,9 +1648,18 @@ void TemporalUpscaler::OnDisplayPassStart() {
         const char* value = std::getenv("BB_SCENE_WITHOUT_UI");
         return !(value && value[0] == '0');
     }();
+    // bbport (Tutuzaooo 2026-11-24): a frame with no UI draw (cutscenes between subtitle lines:
+    // no HUD, no Scaleform) is finished at the output's size on a 16:9 output too. It was only
+    // on other aspect ratios: on 16:9 such frames went out as the game drew them, the render size
+    // stretched to the screen (DLSS and FSR "gone" for as long as no subtitle was shown).
+    // BB_SCENE_WITHOUT_UI=wide: only on outputs other than 16:9, as before.
+    static const bool only_wide = [] {
+        const char* value = std::getenv("BB_SCENE_WITHOUT_UI");
+        return value && std::strcmp(value, "wide") == 0;
+    }();
     const auto edges = UiComposition::ScreenEdges(target_width, target_height);
-    if (!finish_without_ui || (edges[0] >= 1.0f && edges[1] >= 1.0f) || !Scaled() || ui_phase ||
-        !ldr_target || !camera_motion.Ready()) {
+    if (!finish_without_ui || (only_wide && edges[0] >= 1.0f && edges[1] >= 1.0f) || !Scaled() ||
+        ui_phase || !ldr_target || !camera_motion.Ready()) {
         return;
     }
     if (Active() && !failed) {
