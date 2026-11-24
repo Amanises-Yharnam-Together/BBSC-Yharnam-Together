@@ -325,8 +325,15 @@ void CameraMotion::RecordMotion(vk::ImageView depth_view, vk::ImageView motion_v
 
 void CameraMotion::OnConstants(const float* data) {
     // Scene constants: far plane 3000, 1/far, and the render size.
-    if (data[0] != 3000.0f || data[4] < 64.0f || data[5] < 64.0f ||
-        std::abs(data[1] * data[0] - 1.0f) > 1e-3f) {
+    if (data[4] < 64.0f || data[5] < 64.0f || std::abs(data[1] * data[0] - 1.0f) > 1e-3f) {
+        return;
+    }
+    if (data[0] != 3000.0f) {
+        // bbport: constants shaped like the scene's with another far plane are not taken; the
+        // log's "frames ... with no scene camera" line names the last one passed over.
+        if (!frame_has_camera && !pass_has_camera) {
+            frame_rejected_far = data[0];
+        }
         return;
     }
     // bbport: the first constants of each G-buffer pass are its camera. A frame may have more
@@ -401,6 +408,7 @@ void CameraMotion::OnConstants(const float* data) {
     }
     pass_has_camera = true;
     frame_has_camera = true;
+    kept = false; // a pass with its own camera: the last one with a camera goes on
     if (frame_gbuffer_passes <= pass_positions.size() && frame_gbuffer_passes > 0) {
         // World position of this pass's camera (diagnostics: frames with several passes).
         const auto& v = pass_camera.view;
@@ -412,8 +420,16 @@ void CameraMotion::OnConstants(const float* data) {
 }
 
 void CameraMotion::OnGBufferPass(VideoCore::ImageId depth, float x_sign, float y_sign) {
+    if (depth && depth == ignored_depth) {
+        return; // the origin pass this frame (see OnConstants): the scene's depth stays
+    }
     if (depth != depth_id) {
         // Another depth target: another G-buffer pass, with its own camera.
+        kept = pass_has_camera && pass_camera.valid && depth_id;
+        if (kept) {
+            kept_depth = depth_id;
+            kept_camera = pass_camera;
+        }
         depth_id = depth;
         pass_has_camera = false;
         ++frame_gbuffer_passes;
@@ -423,6 +439,29 @@ void CameraMotion::OnGBufferPass(VideoCore::ImageId depth, float x_sign, float y
 }
 
 void CameraMotion::CommitFrameCamera() {
+    // bbport (Tutuzaooo 2026-11-23): a pass after the scene's that brought no camera of its own
+    // draws the character alone (the equipment menu, the Bath Messengers' shop, cutscenes: "2
+    // G-buffer passes this frame, cameras at (x y z) (0.00 0.00 0.00)", the second never set). Its
+    // depth went to the upscaler with no camera committed: the frame went out unscaled, the render
+    // size stretched, while the screen was open. The scene pass's depth and camera stay; that
+    // pass's depth is ignored for the rest of the frame. BB_CAMERA_ORIGIN_PASS=1: as before.
+    static const bool take_cameraless_pass = [] {
+        const char* env = std::getenv("BB_CAMERA_ORIGIN_PASS");
+        return env && env[0] == '1';
+    }();
+    if (!committed && !pass_has_camera && kept && !take_cameraless_pass) {
+        ignored_depth = depth_id;
+        depth_id = kept_depth;
+        pass_camera = kept_camera;
+        pass_has_camera = true;
+        kept = false;
+        static bool told = false;
+        if (!told) {
+            told = true;
+            std::printf("Camera motion: a pass with no camera after the scene's (the character on "
+                        "its own): the scene's camera and depth kept\n");
+        }
+    }
     if (committed || !pass_has_camera) {
         return;
     }
@@ -448,12 +487,39 @@ void CameraMotion::OnDisplayPass(VideoCore::ImageId frame) {
             std::printf("; the last pass's camera goes with its depth\n");
         }
     }
-    if (!frame_has_camera) InvalidateHistory();
+    if (!frame_has_camera) {
+        const bool had_camera = current.valid; // a frame of play before this one
+        InvalidateHistory();
+        // bbport: frames that went out with no camera (unscaled), and why, every 2 s at most.
+        if (frame_gbuffer_passes > 0) {
+            ++frames_without_camera;
+            if (frame_rejected_far != 0.0f) last_rejected_far = frame_rejected_far;
+        } else if (had_camera) {
+            ++frames_without_gbuffer;
+        }
+    }
+    if (frames_without_camera > 0 || frames_without_gbuffer > 0) {
+        static auto next = std::chrono::steady_clock::now();
+        if (const auto now = std::chrono::steady_clock::now(); now >= next) {
+            next = now + std::chrono::seconds(2);
+            std::printf("Camera motion: %u frames with a G-buffer pass but no scene camera "
+                        "(unscaled) and %u with no G-buffer pass in the last 2 s; last scene "
+                        "constants passed over: far plane %g\n",
+                        frames_without_camera, frames_without_gbuffer, last_rejected_far);
+            frames_without_camera = 0;
+            frames_without_gbuffer = 0;
+            last_rejected_far = 0.0f;
+        }
+    }
+    frame_rejected_far = 0.0f;
     frame_has_camera = false;
     pass_has_camera = false;
     committed = false;
     frame_gbuffer_passes = 0;
     depth_id = {};
+    kept = false;
+    kept_depth = {};
+    ignored_depth = {};
 }
 
 void CameraMotion::Overlay(VideoCore::ImageId frame) {
