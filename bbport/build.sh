@@ -70,6 +70,14 @@ mkdir -p pgo
 if [[ ! -f gpu/third_party/fsr-vulkan/CMakeLists.txt || ! -f gpu/third_party/imgui/imgui.h ]]; then
     git submodule update --init --recursive
 fi
+# Zydis and VMA come from the emulator's submodules where the system has no package (Arch).
+if ! pkg-config --exists zydis 2>/dev/null && [[ ! -f ../emulator/externals/zydis/dependencies/zycore/CMakeLists.txt ]]; then
+    git -C .. submodule update --init --recursive --depth 1 emulator/externals/zydis
+fi
+if [[ ! -f /usr/include/vk_mem_alloc.h && ! -f /usr/include/vma/vk_mem_alloc.h &&
+      ! -f ../emulator/externals/vma/include/vk_mem_alloc.h ]]; then
+    git -C .. submodule update --init --depth 1 emulator/externals/vma
+fi
 for patch in gpu/patches/fsr-vulkan/*.patch; do
     if ! git -C gpu/third_party/fsr-vulkan apply --reverse --check "$PWD/$patch" 2>/dev/null; then
         git -C gpu/third_party/fsr-vulkan apply "$PWD/$patch"

@@ -52,7 +52,9 @@ same shadNet server and backend.
   `C:\bb\out\bbport` (`run.py`, `scripts`, `patches`, `bin\bb-probe.exe`).
   `tools\ci-check.ps1 -Component bbport` does the same.
 - Linux: `bbport/build.sh --test`; needs clang (GCC 13 lacks deducing `this`), Vulkan headers
-  with `VK_VALVE_shader_mixed_float_dot_product` (1.4.33x or newer).
+  with `VK_VALVE_shader_mixed_float_dot_product` (1.4.33x or newer). Zydis and VMA come from
+  `emulator/externals` when the system has no package. Packages, the server and co-op:
+  [LINUX.md](LINUX.md).
   The renderer tests (`ninja -C out/gpu scene-resolution-test taa-shader-test`) run on lavapipe
   (`VK_DRIVER_FILES=.../lvp_icd.json`).
 
