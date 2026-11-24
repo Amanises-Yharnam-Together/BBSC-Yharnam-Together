@@ -7,8 +7,7 @@ play together when both run the **same release version** (below).
 
 Played on CachyOS (Arch) with an NVIDIA GTX 1070 (driver 580), clang 23 and Qt 6.12: a Linux
 host (v1.5.0 with #598, shadnet built as below) and a Windows player on the v1.5.0 release, in one
-team over a virtual LAN, for several hours. The launcher's setup made event files identical to
-v1.5.0's `event-reference.json`.
+team over a virtual LAN, for several hours.
 
 ## Packages
 
@@ -108,6 +107,14 @@ release's `VERSION.txt` as above. shadnet's log then names `version=1.5.0` and `
   budget, as on Windows; with it applied the glitches were gone. Programs holding VRAM (an
   animated wallpaper, browsers) lower that budget: close them while playing.
 - `ray_traced_ao` needs ray tracing hardware; leave it off on GTX 10xx.
+- The co-op event files differ from the Windows release's on distributions whose `libz.so.1` is
+  zlib-ng (Arch, CachyOS, Fedora 40+): `party_boss_events.py` recompresses them, and zlib-ng's
+  deflate makes other bytes from the same data. All 18 output hashes differ from
+  `event-reference.json`, though the events are the same; setup then says the files differ, and
+  the games' fingerprints warn that their game files differ (a warning only: play goes on). With
+  zlib's own library they match byte for byte: build zlib (1.3.2 here) and run the patcher with
+  it first on `LD_LIBRARY_PATH`. Check with `python3 -c 'import zlib; print(zlib.ZLIB_RUNTIME_VERSION)'`
+  (zlib-ng says `1.3.1.zlib-ng`).
 
 ## Reaching the host
 
