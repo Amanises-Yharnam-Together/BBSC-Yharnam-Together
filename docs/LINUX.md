@@ -5,10 +5,10 @@ so a Linux player builds the game, the launcher's co-op page runs it, and a Linu
 shadnet as well. Windows players use the release as usual; a Linux player and a Windows player
 play together when both run the **same release version** (below).
 
-Checked on CachyOS (Arch) with an NVIDIA GTX 1070 (driver 580), clang 23 and Qt 6.12: the port
-and shadnet build, the launcher's setup makes event files identical to v1.5.0's
-`event-reference.json`, and the host's servers start and stop from the launcher. A full session
-with a Windows player has not been reported yet.
+Played on CachyOS (Arch) with an NVIDIA GTX 1070 (driver 580), clang 23 and Qt 6.12: a Linux
+host (v1.5.0 with #598, shadnet built as below) and a Windows player on the v1.5.0 release, in one
+team over a virtual LAN, for several hours. The launcher's setup made event files identical to
+v1.5.0's `event-reference.json`.
 
 ## Packages
 
@@ -94,6 +94,20 @@ git diff 85b02ee7 63b57800 | git apply -3       # #598, the Linux port; applies 
 
 and give the build the release's version: `BB_RELEASE_VERSION=v1.5.0` for `build.sh`, and the
 release's `VERSION.txt` as above. shadnet's log then names `version=1.5.0` and `protocol=9`.
+
+## Performance and known issues (NVIDIA)
+
+- On NVIDIA the port keeps copies of the game's memory (the *new memory and translation model*
+  needs an AMD GPU), so expect a few percent less than the upstream port 0.7 at the same
+  settings. A GTX 1070 holds 57–60 FPS at 2560x1440 with FSR 3.1 *Performance* (1280x720 scene) and
+  the game's effects on; *Balanced* gave ~49 FPS, *Quality* ~40. Model LOD *Highest* cost ~6 FPS.
+- Turn the game's own anti-aliasing off with FSR (it is on by default here); FSR anti-aliases.
+- Stretched, flickering polygons on a 6–8 GB card: the texture cache's marks come from the VRAM
+  heap at startup on Linux (1792 / 3584 MiB on 8 GB), the game stays over them and textures in
+  use are evicted (about 228 000 in one session here). #603 takes the marks from the driver's live
+  budget, as on Windows; with it applied the glitches were gone. Programs holding VRAM (an
+  animated wallpaper, browsers) lower that budget: close them while playing.
+- `ray_traced_ao` needs ray tracing hardware; leave it off on GTX 10xx.
 
 ## Reaching the host
 
